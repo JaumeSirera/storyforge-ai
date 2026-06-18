@@ -103,19 +103,17 @@ export const submitAnswer = createServerFn({ method: "POST" })
     const nextNode = nextId ? story.nodes[nextId] : null;
     const completed = !nextNode || nextNode.isEnding;
 
-    const update: Record<string, any> = {
-      answers: answers as any,
-      score: newScore,
-      competency_scores: comp as any,
-      current_node_id: nextId,
-    };
-    if (completed && nextNode) {
-      update.completed_at = new Date().toISOString();
-    }
+    const completedAt = completed && nextNode ? new Date().toISOString() : null;
 
     const { error: updErr } = await context.supabase
       .from("sessions")
-      .update(update)
+      .update({
+        answers: answers as any,
+        score: newScore,
+        competency_scores: comp as any,
+        current_node_id: nextId,
+        ...(completedAt ? { completed_at: completedAt } : {}),
+      })
       .eq("id", data.sessionId)
       .eq("user_id", context.userId);
     if (updErr) throw new Error(updErr.message);
