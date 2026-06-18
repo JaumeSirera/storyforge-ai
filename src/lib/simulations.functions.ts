@@ -152,9 +152,6 @@ Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
         evaluation_criteria: output.evaluationCriteria as any,
         videos: data.videos as any,
       })
-        evaluation_criteria: output.evaluationCriteria,
-        videos: data.videos,
-      })
       .select("id")
       .single();
 

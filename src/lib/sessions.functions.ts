@@ -103,10 +103,10 @@ export const submitAnswer = createServerFn({ method: "POST" })
     const nextNode = nextId ? story.nodes[nextId] : null;
     const completed = !nextNode || nextNode.isEnding;
 
-    const update: Record<string, unknown> = {
-      answers,
+    const update: Record<string, any> = {
+      answers: answers as any,
       score: newScore,
-      competency_scores: comp,
+      competency_scores: comp as any,
       current_node_id: nextId,
     };
     if (completed && nextNode) {
