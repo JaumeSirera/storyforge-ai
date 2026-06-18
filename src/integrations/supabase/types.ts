@@ -14,7 +14,143 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sessions: {
+        Row: {
+          achievements: Json
+          answers: Json
+          competency_scores: Json
+          completed_at: string | null
+          current_node_id: string | null
+          id: string
+          report: Json | null
+          score: number
+          simulation_id: string
+          stars: number
+          started_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          achievements?: Json
+          answers?: Json
+          competency_scores?: Json
+          completed_at?: string | null
+          current_node_id?: string | null
+          id?: string
+          report?: Json | null
+          score?: number
+          simulation_id: string
+          stars?: number
+          started_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          achievements?: Json
+          answers?: Json
+          competency_scores?: Json
+          completed_at?: string | null
+          current_node_id?: string | null
+          id?: string
+          report?: Json | null
+          score?: number
+          simulation_id?: string
+          stars?: number
+          started_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "simulations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      simulations: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          duration_min: number | null
+          evaluation_criteria: Json
+          id: string
+          is_public: boolean
+          objective: string
+          owner_id: string
+          prompt: string
+          status: string
+          story: Json
+          title: string
+          topic: string | null
+          updated_at: string
+          videos: Json
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          duration_min?: number | null
+          evaluation_criteria?: Json
+          id?: string
+          is_public?: boolean
+          objective: string
+          owner_id: string
+          prompt: string
+          status?: string
+          story?: Json
+          title: string
+          topic?: string | null
+          updated_at?: string
+          videos?: Json
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          duration_min?: number | null
+          evaluation_criteria?: Json
+          id?: string
+          is_public?: boolean
+          objective?: string
+          owner_id?: string
+          prompt?: string
+          status?: string
+          story?: Json
+          title?: string
+          topic?: string | null
+          updated_at?: string
+          videos?: Json
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
