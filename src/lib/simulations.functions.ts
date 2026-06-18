@@ -148,7 +148,10 @@ Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
         topic: data.topic ?? null,
         duration_min: data.durationMin,
         status: "ready",
-        story,
+        story: story as any,
+        evaluation_criteria: output.evaluationCriteria as any,
+        videos: data.videos as any,
+      })
         evaluation_criteria: output.evaluationCriteria,
         videos: data.videos,
       })
