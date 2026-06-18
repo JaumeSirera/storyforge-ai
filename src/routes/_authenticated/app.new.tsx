@@ -1,0 +1,182 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { generateSimulation } from "@/lib/simulations.functions";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Trash2, Sparkles, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
+export const Route = createFileRoute("/_authenticated/app/new")({
+  component: NewSimulation,
+});
+
+type VideoEntry = { label: string; type: "youtube" | "vimeo" | "mp4"; url: string };
+
+function detectType(url: string): "youtube" | "vimeo" | "mp4" {
+  if (/youtu\.?be/.test(url)) return "youtube";
+  if (/vimeo\.com/.test(url)) return "vimeo";
+  return "mp4";
+}
+
+function NewSimulation() {
+  const navigate = useNavigate();
+  const generate = useServerFn(generateSimulation);
+
+  const [title, setTitle] = useState("");
+  const [objective, setObjective] = useState("");
+  const [topic, setTopic] = useState("");
+  const [duration, setDuration] = useState(15);
+  const [prompt, setPrompt] = useState("");
+  const [videos, setVideos] = useState<VideoEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Nueva simulación</h1>
+        <p className="text-muted-foreground mt-1">
+          La IA generará el guion, las preguntas, las ramas y los criterios de evaluación.
+        </p>
+      </div>
+
+      <form
+        className="space-y-6"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setLoading(true);
+          try {
+            const result = await generate({
+              data: { title, objective, prompt, topic: topic || undefined, durationMin: duration, videos },
+            });
+            toast.success("¡Simulación generada!");
+            navigate({ to: "/app/simulations/$id", params: { id: result.id } });
+          } catch (err: any) {
+            toast.error(err?.message ?? "Error al generar");
+          } finally {
+            setLoading(false);
+          }
+        }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle>1. Objetivo</CardTitle>
+            <CardDescription>¿Qué quieres evaluar o enseñar?</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="title">Título</Label>
+              <Input id="title" required value={title} onChange={(e) => setTitle(e.target.value)}
+                placeholder="Selección de Chef Ejecutivo - Hotel 5 estrellas" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="obj">Objetivo</Label>
+              <Input id="obj" required value={objective} onChange={(e) => setObjective(e.target.value)}
+                placeholder="Evaluar capacidad de liderazgo, gestión de crisis y conocimiento técnico" />
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="topic">Tema/sector (opcional)</Label>
+                <Input id="topic" value={topic} onChange={(e) => setTopic(e.target.value)}
+                  placeholder="Hostelería, RRHH, Industria..." />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="dur">Duración objetivo (min)</Label>
+                <Input id="dur" type="number" min={5} max={60} value={duration}
+                  onChange={(e) => setDuration(Number(e.target.value))} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>2. Guion / contexto</CardTitle>
+            <CardDescription>
+              Describe la situación, personajes, retos y todo lo que la IA deba tener en cuenta.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              required
+              minLength={20}
+              rows={8}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Ej: Buscamos un chef ejecutivo. Primer día de trabajo, llega un imprevisto con el proveedor de pescado fresco. Debe gestionar personal, compras, calidad y resolver conflictos..."
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>3. Vídeos (opcional)</CardTitle>
+                <CardDescription>Enlaza vídeos de YouTube, Vimeo o un MP4 público.</CardDescription>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setVideos((v) => [...v, { label: "", type: "youtube", url: "" }])}
+              >
+                <Plus className="h-4 w-4 mr-1" /> Añadir vídeo
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {videos.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                Puedes generar sin vídeos: la IA creará escenas narradas. Añade vídeos para asociarlos a escenas.
+              </p>
+            )}
+            {videos.map((v, i) => (
+              <div key={i} className="grid grid-cols-12 gap-2">
+                <Input
+                  className="col-span-4"
+                  placeholder="Etiqueta (ej: Llegada al hotel)"
+                  value={v.label}
+                  onChange={(e) =>
+                    setVideos((arr) => arr.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))
+                  }
+                />
+                <Input
+                  className="col-span-7"
+                  placeholder="https://..."
+                  required
+                  value={v.url}
+                  onChange={(e) =>
+                    setVideos((arr) =>
+                      arr.map((x, j) =>
+                        j === i ? { ...x, url: e.target.value, type: detectType(e.target.value) } : x,
+                      ),
+                    )
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setVideos((arr) => arr.filter((_, j) => j !== i))}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <div className="flex justify-end gap-2">
+          <Button type="submit" size="lg" disabled={loading} className="gap-2">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {loading ? "Generando con IA..." : "Generar con IA"}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
