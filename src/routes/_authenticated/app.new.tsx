@@ -52,6 +52,57 @@ function NewSimulation() {
   const [loading, setLoading] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [lastFile, setLastFile] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Restore draft from localStorage on mount so edits survive reloads / HMR.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const d = JSON.parse(raw) as Partial<Draft>;
+        if (typeof d.title === "string") setTitle(d.title);
+        if (typeof d.objective === "string") setObjective(d.objective);
+        if (typeof d.topic === "string") setTopic(d.topic);
+        if (typeof d.duration === "number") setDuration(d.duration);
+        if (typeof d.prompt === "string") setPrompt(d.prompt);
+        if (Array.isArray(d.videos)) setVideos(d.videos);
+        if (typeof d.lastFile === "string" || d.lastFile === null)
+          setLastFile(d.lastFile ?? null);
+      }
+    } catch {
+      /* ignore */
+    }
+    setHydrated(true);
+  }, []);
+
+  // Persist the draft on any change (after the initial hydrate).
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      const draft: Draft = { title, objective, topic, duration, prompt, videos, lastFile };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+      /* ignore quota errors */
+    }
+  }, [hydrated, title, objective, topic, duration, prompt, videos, lastFile]);
+
+  function clearDraft() {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      /* ignore */
+    }
+    setTitle("");
+    setObjective("");
+    setTopic("");
+    setDuration(15);
+    setPrompt("");
+    setVideos([]);
+    setLastFile(null);
+    toast.success("Borrador descartado");
+  }
+
+
 
   async function handleFile(file: File) {
     if (file.size > MAX_BYTES) {
