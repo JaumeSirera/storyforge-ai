@@ -48,12 +48,15 @@ function EditSimulation() {
   const navigate = useNavigate();
   const get = useServerFn(getSimulation);
   const save = useServerFn(updateSimulationStory);
+  const saveDraft = useServerFn(savePreviewAsDraft);
 
   const sim = useQuery({ queryKey: ["sim", id], queryFn: () => get({ data: { id } }) });
 
   const [state, setState] = useState<EditorState | null>(null);
   const [saving, setSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftSessionId, setDraftSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!sim.data || state) return;
