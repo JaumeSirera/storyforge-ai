@@ -2,12 +2,29 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { VideoPlayer } from "@/components/VideoPlayer";
-import { ArrowLeft, RotateCcw, Star, Trophy, Flag, AlertTriangle } from "lucide-react";
+import { ArrowLeft, RotateCcw, Star, Trophy, Flag, AlertTriangle, Save, Loader2 } from "lucide-react";
 import type { Story, StoryNode, Choice, EvaluationCriterion } from "@/lib/story-types";
+
+export interface PreviewDraftPayload {
+  currentNodeId: string | null;
+  score: number;
+  competencyScores: Record<string, number>;
+  answers: Array<{
+    nodeId: string;
+    nodeTitle: string;
+    question: string;
+    choiceId: string;
+    choiceLabel: string;
+    points: number;
+    feedback: string;
+  }>;
+}
 
 interface Props {
   story: Story;
   criteria: EvaluationCriterion[];
+  onSaveDraft?: (payload: PreviewDraftPayload) => Promise<void> | void;
+  savingDraft?: boolean;
 }
 
 interface HistoryEntry {
