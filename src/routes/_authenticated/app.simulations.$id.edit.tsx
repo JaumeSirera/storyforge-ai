@@ -600,13 +600,16 @@ function EditSimulation() {
           </Accordion>
         </CardContent>
       </Card>
+      </fieldset>
 
-      <div className="sticky bottom-4 flex justify-end">
-        <Button onClick={handleSave} disabled={saving} size="lg" className="gap-2 shadow-lg">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Guardar cambios
-        </Button>
-      </div>
+      {!locked && (
+        <div className="sticky bottom-4 flex justify-end">
+          <Button onClick={handleSave} disabled={saving} size="lg" className="gap-2 shadow-lg">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Guardar cambios
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
