@@ -58,7 +58,7 @@ function EditSimulation() {
     setState({
       startNodeId: story.startNodeId || nodes[0]?.id || "",
       nodes,
-      criteria: (sim.data.evaluation_criteria ?? []) as EvaluationCriterion[],
+      criteria: (sim.data.evaluation_criteria ?? []) as unknown as EvaluationCriterion[],
     });
   }, [sim.data, state]);
 

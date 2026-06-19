@@ -17,6 +17,7 @@ import { Route as AuthenticatedAppNewRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
 import { Route as AuthenticatedAppSimulationsIdRouteImport } from './routes/_authenticated/app.simulations.$id'
 import { Route as AuthenticatedAppSessionsIdRouteImport } from './routes/_authenticated/app.sessions.$id'
+import { Route as AuthenticatedAppSimulationsIdEditRouteImport } from './routes/_authenticated/app.simulations.$id.edit'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -61,6 +62,12 @@ const AuthenticatedAppSessionsIdRoute =
     path: '/app/sessions/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppSimulationsIdEditRoute =
+  AuthenticatedAppSimulationsIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedAppSimulationsIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -69,7 +76,8 @@ export interface FileRoutesByFullPath {
   '/app/new': typeof AuthenticatedAppNewRoute
   '/app/simulations': typeof AuthenticatedAppSimulationsRouteWithChildren
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
-  '/app/simulations/$id': typeof AuthenticatedAppSimulationsIdRoute
+  '/app/simulations/$id': typeof AuthenticatedAppSimulationsIdRouteWithChildren
+  '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,7 +86,8 @@ export interface FileRoutesByTo {
   '/app/new': typeof AuthenticatedAppNewRoute
   '/app/simulations': typeof AuthenticatedAppSimulationsRouteWithChildren
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
-  '/app/simulations/$id': typeof AuthenticatedAppSimulationsIdRoute
+  '/app/simulations/$id': typeof AuthenticatedAppSimulationsIdRouteWithChildren
+  '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,7 +98,8 @@ export interface FileRoutesById {
   '/_authenticated/app/new': typeof AuthenticatedAppNewRoute
   '/_authenticated/app/simulations': typeof AuthenticatedAppSimulationsRouteWithChildren
   '/_authenticated/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
-  '/_authenticated/app/simulations/$id': typeof AuthenticatedAppSimulationsIdRoute
+  '/_authenticated/app/simulations/$id': typeof AuthenticatedAppSimulationsIdRouteWithChildren
+  '/_authenticated/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +111,7 @@ export interface FileRouteTypes {
     | '/app/simulations'
     | '/app/sessions/$id'
     | '/app/simulations/$id'
+    | '/app/simulations/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -110,6 +121,7 @@ export interface FileRouteTypes {
     | '/app/simulations'
     | '/app/sessions/$id'
     | '/app/simulations/$id'
+    | '/app/simulations/$id/edit'
   id:
     | '__root__'
     | '/'
@@ -120,6 +132,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/simulations'
     | '/_authenticated/app/sessions/$id'
     | '/_authenticated/app/simulations/$id'
+    | '/_authenticated/app/simulations/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -186,16 +199,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppSessionsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/simulations/$id/edit': {
+      id: '/_authenticated/app/simulations/$id/edit'
+      path: '/edit'
+      fullPath: '/app/simulations/$id/edit'
+      preLoaderRoute: typeof AuthenticatedAppSimulationsIdEditRouteImport
+      parentRoute: typeof AuthenticatedAppSimulationsIdRoute
+    }
   }
 }
 
+interface AuthenticatedAppSimulationsIdRouteChildren {
+  AuthenticatedAppSimulationsIdEditRoute: typeof AuthenticatedAppSimulationsIdEditRoute
+}
+
+const AuthenticatedAppSimulationsIdRouteChildren: AuthenticatedAppSimulationsIdRouteChildren =
+  {
+    AuthenticatedAppSimulationsIdEditRoute:
+      AuthenticatedAppSimulationsIdEditRoute,
+  }
+
+const AuthenticatedAppSimulationsIdRouteWithChildren =
+  AuthenticatedAppSimulationsIdRoute._addFileChildren(
+    AuthenticatedAppSimulationsIdRouteChildren,
+  )
+
 interface AuthenticatedAppSimulationsRouteChildren {
-  AuthenticatedAppSimulationsIdRoute: typeof AuthenticatedAppSimulationsIdRoute
+  AuthenticatedAppSimulationsIdRoute: typeof AuthenticatedAppSimulationsIdRouteWithChildren
 }
 
 const AuthenticatedAppSimulationsRouteChildren: AuthenticatedAppSimulationsRouteChildren =
   {
-    AuthenticatedAppSimulationsIdRoute: AuthenticatedAppSimulationsIdRoute,
+    AuthenticatedAppSimulationsIdRoute:
+      AuthenticatedAppSimulationsIdRouteWithChildren,
   }
 
 const AuthenticatedAppSimulationsRouteWithChildren =
