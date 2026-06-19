@@ -52,6 +52,7 @@ function EditSimulation() {
 
   const [state, setState] = useState<EditorState | null>(null);
   const [saving, setSaving] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     if (!sim.data || state) return;
