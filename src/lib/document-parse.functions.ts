@@ -3,11 +3,20 @@ import { createServerFn } from "@tanstack/react-start";
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 const MAX_CHARS = 50_000;
 
-function cleanText(s: string): string {
+function stripXml(s: string): string {
+  // Remove any leftover XML/HTML-ish tags and collapse entities.
   return s
+    .replace(/<\/?[a-zA-Z][^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&#x?[0-9a-fA-F]+;/g, " ");
+}
+
+function cleanText(s: string): string {
+  return stripXml(s)
     .replace(/\r\n?/g, "\n")
     .replace(/\u0000/g, "")
-    .replace(/[ \t]+\n/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/ ?\n ?/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
