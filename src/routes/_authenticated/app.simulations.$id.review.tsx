@@ -258,6 +258,88 @@ function ReviewSimulation() {
           )}
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <History className="h-5 w-5" /> Historial de cambios
+          </CardTitle>
+          <CardDescription>
+            Quién hizo qué y qué se modificó en cada revisión.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {history.isLoading ? (
+            <p className="text-sm text-muted-foreground">Cargando historial...</p>
+          ) : (history.data?.length ?? 0) === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Aún no hay cambios registrados. Edita y envía a revisión para empezar a registrar el historial.
+            </p>
+          ) : (
+            <ol className="relative border-l border-border ml-3 space-y-4">
+              {history.data!.map((h: any) => {
+                const meta = ACTION_META[h.action] ?? ACTION_META.edit;
+                const Icon = meta.icon;
+                const actorName = h.actor?.full_name || h.actor?.email || "Usuario";
+                return (
+                  <li key={h.id} className="ml-4">
+                    <span className="absolute -left-[7px] mt-1.5 h-3 w-3 rounded-full bg-primary border-2 border-background" />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={meta.variant} className="gap-1">
+                        <Icon className="h-3 w-3" /> {meta.label}
+                      </Badge>
+                      {h.from_status && h.to_status && h.from_status !== h.to_status && (
+                        <Badge variant="outline" className="font-mono text-[10px]">
+                          {h.from_status} → {h.to_status}
+                        </Badge>
+                      )}
+                      <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                        <UserCircle2 className="h-3 w-3" /> {actorName}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        · {new Date(h.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    {h.note && (
+                      <p className="text-sm mt-1.5 italic text-muted-foreground">"{h.note}"</p>
+                    )}
+                    {h.action === "edit" && h.summary && (
+                      <RevisionDiff summary={h.summary} />
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function RevisionDiff({ summary }: { summary: any }) {
+  const parts: { label: string; items: string[]; tone: string }[] = [
+    { label: "Escenas añadidas", items: summary.addedNodes ?? [], tone: "text-emerald-600 dark:text-emerald-400" },
+    { label: "Escenas modificadas", items: summary.modifiedNodes ?? [], tone: "text-amber-600 dark:text-amber-400" },
+    { label: "Escenas eliminadas", items: summary.removedNodes ?? [], tone: "text-destructive" },
+    { label: "Competencias añadidas", items: summary.addedCriteria ?? [], tone: "text-emerald-600 dark:text-emerald-400" },
+    { label: "Competencias modificadas", items: summary.modifiedCriteria ?? [], tone: "text-amber-600 dark:text-amber-400" },
+    { label: "Competencias eliminadas", items: summary.removedCriteria ?? [], tone: "text-destructive" },
+  ].filter((p) => p.items.length > 0);
+
+  if (parts.length === 0 && !summary.startChanged) return null;
+
+  return (
+    <div className="mt-2 rounded-md border bg-muted/30 p-2 text-xs space-y-1">
+      {summary.startChanged && (
+        <div className="text-amber-600 dark:text-amber-400">• Escena de inicio modificada</div>
+      )}
+      {parts.map((p) => (
+        <div key={p.label} className={p.tone}>
+          • <span className="font-medium">{p.label}:</span>{" "}
+          <span className="font-mono text-[10px]">{p.items.join(", ")}</span>
+        </div>
+      ))}
     </div>
   );
 }
