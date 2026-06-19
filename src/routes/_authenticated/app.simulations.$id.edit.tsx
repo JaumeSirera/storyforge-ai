@@ -22,8 +22,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { ArrowLeft, Plus, Trash2, Save, Loader2, Flag, GitBranch } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Loader2, Flag, GitBranch, Play } from "lucide-react";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { StoryPreview } from "@/components/StoryPreview";
 import type { Story, StoryNode, Choice, EvaluationCriterion, VideoSource } from "@/lib/story-types";
 
 export const Route = createFileRoute("/_authenticated/app/simulations/$id/edit")({
@@ -50,6 +52,7 @@ function EditSimulation() {
 
   const [state, setState] = useState<EditorState | null>(null);
   const [saving, setSaving] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     if (!sim.data || state) return;
@@ -237,11 +240,34 @@ function EditSimulation() {
         >
           <ArrowLeft className="h-4 w-4 mr-1" /> Volver
         </Link>
-        <Button onClick={handleSave} disabled={saving} className="gap-2">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Guardar cambios
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setPreviewOpen(true)} className="gap-2">
+            <Play className="h-4 w-4" /> Vista previa
+          </Button>
+          <Button onClick={handleSave} disabled={saving} className="gap-2">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Guardar cambios
+          </Button>
+        </div>
       </div>
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Vista previa interactiva</DialogTitle>
+            <DialogDescription>
+              Prueba el árbol con los cambios actuales sin guardar. Los puntos y competencias se calculan en tiempo real.
+            </DialogDescription>
+          </DialogHeader>
+          <StoryPreview
+            story={{
+              startNodeId: state.startNodeId,
+              nodes: Object.fromEntries(state.nodes.map((n) => [n.id, n])),
+            }}
+            criteria={state.criteria}
+          />
+        </DialogContent>
+      </Dialog>
 
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Editor de la simulación</h1>
