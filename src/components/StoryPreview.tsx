@@ -29,12 +29,16 @@ interface Props {
 
 interface HistoryEntry {
   nodeId: string;
+  nodeTitle: string;
+  question: string;
+  choiceId: string;
   choiceLabel: string;
   feedback: string;
   points: number;
+  competencies: Record<string, number>;
 }
 
-export function StoryPreview({ story, criteria }: Props) {
+export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Props) {
   const nodes = story.nodes;
   const startId = story.startNodeId;
   const [currentId, setCurrentId] = useState<string | null>(startId);
