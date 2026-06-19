@@ -263,7 +263,7 @@ function normalizeStory(raw: any, data: GenerateInputData): GeneratedStory {
   const endings = nodesInput.filter((node: any) => node?.isEnding === true || node?.question == null);
   const fallbackEndingId = idMap.get(String(endings[0]?.id ?? originalIds.at(-1))) ?? "exito";
 
-  const nodes = nodesInput.slice(0, 18).map((node: any, i: number) => {
+  const nodes: GeneratedStory["nodes"] = nodesInput.slice(0, 18).map((node: any, i: number) => {
     const oldId = originalIds[i];
     const id = idMap.get(oldId) ?? `nodo_${i + 1}`;
     const rawQuestion = node?.question && typeof node.question === "object" ? node.question : null;
@@ -393,13 +393,32 @@ ${videoList}
 
 Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
 
-    const { experimental_output: output } = await generateText({
-      model: gateway("google/gemini-3-pro-preview"),
-      experimental_output: Output.object({ schema: StorySchema }),
-      system: systemPrompt,
-      prompt: userPrompt,
-      maxOutputTokens: 16000,
-    });
+    let output: GeneratedStory;
+    try {
+      const result = await generateObject({
+        model: gateway("google/gemini-3-pro-preview"),
+        schema: StorySchema,
+        system: systemPrompt,
+        prompt: userPrompt,
+        maxOutputTokens: 65000,
+        temperature: 0.25,
+        experimental_repairText: async ({ text }) => {
+          try {
+            return JSON.stringify(normalizeStoryFromText(text, data));
+          } catch {
+            return null;
+          }
+        },
+      });
+      output = normalizeStory(result.object, data);
+    } catch (err) {
+      if (!NoObjectGeneratedError.isInstance(err)) throw err;
+      try {
+        output = err.text ? normalizeStoryFromText(err.text, data) : createFallbackStory(data);
+      } catch {
+        output = createFallbackStory(data);
+      }
+    }
 
     // Convert flat nodes array into the runtime Story shape with embedded video objects.
     const videoMap = new Map(
