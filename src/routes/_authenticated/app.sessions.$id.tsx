@@ -61,6 +61,26 @@ function Player({
   const [selected, setSelected] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ feedback: string; points: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  async function toggleFullscreen() {
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current?.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (e: any) {
+      toast.error("No se pudo activar pantalla completa");
+    }
+  }
 
   async function pick(choiceId: string) {
     setSelected(choiceId);
@@ -84,14 +104,33 @@ function Player({
   const progress = totalNodes > 0 ? Math.min(100, Math.round((answered / Math.max(1, totalNodes - 1)) * 100)) : 0;
 
   return (
+    <div
+      ref={containerRef}
+      className={
+        isFullscreen
+          ? "bg-background overflow-auto h-screen w-screen p-6"
+          : ""
+      }
+    >
     <div className="max-w-4xl mx-auto space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <div className="text-xs uppercase tracking-wider text-muted-foreground">{simTitle}</div>
-          <h1 className="text-2xl font-bold mt-0.5">{node.title}</h1>
+          <h1 className="text-2xl font-bold mt-0.5 truncate">{node.title}</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 shrink-0">
           <Badge variant="secondary" className="gap-1"><Trophy className="h-3 w-3" /> {score} pts</Badge>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={toggleFullscreen}
+            className="gap-1"
+            aria-label={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+          >
+            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            <span className="hidden sm:inline">{isFullscreen ? "Salir" : "Pantalla completa"}</span>
+          </Button>
         </div>
       </div>
 
