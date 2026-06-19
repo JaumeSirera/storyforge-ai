@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { generateText, Output } from "ai";
+import { generateObject, NoObjectGeneratedError } from "ai";
 import { z } from "zod";
 import { createLovableAiGatewayProvider } from "./ai-gateway.server";
 
@@ -23,6 +23,8 @@ const GenerateInput = z.object({
     .max(20)
     .default([]),
 });
+
+type GenerateInputData = z.infer<typeof GenerateInput>;
 
 const ChoiceSchema = z.object({
   id: z.string(),
@@ -62,6 +64,331 @@ const StorySchema = z.object({
     .min(3)
     .max(8),
 });
+
+type GeneratedStory = z.infer<typeof StorySchema>;
+
+const DEFAULT_CRITERIA = [
+  {
+    key: "toma_decisiones",
+    label: "Toma de decisiones",
+    description: "Evalúa la calidad, rapidez y criterio de las decisiones tomadas.",
+  },
+  {
+    key: "comunicacion",
+    label: "Comunicación",
+    description: "Evalúa claridad, escucha activa y adaptación al interlocutor.",
+  },
+  {
+    key: "gestion_crisis",
+    label: "Gestión de crisis",
+    description: "Evalúa priorización, calma operativa y resolución ante presión.",
+  },
+] satisfies GeneratedStory["evaluationCriteria"];
+
+function createFallbackStory(data: GenerateInputData): GeneratedStory {
+  const topic = data.topic || "el contexto planteado";
+  const videoRef = data.videos.length > 0 ? "video_1" : null;
+
+  return {
+    startNodeId: "inicio",
+    evaluationCriteria: DEFAULT_CRITERIA,
+    nodes: [
+      {
+        id: "inicio",
+        title: "Inicio de la situación",
+        narrative: `Te incorporas a una situación profesional relacionada con ${topic}. El objetivo es demostrar criterio, comunicación y capacidad de reacción alineadas con: ${data.objective}`,
+        videoRef,
+        isEnding: false,
+        endingType: null,
+        question: {
+          text: "¿Cuál es tu primera actuación?",
+          choices: [
+            {
+              id: "analizar",
+              label: "Analizar antes de actuar",
+              feedback: "Recopilas información clave, identificas riesgos y preparas una respuesta proporcionada.",
+              points: 45,
+              next: "gestion",
+              competencies: { toma_decisiones: 15, comunicacion: 8, gestion_crisis: 10 },
+            },
+            {
+              id: "improvisar",
+              label: "Actuar de inmediato",
+              feedback: "La rapidez ayuda, pero al no contrastar datos aumentas el riesgo de una mala decisión.",
+              points: 5,
+              next: "tension",
+              competencies: { toma_decisiones: -8, comunicacion: 0, gestion_crisis: 4 },
+            },
+            {
+              id: "delegar",
+              label: "Delegar sin seguimiento",
+              feedback: "Delegar puede ser útil, pero hacerlo sin contexto ni control reduce la calidad de la respuesta.",
+              points: -10,
+              next: "fallo",
+              competencies: { toma_decisiones: -12, comunicacion: -6, gestion_crisis: -10 },
+            },
+          ],
+        },
+      },
+      {
+        id: "gestion",
+        title: "Gestión del reto",
+        narrative: "Con la información inicial sobre la mesa, debes coordinar a las personas implicadas y decidir el siguiente paso operativo.",
+        videoRef: null,
+        isEnding: false,
+        endingType: null,
+        question: {
+          text: "¿Cómo conduces la respuesta?",
+          choices: [
+            {
+              id: "coordinar",
+              label: "Alinear al equipo",
+              feedback: "Defines prioridades, comunicas responsabilidades y mantienes seguimiento de los puntos críticos.",
+              points: 55,
+              next: "exito",
+              competencies: { toma_decisiones: 14, comunicacion: 16, gestion_crisis: 14 },
+            },
+            {
+              id: "aislarse",
+              label: "Resolverlo en solitario",
+              feedback: "Asumes responsabilidad, pero pierdes información del equipo y reduces la velocidad de respuesta.",
+              points: 10,
+              next: "neutral",
+              competencies: { toma_decisiones: 2, comunicacion: -10, gestion_crisis: 0 },
+            },
+          ],
+        },
+      },
+      {
+        id: "tension",
+        title: "Escalada de tensión",
+        narrative: "La decisión precipitada genera dudas y aparecen señales de conflicto o descoordinación.",
+        videoRef: null,
+        isEnding: false,
+        endingType: null,
+        question: {
+          text: "¿Cómo corriges el rumbo?",
+          choices: [
+            {
+              id: "rectificar",
+              label: "Reconocer y rectificar",
+              feedback: "Corriges con transparencia, recuperas parte de la confianza y enfocas al equipo en soluciones.",
+              points: 30,
+              next: "neutral",
+              competencies: { toma_decisiones: 6, comunicacion: 12, gestion_crisis: 8 },
+            },
+            {
+              id: "insistir",
+              label: "Mantener la decisión",
+              feedback: "Persistir sin nuevas evidencias empeora la situación y deteriora la confianza del equipo.",
+              points: -25,
+              next: "fallo",
+              competencies: { toma_decisiones: -15, comunicacion: -10, gestion_crisis: -12 },
+            },
+          ],
+        },
+      },
+      {
+        id: "exito",
+        title: "Resolución sólida",
+        narrative: "La situación se resuelve con control, aprendizaje y una comunicación profesional hacia las partes implicadas.",
+        videoRef: null,
+        question: null,
+        isEnding: true,
+        endingType: "success",
+      },
+      {
+        id: "neutral",
+        title: "Resultado aceptable",
+        narrative: "El desenlace evita daños mayores, aunque quedan oportunidades claras de mejora en anticipación y coordinación.",
+        videoRef: null,
+        question: null,
+        isEnding: true,
+        endingType: "neutral",
+      },
+      {
+        id: "fallo",
+        title: "Resultado insuficiente",
+        narrative: "La gestión no logra contener el problema y evidencia carencias relevantes para el objetivo evaluado.",
+        videoRef: null,
+        question: null,
+        isEnding: true,
+        endingType: "fail",
+      },
+    ],
+  };
+}
+
+function extractJsonText(text: string): string {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1]?.trim();
+  if (fenced) return fenced;
+
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start >= 0 && end > start) return text.slice(start, end + 1);
+  return text;
+}
+
+function normalizeStoryFromText(text: string, data: GenerateInputData): GeneratedStory {
+  const raw = JSON.parse(extractJsonText(text));
+  return normalizeStory(raw, data);
+}
+
+type RawRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): RawRecord | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as RawRecord)
+    : null;
+}
+
+function toText(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function toId(value: unknown, fallback: string): string {
+  return toText(value, fallback)
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "_")
+    .replace(/^_+|_+$/g, "") || fallback;
+}
+
+function toEndingType(value: unknown, fallback: "success" | "neutral" | "fail") {
+  return value === "success" || value === "neutral" || value === "fail" ? value : fallback;
+}
+
+function normalizeStory(raw: unknown, data: GenerateInputData): GeneratedStory {
+  const fallback = createFallbackStory(data);
+  const rawRecord = asRecord(raw);
+  const rawNodes = rawRecord?.nodes;
+  const nodesInput: RawRecord[] = Array.isArray(rawNodes)
+    ? rawNodes.map((node) => asRecord(node) ?? {})
+    : asRecord(rawNodes)
+      ? Object.entries(asRecord(rawNodes)!).map(([id, node]) => ({ ...(asRecord(node) ?? {}), id }))
+      : [];
+
+  if (nodesInput.length < 3) return fallback;
+
+  const originalIds = nodesInput.map((node, i) => toText(node.id, `nodo_${i + 1}`));
+  const idMap = new Map<string, string>();
+  const used = new Set<string>();
+
+  for (const [i, oldId] of originalIds.entries()) {
+    const base = toId(oldId, `nodo_${i + 1}`);
+    let id = base;
+    let n = 2;
+    while (used.has(id)) id = `${base}_${n++}`;
+    used.add(id);
+    idMap.set(oldId, id);
+  }
+
+  const endings = nodesInput.filter((node) => node.isEnding === true || node.question == null);
+  const fallbackEndingId = idMap.get(toText(endings[0]?.id, originalIds.at(-1) ?? "exito")) ?? "exito";
+
+  const nodes: GeneratedStory["nodes"] = nodesInput.slice(0, 18).map((node, i) => {
+    const oldId = originalIds[i];
+    const id = idMap.get(oldId) ?? `nodo_${i + 1}`;
+    const rawQuestion = asRecord(node.question);
+    const choicesInput = Array.isArray(rawQuestion?.choices) ? rawQuestion.choices.slice(0, 4) : [];
+    const isEnding = node.isEnding === true || (!rawQuestion && i > 0);
+    const choices = choicesInput.map((choiceInput, choiceIndex) => {
+      const choice = asRecord(choiceInput) ?? {};
+      const nextRaw = choice.next == null ? null : String(choice.next);
+      const next = nextRaw && idMap.has(nextRaw) ? idMap.get(nextRaw)! : fallbackEndingId;
+      const rawCompetencies = asRecord(choice.competencies);
+      const competencies =
+        rawCompetencies
+          ? Object.fromEntries(
+              Object.entries(rawCompetencies)
+                .filter(([, value]) => typeof value === "number" && Number.isFinite(value))
+                .map(([key, value]) => [
+                  key,
+                  Math.max(-20, Math.min(20, Math.round(value as number))),
+                ]),
+            )
+          : { toma_decisiones: 0, comunicacion: 0, gestion_crisis: 0 };
+
+      return {
+        id: toText(choice.id, `opcion_${choiceIndex + 1}`),
+        label: toText(choice.label, `Opción ${choiceIndex + 1}`).slice(0, 160),
+        feedback: toText(
+          choice.feedback,
+          "La decisión tiene consecuencias en el desarrollo de la simulación.",
+        ),
+        points:
+          typeof choice.points === "number" && Number.isFinite(choice.points)
+            ? Math.round(choice.points)
+            : 0,
+        next,
+        competencies,
+      };
+    });
+
+    return {
+      id,
+      title: toText(node.title, `Escena ${i + 1}`),
+      narrative: toText(
+        node.narrative,
+        "La situación evoluciona y requiere una decisión profesional.",
+      ),
+      videoRef: typeof node.videoRef === "string" ? node.videoRef : null,
+      question: isEnding
+        ? null
+        : {
+            text: toText(rawQuestion?.text, "¿Qué haces a continuación?"),
+            choices:
+              choices.length >= 2
+                ? choices
+                : fallback.nodes[0].question!.choices.slice(0, 2).map((choice) => ({
+                    ...choice,
+                    next: fallbackEndingId,
+                  })),
+          },
+      isEnding,
+      endingType: isEnding
+        ? toEndingType(node.endingType, i % 2 === 0 ? "success" : "neutral")
+        : null,
+    };
+  });
+
+  if (nodes.filter((node) => node.isEnding).length < 2) {
+    nodes.push(...fallback.nodes.filter((node) => node.isEnding).slice(0, 2));
+  }
+
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  const safeFallbackEndingId = nodes.find((node) => node.isEnding)?.id ?? fallbackEndingId;
+  for (const node of nodes) {
+    if (!node.question) continue;
+    node.question.choices = node.question.choices.map((choice) => ({
+      ...choice,
+      next: choice.next && nodeIds.has(choice.next) ? choice.next : safeFallbackEndingId,
+    }));
+  }
+
+  const criteriaInput = Array.isArray(rawRecord?.evaluationCriteria) ? rawRecord.evaluationCriteria : [];
+  const evaluationCriteria = criteriaInput
+    .map((criterionInput, i) => {
+      const criterion = asRecord(criterionInput) ?? {};
+      return {
+        key: toId(criterion.key, `criterio_${i + 1}`),
+        label: toText(criterion.label, `Criterio ${i + 1}`),
+        description: toText(
+          criterion.description,
+          "Criterio de evaluación de la simulación.",
+        ),
+      };
+    })
+    .slice(0, 8);
+
+  const story = {
+    startNodeId: idMap.get(toText(rawRecord?.startNodeId, "")) ?? nodes[0]?.id ?? fallback.startNodeId,
+    nodes,
+    evaluationCriteria: evaluationCriteria.length >= 3 ? evaluationCriteria : fallback.evaluationCriteria,
+  };
+
+  const parsed = StorySchema.safeParse(story);
+  return parsed.success ? parsed.data : fallback;
+}
 
 export const generateSimulation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -105,13 +432,32 @@ ${videoList}
 
 Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
 
-    const { experimental_output: output } = await generateText({
-      model: gateway("google/gemini-3-pro-preview"),
-      experimental_output: Output.object({ schema: StorySchema }),
-      system: systemPrompt,
-      prompt: userPrompt,
-      maxOutputTokens: 16000,
-    });
+    let output: GeneratedStory;
+    try {
+      const result = await generateObject({
+        model: gateway("google/gemini-3-pro-preview"),
+        schema: StorySchema,
+        system: systemPrompt,
+        prompt: userPrompt,
+        maxOutputTokens: 65000,
+        temperature: 0.25,
+        experimental_repairText: async ({ text }) => {
+          try {
+            return JSON.stringify(normalizeStoryFromText(text, data));
+          } catch {
+            return null;
+          }
+        },
+      });
+      output = normalizeStory(result.object, data);
+    } catch (err) {
+      if (!NoObjectGeneratedError.isInstance(err)) throw err;
+      try {
+        output = err.text ? normalizeStoryFromText(err.text, data) : createFallbackStory(data);
+      } catch {
+        output = createFallbackStory(data);
+      }
+    }
 
     // Convert flat nodes array into the runtime Story shape with embedded video objects.
     const videoMap = new Map(
