@@ -17,6 +17,7 @@ import { Route as AuthenticatedAppNewRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
 import { Route as AuthenticatedAppSimulationsIdRouteImport } from './routes/_authenticated/app.simulations.$id'
 import { Route as AuthenticatedAppSessionsIdRouteImport } from './routes/_authenticated/app.sessions.$id'
+import { Route as AuthenticatedAppSimulationsIdReviewRouteImport } from './routes/_authenticated/app.simulations.$id.review'
 import { Route as AuthenticatedAppSimulationsIdEditRouteImport } from './routes/_authenticated/app.simulations.$id.edit'
 
 const AuthRoute = AuthRouteImport.update({
@@ -62,6 +63,12 @@ const AuthenticatedAppSessionsIdRoute =
     path: '/app/sessions/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppSimulationsIdReviewRoute =
+  AuthenticatedAppSimulationsIdReviewRouteImport.update({
+    id: '/review',
+    path: '/review',
+    getParentRoute: () => AuthenticatedAppSimulationsIdRoute,
+  } as any)
 const AuthenticatedAppSimulationsIdEditRoute =
   AuthenticatedAppSimulationsIdEditRouteImport.update({
     id: '/edit',
@@ -78,6 +85,7 @@ export interface FileRoutesByFullPath {
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/app/simulations/$id': typeof AuthenticatedAppSimulationsIdRouteWithChildren
   '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
+  '/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -88,6 +96,7 @@ export interface FileRoutesByTo {
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/app/simulations/$id': typeof AuthenticatedAppSimulationsIdRouteWithChildren
   '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
+  '/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -100,6 +109,7 @@ export interface FileRoutesById {
   '/_authenticated/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/_authenticated/app/simulations/$id': typeof AuthenticatedAppSimulationsIdRouteWithChildren
   '/_authenticated/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
+  '/_authenticated/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -112,6 +122,7 @@ export interface FileRouteTypes {
     | '/app/sessions/$id'
     | '/app/simulations/$id'
     | '/app/simulations/$id/edit'
+    | '/app/simulations/$id/review'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +133,7 @@ export interface FileRouteTypes {
     | '/app/sessions/$id'
     | '/app/simulations/$id'
     | '/app/simulations/$id/edit'
+    | '/app/simulations/$id/review'
   id:
     | '__root__'
     | '/'
@@ -133,6 +145,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/sessions/$id'
     | '/_authenticated/app/simulations/$id'
     | '/_authenticated/app/simulations/$id/edit'
+    | '/_authenticated/app/simulations/$id/review'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -199,6 +212,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppSessionsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/simulations/$id/review': {
+      id: '/_authenticated/app/simulations/$id/review'
+      path: '/review'
+      fullPath: '/app/simulations/$id/review'
+      preLoaderRoute: typeof AuthenticatedAppSimulationsIdReviewRouteImport
+      parentRoute: typeof AuthenticatedAppSimulationsIdRoute
+    }
     '/_authenticated/app/simulations/$id/edit': {
       id: '/_authenticated/app/simulations/$id/edit'
       path: '/edit'
@@ -211,12 +231,15 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAppSimulationsIdRouteChildren {
   AuthenticatedAppSimulationsIdEditRoute: typeof AuthenticatedAppSimulationsIdEditRoute
+  AuthenticatedAppSimulationsIdReviewRoute: typeof AuthenticatedAppSimulationsIdReviewRoute
 }
 
 const AuthenticatedAppSimulationsIdRouteChildren: AuthenticatedAppSimulationsIdRouteChildren =
   {
     AuthenticatedAppSimulationsIdEditRoute:
       AuthenticatedAppSimulationsIdEditRoute,
+    AuthenticatedAppSimulationsIdReviewRoute:
+      AuthenticatedAppSimulationsIdReviewRoute,
   }
 
 const AuthenticatedAppSimulationsIdRouteWithChildren =

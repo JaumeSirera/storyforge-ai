@@ -293,6 +293,21 @@ export const updateSimulationStory = createServerFn({ method: "POST" })
       }
     }
 
+    // Block edits when the simulation is locked (in_review or published).
+    const { data: current, error: readErr } = await context.supabase
+      .from("simulations")
+      .select("status, owner_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!current) throw new Error("Simulación no encontrada");
+    if (current.owner_id !== context.userId) throw new Error("No autorizado");
+    if (current.status === "in_review" || current.status === "published") {
+      throw new Error(
+        "La simulación está bloqueada para edición. Vuelve a borrador para hacer cambios.",
+      );
+    }
+
     const { error } = await context.supabase
       .from("simulations")
       .update({
@@ -304,3 +319,80 @@ export const updateSimulationStory = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ---------- Review / publish workflow ----------
+
+async function setStatus(
+  context: { supabase: any; userId: string },
+  id: string,
+  patch: { status: string; is_public?: boolean },
+  allowedFrom: string[],
+) {
+  const { data: current, error: readErr } = await context.supabase
+    .from("simulations")
+    .select("status, owner_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (readErr) throw new Error(readErr.message);
+  if (!current) throw new Error("Simulación no encontrada");
+  if (current.owner_id !== context.userId) throw new Error("No autorizado");
+  if (!allowedFrom.includes(current.status)) {
+    throw new Error(
+      `No se puede pasar a "${patch.status}" desde el estado actual "${current.status}".`,
+    );
+  }
+  const { error } = await context.supabase
+    .from("simulations")
+    .update(patch)
+    .eq("id", id)
+    .eq("owner_id", context.userId);
+  if (error) throw new Error(error.message);
+  return { ok: true, status: patch.status };
+}
+
+export const submitForReview = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(({ data, context }) =>
+    setStatus(context, data.id, { status: "in_review" }, ["draft", "ready"]),
+  );
+
+export const publishSimulation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(({ data, context }) =>
+    setStatus(context, data.id, { status: "published", is_public: true }, ["in_review"]),
+  );
+
+export const revertToDraft = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(({ data, context }) =>
+    setStatus(
+      context,
+      data.id,
+      { status: "ready", is_public: false },
+      ["in_review", "published"],
+    ),
+  );
+
+// ---------- List preview-draft sessions for a simulation ----------
+
+export const listPreviewDrafts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ simulationId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("sessions")
+      .select("id, score, current_node_id, started_at, updated_at, answers, achievements")
+      .eq("simulation_id", data.simulationId)
+      .eq("user_id", context.userId)
+      .order("updated_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (rows ?? []).filter((r: any) =>
+      Array.isArray(r.achievements) && r.achievements.includes("__preview_draft__"),
+    );
+  });
+

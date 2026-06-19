@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getSimulation, updateSimulationStory } from "@/lib/simulations.functions";
+import { getSimulation, submitForReview, updateSimulationStory } from "@/lib/simulations.functions";
 import { savePreviewAsDraft } from "@/lib/sessions.functions";
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +23,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { ArrowLeft, Plus, Trash2, Save, Loader2, Flag, GitBranch, Play } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Loader2, Flag, GitBranch, Play, Lock, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StoryPreview } from "@/components/StoryPreview";
@@ -49,6 +49,7 @@ function EditSimulation() {
   const get = useServerFn(getSimulation);
   const save = useServerFn(updateSimulationStory);
   const saveDraft = useServerFn(savePreviewAsDraft);
+  const submit = useServerFn(submitForReview);
 
   const sim = useQuery({ queryKey: ["sim", id], queryFn: () => get({ data: { id } }) });
 
@@ -57,6 +58,10 @@ function EditSimulation() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [draftSessionId, setDraftSessionId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const status = sim.data?.status as string | undefined;
+  const locked = status === "in_review" || status === "published";
 
   useEffect(() => {
     if (!sim.data || state) return;
@@ -248,12 +253,54 @@ function EditSimulation() {
           <Button variant="outline" onClick={() => setPreviewOpen(true)} className="gap-2">
             <Play className="h-4 w-4" /> Vista previa
           </Button>
-          <Button onClick={handleSave} disabled={saving} className="gap-2">
+          <Button onClick={handleSave} disabled={saving || locked} className="gap-2">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Guardar cambios
           </Button>
+          {!locked && (
+            <Button
+              variant="default"
+              disabled={submitting}
+              onClick={async () => {
+                if (!confirm("Enviar a revisión bloqueará la edición hasta publicar o volver a borrador. ¿Continuar?")) return;
+                setSubmitting(true);
+                try {
+                  await submit({ data: { id } });
+                  toast.success("Enviada a revisión");
+                  navigate({ to: "/app/simulations/$id/review", params: { id } });
+                } catch (err: any) {
+                  toast.error(err?.message ?? "No se pudo enviar a revisión");
+                } finally {
+                  setSubmitting(false);
+                }
+              }}
+              className="gap-2"
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Enviar a revisión
+            </Button>
+          )}
+          {locked && (
+            <Button variant="default" asChild className="gap-2">
+              <Link to="/app/simulations/$id/review" params={{ id }}>
+                <Lock className="h-4 w-4" /> Ir a revisión
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
+
+      {locked && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100 p-3 text-sm flex items-center gap-2">
+          <Lock className="h-4 w-4 flex-shrink-0" />
+          <span>
+            La simulación está <strong>{status === "published" ? "publicada" : "en revisión"}</strong>. La edición está bloqueada. Ve a la pantalla de revisión para publicar o volver a borrador.
+          </span>
+        </div>
+      )}
+
+
+
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -282,41 +329,46 @@ function EditSimulation() {
             }}
             criteria={state.criteria}
             savingDraft={savingDraft}
-            onSaveDraft={async (payload) => {
-              setSavingDraft(true);
-              try {
-                // Persist editor changes first so the saved draft is replayable
-                // against the exact story the user just previewed.
-                const nodesRecord: Record<string, StoryNode> = {};
-                for (const n of state.nodes) nodesRecord[n.id] = n;
-                await save({
-                  data: {
-                    id,
-                    story: { startNodeId: state.startNodeId, nodes: nodesRecord },
-                    evaluationCriteria: state.criteria,
-                  },
-                });
-                const res = await saveDraft({
-                  data: {
-                    simulationId: id,
-                    currentNodeId: payload.currentNodeId,
-                    score: payload.score,
-                    competencyScores: payload.competencyScores,
-                    answers: payload.answers,
-                    ...(draftSessionId ? { resumeSessionId: draftSessionId } : {}),
-                  },
-                });
-                setDraftSessionId(res.id);
-                toast.success("Borrador jugable guardado");
-              } catch (err: any) {
-                toast.error(err?.message ?? "No se pudo guardar el borrador");
-              } finally {
-                setSavingDraft(false);
-              }
-            }}
+            onSaveDraft={
+              locked
+                ? undefined
+                : async (payload) => {
+                    setSavingDraft(true);
+                    try {
+                      const nodesRecord: Record<string, StoryNode> = {};
+                      for (const n of state.nodes) nodesRecord[n.id] = n;
+                      await save({
+                        data: {
+                          id,
+                          story: { startNodeId: state.startNodeId, nodes: nodesRecord },
+                          evaluationCriteria: state.criteria,
+                        },
+                      });
+                      const res = await saveDraft({
+                        data: {
+                          simulationId: id,
+                          currentNodeId: payload.currentNodeId,
+                          score: payload.score,
+                          competencyScores: payload.competencyScores,
+                          answers: payload.answers,
+                          ...(draftSessionId ? { resumeSessionId: draftSessionId } : {}),
+                        },
+                      });
+                      setDraftSessionId(res.id);
+                      toast.success("Borrador jugable guardado");
+                    } catch (err: any) {
+                      toast.error(err?.message ?? "No se pudo guardar el borrador");
+                    } finally {
+                      setSavingDraft(false);
+                    }
+                  }
+            }
           />
         </DialogContent>
       </Dialog>
+
+      <fieldset disabled={locked} className={locked ? "opacity-70 pointer-events-none space-y-6" : "space-y-6"}>
+
 
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Editor de la simulación</h1>
@@ -554,13 +606,16 @@ function EditSimulation() {
           </Accordion>
         </CardContent>
       </Card>
+      </fieldset>
 
-      <div className="sticky bottom-4 flex justify-end">
-        <Button onClick={handleSave} disabled={saving} size="lg" className="gap-2 shadow-lg">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Guardar cambios
-        </Button>
-      </div>
+      {!locked && (
+        <div className="sticky bottom-4 flex justify-end">
+          <Button onClick={handleSave} disabled={saving} size="lg" className="gap-2 shadow-lg">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Guardar cambios
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { startSession } from "@/lib/sessions.functions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, ArrowLeft, GitBranch, HelpCircle, Loader2, Pencil } from "lucide-react";
+import { Play, ArrowLeft, GitBranch, HelpCircle, Loader2, Pencil, CheckCircle2, Lock, ClipboardCheck } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/app/simulations/$id")({
@@ -43,6 +43,12 @@ function SimulationDetail() {
           <Badge variant="outline">{sim.data.duration_min} min</Badge>
           <Badge variant="outline" className="gap-1"><GitBranch className="h-3 w-3" /> {nodeCount} escenas</Badge>
           <Badge variant="outline" className="gap-1"><HelpCircle className="h-3 w-3" /> {questionCount} preguntas</Badge>
+          {sim.data.status === "published" && (
+            <Badge className="gap-1"><CheckCircle2 className="h-3 w-3" /> Publicada</Badge>
+          )}
+          {sim.data.status === "in_review" && (
+            <Badge variant="secondary" className="gap-1"><Lock className="h-3 w-3" /> En revisión</Badge>
+          )}
         </div>
       </div>
 
@@ -52,10 +58,15 @@ function SimulationDetail() {
             <h2 className="font-semibold">¿Listo para jugar?</h2>
             <p className="text-sm text-muted-foreground">Tomarás decisiones y al final recibirás tu informe.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button asChild size="lg" variant="outline" className="gap-2">
               <Link to="/app/simulations/$id/edit" params={{ id }}>
                 <Pencil className="h-4 w-4" /> Editar
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="gap-2">
+              <Link to="/app/simulations/$id/review" params={{ id }}>
+                <ClipboardCheck className="h-4 w-4" /> Revisión
               </Link>
             </Button>
             <Button
