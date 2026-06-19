@@ -377,7 +377,7 @@ function normalizeStory(raw: unknown, data: GenerateInputData): GeneratedStory {
           "Criterio de evaluación de la simulación.",
         ),
       };
-    }))
+    })
     .slice(0, 8);
 
   const story = {
