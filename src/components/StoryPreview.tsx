@@ -2,22 +2,43 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { VideoPlayer } from "@/components/VideoPlayer";
-import { ArrowLeft, RotateCcw, Star, Trophy, Flag, AlertTriangle } from "lucide-react";
+import { ArrowLeft, RotateCcw, Star, Trophy, Flag, AlertTriangle, Save, Loader2 } from "lucide-react";
 import type { Story, StoryNode, Choice, EvaluationCriterion } from "@/lib/story-types";
+
+export interface PreviewDraftPayload {
+  currentNodeId: string | null;
+  score: number;
+  competencyScores: Record<string, number>;
+  answers: Array<{
+    nodeId: string;
+    nodeTitle: string;
+    question: string;
+    choiceId: string;
+    choiceLabel: string;
+    points: number;
+    feedback: string;
+  }>;
+}
 
 interface Props {
   story: Story;
   criteria: EvaluationCriterion[];
+  onSaveDraft?: (payload: PreviewDraftPayload) => Promise<void> | void;
+  savingDraft?: boolean;
 }
 
 interface HistoryEntry {
   nodeId: string;
+  nodeTitle: string;
+  question: string;
+  choiceId: string;
   choiceLabel: string;
   feedback: string;
   points: number;
+  competencies: Record<string, number>;
 }
 
-export function StoryPreview({ story, criteria }: Props) {
+export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Props) {
   const nodes = story.nodes;
   const startId = story.startNodeId;
   const [currentId, setCurrentId] = useState<string | null>(startId);
@@ -42,7 +63,16 @@ export function StoryPreview({ story, criteria }: Props) {
 
   const choose = (c: Choice) => {
     if (!node) return;
-    setHistory((h) => [...h, { nodeId: node.id, choiceLabel: c.label, feedback: c.feedback, points: c.points }]);
+    setHistory((h) => [...h, {
+      nodeId: node.id,
+      nodeTitle: node.title,
+      question: node.question?.text ?? "",
+      choiceId: c.id,
+      choiceLabel: c.label,
+      feedback: c.feedback,
+      points: c.points,
+      competencies: { ...(c.competencies ?? {}) },
+    }]);
     setScore((s) => s + c.points);
     setCompetencies((m) => {
       const next = { ...m };
@@ -100,7 +130,7 @@ export function StoryPreview({ story, criteria }: Props) {
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Badge variant="secondary" className="gap-1"><Star className="h-3 w-3" /> {score} pts</Badge>
           <Button size="sm" variant="ghost" onClick={goBack} disabled={history.length === 0}>
             <ArrowLeft className="h-3 w-3 mr-1" /> Atrás
@@ -108,6 +138,24 @@ export function StoryPreview({ story, criteria }: Props) {
           <Button size="sm" variant="outline" onClick={reset}>
             <RotateCcw className="h-3 w-3 mr-1" /> Reiniciar
           </Button>
+          {onSaveDraft && (
+            <Button
+              size="sm"
+              variant="default"
+              disabled={savingDraft}
+              onClick={() =>
+                onSaveDraft({
+                  currentNodeId: currentId,
+                  score,
+                  competencyScores: competencies,
+                  answers: history.map(({ competencies: _c, ...rest }) => rest),
+                })
+              }
+            >
+              {savingDraft ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
+              Guardar borrador jugable
+            </Button>
+          )}
         </div>
       </div>
 

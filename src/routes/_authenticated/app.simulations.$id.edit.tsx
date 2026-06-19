@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getSimulation, updateSimulationStory } from "@/lib/simulations.functions";
+import { savePreviewAsDraft } from "@/lib/sessions.functions";
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,12 +48,15 @@ function EditSimulation() {
   const navigate = useNavigate();
   const get = useServerFn(getSimulation);
   const save = useServerFn(updateSimulationStory);
+  const saveDraft = useServerFn(savePreviewAsDraft);
 
   const sim = useQuery({ queryKey: ["sim", id], queryFn: () => get({ data: { id } }) });
 
   const [state, setState] = useState<EditorState | null>(null);
   const [saving, setSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftSessionId, setDraftSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!sim.data || state) return;
@@ -256,15 +260,60 @@ function EditSimulation() {
           <DialogHeader>
             <DialogTitle>Vista previa interactiva</DialogTitle>
             <DialogDescription>
-              Prueba el árbol con los cambios actuales sin guardar. Los puntos y competencias se calculan en tiempo real.
+              Prueba el árbol con los cambios actuales. Puedes guardar el progreso como borrador jugable sin publicar la simulación.
             </DialogDescription>
           </DialogHeader>
+          {draftSessionId && (
+            <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm flex items-center justify-between gap-2">
+              <span>Borrador guardado. Puedes reanudarlo cuando quieras.</span>
+              <Link
+                to="/app/sessions/$id"
+                params={{ id: draftSessionId }}
+                className="text-primary underline underline-offset-2 font-medium"
+              >
+                Abrir sesión
+              </Link>
+            </div>
+          )}
           <StoryPreview
             story={{
               startNodeId: state.startNodeId,
               nodes: Object.fromEntries(state.nodes.map((n) => [n.id, n])),
             }}
             criteria={state.criteria}
+            savingDraft={savingDraft}
+            onSaveDraft={async (payload) => {
+              setSavingDraft(true);
+              try {
+                // Persist editor changes first so the saved draft is replayable
+                // against the exact story the user just previewed.
+                const nodesRecord: Record<string, StoryNode> = {};
+                for (const n of state.nodes) nodesRecord[n.id] = n;
+                await save({
+                  data: {
+                    id,
+                    story: { startNodeId: state.startNodeId, nodes: nodesRecord },
+                    evaluationCriteria: state.criteria,
+                  },
+                });
+                const res = await saveDraft({
+                  data: {
+                    simulationId: id,
+                    currentNodeId: payload.currentNodeId,
+                    score: payload.score,
+                    competencyScores: payload.competencyScores,
+                    answers: payload.answers,
+                    ...(draftSessionId ? { resumeSessionId: draftSessionId } : {}),
+                  },
+                });
+                setDraftSessionId(res.id);
+                toast.success("Borrador jugable guardado");
+              } catch (err: any) {
+                toast.error(err?.message ?? "No se pudo guardar el borrador");
+              } finally {
+                setSavingDraft(false);
+              }
+            }}
           />
         </DialogContent>
       </Dialog>
