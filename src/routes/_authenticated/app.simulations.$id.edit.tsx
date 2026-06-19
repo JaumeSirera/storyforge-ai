@@ -49,6 +49,7 @@ function EditSimulation() {
   const get = useServerFn(getSimulation);
   const save = useServerFn(updateSimulationStory);
   const saveDraft = useServerFn(savePreviewAsDraft);
+  const submit = useServerFn(submitForReview);
 
   const sim = useQuery({ queryKey: ["sim", id], queryFn: () => get({ data: { id } }) });
 
@@ -57,6 +58,10 @@ function EditSimulation() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [draftSessionId, setDraftSessionId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const status = sim.data?.status as string | undefined;
+  const locked = status === "in_review" || status === "published";
 
   useEffect(() => {
     if (!sim.data || state) return;
