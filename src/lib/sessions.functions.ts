@@ -236,3 +236,84 @@ export const listMySessions = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return data ?? [];
   });
+
+// ---------- Save current preview state as a playable draft session ----------
+
+const PreviewAnswerSchema = z.object({
+  nodeId: z.string(),
+  nodeTitle: z.string().default(""),
+  question: z.string().default(""),
+  choiceId: z.string().default(""),
+  choiceLabel: z.string().default(""),
+  points: z.number(),
+  feedback: z.string().default(""),
+  at: z.string().optional(),
+});
+
+const SavePreviewDraftInput = z.object({
+  simulationId: z.string().uuid(),
+  currentNodeId: z.string().nullable(),
+  score: z.number(),
+  competencyScores: z.record(z.string(), z.number()).default({}),
+  answers: z.array(PreviewAnswerSchema).default([]),
+  resumeSessionId: z.string().uuid().optional(),
+});
+
+export const savePreviewAsDraft = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => SavePreviewDraftInput.parse(input))
+  .handler(async ({ data, context }) => {
+    // Confirm the caller owns the simulation (preview drafts only for owners).
+    const { data: sim, error: simErr } = await context.supabase
+      .from("simulations")
+      .select("id, owner_id")
+      .eq("id", data.simulationId)
+      .maybeSingle();
+    if (simErr) throw new Error(simErr.message);
+    if (!sim) throw new Error("Simulación no encontrada");
+    if (sim.owner_id !== context.userId) throw new Error("No autorizado");
+
+    const answers = data.answers.map((a) => ({
+      ...a,
+      at: a.at ?? new Date().toISOString(),
+    }));
+
+    // Mark the session as a preview draft via the achievements field so we can
+    // filter it in lists without changing the schema.
+    const achievements = ["__preview_draft__"];
+
+    if (data.resumeSessionId) {
+      const { error: updErr } = await context.supabase
+        .from("sessions")
+        .update({
+          current_node_id: data.currentNodeId,
+          score: data.score,
+          competency_scores: data.competencyScores as any,
+          answers: answers as any,
+          achievements: achievements as any,
+          completed_at: null,
+          report: null,
+        })
+        .eq("id", data.resumeSessionId)
+        .eq("user_id", context.userId);
+      if (updErr) throw new Error(updErr.message);
+      return { id: data.resumeSessionId };
+    }
+
+    const { data: sess, error } = await context.supabase
+      .from("sessions")
+      .insert({
+        simulation_id: data.simulationId,
+        user_id: context.userId,
+        current_node_id: data.currentNodeId,
+        score: data.score,
+        stars: 0,
+        achievements: achievements as any,
+        answers: answers as any,
+        competency_scores: data.competencyScores as any,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    return { id: sess.id };
+  });
