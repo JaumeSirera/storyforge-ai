@@ -70,11 +70,8 @@ function NewSimulation() {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
-  const [topic, setTopic] = useState("");
-  const [duration, setDuration] = useState(15);
-  const [prompt, setPrompt] = useState("");
-  const [videos, setVideos] = useState<VideoEntry[]>([]);
-  const [loading, setLoading] = useState(false);
+
+
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
