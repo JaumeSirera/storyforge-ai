@@ -324,11 +324,12 @@ function normalizeStory(raw: any, data: GenerateInputData): GeneratedStory {
   }
 
   const nodeIds = new Set(nodes.map((node) => node.id));
+  const safeFallbackEndingId = nodes.find((node) => node.isEnding)?.id ?? fallbackEndingId;
   for (const node of nodes) {
     if (!node.question) continue;
     node.question.choices = node.question.choices.map((choice) => ({
       ...choice,
-      next: choice.next && nodeIds.has(choice.next) ? choice.next : fallbackEndingId,
+      next: choice.next && nodeIds.has(choice.next) ? choice.next : safeFallbackEndingId,
     }));
   }
 
