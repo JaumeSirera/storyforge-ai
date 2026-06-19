@@ -106,10 +106,11 @@ ${videoList}
 Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
 
     const { experimental_output: output } = await generateText({
-      model: gateway("google/gemini-3-flash-preview"),
+      model: gateway("google/gemini-3-pro-preview"),
       experimental_output: Output.object({ schema: StorySchema }),
       system: systemPrompt,
       prompt: userPrompt,
+      maxOutputTokens: 16000,
     });
 
     // Convert flat nodes array into the runtime Story shape with embedded video objects.
