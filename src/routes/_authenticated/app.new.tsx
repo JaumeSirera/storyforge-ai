@@ -133,12 +133,43 @@ function NewSimulation() {
 
         <Card>
           <CardHeader>
-            <CardTitle>2. Guion / contexto</CardTitle>
-            <CardDescription>
-              Describe la situación, personajes, retos y todo lo que la IA deba tener en cuenta.
-            </CardDescription>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <CardTitle>2. Guion / contexto</CardTitle>
+                <CardDescription>
+                  Describe la situación, personajes y retos. Puedes pegar texto o importar un documento.
+                </CardDescription>
+              </div>
+              <div className="shrink-0">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={ACCEPTED}
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleFile(f);
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={parsing}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="gap-2"
+                >
+                  {parsing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  {parsing ? "Leyendo..." : "Importar documento"}
+                </Button>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-2">
             <Textarea
               required
               minLength={20}
@@ -147,8 +178,14 @@ function NewSimulation() {
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Ej: Buscamos un chef ejecutivo. Primer día de trabajo, llega un imprevisto con el proveedor de pescado fresco. Debe gestionar personal, compras, calidad y resolver conflictos..."
             />
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <FileText className="h-3 w-3" />
+              Formatos: PDF, DOCX, PPTX, TXT, MD · Máx. 5 MB
+              {lastFile && <span className="ml-1">· Último: {lastFile}</span>}
+            </p>
           </CardContent>
         </Card>
+
 
         <Card>
           <CardHeader>
