@@ -3,11 +3,20 @@ import { createServerFn } from "@tanstack/react-start";
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 const MAX_CHARS = 50_000;
 
-function cleanText(s: string): string {
+function stripXml(s: string): string {
+  // Remove any leftover XML/HTML-ish tags and collapse entities.
   return s
+    .replace(/<\/?[a-zA-Z][^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&#x?[0-9a-fA-F]+;/g, " ");
+}
+
+function cleanText(s: string): string {
+  return stripXml(s)
     .replace(/\r\n?/g, "\n")
     .replace(/\u0000/g, "")
-    .replace(/[ \t]+\n/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/ ?\n ?/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
@@ -38,14 +47,19 @@ async function parsePptx(buf: ArrayBuffer): Promise<string> {
   const slides: string[] = [];
   for (let i = 0; i < slideFiles.length; i++) {
     const xml = await zip.files[slideFiles[i]].async("string");
-    const texts = Array.from(xml.matchAll(/<a:t[^>]*>([\s\S]*?)<\/a:t>/g)).map(
-      (m) => m[1]
-        .replace(/&amp;/g, "&")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/&quot;/g, '"')
-        .replace(/&apos;/g, "'"),
-    );
+    const texts = Array.from(xml.matchAll(/<a:t[^>]*>([\s\S]*?)<\/a:t>/g))
+      .map((m) =>
+        m[1]
+          .replace(/<[^>]+>/g, "") // strip nested tags inside <a:t>
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&quot;/g, '"')
+          .replace(/&apos;/g, "'")
+          .trim(),
+      )
+      .filter((t) => t.length > 0 && !/^<.*>$/.test(t));
+    if (texts.length === 0) continue;
     slides.push(`# Diapositiva ${i + 1}\n${texts.join("\n")}`);
   }
   return slides.join("\n\n");
