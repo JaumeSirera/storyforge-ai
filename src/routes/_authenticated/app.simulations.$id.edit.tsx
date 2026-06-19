@@ -329,38 +329,40 @@ function EditSimulation() {
             }}
             criteria={state.criteria}
             savingDraft={savingDraft}
-            onSaveDraft={async (payload) => {
-              setSavingDraft(true);
-              try {
-                // Persist editor changes first so the saved draft is replayable
-                // against the exact story the user just previewed.
-                const nodesRecord: Record<string, StoryNode> = {};
-                for (const n of state.nodes) nodesRecord[n.id] = n;
-                await save({
-                  data: {
-                    id,
-                    story: { startNodeId: state.startNodeId, nodes: nodesRecord },
-                    evaluationCriteria: state.criteria,
-                  },
-                });
-                const res = await saveDraft({
-                  data: {
-                    simulationId: id,
-                    currentNodeId: payload.currentNodeId,
-                    score: payload.score,
-                    competencyScores: payload.competencyScores,
-                    answers: payload.answers,
-                    ...(draftSessionId ? { resumeSessionId: draftSessionId } : {}),
-                  },
-                });
-                setDraftSessionId(res.id);
-                toast.success("Borrador jugable guardado");
-              } catch (err: any) {
-                toast.error(err?.message ?? "No se pudo guardar el borrador");
-              } finally {
-                setSavingDraft(false);
-              }
-            }}
+            onSaveDraft={
+              locked
+                ? undefined
+                : async (payload) => {
+                    setSavingDraft(true);
+                    try {
+                      const nodesRecord: Record<string, StoryNode> = {};
+                      for (const n of state.nodes) nodesRecord[n.id] = n;
+                      await save({
+                        data: {
+                          id,
+                          story: { startNodeId: state.startNodeId, nodes: nodesRecord },
+                          evaluationCriteria: state.criteria,
+                        },
+                      });
+                      const res = await saveDraft({
+                        data: {
+                          simulationId: id,
+                          currentNodeId: payload.currentNodeId,
+                          score: payload.score,
+                          competencyScores: payload.competencyScores,
+                          answers: payload.answers,
+                          ...(draftSessionId ? { resumeSessionId: draftSessionId } : {}),
+                        },
+                      });
+                      setDraftSessionId(res.id);
+                      toast.success("Borrador jugable guardado");
+                    } catch (err: any) {
+                      toast.error(err?.message ?? "No se pudo guardar el borrador");
+                    } finally {
+                      setSavingDraft(false);
+                    }
+                  }
+            }
           />
         </DialogContent>
       </Dialog>
