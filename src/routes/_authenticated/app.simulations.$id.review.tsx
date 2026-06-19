@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   getSimulation,
   listPreviewDrafts,
+  listSimulationHistory,
   publishSimulation,
   revertToDraft,
 } from "@/lib/simulations.functions";
@@ -11,14 +12,21 @@ import { startSession } from "@/lib/sessions.functions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   ArrowLeft,
   CheckCircle2,
+  History,
   Loader2,
   Lock,
+  Pencil,
   Play,
   RotateCcw,
   Rocket,
+  Send,
+  Sparkles,
+  UserCircle2,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -27,6 +35,17 @@ export const Route = createFileRoute("/_authenticated/app/simulations/$id/review
   component: ReviewSimulation,
 });
 
+const ACTION_META: Record<
+  string,
+  { label: string; icon: any; variant: "default" | "secondary" | "outline" | "destructive" }
+> = {
+  create: { label: "Creada", icon: Sparkles, variant: "secondary" },
+  edit: { label: "Edición", icon: Pencil, variant: "outline" },
+  submit: { label: "Enviada a revisión", icon: Send, variant: "secondary" },
+  publish: { label: "Publicada", icon: Rocket, variant: "default" },
+  revert: { label: "Devuelta a borrador", icon: RotateCcw, variant: "destructive" },
+};
+
 function ReviewSimulation() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
@@ -34,6 +53,7 @@ function ReviewSimulation() {
 
   const get = useServerFn(getSimulation);
   const listDrafts = useServerFn(listPreviewDrafts);
+  const listHistory = useServerFn(listSimulationHistory);
   const publish = useServerFn(publishSimulation);
   const revert = useServerFn(revertToDraft);
   const start = useServerFn(startSession);
@@ -43,10 +63,15 @@ function ReviewSimulation() {
     queryKey: ["preview-drafts", id],
     queryFn: () => listDrafts({ data: { simulationId: id } }),
   });
+  const history = useQuery({
+    queryKey: ["sim-history", id],
+    queryFn: () => listHistory({ data: { simulationId: id } }),
+  });
 
   const [publishing, setPublishing] = useState(false);
   const [reverting, setReverting] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [note, setNote] = useState("");
 
   if (sim.isLoading) return <p className="text-muted-foreground">Cargando...</p>;
   if (!sim.data) return <p>No encontrada.</p>;
@@ -56,14 +81,20 @@ function ReviewSimulation() {
   const isPublished = status === "published";
   const editable = status === "draft" || status === "ready";
 
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["sim", id] });
+    qc.invalidateQueries({ queryKey: ["my-simulations"] });
+    qc.invalidateQueries({ queryKey: ["sim-history", id] });
+  };
+
   const handlePublish = async () => {
     if (!confirm("Esto publicará la simulación y la hará accesible a otros usuarios. ¿Continuar?")) return;
     setPublishing(true);
     try {
-      await publish({ data: { id } });
+      await publish({ data: { id, ...(note.trim() ? { note: note.trim() } : {}) } });
       toast.success("Simulación publicada");
-      qc.invalidateQueries({ queryKey: ["sim", id] });
-      qc.invalidateQueries({ queryKey: ["my-simulations"] });
+      setNote("");
+      refresh();
     } catch (err: any) {
       toast.error(err?.message ?? "No se pudo publicar");
     } finally {
@@ -75,10 +106,10 @@ function ReviewSimulation() {
     if (!confirm("Volver a borrador desbloqueará la edición y la simulación dejará de estar publicada. ¿Continuar?")) return;
     setReverting(true);
     try {
-      await revert({ data: { id } });
+      await revert({ data: { id, ...(note.trim() ? { note: note.trim() } : {}) } });
       toast.success("Vuelta a borrador");
-      qc.invalidateQueries({ queryKey: ["sim", id] });
-      qc.invalidateQueries({ queryKey: ["my-simulations"] });
+      setNote("");
+      refresh();
       navigate({ to: "/app/simulations/$id/edit", params: { id } });
     } catch (err: any) {
       toast.error(err?.message ?? "No se pudo revertir");
@@ -86,6 +117,7 @@ function ReviewSimulation() {
       setReverting(false);
     }
   };
+
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-16">
@@ -137,34 +169,47 @@ function ReviewSimulation() {
                 : "Mientras está en revisión, la edición está bloqueada. Prueba los borradores jugables, decide si publicar, o vuelve a borrador para seguir editando."}
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            {!isPublished && (
-              <Button onClick={handlePublish} disabled={publishing} className="gap-2">
-                {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
-                Publicar simulación
+          <CardContent className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="rev-note" className="text-xs">Nota de revisión (opcional)</Label>
+              <Textarea
+                id="rev-note"
+                rows={2}
+                placeholder="Motivo de la decisión, contexto para el historial..."
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                maxLength={500}
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {!isPublished && (
+                <Button onClick={handlePublish} disabled={publishing} className="gap-2">
+                  {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
+                  Publicar simulación
+                </Button>
+              )}
+              <Button onClick={handleRevert} disabled={reverting} variant="outline" className="gap-2">
+                {reverting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+                Volver a borrador
               </Button>
-            )}
-            <Button onClick={handleRevert} disabled={reverting} variant="outline" className="gap-2">
-              {reverting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
-              Volver a borrador
-            </Button>
-            <Button
-              variant="ghost"
-              disabled={starting}
-              onClick={async () => {
-                setStarting(true);
-                try {
-                  const r = await start({ data: { simulationId: id } });
-                  navigate({ to: "/app/sessions/$id", params: { id: r.id } });
-                } finally {
-                  setStarting(false);
-                }
-              }}
-              className="gap-2"
-            >
-              {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-              Jugar partida completa
-            </Button>
+              <Button
+                variant="ghost"
+                disabled={starting}
+                onClick={async () => {
+                  setStarting(true);
+                  try {
+                    const r = await start({ data: { simulationId: id } });
+                    navigate({ to: "/app/sessions/$id", params: { id: r.id } });
+                  } finally {
+                    setStarting(false);
+                  }
+                }}
+                className="gap-2"
+              >
+                {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                Jugar partida completa
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -213,6 +258,88 @@ function ReviewSimulation() {
           )}
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <History className="h-5 w-5" /> Historial de cambios
+          </CardTitle>
+          <CardDescription>
+            Quién hizo qué y qué se modificó en cada revisión.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {history.isLoading ? (
+            <p className="text-sm text-muted-foreground">Cargando historial...</p>
+          ) : (history.data?.length ?? 0) === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Aún no hay cambios registrados. Edita y envía a revisión para empezar a registrar el historial.
+            </p>
+          ) : (
+            <ol className="relative border-l border-border ml-3 space-y-4">
+              {history.data!.map((h: any) => {
+                const meta = ACTION_META[h.action] ?? ACTION_META.edit;
+                const Icon = meta.icon;
+                const actorName = h.actor?.full_name || h.actor?.email || "Usuario";
+                return (
+                  <li key={h.id} className="ml-4">
+                    <span className="absolute -left-[7px] mt-1.5 h-3 w-3 rounded-full bg-primary border-2 border-background" />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={meta.variant} className="gap-1">
+                        <Icon className="h-3 w-3" /> {meta.label}
+                      </Badge>
+                      {h.from_status && h.to_status && h.from_status !== h.to_status && (
+                        <Badge variant="outline" className="font-mono text-[10px]">
+                          {h.from_status} → {h.to_status}
+                        </Badge>
+                      )}
+                      <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                        <UserCircle2 className="h-3 w-3" /> {actorName}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        · {new Date(h.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    {h.note && (
+                      <p className="text-sm mt-1.5 italic text-muted-foreground">"{h.note}"</p>
+                    )}
+                    {h.action === "edit" && h.summary && (
+                      <RevisionDiff summary={h.summary} />
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function RevisionDiff({ summary }: { summary: any }) {
+  const parts: { label: string; items: string[]; tone: string }[] = [
+    { label: "Escenas añadidas", items: summary.addedNodes ?? [], tone: "text-emerald-600 dark:text-emerald-400" },
+    { label: "Escenas modificadas", items: summary.modifiedNodes ?? [], tone: "text-amber-600 dark:text-amber-400" },
+    { label: "Escenas eliminadas", items: summary.removedNodes ?? [], tone: "text-destructive" },
+    { label: "Competencias añadidas", items: summary.addedCriteria ?? [], tone: "text-emerald-600 dark:text-emerald-400" },
+    { label: "Competencias modificadas", items: summary.modifiedCriteria ?? [], tone: "text-amber-600 dark:text-amber-400" },
+    { label: "Competencias eliminadas", items: summary.removedCriteria ?? [], tone: "text-destructive" },
+  ].filter((p) => p.items.length > 0);
+
+  if (parts.length === 0 && !summary.startChanged) return null;
+
+  return (
+    <div className="mt-2 rounded-md border bg-muted/30 p-2 text-xs space-y-1">
+      {summary.startChanged && (
+        <div className="text-amber-600 dark:text-amber-400">• Escena de inicio modificada</div>
+      )}
+      {parts.map((p) => (
+        <div key={p.label} className={p.tone}>
+          • <span className="font-medium">{p.label}:</span>{" "}
+          <span className="font-mono text-[10px]">{p.items.join(", ")}</span>
+        </div>
+      ))}
     </div>
   );
 }

@@ -97,6 +97,53 @@ export type Database = {
           },
         ]
       }
+      simulation_revisions: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          from_status: string | null
+          id: string
+          note: string | null
+          simulation_id: string
+          snapshot: Json
+          summary: Json
+          to_status: string | null
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          simulation_id: string
+          snapshot?: Json
+          summary?: Json
+          to_status?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          simulation_id?: string
+          snapshot?: Json
+          summary?: Json
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_revisions_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "simulations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       simulations: {
         Row: {
           cover_image_url: string | null
