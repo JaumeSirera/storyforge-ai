@@ -13,6 +13,17 @@ import { toast } from "sonner";
 
 const ACCEPTED = ".pdf,.docx,.pptx,.txt,.md";
 const MAX_BYTES = 5 * 1024 * 1024;
+const DRAFT_KEY = "new-simulation-draft-v1";
+
+type Draft = {
+  title: string;
+  objective: string;
+  topic: string;
+  duration: number;
+  prompt: string;
+  videos: VideoEntry[];
+  lastFile: string | null;
+};
 
 export const Route = createFileRoute("/_authenticated/app/new")({
   component: NewSimulation,
