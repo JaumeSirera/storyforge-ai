@@ -276,7 +276,9 @@ const UpdateStoryInput = z.object({
 
 export const updateSimulationStory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => UpdateStoryInput.parse(input))
+  .inputValidator((input: unknown) =>
+    UpdateStoryInput.extend({ note: z.string().max(500).optional() }).parse(input),
+  )
   .handler(async ({ data, context }) => {
     // Integrity checks: startNodeId exists, all "next" refs point to existing nodes or null.
     const ids = new Set(Object.keys(data.story.nodes));
@@ -293,10 +295,10 @@ export const updateSimulationStory = createServerFn({ method: "POST" })
       }
     }
 
-    // Block edits when the simulation is locked (in_review or published).
+    // Block edits when the simulation is locked (in_review or published) and load previous snapshot for diffing.
     const { data: current, error: readErr } = await context.supabase
       .from("simulations")
-      .select("status, owner_id")
+      .select("status, owner_id, story, evaluation_criteria")
       .eq("id", data.id)
       .maybeSingle();
     if (readErr) throw new Error(readErr.message);
@@ -317,20 +319,120 @@ export const updateSimulationStory = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .eq("owner_id", context.userId);
     if (error) throw new Error(error.message);
+
+    const summary = diffStory(
+      { story: current.story, criteria: current.evaluation_criteria },
+      { story: data.story, criteria: data.evaluationCriteria },
+    );
+
+    // Only log when something actually changed, to avoid noise from no-op saves.
+    if (summary.changed) {
+      await logRevision(context, data.id, {
+        action: "edit",
+        fromStatus: current.status,
+        toStatus: current.status,
+        note: data.note ?? null,
+        summary,
+        snapshot: { story: data.story, criteria: data.evaluationCriteria },
+      });
+    }
+
     return { ok: true };
   });
 
 // ---------- Review / publish workflow ----------
+
+async function logRevision(
+  context: { supabase: any; userId: string },
+  simulationId: string,
+  entry: {
+    action: "edit" | "submit" | "publish" | "revert" | "create";
+    fromStatus: string | null;
+    toStatus: string | null;
+    note?: string | null;
+    summary?: Record<string, unknown>;
+    snapshot?: Record<string, unknown>;
+  },
+) {
+  await context.supabase.from("simulation_revisions").insert({
+    simulation_id: simulationId,
+    actor_id: context.userId,
+    action: entry.action,
+    from_status: entry.fromStatus,
+    to_status: entry.toStatus,
+    note: entry.note ?? null,
+    summary: (entry.summary ?? {}) as any,
+    snapshot: (entry.snapshot ?? {}) as any,
+  });
+}
+
+function diffStory(
+  prev: { story: any; criteria: any },
+  next: { story: any; criteria: any },
+) {
+  const prevNodes: Record<string, any> = prev?.story?.nodes ?? {};
+  const nextNodes: Record<string, any> = next?.story?.nodes ?? {};
+  const prevIds = new Set(Object.keys(prevNodes));
+  const nextIds = new Set(Object.keys(nextNodes));
+
+  const addedNodes: string[] = [];
+  const removedNodes: string[] = [];
+  const modifiedNodes: string[] = [];
+
+  for (const id of nextIds) {
+    if (!prevIds.has(id)) addedNodes.push(id);
+    else if (JSON.stringify(prevNodes[id]) !== JSON.stringify(nextNodes[id])) modifiedNodes.push(id);
+  }
+  for (const id of prevIds) if (!nextIds.has(id)) removedNodes.push(id);
+
+  const prevCrit: any[] = Array.isArray(prev?.criteria) ? prev.criteria : [];
+  const nextCrit: any[] = Array.isArray(next?.criteria) ? next.criteria : [];
+  const prevByKey = new Map(prevCrit.map((c) => [c.key, c]));
+  const nextByKey = new Map(nextCrit.map((c) => [c.key, c]));
+
+  const addedCriteria: string[] = [];
+  const removedCriteria: string[] = [];
+  const modifiedCriteria: string[] = [];
+  for (const [k, v] of nextByKey) {
+    if (!prevByKey.has(k)) addedCriteria.push(k);
+    else if (JSON.stringify(prevByKey.get(k)) !== JSON.stringify(v)) modifiedCriteria.push(k);
+  }
+  for (const k of prevByKey.keys()) if (!nextByKey.has(k)) removedCriteria.push(k);
+
+  const startChanged = (prev?.story?.startNodeId ?? null) !== (next?.story?.startNodeId ?? null);
+
+  const changed =
+    addedNodes.length +
+      removedNodes.length +
+      modifiedNodes.length +
+      addedCriteria.length +
+      removedCriteria.length +
+      modifiedCriteria.length >
+      0 || startChanged;
+
+  return {
+    changed,
+    addedNodes,
+    removedNodes,
+    modifiedNodes,
+    addedCriteria,
+    removedCriteria,
+    modifiedCriteria,
+    startChanged,
+  };
+}
 
 async function setStatus(
   context: { supabase: any; userId: string },
   id: string,
   patch: { status: string; is_public?: boolean },
   allowedFrom: string[],
+  action: "submit" | "publish" | "revert",
+  note?: string | null,
 ) {
   const { data: current, error: readErr } = await context.supabase
     .from("simulations")
-    .select("status, owner_id")
+    .select("status, owner_id, story, evaluation_criteria")
     .eq("id", id)
     .maybeSingle();
   if (readErr) throw new Error(readErr.message);
@@ -347,32 +449,55 @@ async function setStatus(
     .eq("id", id)
     .eq("owner_id", context.userId);
   if (error) throw new Error(error.message);
+
+  await logRevision(context, id, {
+    action,
+    fromStatus: current.status,
+    toStatus: patch.status,
+    note: note ?? null,
+    snapshot: { story: current.story, criteria: current.evaluation_criteria },
+  });
+
   return { ok: true, status: patch.status };
 }
 
+const StatusActionInput = z.object({
+  id: z.string().uuid(),
+  note: z.string().max(500).optional(),
+});
+
 export const submitForReview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .inputValidator((input: unknown) => StatusActionInput.parse(input))
   .handler(({ data, context }) =>
-    setStatus(context, data.id, { status: "in_review" }, ["draft", "ready"]),
+    setStatus(context, data.id, { status: "in_review" }, ["draft", "ready"], "submit", data.note),
   );
 
 export const publishSimulation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .inputValidator((input: unknown) => StatusActionInput.parse(input))
   .handler(({ data, context }) =>
-    setStatus(context, data.id, { status: "published", is_public: true }, ["in_review"]),
+    setStatus(
+      context,
+      data.id,
+      { status: "published", is_public: true },
+      ["in_review"],
+      "publish",
+      data.note,
+    ),
   );
 
 export const revertToDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .inputValidator((input: unknown) => StatusActionInput.parse(input))
   .handler(({ data, context }) =>
     setStatus(
       context,
       data.id,
       { status: "ready", is_public: false },
       ["in_review", "published"],
+      "revert",
+      data.note,
     ),
   );
 
@@ -395,4 +520,34 @@ export const listPreviewDrafts = createServerFn({ method: "POST" })
       Array.isArray(r.achievements) && r.achievements.includes("__preview_draft__"),
     );
   });
+
+// ---------- Revision history ----------
+
+export const listSimulationHistory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ simulationId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("simulation_revisions")
+      .select("id, actor_id, action, from_status, to_status, note, summary, created_at")
+      .eq("simulation_id", data.simulationId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    const actorIds = Array.from(new Set((rows ?? []).map((r: any) => r.actor_id)));
+    let actors: Record<string, { full_name: string | null; email: string | null }> = {};
+    if (actorIds.length > 0) {
+      const { data: profiles } = await context.supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", actorIds);
+      actors = Object.fromEntries(
+        (profiles ?? []).map((p: any) => [p.id, { full_name: p.full_name, email: p.email }]),
+      );
+    }
+    return (rows ?? []).map((r: any) => ({ ...r, actor: actors[r.actor_id] ?? null }));
+  });
+
 
