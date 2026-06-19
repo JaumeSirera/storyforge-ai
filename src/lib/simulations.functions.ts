@@ -234,25 +234,47 @@ function normalizeStoryFromText(text: string, data: GenerateInputData): Generate
   return normalizeStory(raw, data);
 }
 
-function normalizeStory(raw: any, data: GenerateInputData): GeneratedStory {
+type RawRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): RawRecord | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as RawRecord)
+    : null;
+}
+
+function toText(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function toId(value: unknown, fallback: string): string {
+  return toText(value, fallback)
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "_")
+    .replace(/^_+|_+$/g, "") || fallback;
+}
+
+function toEndingType(value: unknown, fallback: "success" | "neutral" | "fail") {
+  return value === "success" || value === "neutral" || value === "fail" ? value : fallback;
+}
+
+function normalizeStory(raw: unknown, data: GenerateInputData): GeneratedStory {
   const fallback = createFallbackStory(data);
-  const nodesInput = Array.isArray(raw?.nodes)
-    ? raw.nodes
-    : raw?.nodes && typeof raw.nodes === "object"
-      ? Object.entries(raw.nodes).map(([id, node]) => ({ ...(node as any), id }))
+  const rawRecord = asRecord(raw);
+  const rawNodes = rawRecord?.nodes;
+  const nodesInput: RawRecord[] = Array.isArray(rawNodes)
+    ? rawNodes.map((node) => asRecord(node) ?? {})
+    : asRecord(rawNodes)
+      ? Object.entries(asRecord(rawNodes)!).map(([id, node]) => ({ ...(asRecord(node) ?? {}), id }))
       : [];
 
   if (nodesInput.length < 3) return fallback;
 
-  const originalIds = nodesInput.map((node: any, i: number) => String(node?.id || `nodo_${i + 1}`));
+  const originalIds = nodesInput.map((node, i) => toText(node.id, `nodo_${i + 1}`));
   const idMap = new Map<string, string>();
   const used = new Set<string>();
 
   for (const [i, oldId] of originalIds.entries()) {
-    const base = oldId
-      .toLowerCase()
-      .replace(/[^a-z0-9_\-]+/g, "_")
-      .replace(/^_+|_+$/g, "") || `nodo_${i + 1}`;
+    const base = toId(oldId, `nodo_${i + 1}`);
     let id = base;
     let n = 2;
     while (used.has(id)) id = `${base}_${n++}`;
@@ -260,32 +282,43 @@ function normalizeStory(raw: any, data: GenerateInputData): GeneratedStory {
     idMap.set(oldId, id);
   }
 
-  const endings = nodesInput.filter((node: any) => node?.isEnding === true || node?.question == null);
-  const fallbackEndingId = idMap.get(String(endings[0]?.id ?? originalIds.at(-1))) ?? "exito";
+  const endings = nodesInput.filter((node) => node.isEnding === true || node.question == null);
+  const fallbackEndingId = idMap.get(toText(endings[0]?.id, originalIds.at(-1) ?? "exito")) ?? "exito";
 
-  const nodes: GeneratedStory["nodes"] = nodesInput.slice(0, 18).map((node: any, i: number) => {
+  const nodes: GeneratedStory["nodes"] = nodesInput.slice(0, 18).map((node, i) => {
     const oldId = originalIds[i];
     const id = idMap.get(oldId) ?? `nodo_${i + 1}`;
-    const rawQuestion = node?.question && typeof node.question === "object" ? node.question : null;
+    const rawQuestion = asRecord(node.question);
     const choicesInput = Array.isArray(rawQuestion?.choices) ? rawQuestion.choices.slice(0, 4) : [];
-    const isEnding = node?.isEnding === true || (!rawQuestion && i > 0);
-    const choices = choicesInput.map((choice: any, choiceIndex: number) => {
-      const nextRaw = choice?.next == null ? null : String(choice.next);
+    const isEnding = node.isEnding === true || (!rawQuestion && i > 0);
+    const choices = choicesInput.map((choiceInput, choiceIndex) => {
+      const choice = asRecord(choiceInput) ?? {};
+      const nextRaw = choice.next == null ? null : String(choice.next);
       const next = nextRaw && idMap.has(nextRaw) ? idMap.get(nextRaw)! : fallbackEndingId;
+      const rawCompetencies = asRecord(choice.competencies);
       const competencies =
-        choice?.competencies && typeof choice.competencies === "object"
+        rawCompetencies
           ? Object.fromEntries(
-              Object.entries(choice.competencies)
+              Object.entries(rawCompetencies)
                 .filter(([, value]) => typeof value === "number" && Number.isFinite(value))
-                .map(([key, value]) => [key, Math.max(-20, Math.min(20, Math.round(value as number)))]),
+                .map(([key, value]) => [
+                  key,
+                  Math.max(-20, Math.min(20, Math.round(value as number))),
+                ]),
             )
           : { toma_decisiones: 0, comunicacion: 0, gestion_crisis: 0 };
 
       return {
-        id: String(choice?.id || `opcion_${choiceIndex + 1}`),
-        label: String(choice?.label || `Opción ${choiceIndex + 1}`).slice(0, 160),
-        feedback: String(choice?.feedback || "La decisión tiene consecuencias en el desarrollo de la simulación."),
-        points: typeof choice?.points === "number" && Number.isFinite(choice.points) ? Math.round(choice.points) : 0,
+        id: toText(choice.id, `opcion_${choiceIndex + 1}`),
+        label: toText(choice.label, `Opción ${choiceIndex + 1}`).slice(0, 160),
+        feedback: toText(
+          choice.feedback,
+          "La decisión tiene consecuencias en el desarrollo de la simulación.",
+        ),
+        points:
+          typeof choice.points === "number" && Number.isFinite(choice.points)
+            ? Math.round(choice.points)
+            : 0,
         next,
         competencies,
       };
@@ -293,13 +326,16 @@ function normalizeStory(raw: any, data: GenerateInputData): GeneratedStory {
 
     return {
       id,
-      title: String(node?.title || `Escena ${i + 1}`),
-      narrative: String(node?.narrative || "La situación evoluciona y requiere una decisión profesional."),
-      videoRef: typeof node?.videoRef === "string" ? node.videoRef : null,
+      title: toText(node.title, `Escena ${i + 1}`),
+      narrative: toText(
+        node.narrative,
+        "La situación evoluciona y requiere una decisión profesional.",
+      ),
+      videoRef: typeof node.videoRef === "string" ? node.videoRef : null,
       question: isEnding
         ? null
         : {
-            text: String(rawQuestion?.text || "¿Qué haces a continuación?"),
+            text: toText(rawQuestion?.text, "¿Qué haces a continuación?"),
             choices:
               choices.length >= 2
                 ? choices
@@ -310,11 +346,7 @@ function normalizeStory(raw: any, data: GenerateInputData): GeneratedStory {
           },
       isEnding,
       endingType: isEnding
-        ? node?.endingType === "success" || node?.endingType === "neutral" || node?.endingType === "fail"
-          ? node.endingType
-          : i % 2 === 0
-            ? "success"
-            : "neutral"
+        ? toEndingType(node.endingType, i % 2 === 0 ? "success" : "neutral")
         : null,
     };
   });
@@ -333,17 +365,23 @@ function normalizeStory(raw: any, data: GenerateInputData): GeneratedStory {
     }));
   }
 
-  const criteriaInput = Array.isArray(raw?.evaluationCriteria) ? raw.evaluationCriteria : [];
+  const criteriaInput = Array.isArray(rawRecord?.evaluationCriteria) ? rawRecord.evaluationCriteria : [];
   const evaluationCriteria = criteriaInput
-    .map((criterion: any, i: number) => ({
-      key: String(criterion?.key || `criterio_${i + 1}`).toLowerCase().replace(/[^a-z0-9_]+/g, "_") || `criterio_${i + 1}`,
-      label: String(criterion?.label || `Criterio ${i + 1}`),
-      description: String(criterion?.description || "Criterio de evaluación de la simulación."),
+    .map((criterionInput, i) => {
+      const criterion = asRecord(criterionInput) ?? {};
+      return {
+        key: toId(criterion.key, `criterio_${i + 1}`),
+        label: toText(criterion.label, `Criterio ${i + 1}`),
+        description: toText(
+          criterion.description,
+          "Criterio de evaluación de la simulación.",
+        ),
+      };
     }))
     .slice(0, 8);
 
   const story = {
-    startNodeId: idMap.get(String(raw?.startNodeId)) ?? nodes[0]?.id ?? fallback.startNodeId,
+    startNodeId: idMap.get(toText(rawRecord?.startNodeId, "")) ?? nodes[0]?.id ?? fallback.startNodeId,
     nodes,
     evaluationCriteria: evaluationCriteria.length >= 3 ? evaluationCriteria : fallback.evaluationCriteria,
   };
