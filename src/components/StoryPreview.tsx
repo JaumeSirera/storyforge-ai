@@ -130,7 +130,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Badge variant="secondary" className="gap-1"><Star className="h-3 w-3" /> {score} pts</Badge>
           <Button size="sm" variant="ghost" onClick={goBack} disabled={history.length === 0}>
             <ArrowLeft className="h-3 w-3 mr-1" /> Atrás
@@ -138,6 +138,24 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
           <Button size="sm" variant="outline" onClick={reset}>
             <RotateCcw className="h-3 w-3 mr-1" /> Reiniciar
           </Button>
+          {onSaveDraft && (
+            <Button
+              size="sm"
+              variant="default"
+              disabled={savingDraft}
+              onClick={() =>
+                onSaveDraft({
+                  currentNodeId: currentId,
+                  score,
+                  competencyScores: competencies,
+                  answers: history.map(({ competencies: _c, ...rest }) => rest),
+                })
+              }
+            >
+              {savingDraft ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
+              Guardar borrador jugable
+            </Button>
+          )}
         </div>
       </div>
 
