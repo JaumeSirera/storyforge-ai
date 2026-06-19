@@ -220,3 +220,87 @@ export const setSimulationPublic = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ---------- Update story / evaluation criteria / videos (manual editor) ----------
+
+const VideoSourceSchema = z.union([
+  z.object({ type: z.literal("none") }),
+  z.object({
+    type: z.enum(["youtube", "vimeo", "mp4"]),
+    url: z.string().url(),
+    startSec: z.number().optional(),
+    endSec: z.number().optional(),
+  }),
+]);
+
+const EditorChoiceSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  feedback: z.string().default(""),
+  points: z.number(),
+  next: z.string().nullable(),
+  competencies: z.record(z.string(), z.number()).default({}),
+});
+
+const EditorNodeSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  narrative: z.string().default(""),
+  video: VideoSourceSchema.default({ type: "none" }),
+  question: z
+    .object({
+      text: z.string().min(1),
+      choices: z.array(EditorChoiceSchema).min(2).max(4),
+    })
+    .optional(),
+  isEnding: z.boolean().optional(),
+  endingType: z.enum(["success", "neutral", "fail"]).optional(),
+});
+
+const EditorStorySchema = z.object({
+  startNodeId: z.string().min(1),
+  nodes: z.record(z.string(), EditorNodeSchema),
+});
+
+const EditorCriterionSchema = z.object({
+  key: z.string().min(1),
+  label: z.string().min(1),
+  description: z.string().default(""),
+});
+
+const UpdateStoryInput = z.object({
+  id: z.string().uuid(),
+  story: EditorStorySchema,
+  evaluationCriteria: z.array(EditorCriterionSchema).min(1).max(12),
+});
+
+export const updateSimulationStory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => UpdateStoryInput.parse(input))
+  .handler(async ({ data, context }) => {
+    // Integrity checks: startNodeId exists, all "next" refs point to existing nodes or null.
+    const ids = new Set(Object.keys(data.story.nodes));
+    if (!ids.has(data.story.startNodeId)) {
+      throw new Error("startNodeId no existe en los nodos");
+    }
+    for (const node of Object.values(data.story.nodes)) {
+      if (node.question) {
+        for (const ch of node.question.choices) {
+          if (ch.next !== null && !ids.has(ch.next)) {
+            throw new Error(`La opción "${ch.label}" apunta a un nodo inexistente: ${ch.next}`);
+          }
+        }
+      }
+    }
+
+    const { error } = await context.supabase
+      .from("simulations")
+      .update({
+        story: data.story as any,
+        evaluation_criteria: data.evaluationCriteria as any,
+      })
+      .eq("id", data.id)
+      .eq("owner_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
