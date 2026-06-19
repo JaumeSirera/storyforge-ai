@@ -29,9 +29,47 @@ function detectType(url: string): "youtube" | "vimeo" | "mp4" {
 function NewSimulation() {
   const navigate = useNavigate();
   const generate = useServerFn(generateSimulation);
+  const extractDoc = useServerFn(extractDocumentText);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState("");
   const [objective, setObjective] = useState("");
+  const [topic, setTopic] = useState("");
+  const [duration, setDuration] = useState(15);
+  const [prompt, setPrompt] = useState("");
+  const [videos, setVideos] = useState<VideoEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [parsing, setParsing] = useState(false);
+  const [lastFile, setLastFile] = useState<string | null>(null);
+
+  async function handleFile(file: File) {
+    if (file.size > MAX_BYTES) {
+      toast.error("El archivo supera los 5 MB");
+      return;
+    }
+    setParsing(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const result = await extractDoc({ data: fd });
+      setPrompt((prev) => {
+        const header = `--- ${result.filename} ---\n`;
+        const block = header + result.text;
+        return prev.trim() ? `${prev.trim()}\n\n${block}` : block;
+      });
+      setLastFile(result.filename);
+      toast.success(
+        result.truncated
+          ? `Texto importado (recortado a ${result.chars.toLocaleString()} caracteres)`
+          : `Texto importado (${result.chars.toLocaleString()} caracteres)`,
+      );
+    } catch (err: any) {
+      toast.error(err?.message ?? "No se pudo leer el archivo");
+    } finally {
+      setParsing(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
   const [topic, setTopic] = useState("");
   const [duration, setDuration] = useState(15);
   const [prompt, setPrompt] = useState("");
