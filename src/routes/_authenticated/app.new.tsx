@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { generateSimulation } from "@/lib/simulations.functions";
 import { extractDocumentText } from "@/lib/document-parse.functions";
