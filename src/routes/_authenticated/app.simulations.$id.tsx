@@ -52,21 +52,28 @@ function SimulationDetail() {
             <h2 className="font-semibold">¿Listo para jugar?</h2>
             <p className="text-sm text-muted-foreground">Tomarás decisiones y al final recibirás tu informe.</p>
           </div>
-          <Button
-            size="lg"
-            disabled={starting}
-            onClick={async () => {
-              setStarting(true);
-              try {
-                const r = await start({ data: { simulationId: id } });
-                navigate({ to: "/app/sessions/$id", params: { id: r.id } });
-              } finally { setStarting(false); }
-            }}
-            className="gap-2"
-          >
-            {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-            Empezar simulación
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild size="lg" variant="outline" className="gap-2">
+              <Link to="/app/simulations/$id/edit" params={{ id }}>
+                <Pencil className="h-4 w-4" /> Editar
+              </Link>
+            </Button>
+            <Button
+              size="lg"
+              disabled={starting}
+              onClick={async () => {
+                setStarting(true);
+                try {
+                  const r = await start({ data: { simulationId: id } });
+                  navigate({ to: "/app/sessions/$id", params: { id: r.id } });
+                } finally { setStarting(false); }
+              }}
+              className="gap-2"
+            >
+              {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+              Empezar simulación
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
