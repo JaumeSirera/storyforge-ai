@@ -1,14 +1,18 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { generateSimulation } from "@/lib/simulations.functions";
+import { extractDocumentText } from "@/lib/document-parse.functions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Sparkles, Loader2 } from "lucide-react";
+import { Plus, Trash2, Sparkles, Loader2, Upload, FileText } from "lucide-react";
 import { toast } from "sonner";
+
+const ACCEPTED = ".pdf,.docx,.pptx,.txt,.md";
+const MAX_BYTES = 5 * 1024 * 1024;
 
 export const Route = createFileRoute("/_authenticated/app/new")({
   component: NewSimulation,
@@ -25,6 +29,8 @@ function detectType(url: string): "youtube" | "vimeo" | "mp4" {
 function NewSimulation() {
   const navigate = useNavigate();
   const generate = useServerFn(generateSimulation);
+  const extractDoc = useServerFn(extractDocumentText);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState("");
   const [objective, setObjective] = useState("");
@@ -33,6 +39,39 @@ function NewSimulation() {
   const [prompt, setPrompt] = useState("");
   const [videos, setVideos] = useState<VideoEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [parsing, setParsing] = useState(false);
+  const [lastFile, setLastFile] = useState<string | null>(null);
+
+  async function handleFile(file: File) {
+    if (file.size > MAX_BYTES) {
+      toast.error("El archivo supera los 5 MB");
+      return;
+    }
+    setParsing(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const result = await extractDoc({ data: fd });
+      setPrompt((prev) => {
+        const header = `--- ${result.filename} ---\n`;
+        const block = header + result.text;
+        return prev.trim() ? `${prev.trim()}\n\n${block}` : block;
+      });
+      setLastFile(result.filename);
+      toast.success(
+        result.truncated
+          ? `Texto importado (recortado a ${result.chars.toLocaleString()} caracteres)`
+          : `Texto importado (${result.chars.toLocaleString()} caracteres)`,
+      );
+    } catch (err: any) {
+      toast.error(err?.message ?? "No se pudo leer el archivo");
+    } finally {
+      setParsing(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -94,12 +133,43 @@ function NewSimulation() {
 
         <Card>
           <CardHeader>
-            <CardTitle>2. Guion / contexto</CardTitle>
-            <CardDescription>
-              Describe la situación, personajes, retos y todo lo que la IA deba tener en cuenta.
-            </CardDescription>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <CardTitle>2. Guion / contexto</CardTitle>
+                <CardDescription>
+                  Describe la situación, personajes y retos. Puedes pegar texto o importar un documento.
+                </CardDescription>
+              </div>
+              <div className="shrink-0">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={ACCEPTED}
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleFile(f);
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={parsing}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="gap-2"
+                >
+                  {parsing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  {parsing ? "Leyendo..." : "Importar documento"}
+                </Button>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-2">
             <Textarea
               required
               minLength={20}
@@ -108,8 +178,14 @@ function NewSimulation() {
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Ej: Buscamos un chef ejecutivo. Primer día de trabajo, llega un imprevisto con el proveedor de pescado fresco. Debe gestionar personal, compras, calidad y resolver conflictos..."
             />
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <FileText className="h-3 w-3" />
+              Formatos: PDF, DOCX, PPTX, TXT, MD · Máx. 5 MB
+              {lastFile && <span className="ml-1">· Último: {lastFile}</span>}
+            </p>
           </CardContent>
         </Card>
+
 
         <Card>
           <CardHeader>
