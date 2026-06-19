@@ -64,22 +64,45 @@ function Player({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const prefKey = `session-fullscreen:${sessionId}`;
+  const [pendingRestore, setPendingRestore] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(prefKey) === "1";
+  });
+
   useEffect(() => {
     const onChange = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
 
+  // Try to silently restore fullscreen on mount (may fail without a user gesture).
+  useEffect(() => {
+    if (!pendingRestore) return;
+    containerRef.current?.requestFullscreen().catch(() => {
+      // Browser blocked auto-fullscreen — show a one-click prompt instead.
+    });
+  }, [pendingRestore]);
+
   async function toggleFullscreen() {
     try {
       if (!document.fullscreenElement) {
         await containerRef.current?.requestFullscreen();
+        window.localStorage.setItem(prefKey, "1");
+        setPendingRestore(false);
       } else {
         await document.exitFullscreen();
+        window.localStorage.removeItem(prefKey);
+        setPendingRestore(false);
       }
     } catch (e: any) {
       toast.error("No se pudo activar pantalla completa");
     }
+  }
+
+  async function dismissRestore() {
+    window.localStorage.removeItem(prefKey);
+    setPendingRestore(false);
   }
 
   async function pick(choiceId: string) {
@@ -133,6 +156,18 @@ function Player({
           </Button>
         </div>
       </div>
+
+      {pendingRestore && !isFullscreen && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-accent/40 px-3 py-2 text-sm">
+          <span>Esta sesión estaba en pantalla completa. ¿Restaurar?</span>
+          <div className="flex gap-2 shrink-0">
+            <Button type="button" size="sm" variant="ghost" onClick={dismissRestore}>No</Button>
+            <Button type="button" size="sm" onClick={toggleFullscreen} className="gap-1">
+              <Maximize2 className="h-4 w-4" /> Restaurar
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Progress value={progress} className="h-1.5" />
 
