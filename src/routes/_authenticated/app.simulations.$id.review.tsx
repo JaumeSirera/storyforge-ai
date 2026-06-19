@@ -169,34 +169,47 @@ function ReviewSimulation() {
                 : "Mientras está en revisión, la edición está bloqueada. Prueba los borradores jugables, decide si publicar, o vuelve a borrador para seguir editando."}
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            {!isPublished && (
-              <Button onClick={handlePublish} disabled={publishing} className="gap-2">
-                {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
-                Publicar simulación
+          <CardContent className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="rev-note" className="text-xs">Nota de revisión (opcional)</Label>
+              <Textarea
+                id="rev-note"
+                rows={2}
+                placeholder="Motivo de la decisión, contexto para el historial..."
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                maxLength={500}
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {!isPublished && (
+                <Button onClick={handlePublish} disabled={publishing} className="gap-2">
+                  {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
+                  Publicar simulación
+                </Button>
+              )}
+              <Button onClick={handleRevert} disabled={reverting} variant="outline" className="gap-2">
+                {reverting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+                Volver a borrador
               </Button>
-            )}
-            <Button onClick={handleRevert} disabled={reverting} variant="outline" className="gap-2">
-              {reverting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
-              Volver a borrador
-            </Button>
-            <Button
-              variant="ghost"
-              disabled={starting}
-              onClick={async () => {
-                setStarting(true);
-                try {
-                  const r = await start({ data: { simulationId: id } });
-                  navigate({ to: "/app/sessions/$id", params: { id: r.id } });
-                } finally {
-                  setStarting(false);
-                }
-              }}
-              className="gap-2"
-            >
-              {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-              Jugar partida completa
-            </Button>
+              <Button
+                variant="ghost"
+                disabled={starting}
+                onClick={async () => {
+                  setStarting(true);
+                  try {
+                    const r = await start({ data: { simulationId: id } });
+                    navigate({ to: "/app/sessions/$id", params: { id: r.id } });
+                  } finally {
+                    setStarting(false);
+                  }
+                }}
+                className="gap-2"
+              >
+                {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                Jugar partida completa
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
