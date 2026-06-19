@@ -253,12 +253,53 @@ function EditSimulation() {
           <Button variant="outline" onClick={() => setPreviewOpen(true)} className="gap-2">
             <Play className="h-4 w-4" /> Vista previa
           </Button>
-          <Button onClick={handleSave} disabled={saving} className="gap-2">
+          <Button onClick={handleSave} disabled={saving || locked} className="gap-2">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Guardar cambios
           </Button>
+          {!locked && (
+            <Button
+              variant="default"
+              disabled={submitting}
+              onClick={async () => {
+                if (!confirm("Enviar a revisión bloqueará la edición hasta publicar o volver a borrador. ¿Continuar?")) return;
+                setSubmitting(true);
+                try {
+                  await submit({ data: { id } });
+                  toast.success("Enviada a revisión");
+                  navigate({ to: "/app/simulations/$id/review", params: { id } });
+                } catch (err: any) {
+                  toast.error(err?.message ?? "No se pudo enviar a revisión");
+                } finally {
+                  setSubmitting(false);
+                }
+              }}
+              className="gap-2"
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Enviar a revisión
+            </Button>
+          )}
+          {locked && (
+            <Button variant="default" asChild className="gap-2">
+              <Link to="/app/simulations/$id/review" params={{ id }}>
+                <Lock className="h-4 w-4" /> Ir a revisión
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
+
+      {locked && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100 p-3 text-sm flex items-center gap-2">
+          <Lock className="h-4 w-4 flex-shrink-0" />
+          <span>
+            La simulación está <strong>{status === "published" ? "publicada" : "en revisión"}</strong>. La edición está bloqueada. Ve a la pantalla de revisión para publicar o volver a borrador.
+          </span>
+        </div>
+      )}
+
+      <fieldset disabled={locked} className={locked ? "opacity-70 pointer-events-none" : ""}>
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
