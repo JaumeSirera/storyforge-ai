@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   getSimulation,
   listPreviewDrafts,
+  listSimulationHistory,
   publishSimulation,
   revertToDraft,
 } from "@/lib/simulations.functions";
@@ -11,14 +12,21 @@ import { startSession } from "@/lib/sessions.functions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   ArrowLeft,
   CheckCircle2,
+  History,
   Loader2,
   Lock,
+  Pencil,
   Play,
   RotateCcw,
   Rocket,
+  Send,
+  Sparkles,
+  UserCircle2,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -27,6 +35,17 @@ export const Route = createFileRoute("/_authenticated/app/simulations/$id/review
   component: ReviewSimulation,
 });
 
+const ACTION_META: Record<
+  string,
+  { label: string; icon: any; variant: "default" | "secondary" | "outline" | "destructive" }
+> = {
+  create: { label: "Creada", icon: Sparkles, variant: "secondary" },
+  edit: { label: "Edición", icon: Pencil, variant: "outline" },
+  submit: { label: "Enviada a revisión", icon: Send, variant: "secondary" },
+  publish: { label: "Publicada", icon: Rocket, variant: "default" },
+  revert: { label: "Devuelta a borrador", icon: RotateCcw, variant: "destructive" },
+};
+
 function ReviewSimulation() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
@@ -34,6 +53,7 @@ function ReviewSimulation() {
 
   const get = useServerFn(getSimulation);
   const listDrafts = useServerFn(listPreviewDrafts);
+  const listHistory = useServerFn(listSimulationHistory);
   const publish = useServerFn(publishSimulation);
   const revert = useServerFn(revertToDraft);
   const start = useServerFn(startSession);
@@ -43,10 +63,15 @@ function ReviewSimulation() {
     queryKey: ["preview-drafts", id],
     queryFn: () => listDrafts({ data: { simulationId: id } }),
   });
+  const history = useQuery({
+    queryKey: ["sim-history", id],
+    queryFn: () => listHistory({ data: { simulationId: id } }),
+  });
 
   const [publishing, setPublishing] = useState(false);
   const [reverting, setReverting] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [note, setNote] = useState("");
 
   if (sim.isLoading) return <p className="text-muted-foreground">Cargando...</p>;
   if (!sim.data) return <p>No encontrada.</p>;
@@ -56,14 +81,20 @@ function ReviewSimulation() {
   const isPublished = status === "published";
   const editable = status === "draft" || status === "ready";
 
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["sim", id] });
+    qc.invalidateQueries({ queryKey: ["my-simulations"] });
+    qc.invalidateQueries({ queryKey: ["sim-history", id] });
+  };
+
   const handlePublish = async () => {
     if (!confirm("Esto publicará la simulación y la hará accesible a otros usuarios. ¿Continuar?")) return;
     setPublishing(true);
     try {
-      await publish({ data: { id } });
+      await publish({ data: { id, ...(note.trim() ? { note: note.trim() } : {}) } });
       toast.success("Simulación publicada");
-      qc.invalidateQueries({ queryKey: ["sim", id] });
-      qc.invalidateQueries({ queryKey: ["my-simulations"] });
+      setNote("");
+      refresh();
     } catch (err: any) {
       toast.error(err?.message ?? "No se pudo publicar");
     } finally {
@@ -75,10 +106,10 @@ function ReviewSimulation() {
     if (!confirm("Volver a borrador desbloqueará la edición y la simulación dejará de estar publicada. ¿Continuar?")) return;
     setReverting(true);
     try {
-      await revert({ data: { id } });
+      await revert({ data: { id, ...(note.trim() ? { note: note.trim() } : {}) } });
       toast.success("Vuelta a borrador");
-      qc.invalidateQueries({ queryKey: ["sim", id] });
-      qc.invalidateQueries({ queryKey: ["my-simulations"] });
+      setNote("");
+      refresh();
       navigate({ to: "/app/simulations/$id/edit", params: { id } });
     } catch (err: any) {
       toast.error(err?.message ?? "No se pudo revertir");
@@ -86,6 +117,7 @@ function ReviewSimulation() {
       setReverting(false);
     }
   };
+
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-16">
