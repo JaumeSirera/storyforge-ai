@@ -309,7 +309,10 @@ function NewSimulation() {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-between items-center gap-2">
+          <Button type="button" variant="ghost" onClick={clearDraft} disabled={loading}>
+            Descartar borrador
+          </Button>
           <Button type="submit" size="lg" disabled={loading} className="gap-2">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {loading ? "Generando con IA..." : "Generar con IA"}
