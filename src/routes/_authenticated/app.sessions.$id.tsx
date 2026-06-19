@@ -157,6 +157,18 @@ function Player({
         </div>
       </div>
 
+      {pendingRestore && !isFullscreen && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-accent/40 px-3 py-2 text-sm">
+          <span>Esta sesión estaba en pantalla completa. ¿Restaurar?</span>
+          <div className="flex gap-2 shrink-0">
+            <Button type="button" size="sm" variant="ghost" onClick={dismissRestore}>No</Button>
+            <Button type="button" size="sm" onClick={toggleFullscreen} className="gap-1">
+              <Maximize2 className="h-4 w-4" /> Restaurar
+            </Button>
+          </div>
+        </div>
+      )}
+
       <Progress value={progress} className="h-1.5" />
 
       <VideoPlayer video={node.video} />
