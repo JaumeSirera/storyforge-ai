@@ -6,7 +6,7 @@ import { startSession } from "@/lib/sessions.functions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, ArrowLeft, GitBranch, HelpCircle, Loader2, Pencil } from "lucide-react";
+import { Play, ArrowLeft, GitBranch, HelpCircle, Loader2, Pencil, CheckCircle2, Lock, ClipboardCheck } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/app/simulations/$id")({
