@@ -63,7 +63,16 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
 
   const choose = (c: Choice) => {
     if (!node) return;
-    setHistory((h) => [...h, { nodeId: node.id, choiceLabel: c.label, feedback: c.feedback, points: c.points }]);
+    setHistory((h) => [...h, {
+      nodeId: node.id,
+      nodeTitle: node.title,
+      question: node.question?.text ?? "",
+      choiceId: c.id,
+      choiceLabel: c.label,
+      feedback: c.feedback,
+      points: c.points,
+      competencies: { ...(c.competencies ?? {}) },
+    }]);
     setScore((s) => s + c.points);
     setCompetencies((m) => {
       const next = { ...m };
