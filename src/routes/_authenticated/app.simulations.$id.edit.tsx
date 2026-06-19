@@ -299,7 +299,8 @@ function EditSimulation() {
         </div>
       )}
 
-      <fieldset disabled={locked} className={locked ? "opacity-70 pointer-events-none" : ""}>
+
+
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
