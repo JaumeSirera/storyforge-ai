@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { generateSimulation } from "@/lib/simulations.functions";
 import { extractDocumentText } from "@/lib/document-parse.functions";
@@ -13,6 +13,17 @@ import { toast } from "sonner";
 
 const ACCEPTED = ".pdf,.docx,.pptx,.txt,.md";
 const MAX_BYTES = 5 * 1024 * 1024;
+const DRAFT_KEY = "new-simulation-draft-v1";
+
+type Draft = {
+  title: string;
+  objective: string;
+  topic: string;
+  duration: number;
+  prompt: string;
+  videos: VideoEntry[];
+  lastFile: string | null;
+};
 
 export const Route = createFileRoute("/_authenticated/app/new")({
   component: NewSimulation,
@@ -41,6 +52,57 @@ function NewSimulation() {
   const [loading, setLoading] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [lastFile, setLastFile] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Restore draft from localStorage on mount so edits survive reloads / HMR.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const d = JSON.parse(raw) as Partial<Draft>;
+        if (typeof d.title === "string") setTitle(d.title);
+        if (typeof d.objective === "string") setObjective(d.objective);
+        if (typeof d.topic === "string") setTopic(d.topic);
+        if (typeof d.duration === "number") setDuration(d.duration);
+        if (typeof d.prompt === "string") setPrompt(d.prompt);
+        if (Array.isArray(d.videos)) setVideos(d.videos);
+        if (typeof d.lastFile === "string" || d.lastFile === null)
+          setLastFile(d.lastFile ?? null);
+      }
+    } catch {
+      /* ignore */
+    }
+    setHydrated(true);
+  }, []);
+
+  // Persist the draft on any change (after the initial hydrate).
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      const draft: Draft = { title, objective, topic, duration, prompt, videos, lastFile };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+      /* ignore quota errors */
+    }
+  }, [hydrated, title, objective, topic, duration, prompt, videos, lastFile]);
+
+  function clearDraft() {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      /* ignore */
+    }
+    setTitle("");
+    setObjective("");
+    setTopic("");
+    setDuration(15);
+    setPrompt("");
+    setVideos([]);
+    setLastFile(null);
+    toast.success("Borrador descartado");
+  }
+
+
 
   async function handleFile(file: File) {
     if (file.size > MAX_BYTES) {
@@ -92,6 +154,7 @@ function NewSimulation() {
               data: { title, objective, prompt, topic: topic || undefined, durationMin: duration, videos },
             });
             toast.success("¡Simulación generada!");
+            try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
             navigate({ to: "/app/simulations/$id", params: { id: result.id } });
           } catch (err: any) {
             toast.error(err?.message ?? "Error al generar");
@@ -246,7 +309,10 @@ function NewSimulation() {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-between items-center gap-2">
+          <Button type="button" variant="ghost" onClick={clearDraft} disabled={loading}>
+            Descartar borrador
+          </Button>
           <Button type="submit" size="lg" disabled={loading} className="gap-2">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {loading ? "Generando con IA..." : "Generar con IA"}
