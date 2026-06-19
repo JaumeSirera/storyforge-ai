@@ -154,6 +154,7 @@ function NewSimulation() {
               data: { title, objective, prompt, topic: topic || undefined, durationMin: duration, videos },
             });
             toast.success("¡Simulación generada!");
+            try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
             navigate({ to: "/app/simulations/$id", params: { id: result.id } });
           } catch (err: any) {
             toast.error(err?.message ?? "Error al generar");
