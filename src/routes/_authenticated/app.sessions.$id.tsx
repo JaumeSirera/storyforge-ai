@@ -182,6 +182,7 @@ function Player({
         </div>
       )}
     </div>
+    </div>
   );
 }
 
