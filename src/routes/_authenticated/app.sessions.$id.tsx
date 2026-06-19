@@ -65,33 +65,76 @@ function Player({
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const prefKey = `session-fullscreen:${sessionId}`;
-  const [pendingRestore, setPendingRestore] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem(prefKey) === "1";
-  });
+
+  // Device detection (client-only).
+  const env = (() => {
+    if (typeof window === "undefined" || typeof navigator === "undefined") {
+      return { isMobile: false, isIOS: false, supportsFs: false };
+    }
+    const ua = navigator.userAgent || "";
+    const isIOS = /iPad|iPhone|iPod/.test(ua) || (ua.includes("Mac") && "ontouchend" in document);
+    const isAndroid = /Android/i.test(ua);
+    const isMobile = isIOS || isAndroid || window.matchMedia("(pointer: coarse)").matches;
+    const el = document.documentElement as any;
+    const supportsFs =
+      typeof el.requestFullscreen === "function" ||
+      typeof el.webkitRequestFullscreen === "function";
+    return { isMobile, isIOS, supportsFs };
+  })();
+
+  const wantsRestore =
+    typeof window !== "undefined" && window.localStorage.getItem(prefKey) === "1";
+  const [pendingRestore, setPendingRestore] = useState<boolean>(wantsRestore);
 
   useEffect(() => {
-    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    const onChange = () =>
+      setIsFullscreen(!!(document.fullscreenElement || (document as any).webkitFullscreenElement));
     document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
+    document.addEventListener("webkitfullscreenchange", onChange as any);
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange);
+      document.removeEventListener("webkitfullscreenchange", onChange as any);
+    };
   }, []);
 
-  // Try to silently restore fullscreen on mount (may fail without a user gesture).
+  async function requestFs() {
+    const el = containerRef.current as any;
+    if (!el) return;
+    if (typeof el.requestFullscreen === "function") return el.requestFullscreen();
+    if (typeof el.webkitRequestFullscreen === "function") return el.webkitRequestFullscreen();
+    throw new Error("unsupported");
+  }
+  async function exitFs() {
+    const d = document as any;
+    if (typeof d.exitFullscreen === "function") return d.exitFullscreen();
+    if (typeof d.webkitExitFullscreen === "function") return d.webkitExitFullscreen();
+  }
+
+  // Desktop: try silent restore. Mobile: always wait for the user gesture (banner/overlay).
   useEffect(() => {
     if (!pendingRestore) return;
-    containerRef.current?.requestFullscreen().catch(() => {
-      // Browser blocked auto-fullscreen — show a one-click prompt instead.
+    if (env.isMobile) return;
+    requestFs().catch(() => {
+      // Blocked — banner will prompt for a gesture.
     });
-  }, [pendingRestore]);
+  }, [pendingRestore, env.isMobile]);
 
   async function toggleFullscreen() {
     try {
-      if (!document.fullscreenElement) {
-        await containerRef.current?.requestFullscreen();
+      if (!isFullscreen) {
+        if (env.isIOS && !env.supportsFs) {
+          // iOS Safari only allows fullscreen on <video>. Persist preference and
+          // hint the user to use the native video fullscreen control.
+          window.localStorage.setItem(prefKey, "1");
+          setPendingRestore(false);
+          toast.info("En iOS, toca el icono de pantalla completa del vídeo para ampliarlo.");
+          return;
+        }
+        await requestFs();
         window.localStorage.setItem(prefKey, "1");
         setPendingRestore(false);
       } else {
-        await document.exitFullscreen();
+        await exitFs();
         window.localStorage.removeItem(prefKey);
         setPendingRestore(false);
       }
@@ -104,6 +147,7 @@ function Player({
     window.localStorage.removeItem(prefKey);
     setPendingRestore(false);
   }
+
 
   async function pick(choiceId: string) {
     setSelected(choiceId);
@@ -157,14 +201,42 @@ function Player({
         </div>
       </div>
 
-      {pendingRestore && !isFullscreen && (
+      {pendingRestore && !isFullscreen && !env.isMobile && (
         <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-accent/40 px-3 py-2 text-sm">
           <span>Esta sesión estaba en pantalla completa. ¿Restaurar?</span>
           <div className="flex gap-2 shrink-0">
-            <Button type="button" size="sm" variant="ghost" onClick={dismissRestore}>No</Button>
+            <Button type="button" size="sm" variant="ghost" onClick={dismissRestore}>No, seguir así</Button>
             <Button type="button" size="sm" onClick={toggleFullscreen} className="gap-1">
               <Maximize2 className="h-4 w-4" /> Restaurar
             </Button>
+          </div>
+        </div>
+      )}
+
+      {pendingRestore && !isFullscreen && env.isMobile && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 grid place-items-center bg-background/95 p-6 backdrop-blur-sm"
+        >
+          <div className="w-full max-w-sm space-y-4 rounded-2xl border border-border bg-card p-6 text-center shadow-glow">
+            <Maximize2 className="mx-auto h-10 w-10 text-primary" />
+            <div>
+              <h2 className="text-lg font-bold">Restaurar pantalla completa</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {env.isIOS && !env.supportsFs
+                  ? "En iOS, usa el icono de pantalla completa del reproductor de vídeo para ampliar la escena."
+                  : "Tu navegador móvil necesita un toque para volver al modo inmersivo."}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button type="button" onClick={toggleFullscreen} className="w-full gap-2" size="lg">
+                <Maximize2 className="h-5 w-5" /> Activar pantalla completa
+              </Button>
+              <Button type="button" variant="ghost" onClick={dismissRestore} className="w-full">
+                Continuar sin pantalla completa
+              </Button>
+            </div>
           </div>
         </div>
       )}
