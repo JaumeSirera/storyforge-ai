@@ -469,8 +469,9 @@ Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
       });
       output = normalizeStory(result.object, generationData);
     } catch (err) {
+      if (!NoObjectGeneratedError.isInstance(err)) throw err;
       try {
-        output = NoObjectGeneratedError.isInstance(err) && err.text
+        output = err.text
           ? normalizeStoryFromText(err.text, generationData)
           : createFallbackStory(generationData);
       } catch {
