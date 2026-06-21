@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 
-const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 const MAX_CHARS = 50_000;
 
 function stripXml(s: string): string {
@@ -13,6 +13,10 @@ function stripXml(s: string): string {
 
 function cleanText(s: string): string {
   return stripXml(s)
+    .replace(/\{[0-9a-fA-F-]{24,}\}/g, " ")
+    .split("\n")
+    .filter((line) => !/(xmlns|schemas\.microsoft\.com|officedocument|drawingml|cNvPr|grpSpPr|blipFill|custGeom|prstGeom|creationId)/i.test(line))
+    .join("\n")
     .replace(/\r\n?/g, "\n")
     .replace(/\u0000/g, "")
     .replace(/[ \t]+/g, " ")
@@ -50,15 +54,16 @@ async function parsePptx(buf: ArrayBuffer): Promise<string> {
     const texts = Array.from(xml.matchAll(/<a:t[^>]*>([\s\S]*?)<\/a:t>/g))
       .map((m) =>
         m[1]
-          .replace(/<[^>]+>/g, "") // strip nested tags inside <a:t>
           .replace(/&amp;/g, "&")
-          .replace(/&lt;/g, "<")
-          .replace(/&gt;/g, ">")
+          .replace(/&lt;[^&]*?&gt;/g, " ")
+          .replace(/&lt;/g, " ")
+          .replace(/&gt;/g, " ")
+          .replace(/<[^>]+>/g, " ")
           .replace(/&quot;/g, '"')
           .replace(/&apos;/g, "'")
           .trim(),
       )
-      .filter((t) => t.length > 0 && !/^<.*>$/.test(t));
+      .filter((t) => t.length > 0 && !/(xmlns|schemas\.microsoft\.com|officedocument|drawingml|cNvPr|grpSpPr|blipFill|custGeom|prstGeom|creationId)/i.test(t));
     if (texts.length === 0) continue;
     slides.push(`# Diapositiva ${i + 1}\n${texts.join("\n")}`);
   }
@@ -71,7 +76,7 @@ export const extractDocumentText = createServerFn({ method: "POST" })
     const file = data.get("file");
     if (!(file instanceof File)) throw new Error("Archivo no encontrado");
     if (file.size === 0) throw new Error("Archivo vacío");
-    if (file.size > MAX_BYTES) throw new Error("El archivo supera los 5 MB");
+    if (file.size > MAX_BYTES) throw new Error("El archivo supera los 10 MB");
     return { file };
   })
   .handler(async ({ data }) => {
