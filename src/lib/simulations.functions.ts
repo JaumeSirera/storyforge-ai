@@ -85,6 +85,22 @@ const DEFAULT_CRITERIA = [
   },
 ] satisfies GeneratedStory["evaluationCriteria"];
 
+function sanitizeCreatorPrompt(input: string): string {
+  return input
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
+    .replace(/<[^>]*>/g, " ")
+    .split("\n")
+    .filter((line) => !/(xmlns|schemas\.microsoft\.com|officedocument|drawingml|cNvPr|grpSpPr|blipFill|custGeom|prstGeom|creationId)/i.test(line))
+    .join("\n")
+    .replace(/\{[0-9a-fA-F-]{24,}\}/g, " ")
+    .replace(/[ \t]+/g, " ")
+    .replace(/ ?\n ?/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function createFallbackStory(data: GenerateInputData): GeneratedStory {
   const topic = data.topic || "el contexto planteado";
   const videoRef = data.videos.length > 0 ? "video_1" : null;
@@ -397,6 +413,8 @@ export const generateSimulation = createServerFn({ method: "POST" })
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("Missing LOVABLE_API_KEY");
     const gateway = createLovableAiGatewayProvider(key);
+    const sanitizedPrompt = sanitizeCreatorPrompt(data.prompt) || data.prompt;
+    const generationData = { ...data, prompt: sanitizedPrompt };
 
     const videoList =
       data.videos.length > 0
@@ -425,7 +443,7 @@ TEMA/SECTOR: ${data.topic ?? "(no especificado)"}
 DURACIÓN OBJETIVO: ~${data.durationMin} minutos
 
 GUIÓN / CONTEXTO DEL CREADOR:
-${data.prompt}
+${sanitizedPrompt}
 
 VÍDEOS DISPONIBLES PARA REFERENCIAR (usa el id en videoRef):
 ${videoList}
@@ -443,19 +461,20 @@ Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
         temperature: 0.25,
         experimental_repairText: async ({ text }) => {
           try {
-            return JSON.stringify(normalizeStoryFromText(text, data));
+            return JSON.stringify(normalizeStoryFromText(text, generationData));
           } catch {
             return null;
           }
         },
       });
-      output = normalizeStory(result.object, data);
+      output = normalizeStory(result.object, generationData);
     } catch (err) {
-      if (!NoObjectGeneratedError.isInstance(err)) throw err;
       try {
-        output = err.text ? normalizeStoryFromText(err.text, data) : createFallbackStory(data);
+        output = NoObjectGeneratedError.isInstance(err) && err.text
+          ? normalizeStoryFromText(err.text, generationData)
+          : createFallbackStory(generationData);
       } catch {
-        output = createFallbackStory(data);
+        output = createFallbackStory(generationData);
       }
     }
 
@@ -491,7 +510,7 @@ Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
         owner_id: context.userId,
         title: data.title,
         objective: data.objective,
-        prompt: data.prompt,
+        prompt: sanitizedPrompt,
         topic: data.topic ?? null,
         duration_min: data.durationMin,
         status: "ready",
@@ -503,6 +522,7 @@ Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
       .single();
 
     if (error) throw new Error(error.message);
+    if (!inserted?.id) throw new Error("No se pudo crear la simulación");
     return { id: inserted.id };
   });
 
