@@ -453,11 +453,11 @@ Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
     let output: GeneratedStory;
     try {
       const result = await generateObject({
-        model: gateway("google/gemini-3-pro-preview"),
+        model: gateway("google/gemini-3-flash-preview"),
         schema: StorySchema,
         system: systemPrompt,
         prompt: userPrompt,
-        maxOutputTokens: 65000,
+        maxOutputTokens: 16000,
         temperature: 0.25,
         experimental_repairText: async ({ text }) => {
           try {
