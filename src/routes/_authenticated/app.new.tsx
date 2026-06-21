@@ -12,7 +12,7 @@ import { Plus, Trash2, Sparkles, Loader2, Upload, FileText } from "lucide-react"
 import { toast } from "sonner";
 
 const ACCEPTED = ".pdf,.docx,.pptx,.txt,.md";
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = 10 * 1024 * 1024;
 const DRAFT_KEY = "new-simulation-draft-v1";
 
 type Draft = {
@@ -35,6 +35,14 @@ function detectType(url: string): "youtube" | "vimeo" | "mp4" {
   if (/youtu\.?be/.test(url)) return "youtube";
   if (/vimeo\.com/.test(url)) return "vimeo";
   return "mp4";
+}
+
+function getErrorMessage(err: unknown) {
+  const message = err instanceof Error ? err.message : String(err || "");
+  if (/Payment Required/i.test(message)) {
+    return "No hay créditos disponibles para generar con IA. Añade créditos al espacio de trabajo o inténtalo más tarde.";
+  }
+  return message || "Error al generar";
 }
 
 function NewSimulation() {
@@ -106,7 +114,7 @@ function NewSimulation() {
 
   async function handleFile(file: File) {
     if (file.size > MAX_BYTES) {
-      toast.error("El archivo supera los 5 MB");
+      toast.error("El archivo supera los 10 MB");
       return;
     }
     setParsing(true);
@@ -153,11 +161,12 @@ function NewSimulation() {
             const result = await generate({
               data: { title, objective, prompt, topic: topic || undefined, durationMin: duration, videos },
             });
+            if (!result?.id) throw new Error("No se pudo crear la simulación");
             toast.success("¡Simulación generada!");
             try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
             navigate({ to: "/app/simulations/$id", params: { id: result.id } });
           } catch (err: any) {
-            toast.error(err?.message ?? "Error al generar");
+            toast.error(getErrorMessage(err));
           } finally {
             setLoading(false);
           }
@@ -243,7 +252,7 @@ function NewSimulation() {
             />
             <p className="text-xs text-muted-foreground flex items-center gap-1.5">
               <FileText className="h-3 w-3" />
-              Formatos: PDF, DOCX, PPTX, TXT, MD · Máx. 5 MB
+              Formatos: PDF, DOCX, PPTX, TXT, MD · Máx. 10 MB
               {lastFile && <span className="ml-1">· Último: {lastFile}</span>}
             </p>
           </CardContent>
