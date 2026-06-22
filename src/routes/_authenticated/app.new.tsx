@@ -87,6 +87,8 @@ function NewSimulation() {
         if (Array.isArray(d.videos)) setVideos(d.videos);
         if (typeof d.lastFile === "string" || d.lastFile === null)
           setLastFile(d.lastFile ?? null);
+        if (typeof d.model === "string" && AI_MODELS.some((m) => m.id === d.model))
+          setModel(d.model as AiModelId);
       }
     } catch {
       /* ignore */
@@ -98,12 +100,12 @@ function NewSimulation() {
   useEffect(() => {
     if (!hydrated) return;
     try {
-      const draft: Draft = { title, objective, topic, duration, prompt, videos, lastFile };
+      const draft: Draft = { title, objective, topic, duration, prompt, videos, lastFile, model };
       localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
     } catch {
       /* ignore quota errors */
     }
-  }, [hydrated, title, objective, topic, duration, prompt, videos, lastFile]);
+  }, [hydrated, title, objective, topic, duration, prompt, videos, lastFile, model]);
 
   function clearDraft() {
     try {
