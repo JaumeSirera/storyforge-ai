@@ -32,6 +32,7 @@ type Draft = {
   prompt: string;
   videos: VideoEntry[];
   lastFile: string | null;
+  model: AiModelId;
 };
 
 export const Route = createFileRoute("/_authenticated/app/new")({
