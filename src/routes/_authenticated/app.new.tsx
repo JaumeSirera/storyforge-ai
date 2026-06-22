@@ -8,12 +8,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { AI_MODELS, DEFAULT_AI_MODEL, type AiModelId } from "@/lib/ai-models";
 import { Plus, Trash2, Sparkles, Loader2, Upload, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 const ACCEPTED = ".pdf,.docx,.pptx,.txt,.md";
 const MAX_BYTES = 10 * 1024 * 1024;
 const DRAFT_KEY = "new-simulation-draft-v1";
+
 
 type Draft = {
   title: string;
@@ -23,6 +32,7 @@ type Draft = {
   prompt: string;
   videos: VideoEntry[];
   lastFile: string | null;
+  model: AiModelId;
 };
 
 export const Route = createFileRoute("/_authenticated/app/new")({
@@ -60,6 +70,7 @@ function NewSimulation() {
   const [loading, setLoading] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [lastFile, setLastFile] = useState<string | null>(null);
+  const [model, setModel] = useState<AiModelId>(DEFAULT_AI_MODEL);
   const [hydrated, setHydrated] = useState(false);
 
   // Restore draft from localStorage on mount so edits survive reloads / HMR.
@@ -76,6 +87,8 @@ function NewSimulation() {
         if (Array.isArray(d.videos)) setVideos(d.videos);
         if (typeof d.lastFile === "string" || d.lastFile === null)
           setLastFile(d.lastFile ?? null);
+        if (typeof d.model === "string" && AI_MODELS.some((m) => m.id === d.model))
+          setModel(d.model as AiModelId);
       }
     } catch {
       /* ignore */
@@ -87,12 +100,12 @@ function NewSimulation() {
   useEffect(() => {
     if (!hydrated) return;
     try {
-      const draft: Draft = { title, objective, topic, duration, prompt, videos, lastFile };
+      const draft: Draft = { title, objective, topic, duration, prompt, videos, lastFile, model };
       localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
     } catch {
       /* ignore quota errors */
     }
-  }, [hydrated, title, objective, topic, duration, prompt, videos, lastFile]);
+  }, [hydrated, title, objective, topic, duration, prompt, videos, lastFile, model]);
 
   function clearDraft() {
     try {
@@ -107,6 +120,7 @@ function NewSimulation() {
     setPrompt("");
     setVideos([]);
     setLastFile(null);
+    setModel(DEFAULT_AI_MODEL);
     toast.success("Borrador descartado");
   }
 
@@ -159,7 +173,7 @@ function NewSimulation() {
           setLoading(true);
           try {
             const result = await generate({
-              data: { title, objective, prompt, topic: topic || undefined, durationMin: duration, videos },
+              data: { title, objective, prompt, topic: topic || undefined, durationMin: duration, videos, model },
             });
             if (!result?.id) throw new Error("No se pudo crear la simulación");
             toast.success("¡Simulación generada!");
@@ -317,6 +331,33 @@ function NewSimulation() {
             ))}
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>4. Modelo de IA</CardTitle>
+            <CardDescription>
+              Elige el modelo. Los más potentes generan mejores guiones pero consumen más créditos.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Select value={model} onValueChange={(v) => setModel(v as AiModelId)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {AI_MODELS.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{m.label}</span>
+                      <span className="text-xs text-muted-foreground">{m.description}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
 
         <div className="flex justify-between items-center gap-2">
           <Button type="button" variant="ghost" onClick={clearDraft} disabled={loading}>

@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { generateObject, NoObjectGeneratedError } from "ai";
 import { z } from "zod";
 import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { AI_MODEL_IDS, DEFAULT_AI_MODEL } from "./ai-models";
 
 // ---------- Generate a simulation with AI ----------
 
@@ -12,6 +13,7 @@ const GenerateInput = z.object({
   prompt: z.string().min(20).max(60000),
   topic: z.string().max(200).optional(),
   durationMin: z.number().int().min(5).max(60).default(15),
+  model: z.enum(AI_MODEL_IDS).default(DEFAULT_AI_MODEL),
   videos: z
     .array(
       z.object({
@@ -453,7 +455,7 @@ Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
     let output: GeneratedStory;
     try {
       const result = await generateObject({
-        model: gateway("google/gemini-3-flash-preview"),
+        model: gateway(data.model),
         schema: StorySchema,
         system: systemPrompt,
         prompt: userPrompt,
