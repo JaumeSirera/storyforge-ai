@@ -70,6 +70,7 @@ function NewSimulation() {
   const [loading, setLoading] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [lastFile, setLastFile] = useState<string | null>(null);
+  const [model, setModel] = useState<AiModelId>(DEFAULT_AI_MODEL);
   const [hydrated, setHydrated] = useState(false);
 
   // Restore draft from localStorage on mount so edits survive reloads / HMR.
