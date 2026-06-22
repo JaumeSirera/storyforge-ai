@@ -332,6 +332,33 @@ function NewSimulation() {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader>
+            <CardTitle>4. Modelo de IA</CardTitle>
+            <CardDescription>
+              Elige el modelo. Los más potentes generan mejores guiones pero consumen más créditos.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Select value={model} onValueChange={(v) => setModel(v as AiModelId)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {AI_MODELS.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{m.label}</span>
+                      <span className="text-xs text-muted-foreground">{m.description}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+
         <div className="flex justify-between items-center gap-2">
           <Button type="button" variant="ghost" onClick={clearDraft} disabled={loading}>
             Descartar borrador
