@@ -455,7 +455,7 @@ Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
     let output: GeneratedStory;
     try {
       const result = await generateObject({
-        model: gateway("google/gemini-3-flash-preview"),
+        model: gateway(data.model),
         schema: StorySchema,
         system: systemPrompt,
         prompt: userPrompt,
