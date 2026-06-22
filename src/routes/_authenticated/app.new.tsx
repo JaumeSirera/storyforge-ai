@@ -120,6 +120,7 @@ function NewSimulation() {
     setPrompt("");
     setVideos([]);
     setLastFile(null);
+    setModel(DEFAULT_AI_MODEL);
     toast.success("Borrador descartado");
   }
 
