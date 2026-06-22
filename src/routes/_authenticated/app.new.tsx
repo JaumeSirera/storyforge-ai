@@ -23,9 +23,6 @@ const ACCEPTED = ".pdf,.docx,.pptx,.txt,.md";
 const MAX_BYTES = 10 * 1024 * 1024;
 const DRAFT_KEY = "new-simulation-draft-v1";
 
-const ACCEPTED = ".pdf,.docx,.pptx,.txt,.md";
-const MAX_BYTES = 10 * 1024 * 1024;
-const DRAFT_KEY = "new-simulation-draft-v1";
 
 type Draft = {
   title: string;
