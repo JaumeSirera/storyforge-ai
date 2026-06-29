@@ -833,77 +833,112 @@ function EditSimulation() {
                     </div>
                   </div>
 
-                  {!n.isEnding && n.question && (
-                    <div className="space-y-3 rounded-lg border p-3">
-                      <div className="space-y-1.5">
-                        <Label>Pregunta</Label>
-                        <Textarea
-                          rows={2}
-                          value={n.question.text}
-                          onChange={(e) =>
-                            updateNode(nIdx, { question: { ...n.question!, text: e.target.value } })
-                          }
-                        />
-                      </div>
-
+                  {!n.isEnding && (
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <Label className="text-sm">Opciones y ramificaciones</Label>
-                        <Button type="button" size="sm" variant="outline" onClick={() => addChoice(nIdx)} disabled={n.question.choices.length >= 4}>
-                          <Plus className="h-3 w-3 mr-1" /> Añadir opción
+                        <Label className="text-sm font-semibold">Preguntas de la escena</Label>
+                        <Button type="button" size="sm" variant="outline" onClick={() => addQuestion(nIdx)}>
+                          <Plus className="h-3 w-3 mr-1" /> Añadir pregunta
                         </Button>
                       </div>
 
-                      {n.question.choices.map((c, cIdx) => (
-                        <div key={c.id} className="rounded-md border p-3 space-y-2 bg-muted/30">
-                          <div className="grid grid-cols-12 gap-2">
-                            <Input className="col-span-7" placeholder="Texto de la opción" value={c.label} onChange={(e) => updateChoice(nIdx, cIdx, { label: e.target.value })} />
-                            <Input className="col-span-2" type="number" placeholder="Puntos" value={c.points} onChange={(e) => updateChoice(nIdx, cIdx, { points: Number(e.target.value) })} />
-                            <Select
-                              value={c.next ?? "__end__"}
-                              onValueChange={(v) => updateChoice(nIdx, cIdx, { next: v === "__end__" ? null : v })}
-                            >
-                              <SelectTrigger className="col-span-2"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__end__">FIN</SelectItem>
-                                {sortByTitleNumber(state.nodes.filter((nn) => nn.id !== n.id)).map((nn) => (
-                                  <SelectItem key={nn.id} value={nn.id}>{nn.title}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Button type="button" variant="ghost" size="icon" className="col-span-1" onClick={() => deleteChoice(nIdx, cIdx)} disabled={n.question!.choices.length <= 2}>
+                      {(n.questions ?? []).length === 0 && (
+                        <p className="text-xs text-muted-foreground">Sin preguntas. Añade una para crear ramificaciones.</p>
+                      )}
+
+                      {(n.questions ?? []).map((q, qIdx) => (
+                        <div key={q.id ?? qIdx} className="space-y-3 rounded-lg border p-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 space-y-1.5">
+                              <Label>Pregunta {qIdx + 1}</Label>
+                              <Textarea
+                                rows={2}
+                                value={q.text}
+                                onChange={(e) => updateQuestion(nIdx, qIdx, { text: e.target.value })}
+                              />
+                            </div>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => deleteQuestion(nIdx, qIdx)} title="Eliminar pregunta">
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
-                          <Textarea
-                            rows={2}
-                            placeholder="Feedback al usuario tras elegir esta opción"
-                            value={c.feedback}
-                            onChange={(e) => updateChoice(nIdx, cIdx, { feedback: e.target.value })}
-                          />
-                          <div className="space-y-1">
-                            <Label className="text-xs">Impacto en competencias (clave: valor)</Label>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                              {state.criteria.map((crit) => (
-                                <div key={crit.key} className="flex items-center gap-2">
-                                  <span className="text-xs text-muted-foreground truncate flex-1" title={crit.label}>{crit.label}</span>
-                                  <Input
-                                    type="number"
-                                    className="w-20 h-8"
-                                    value={c.competencies?.[crit.key] ?? 0}
-                                    onChange={(e) =>
-                                      updateChoice(nIdx, cIdx, {
-                                        competencies: { ...c.competencies, [crit.key]: Number(e.target.value) },
-                                      })
-                                    }
-                                  />
-                                </div>
-                              ))}
-                            </div>
+
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Vincular a vídeo</Label>
+                            <Select
+                              value={q.clipId ?? "__any__"}
+                              onValueChange={(v) => updateQuestion(nIdx, qIdx, { clipId: v === "__any__" ? undefined : v })}
+                            >
+                              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__any__">Cualquier clip (escena completa)</SelectItem>
+                                {(n.videos ?? []).map((v, vi) => (
+                                  <SelectItem key={v.id} value={v.id}>{v.label || `Clip ${vi + 1}`}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
+
+                          <div className="flex items-center justify-between">
+                            <Label className="text-sm">Opciones y ramificaciones</Label>
+                            <Button type="button" size="sm" variant="outline" onClick={() => addChoice(nIdx, qIdx)} disabled={q.choices.length >= 6}>
+                              <Plus className="h-3 w-3 mr-1" /> Añadir opción
+                            </Button>
+                          </div>
+
+                          {q.choices.map((c, cIdx) => (
+                            <div key={c.id} className="rounded-md border p-3 space-y-2 bg-muted/30">
+                              <div className="grid grid-cols-12 gap-2">
+                                <Input className="col-span-7" placeholder="Texto de la opción" value={c.label} onChange={(e) => updateChoice(nIdx, qIdx, cIdx, { label: e.target.value })} />
+                                <Input className="col-span-2" type="number" placeholder="Puntos" value={c.points} onChange={(e) => updateChoice(nIdx, qIdx, cIdx, { points: Number(e.target.value) })} />
+                                <Select
+                                  value={c.next ?? "__end__"}
+                                  onValueChange={(v) => updateChoice(nIdx, qIdx, cIdx, { next: v === "__end__" ? null : v })}
+                                >
+                                  <SelectTrigger className="col-span-2"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="__end__">FIN</SelectItem>
+                                    {sortByTitleNumber(state.nodes.filter((nn) => nn.id !== n.id)).map((nn) => (
+                                      <SelectItem key={nn.id} value={nn.id}>{nn.title}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button type="button" variant="ghost" size="icon" className="col-span-1" onClick={() => deleteChoice(nIdx, qIdx, cIdx)} disabled={q.choices.length <= 2}>
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                              <Textarea
+                                rows={2}
+                                placeholder="Feedback al usuario tras elegir esta opción"
+                                value={c.feedback}
+                                onChange={(e) => updateChoice(nIdx, qIdx, cIdx, { feedback: e.target.value })}
+                              />
+                              <div className="space-y-1">
+                                <Label className="text-xs">Impacto en competencias (clave: valor)</Label>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                  {state.criteria.map((crit) => (
+                                    <div key={crit.key} className="flex items-center gap-2">
+                                      <span className="text-xs text-muted-foreground truncate flex-1" title={crit.label}>{crit.label}</span>
+                                      <Input
+                                        type="number"
+                                        className="w-20 h-8"
+                                        value={c.competencies?.[crit.key] ?? 0}
+                                        onChange={(e) =>
+                                          updateChoice(nIdx, qIdx, cIdx, {
+                                            competencies: { ...c.competencies, [crit.key]: Number(e.target.value) },
+                                          })
+                                        }
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       ))}
                     </div>
                   )}
+
 
                   <div className="flex justify-end">
                     <Button type="button" variant="ghost" size="sm" onClick={() => deleteNode(nIdx)} className="text-destructive">
