@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getSession, submitAnswer, generateReport } from "@/lib/sessions.functions";
 import { VideoPlayer } from "@/components/VideoPlayer";
+import { VideoPrefetch, nextCandidateNodes } from "@/components/VideoPrefetch";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
