@@ -50,6 +50,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
   const [ended, setEnded] = useState(false);
 
   const errors = useMemo(() => validateStory(story), [story]);
+  const sceneOrder = useMemo(() => computeSceneOrder(story), [story]);
 
   const node: StoryNode | undefined = currentId ? nodes[currentId] : undefined;
 
