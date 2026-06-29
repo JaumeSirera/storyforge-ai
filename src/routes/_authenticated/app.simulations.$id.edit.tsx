@@ -446,8 +446,9 @@ function EditSimulation() {
               <AccordionItem key={n.id} value={n.id} className="border rounded-lg px-3">
                 <AccordionTrigger className="hover:no-underline">
                   <div className="flex items-center gap-2 text-left">
-                    <Badge variant="outline" className="font-mono text-[10px]">{n.id}</Badge>
+                    <Badge variant="default" className="text-[11px]">Escena {sceneOrder.get(n.id) ?? "?"}</Badge>
                     <span className="font-medium">{n.title}</span>
+                    <span className="text-[10px] text-muted-foreground font-mono hidden sm:inline">{n.id}</span>
                     {n.isEnding && (
                       <Badge variant={n.endingType === "success" ? "default" : "secondary"} className="gap-1">
                         <Flag className="h-3 w-3" /> Final
