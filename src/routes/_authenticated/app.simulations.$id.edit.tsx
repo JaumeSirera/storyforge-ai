@@ -839,8 +839,12 @@ function EditSimulation() {
                   </div>
                 </AccordionContent>
               </AccordionItem>
-            ))}
-          </Accordion>
+                    )}
+                  </SortableScene>
+                ))}
+              </Accordion>
+            </SortableContext>
+          </DndContext>
         </CardContent>
       </Card>
       </fieldset>
