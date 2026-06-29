@@ -304,7 +304,11 @@ function EditSimulation() {
       const oldIdx = s.nodes.findIndex((n) => n.id === active.id);
       const newIdx = s.nodes.findIndex((n) => n.id === over.id);
       if (oldIdx < 0 || newIdx < 0) return s;
-      const reordered = arrayMove(s.nodes, oldIdx, newIdx).map((n, i) => ({ ...n, order: i + 1 }));
+      const reordered = arrayMove(s.nodes, oldIdx, newIdx).map((n, i) => ({
+        ...n,
+        order: i + 1,
+        title: renumberTitle(n.title, i + 1),
+      }));
       return { ...s, orderMode: "manual", nodes: reordered };
     });
   };
