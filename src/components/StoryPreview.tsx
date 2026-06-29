@@ -74,11 +74,11 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
 
 
   const choose = (c: Choice) => {
-    if (!node) return;
+    if (!node || !q) return;
     setHistory((h) => [...h, {
       nodeId: node.id,
       nodeTitle: node.title,
-      question: node.question?.text ?? "",
+      question: q.text,
       choiceId: c.id,
       choiceLabel: c.label,
       feedback: c.feedback,
@@ -97,11 +97,13 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
 
     if (c.next && nodes[c.next]) {
       setCurrentId(c.next);
+      setActiveClipId(undefined);
       if (nodes[c.next].isEnding) setEnded(true);
     } else {
       setEnded(true);
     }
   };
+
 
   const goBack = () => {
     if (history.length === 0) return;
