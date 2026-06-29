@@ -278,6 +278,16 @@ function ScenePlayback({
   }, [node.id]);
 
   const q = activeQuestion(node, activeClipId);
+  const trig = q?.triggerAt ?? { mode: "immediate" as const };
+  const [questionReady, setQuestionReady] = useState(trig.mode === "immediate");
+
+  // Reset readiness whenever the active question/clip/scene changes.
+  useEffect(() => {
+    setQuestionReady((q?.triggerAt?.mode ?? "immediate") === "immediate");
+  }, [node.id, activeClipId, q?.id, q?.triggerAt?.mode]);
+
+  const pauseAtSec =
+    !questionReady && trig.mode === "time" ? trig.seconds : undefined;
 
   return (
     <>
@@ -286,6 +296,11 @@ function ScenePlayback({
         videos={node.videos}
         activeClipId={activeClipId}
         onActiveClipChange={setActiveClipId}
+        pauseAtSec={pauseAtSec}
+        onPauseAtTime={() => setQuestionReady(true)}
+        onEnded={() => {
+          if (trig.mode === "end") setQuestionReady(true);
+        }}
       />
       <VideoPrefetch nodes={nextNodes} />
 
@@ -313,7 +328,15 @@ function ScenePlayback({
         </Card>
       )}
 
-      {q && !feedback && (
+      {q && !feedback && !questionReady && (
+        <p className="text-xs text-muted-foreground italic">
+          {trig.mode === "time"
+            ? `La pregunta aparecerá en ${formatMmSs(trig.seconds)}.`
+            : "La pregunta aparecerá al terminar el vídeo."}
+        </p>
+      )}
+
+      {q && questionReady && !feedback && (
         <div className="space-y-3">
           <h3 className="font-semibold text-lg">{q.text}</h3>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -334,6 +357,13 @@ function ScenePlayback({
       )}
     </>
   );
+}
+
+function formatMmSs(total: number): string {
+  const s = Math.max(0, Math.round(total));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${r.toString().padStart(2, "0")}`;
 }
 
 

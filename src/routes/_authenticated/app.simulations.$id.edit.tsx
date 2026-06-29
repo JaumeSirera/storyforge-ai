@@ -27,7 +27,7 @@ import { ArrowLeft, Plus, Trash2, Save, Loader2, Flag, GitBranch, Play, Lock, Se
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StoryPreview } from "@/components/StoryPreview";
-import type { Story, StoryNode, Choice, EvaluationCriterion, VideoSource, VideoClip, Question } from "@/lib/story-types";
+import type { Story, StoryNode, Choice, EvaluationCriterion, VideoSource, VideoClip, Question, QuestionTrigger } from "@/lib/story-types";
 import { nodeQuestions } from "@/lib/story-types";
 
 import { computeSceneOrder, sortNodesByOrder } from "@/lib/scene-order";
@@ -893,6 +893,12 @@ function EditSimulation() {
                             </Select>
                           </div>
 
+                          <QuestionTriggerEditor
+                            value={q.triggerAt}
+                            onChange={(t) => updateQuestion(nIdx, qIdx, { triggerAt: t })}
+                          />
+
+
                           <div className="flex items-center justify-between">
                             <Label className="text-sm">Opciones y ramificaciones</Label>
                             <Button type="button" size="sm" variant="outline" onClick={() => addChoice(nIdx, qIdx)} disabled={q.choices.length >= 6}>
@@ -1023,3 +1029,71 @@ function sortByTitleNumber<T extends { title: string }>(nodes: T[]): T[] {
     return a.title.localeCompare(b.title);
   });
 }
+
+function QuestionTriggerEditor({
+  value,
+  onChange,
+}: {
+  value: QuestionTrigger | undefined;
+  onChange: (t: QuestionTrigger) => void;
+}) {
+  const mode = value?.mode ?? "immediate";
+  const secs = value?.mode === "time" ? value.seconds : 0;
+  const minutes = Math.floor(secs / 60);
+  const seconds = Math.round(secs % 60);
+
+  return (
+    <div className="space-y-1.5 rounded-md border bg-muted/20 p-2">
+      <Label className="text-xs">¿Cuándo se muestra la pregunta?</Label>
+      <div className="flex flex-wrap items-center gap-2">
+        <Select
+          value={mode}
+          onValueChange={(v) => {
+            if (v === "immediate") onChange({ mode: "immediate" });
+            else if (v === "end") onChange({ mode: "end" });
+            else onChange({ mode: "time", seconds: secs || 0 });
+          }}
+        >
+          <SelectTrigger className="h-8 w-56"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="immediate">Al iniciar el clip</SelectItem>
+            <SelectItem value="time">En un momento concreto…</SelectItem>
+            <SelectItem value="end">Al terminar el vídeo</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {mode === "time" && (
+          <div className="flex items-center gap-1 text-sm">
+            <Input
+              type="number"
+              min={0}
+              className="h-8 w-16"
+              value={minutes}
+              onChange={(e) => {
+                const m = Math.max(0, Number(e.target.value) || 0);
+                onChange({ mode: "time", seconds: m * 60 + seconds });
+              }}
+            />
+            <span className="text-muted-foreground">min</span>
+            <Input
+              type="number"
+              min={0}
+              max={59}
+              className="h-8 w-16"
+              value={seconds}
+              onChange={(e) => {
+                const s = Math.max(0, Math.min(59, Number(e.target.value) || 0));
+                onChange({ mode: "time", seconds: minutes * 60 + s });
+              }}
+            />
+            <span className="text-muted-foreground">seg</span>
+          </div>
+        )}
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        Si eliges un momento concreto, el vídeo se pausará en ese instante y aparecerá la pregunta.
+      </p>
+    </div>
+  );
+}
+

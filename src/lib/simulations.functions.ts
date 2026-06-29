@@ -618,9 +618,16 @@ const EditorChoiceSchema = z.object({
   competencies: z.record(z.string(), z.number()).default({}),
 });
 
+const QuestionTriggerSchema = z.union([
+  z.object({ mode: z.literal("immediate") }),
+  z.object({ mode: z.literal("end") }),
+  z.object({ mode: z.literal("time"), seconds: z.number().min(0).max(36000) }),
+]);
+
 const EditorQuestionSchema = z.object({
   id: z.string().min(1).optional(),
   clipId: z.string().optional(),
+  triggerAt: QuestionTriggerSchema.optional(),
   text: z.string().min(1),
   choices: z.array(EditorChoiceSchema).min(2).max(6),
 });

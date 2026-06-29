@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { VideoPlayer } from "@/components/VideoPlayer";
@@ -52,6 +52,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
   const [lastFeedback, setLastFeedback] = useState<{ text: string; points: number } | null>(null);
   const [ended, setEnded] = useState(false);
   const [activeClipId, setActiveClipId] = useState<string | undefined>(undefined);
+  const [questionReady, setQuestionReady] = useState(true);
 
 
   const errors = useMemo(() => validateStory(story), [story]);
@@ -70,6 +71,15 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
   };
 
   const q = node ? activeQuestion(node, activeClipId) : undefined;
+  const trig = q?.triggerAt ?? { mode: "immediate" as const };
+
+  // Reset readiness when the active question/clip/scene changes.
+  useEffect(() => {
+    setQuestionReady((q?.triggerAt?.mode ?? "immediate") === "immediate");
+  }, [node?.id, activeClipId, q?.id, q?.triggerAt?.mode]);
+
+  const pauseAtSec =
+    !questionReady && trig.mode === "time" ? trig.seconds : undefined;
 
 
 
@@ -178,6 +188,9 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
         videos={node.videos}
         activeClipId={activeClipId ?? nodeClips(node)[0]?.id}
         onActiveClipChange={setActiveClipId}
+        pauseAtSec={pauseAtSec}
+        onPauseAtTime={() => setQuestionReady(true)}
+        onEnded={() => { if (trig.mode === "end") setQuestionReady(true); }}
       />
       <VideoPrefetch nodes={nextCandidateNodes(nodes, node)} />
 
@@ -194,7 +207,15 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
         </div>
       )}
 
-      {!ended && !node.isEnding && q && (
+      {!ended && !node.isEnding && q && !questionReady && (
+        <p className="text-[11px] text-muted-foreground italic">
+          {trig.mode === "time"
+            ? `La pregunta aparecerá en ${Math.floor(trig.seconds / 60)}:${String(Math.round(trig.seconds % 60)).padStart(2, "0")}.`
+            : "La pregunta aparecerá al terminar el vídeo."}
+        </p>
+      )}
+
+      {!ended && !node.isEnding && q && questionReady && (
         <div className="space-y-2">
           {nodeQuestions(node).length > 1 && (
             <div className="text-[11px] text-muted-foreground">
