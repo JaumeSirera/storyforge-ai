@@ -95,7 +95,7 @@ function EditSimulation() {
       videos:
         n.videos && n.videos.length > 0
           ? n.videos
-          : [{ id: uid("clip"), label: "Clip principal", source: n.video ?? { type: "none" } }],
+          : [{ id: uid("clip"), label: "Clip principal", source: (n.video ?? { type: "none" }) as VideoSource }],
     }));
     setState({
       startNodeId,
