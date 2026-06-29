@@ -78,20 +78,35 @@ export const submitAnswer = createServerFn({ method: "POST" })
       .story;
     const node = story.nodes[data.nodeId];
     if (!node) throw new Error("Nodo no encontrado");
-    const choice = node.question?.choices?.find((c: any) => c.id === data.choiceId);
+    // Look up the choice across the legacy single question + any new multi-question array.
+    const allQuestions: any[] = [
+      ...(node.question ? [node.question] : []),
+      ...(Array.isArray(node.questions) ? node.questions : []),
+    ];
+    let chosenQuestion: any = null;
+    let choice: any = null;
+    for (const q of allQuestions) {
+      const found = q.choices?.find((c: any) => c.id === data.choiceId);
+      if (found) {
+        chosenQuestion = q;
+        choice = found;
+        break;
+      }
+    }
     if (!choice) throw new Error("Opción no válida");
 
     const answers = Array.isArray(sess.answers) ? [...(sess.answers as any[])] : [];
     answers.push({
       nodeId: node.id,
       nodeTitle: node.title,
-      question: node.question.text,
+      question: chosenQuestion?.text ?? "",
       choiceId: choice.id,
       choiceLabel: choice.label,
       points: choice.points,
       feedback: choice.feedback,
       at: new Date().toISOString(),
     });
+
 
     const newScore = (sess.score ?? 0) + (choice.points ?? 0);
     const comp = { ...((sess.competency_scores as Record<string, number>) ?? {}) };
