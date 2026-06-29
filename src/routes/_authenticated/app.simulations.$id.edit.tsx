@@ -882,3 +882,16 @@ function SortableScene({
     </div>
   );
 }
+
+function sortByTitleNumber<T extends { title: string }>(nodes: T[]): T[] {
+  const num = (t: string) => {
+    const m = t.match(/(\d+)/);
+    return m ? parseInt(m[1], 10) : Number.POSITIVE_INFINITY;
+  };
+  return [...nodes].sort((a, b) => {
+    const da = num(a.title);
+    const db = num(b.title);
+    if (da !== db) return da - db;
+    return a.title.localeCompare(b.title);
+  });
+}
