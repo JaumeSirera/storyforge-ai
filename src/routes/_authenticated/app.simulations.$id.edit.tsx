@@ -231,10 +231,7 @@ function EditSimulation() {
     });
 
   // ---------- drag & drop ordering ----------
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
+
 
   const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
