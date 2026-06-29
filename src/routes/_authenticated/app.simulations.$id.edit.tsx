@@ -655,11 +655,12 @@ function EditSimulation() {
                                   <Flag className="h-3 w-3" /> Final
                                 </Badge>
                               )}
-                              {!n.isEnding && n.question && (
+                              {!n.isEnding && (n.questions?.length ?? 0) > 0 && (
                                 <Badge variant="outline" className="gap-1">
-                                  <GitBranch className="h-3 w-3" /> {n.question.choices.length}
+                                  <GitBranch className="h-3 w-3" /> {(n.questions ?? []).reduce((acc, q) => acc + q.choices.length, 0)}
                                 </Badge>
                               )}
+
                             </div>
                           </AccordionTrigger>
                         </div>
