@@ -49,11 +49,11 @@ function SimulationsList() {
                 <CardDescription className="line-clamp-3">{s.objective}</CardDescription>
               </CardHeader>
               <CardContent className="flex items-center justify-between gap-2">
-                <Link to="/app/simulations/$id" params={{ id: s.id }} className="flex-1">
-                  <Button variant="outline" size="sm" className="w-full gap-1">
+                <Button asChild variant="outline" size="sm" className="flex-1 gap-1">
+                  <Link to="/app/simulations/$id" params={{ id: s.id }}>
                     <Play className="h-3.5 w-3.5" /> Abrir
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
