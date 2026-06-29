@@ -459,7 +459,10 @@ function EditSimulation() {
                     setSavingDraft(true);
                     try {
                       const nodesRecord: Record<string, StoryNode> = {};
-                      for (const n of state.nodes) nodesRecord[n.id] = n;
+                      state.nodes.forEach((n, i) => {
+                        const firstSource = n.videos && n.videos[0]?.source ? n.videos[0].source : n.video ?? { type: "none" };
+                        nodesRecord[n.id] = { ...n, order: i + 1, video: firstSource };
+                      });
                       await save({
                         data: {
                           id,
