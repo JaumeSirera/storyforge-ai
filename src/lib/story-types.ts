@@ -41,6 +41,8 @@ export interface StoryNode {
 
 export interface Story {
   startNodeId: string;
+  /** Manual ordering is only respected after the user explicitly drags scenes in the editor. */
+  orderMode?: "title" | "manual";
   nodes: Record<string, StoryNode>;
 }
 
