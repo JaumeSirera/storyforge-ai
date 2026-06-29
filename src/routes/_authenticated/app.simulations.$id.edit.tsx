@@ -146,7 +146,9 @@ function EditSimulation() {
                 id: newId,
                 title: "Nueva escena",
                 narrative: "",
+                order: s.nodes.length + 1,
                 video: { type: "none" } as VideoSource,
+                videos: [{ id: uid("clip"), label: "Clip principal", source: { type: "none" } }],
                 question: {
                   text: "¿Qué decides?",
                   choices: [
@@ -159,6 +161,88 @@ function EditSimulation() {
           }
         : s,
     );
+  };
+
+  // ---------- video clip helpers ----------
+  const updateClip = (nIdx: number, cIdx: number, patch: Partial<VideoClip>) =>
+    setState((s) => {
+      if (!s) return s;
+      const nodes = s.nodes.map((n, i) => {
+        if (i !== nIdx) return n;
+        const videos = (n.videos ?? []).map((v, j) => (j === cIdx ? { ...v, ...patch } : v));
+        return { ...n, videos };
+      });
+      return { ...s, nodes };
+    });
+
+  const updateClipSource = (nIdx: number, cIdx: number, patch: Partial<VideoSource> | VideoSource) =>
+    setState((s) => {
+      if (!s) return s;
+      const nodes = s.nodes.map((n, i) => {
+        if (i !== nIdx) return n;
+        const videos = (n.videos ?? []).map((v, j) => {
+          if (j !== cIdx) return v;
+          const merged = { ...(v.source as any), ...(patch as any) } as VideoSource;
+          return { ...v, source: merged };
+        });
+        return { ...n, videos };
+      });
+      return { ...s, nodes };
+    });
+
+  const addClip = (nIdx: number) =>
+    setState((s) => {
+      if (!s) return s;
+      const nodes = s.nodes.map((n, i) => {
+        if (i !== nIdx) return n;
+        const existing = n.videos ?? [];
+        if (existing.length >= 10) return n;
+        return {
+          ...n,
+          videos: [
+            ...existing,
+            { id: uid("clip"), label: `Clip ${existing.length + 1}`, source: { type: "none" } as VideoSource },
+          ],
+        };
+      });
+      return { ...s, nodes };
+    });
+
+  const removeClip = (nIdx: number, cIdx: number) =>
+    setState((s) => {
+      if (!s) return s;
+      const nodes = s.nodes.map((n, i) => {
+        if (i !== nIdx) return n;
+        const existing = n.videos ?? [];
+        if (existing.length <= 1) {
+          // Keep at least one clip slot (can be "Sin vídeo").
+          return {
+            ...n,
+            videos: [{ id: uid("clip"), label: "Clip principal", source: { type: "none" } }],
+          };
+        }
+        return { ...n, videos: existing.filter((_, j) => j !== cIdx) };
+      });
+      return { ...s, nodes };
+    });
+
+  // ---------- drag & drop ordering ----------
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setState((s) => {
+      if (!s) return s;
+      const oldIdx = s.nodes.findIndex((n) => n.id === active.id);
+      const newIdx = s.nodes.findIndex((n) => n.id === over.id);
+      if (oldIdx < 0 || newIdx < 0) return s;
+      const reordered = arrayMove(s.nodes, oldIdx, newIdx).map((n, i) => ({ ...n, order: i + 1 }));
+      return { ...s, nodes: reordered };
+    });
   };
 
   const deleteNode = (idx: number) => {
