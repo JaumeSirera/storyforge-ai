@@ -593,101 +593,134 @@ function EditSimulation() {
                   </div>
 
                   <div className="rounded-lg border p-3 space-y-3 bg-muted/20">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <div>
-                        <Label className="text-sm font-semibold">Vídeo de la escena</Label>
+                        <Label className="text-sm font-semibold">Vídeos de la escena</Label>
                         <p className="text-xs text-muted-foreground">
-                          Elige el origen del vídeo y pega la URL. Si no quieres vídeo, deja "Sin vídeo".
+                          Añade uno o varios clips. Durante la reproducción, el usuario podrá elegir cuál ver desde una lista.
                         </p>
                       </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => addClip(nIdx)}
+                        disabled={(n.videos?.length ?? 0) >= 10}
+                      >
+                        <Plus className="h-3 w-3 mr-1" /> Añadir vídeo
+                      </Button>
                     </div>
-                    <div className="grid sm:grid-cols-3 gap-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Tipo de vídeo</Label>
-                        <Select
-                          value={n.video?.type ?? "none"}
-                          onValueChange={(v) =>
-                            updateNode(nIdx, {
-                              video:
-                                v === "none"
-                                  ? { type: "none" }
-                                  : { type: v as "youtube" | "vimeo" | "mp4", url: (n.video as any)?.url ?? "" },
-                            })
-                          }
-                        >
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Sin vídeo</SelectItem>
-                            <SelectItem value="youtube">YouTube</SelectItem>
-                            <SelectItem value="vimeo">Vimeo</SelectItem>
-                            <SelectItem value="mp4">MP4 (URL directa)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <Label className="text-xs">URL del vídeo</Label>
-                        <Input
-                          placeholder={
-                            n.video?.type === "none"
-                              ? "Selecciona primero un tipo de vídeo arriba"
-                              : n.video?.type === "youtube"
-                              ? "https://www.youtube.com/watch?v=..."
-                              : n.video?.type === "vimeo"
-                              ? "https://vimeo.com/..."
-                              : "https://.../video.mp4"
-                          }
-                          disabled={n.video?.type === "none"}
-                          value={(n.video as any)?.url ?? ""}
-                          onChange={(e) =>
-                            updateNode(nIdx, {
-                              video: {
-                                ...(n.video?.type === "none"
-                                  ? { type: "mp4", url: "" }
-                                  : (n.video as any)),
-                                url: e.target.value,
-                              } as VideoSource,
-                            })
-                          }
-                        />
-                      </div>
+
+                    <div className="space-y-3">
+                      {(n.videos ?? []).map((clip, cIdx) => {
+                        const src = clip.source;
+                        const isNone = src.type === "none";
+                        return (
+                          <div key={clip.id} className="rounded-md border bg-background p-3 space-y-3">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="text-[10px]">Clip {cIdx + 1}</Badge>
+                              <Input
+                                className="h-8 flex-1"
+                                placeholder="Etiqueta del clip (ej. Versión corta)"
+                                value={clip.label}
+                                onChange={(e) => updateClip(nIdx, cIdx, { label: e.target.value })}
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeClip(nIdx, cIdx)}
+                                aria-label="Eliminar clip"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                            <div className="grid sm:grid-cols-3 gap-3">
+                              <div className="space-y-1.5">
+                                <Label className="text-xs">Tipo</Label>
+                                <Select
+                                  value={src.type}
+                                  onValueChange={(v) => {
+                                    if (v === "none") {
+                                      updateClipSource(nIdx, cIdx, { type: "none" } as VideoSource);
+                                    } else {
+                                      const prevUrl = (src as any).url ?? "";
+                                      updateClipSource(nIdx, cIdx, {
+                                        type: v as "youtube" | "vimeo" | "mp4",
+                                        url: prevUrl,
+                                      } as VideoSource);
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">Sin vídeo</SelectItem>
+                                    <SelectItem value="youtube">YouTube</SelectItem>
+                                    <SelectItem value="vimeo">Vimeo</SelectItem>
+                                    <SelectItem value="mp4">MP4 (URL directa)</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-1.5 sm:col-span-2">
+                                <Label className="text-xs">URL</Label>
+                                <Input
+                                  placeholder={
+                                    isNone
+                                      ? "Selecciona primero un tipo de vídeo"
+                                      : src.type === "youtube"
+                                      ? "https://www.youtube.com/watch?v=..."
+                                      : src.type === "vimeo"
+                                      ? "https://vimeo.com/..."
+                                      : "https://.../video.mp4"
+                                  }
+                                  disabled={isNone}
+                                  value={isNone ? "" : (src as any).url ?? ""}
+                                  onChange={(e) => {
+                                    if (isNone) {
+                                      updateClipSource(nIdx, cIdx, { type: "mp4", url: e.target.value } as VideoSource);
+                                    } else {
+                                      updateClipSource(nIdx, cIdx, { url: e.target.value } as any);
+                                    }
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            {!isNone && (
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs">Inicio (s, opcional)</Label>
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    value={(src as any).startSec ?? ""}
+                                    onChange={(e) =>
+                                      updateClipSource(nIdx, cIdx, {
+                                        startSec: e.target.value === "" ? undefined : Number(e.target.value),
+                                      } as any)
+                                    }
+                                  />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs">Fin (s, opcional)</Label>
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    value={(src as any).endSec ?? ""}
+                                    onChange={(e) =>
+                                      updateClipSource(nIdx, cIdx, {
+                                        endSec: e.target.value === "" ? undefined : Number(e.target.value),
+                                      } as any)
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                    {n.video?.type !== "none" && (
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Inicio (segundos, opcional)</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={(n.video as any)?.startSec ?? ""}
-                            onChange={(e) =>
-                              updateNode(nIdx, {
-                                video: {
-                                  ...(n.video as any),
-                                  startSec: e.target.value === "" ? undefined : Number(e.target.value),
-                                } as VideoSource,
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Fin (segundos, opcional)</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={(n.video as any)?.endSec ?? ""}
-                            onChange={(e) =>
-                              updateNode(nIdx, {
-                                video: {
-                                  ...(n.video as any),
-                                  endSec: e.target.value === "" ? undefined : Number(e.target.value),
-                                } as VideoSource,
-                              })
-                            }
-                          />
-                        </div>
-                      </div>
-                    )}
                   </div>
+
 
                   <div className="flex items-center justify-between rounded-lg border p-3">
                     <div>
