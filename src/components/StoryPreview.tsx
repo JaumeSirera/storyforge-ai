@@ -52,6 +52,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
   const [lastFeedback, setLastFeedback] = useState<{ text: string; points: number } | null>(null);
   const [ended, setEnded] = useState(false);
   const [activeClipId, setActiveClipId] = useState<string | undefined>(undefined);
+  const [questionReady, setQuestionReady] = useState(true);
 
 
   const errors = useMemo(() => validateStory(story), [story]);
@@ -70,6 +71,15 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
   };
 
   const q = node ? activeQuestion(node, activeClipId) : undefined;
+  const trig = q?.triggerAt ?? { mode: "immediate" as const };
+
+  // Reset readiness when the active question/clip/scene changes.
+  useEffect(() => {
+    setQuestionReady((q?.triggerAt?.mode ?? "immediate") === "immediate");
+  }, [node?.id, activeClipId, q?.id, q?.triggerAt?.mode]);
+
+  const pauseAtSec =
+    !questionReady && trig.mode === "time" ? trig.seconds : undefined;
 
 
 
