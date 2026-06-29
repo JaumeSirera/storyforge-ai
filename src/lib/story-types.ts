@@ -6,6 +6,12 @@ export type VideoSource =
   | { type: "mp4"; url: string; startSec?: number; endSec?: number }
   | { type: "none" };
 
+export interface VideoClip {
+  id: string;
+  label: string;
+  source: VideoSource;
+}
+
 export interface Choice {
   id: string;
   label: string;
@@ -19,7 +25,12 @@ export interface StoryNode {
   id: string;
   title: string;
   narrative: string;
+  /** Legacy single-video field. Kept for backward compatibility. */
   video: VideoSource;
+  /** Optional list of selectable video clips for this scene. If present, overrides `video` at playback. */
+  videos?: VideoClip[];
+  /** Manual chronological order (1..N). Falls back to insertion order if missing. */
+  order?: number;
   question?: {
     text: string;
     choices: Choice[];
@@ -59,4 +70,10 @@ export interface SessionReport {
   improvements: string[];
   competencyScores: Record<string, number>;
   achievements: string[];
+}
+
+/** Returns the playable list of clips for a node (handles legacy single-video). */
+export function nodeClips(node: Pick<StoryNode, "video" | "videos">): VideoClip[] {
+  if (node.videos && node.videos.length > 0) return node.videos;
+  return [{ id: "default", label: "Clip principal", source: node.video ?? { type: "none" } }];
 }

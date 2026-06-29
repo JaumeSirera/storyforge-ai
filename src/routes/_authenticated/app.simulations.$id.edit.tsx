@@ -23,12 +23,29 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { ArrowLeft, Plus, Trash2, Save, Loader2, Flag, GitBranch, Play, Lock, Send } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Loader2, Flag, GitBranch, Play, Lock, Send, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StoryPreview } from "@/components/StoryPreview";
-import type { Story, StoryNode, Choice, EvaluationCriterion, VideoSource } from "@/lib/story-types";
+import type { Story, StoryNode, Choice, EvaluationCriterion, VideoSource, VideoClip } from "@/lib/story-types";
 import { computeSceneOrder, sortNodesByOrder } from "@/lib/scene-order";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 export const Route = createFileRoute("/_authenticated/app/simulations/$id/edit")({
   component: EditSimulation,
@@ -70,7 +87,16 @@ function EditSimulation() {
     const rawNodes = Object.values(story.nodes ?? {});
     const startNodeId = story.startNodeId || rawNodes[0]?.id || "";
     const order = computeSceneOrder({ startNodeId, nodes: story.nodes ?? {} });
-    const nodes = sortNodesByOrder(rawNodes, order);
+    const sorted = sortNodesByOrder(rawNodes, order);
+    // Ensure every node has a `videos` array (migrating legacy single `video`) and an order.
+    const nodes: StoryNode[] = sorted.map((n, i) => ({
+      ...n,
+      order: i + 1,
+      videos:
+        n.videos && n.videos.length > 0
+          ? n.videos
+          : [{ id: uid("clip"), label: "Clip principal", source: (n.video ?? { type: "none" }) as VideoSource }],
+    }));
     setState({
       startNodeId,
       nodes,
@@ -78,12 +104,11 @@ function EditSimulation() {
     });
   }, [sim.data, state]);
 
+  // Order is now derived directly from the array index (manual ordering).
   const sceneOrder = useMemo(() => {
-    if (!state) return new Map<string, number>();
-    return computeSceneOrder({
-      startNodeId: state.startNodeId,
-      nodes: Object.fromEntries(state.nodes.map((n) => [n.id, n])),
-    });
+    const m = new Map<string, number>();
+    state?.nodes.forEach((n, i) => m.set(n.id, i + 1));
+    return m;
   }, [state]);
 
   
@@ -121,7 +146,9 @@ function EditSimulation() {
                 id: newId,
                 title: "Nueva escena",
                 narrative: "",
+                order: s.nodes.length + 1,
                 video: { type: "none" } as VideoSource,
+                videos: [{ id: uid("clip"), label: "Clip principal", source: { type: "none" } }],
                 question: {
                   text: "¿Qué decides?",
                   choices: [
@@ -134,6 +161,87 @@ function EditSimulation() {
           }
         : s,
     );
+  };
+
+  // ---------- video clip helpers ----------
+  const updateClip = (nIdx: number, cIdx: number, patch: Partial<VideoClip>) =>
+    setState((s) => {
+      if (!s) return s;
+      const nodes = s.nodes.map((n, i) => {
+        if (i !== nIdx) return n;
+        const videos = (n.videos ?? []).map((v, j) => (j === cIdx ? { ...v, ...patch } : v));
+        return { ...n, videos };
+      });
+      return { ...s, nodes };
+    });
+
+  const updateClipSource = (nIdx: number, cIdx: number, patch: Partial<VideoSource> | VideoSource) =>
+    setState((s) => {
+      if (!s) return s;
+      const nodes = s.nodes.map((n, i) => {
+        if (i !== nIdx) return n;
+        const videos = (n.videos ?? []).map((v, j) => {
+          if (j !== cIdx) return v;
+          const merged = { ...(v.source as any), ...(patch as any) } as VideoSource;
+          return { ...v, source: merged };
+        });
+        return { ...n, videos };
+      });
+      return { ...s, nodes };
+    });
+
+  const addClip = (nIdx: number) =>
+    setState((s) => {
+      if (!s) return s;
+      const nodes = s.nodes.map((n, i) => {
+        if (i !== nIdx) return n;
+        const existing = n.videos ?? [];
+        if (existing.length >= 10) return n;
+        const next: VideoClip = {
+          id: uid("clip"),
+          label: `Clip ${existing.length + 1}`,
+          source: { type: "none" },
+        };
+        return { ...n, videos: [...existing, next] };
+      });
+      return { ...s, nodes };
+    });
+
+  const removeClip = (nIdx: number, cIdx: number) =>
+    setState((s) => {
+      if (!s) return s;
+      const nodes = s.nodes.map((n, i) => {
+        if (i !== nIdx) return n;
+        const existing = n.videos ?? [];
+        if (existing.length <= 1) {
+          // Keep at least one clip slot (can be "Sin vídeo").
+          return {
+            ...n,
+            videos: [{ id: uid("clip"), label: "Clip principal", source: { type: "none" } as VideoSource }],
+          };
+        }
+        return { ...n, videos: existing.filter((_, j) => j !== cIdx) };
+      });
+      return { ...s, nodes };
+    });
+
+  // ---------- drag & drop ordering ----------
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setState((s) => {
+      if (!s) return s;
+      const oldIdx = s.nodes.findIndex((n) => n.id === active.id);
+      const newIdx = s.nodes.findIndex((n) => n.id === over.id);
+      if (oldIdx < 0 || newIdx < 0) return s;
+      const reordered = arrayMove(s.nodes, oldIdx, newIdx).map((n, i) => ({ ...n, order: i + 1 }));
+      return { ...s, nodes: reordered };
+    });
   };
 
   const deleteNode = (idx: number) => {
@@ -234,7 +342,10 @@ function EditSimulation() {
     setSaving(true);
     try {
       const nodesRecord: Record<string, StoryNode> = {};
-      for (const n of state.nodes) nodesRecord[n.id] = n;
+      state.nodes.forEach((n, i) => {
+        const firstSource = n.videos && n.videos[0]?.source ? n.videos[0].source : n.video ?? { type: "none" };
+        nodesRecord[n.id] = { ...n, order: i + 1, video: firstSource };
+      });
       await save({
         data: {
           id,
@@ -348,7 +459,10 @@ function EditSimulation() {
                     setSavingDraft(true);
                     try {
                       const nodesRecord: Record<string, StoryNode> = {};
-                      for (const n of state.nodes) nodesRecord[n.id] = n;
+                      state.nodes.forEach((n, i) => {
+                        const firstSource = n.videos && n.videos[0]?.source ? n.videos[0].source : n.video ?? { type: "none" };
+                        nodesRecord[n.id] = { ...n, order: i + 1, video: firstSource };
+                      });
                       await save({
                         data: {
                           id,
@@ -441,26 +555,42 @@ function EditSimulation() {
           </Button>
         </CardHeader>
         <CardContent>
-          <Accordion type="multiple" className="space-y-2">
-            {state.nodes.map((n, nIdx) => (
-              <AccordionItem key={n.id} value={n.id} className="border rounded-lg px-3">
-                <AccordionTrigger className="hover:no-underline">
-                  <div className="flex items-center gap-2 text-left">
-                    <Badge variant="default" className="text-[11px]">Escena {sceneOrder.get(n.id) ?? "?"}</Badge>
-                    <span className="font-medium">{n.title}</span>
-                    <span className="text-[10px] text-muted-foreground font-mono hidden sm:inline">{n.id}</span>
-                    {n.isEnding && (
-                      <Badge variant={n.endingType === "success" ? "default" : "secondary"} className="gap-1">
-                        <Flag className="h-3 w-3" /> Final
-                      </Badge>
-                    )}
-                    {!n.isEnding && n.question && (
-                      <Badge variant="outline" className="gap-1">
-                        <GitBranch className="h-3 w-3" /> {n.question.choices.length}
-                      </Badge>
-                    )}
-                  </div>
-                </AccordionTrigger>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext items={state.nodes.map((n) => n.id)} strategy={verticalListSortingStrategy}>
+              <Accordion type="multiple" className="space-y-2">
+                {state.nodes.map((n, nIdx) => (
+                  <SortableScene key={n.id} id={n.id}>
+                    {({ handleProps }) => (
+                      <AccordionItem value={n.id} className="border rounded-lg px-3 bg-card">
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            {...handleProps}
+                            className="p-2 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing touch-none"
+                            aria-label="Mover escena"
+                            title="Arrastra para reordenar"
+                          >
+                            <GripVertical className="h-4 w-4" />
+                          </button>
+                          <AccordionTrigger className="hover:no-underline flex-1">
+                            <div className="flex items-center gap-2 text-left">
+                              <Badge variant="default" className="text-[11px]">Escena {nIdx + 1}</Badge>
+                              <span className="font-medium">{n.title}</span>
+                              <span className="text-[10px] text-muted-foreground font-mono hidden sm:inline">{n.id}</span>
+                              {n.isEnding && (
+                                <Badge variant={n.endingType === "success" ? "default" : "secondary"} className="gap-1">
+                                  <Flag className="h-3 w-3" /> Final
+                                </Badge>
+                              )}
+                              {!n.isEnding && n.question && (
+                                <Badge variant="outline" className="gap-1">
+                                  <GitBranch className="h-3 w-3" /> {n.question.choices.length}
+                                </Badge>
+                              )}
+                            </div>
+                          </AccordionTrigger>
+                        </div>
+
                 <AccordionContent className="space-y-4 pt-2">
                   <div className="grid sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
@@ -479,101 +609,134 @@ function EditSimulation() {
                   </div>
 
                   <div className="rounded-lg border p-3 space-y-3 bg-muted/20">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <div>
-                        <Label className="text-sm font-semibold">Vídeo de la escena</Label>
+                        <Label className="text-sm font-semibold">Vídeos de la escena</Label>
                         <p className="text-xs text-muted-foreground">
-                          Elige el origen del vídeo y pega la URL. Si no quieres vídeo, deja "Sin vídeo".
+                          Añade uno o varios clips. Durante la reproducción, el usuario podrá elegir cuál ver desde una lista.
                         </p>
                       </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => addClip(nIdx)}
+                        disabled={(n.videos?.length ?? 0) >= 10}
+                      >
+                        <Plus className="h-3 w-3 mr-1" /> Añadir vídeo
+                      </Button>
                     </div>
-                    <div className="grid sm:grid-cols-3 gap-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Tipo de vídeo</Label>
-                        <Select
-                          value={n.video?.type ?? "none"}
-                          onValueChange={(v) =>
-                            updateNode(nIdx, {
-                              video:
-                                v === "none"
-                                  ? { type: "none" }
-                                  : { type: v as "youtube" | "vimeo" | "mp4", url: (n.video as any)?.url ?? "" },
-                            })
-                          }
-                        >
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Sin vídeo</SelectItem>
-                            <SelectItem value="youtube">YouTube</SelectItem>
-                            <SelectItem value="vimeo">Vimeo</SelectItem>
-                            <SelectItem value="mp4">MP4 (URL directa)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <Label className="text-xs">URL del vídeo</Label>
-                        <Input
-                          placeholder={
-                            n.video?.type === "none"
-                              ? "Selecciona primero un tipo de vídeo arriba"
-                              : n.video?.type === "youtube"
-                              ? "https://www.youtube.com/watch?v=..."
-                              : n.video?.type === "vimeo"
-                              ? "https://vimeo.com/..."
-                              : "https://.../video.mp4"
-                          }
-                          disabled={n.video?.type === "none"}
-                          value={(n.video as any)?.url ?? ""}
-                          onChange={(e) =>
-                            updateNode(nIdx, {
-                              video: {
-                                ...(n.video?.type === "none"
-                                  ? { type: "mp4", url: "" }
-                                  : (n.video as any)),
-                                url: e.target.value,
-                              } as VideoSource,
-                            })
-                          }
-                        />
-                      </div>
+
+                    <div className="space-y-3">
+                      {(n.videos ?? []).map((clip, cIdx) => {
+                        const src = clip.source;
+                        const isNone = src.type === "none";
+                        return (
+                          <div key={clip.id} className="rounded-md border bg-background p-3 space-y-3">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="text-[10px]">Clip {cIdx + 1}</Badge>
+                              <Input
+                                className="h-8 flex-1"
+                                placeholder="Etiqueta del clip (ej. Versión corta)"
+                                value={clip.label}
+                                onChange={(e) => updateClip(nIdx, cIdx, { label: e.target.value })}
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeClip(nIdx, cIdx)}
+                                aria-label="Eliminar clip"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                            <div className="grid sm:grid-cols-3 gap-3">
+                              <div className="space-y-1.5">
+                                <Label className="text-xs">Tipo</Label>
+                                <Select
+                                  value={src.type}
+                                  onValueChange={(v) => {
+                                    if (v === "none") {
+                                      updateClipSource(nIdx, cIdx, { type: "none" } as VideoSource);
+                                    } else {
+                                      const prevUrl = (src as any).url ?? "";
+                                      updateClipSource(nIdx, cIdx, {
+                                        type: v as "youtube" | "vimeo" | "mp4",
+                                        url: prevUrl,
+                                      } as VideoSource);
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">Sin vídeo</SelectItem>
+                                    <SelectItem value="youtube">YouTube</SelectItem>
+                                    <SelectItem value="vimeo">Vimeo</SelectItem>
+                                    <SelectItem value="mp4">MP4 (URL directa)</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-1.5 sm:col-span-2">
+                                <Label className="text-xs">URL</Label>
+                                <Input
+                                  placeholder={
+                                    isNone
+                                      ? "Selecciona primero un tipo de vídeo"
+                                      : src.type === "youtube"
+                                      ? "https://www.youtube.com/watch?v=..."
+                                      : src.type === "vimeo"
+                                      ? "https://vimeo.com/..."
+                                      : "https://.../video.mp4"
+                                  }
+                                  disabled={isNone}
+                                  value={isNone ? "" : (src as any).url ?? ""}
+                                  onChange={(e) => {
+                                    if (isNone) {
+                                      updateClipSource(nIdx, cIdx, { type: "mp4", url: e.target.value } as VideoSource);
+                                    } else {
+                                      updateClipSource(nIdx, cIdx, { url: e.target.value } as any);
+                                    }
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            {!isNone && (
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs">Inicio (s, opcional)</Label>
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    value={(src as any).startSec ?? ""}
+                                    onChange={(e) =>
+                                      updateClipSource(nIdx, cIdx, {
+                                        startSec: e.target.value === "" ? undefined : Number(e.target.value),
+                                      } as any)
+                                    }
+                                  />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs">Fin (s, opcional)</Label>
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    value={(src as any).endSec ?? ""}
+                                    onChange={(e) =>
+                                      updateClipSource(nIdx, cIdx, {
+                                        endSec: e.target.value === "" ? undefined : Number(e.target.value),
+                                      } as any)
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                    {n.video?.type !== "none" && (
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Inicio (segundos, opcional)</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={(n.video as any)?.startSec ?? ""}
-                            onChange={(e) =>
-                              updateNode(nIdx, {
-                                video: {
-                                  ...(n.video as any),
-                                  startSec: e.target.value === "" ? undefined : Number(e.target.value),
-                                } as VideoSource,
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Fin (segundos, opcional)</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={(n.video as any)?.endSec ?? ""}
-                            onChange={(e) =>
-                              updateNode(nIdx, {
-                                video: {
-                                  ...(n.video as any),
-                                  endSec: e.target.value === "" ? undefined : Number(e.target.value),
-                                } as VideoSource,
-                              })
-                            }
-                          />
-                        </div>
-                      </div>
-                    )}
                   </div>
+
 
                   <div className="flex items-center justify-between rounded-lg border p-3">
                     <div>
@@ -676,8 +839,12 @@ function EditSimulation() {
                   </div>
                 </AccordionContent>
               </AccordionItem>
-            ))}
-          </Accordion>
+                    )}
+                  </SortableScene>
+                ))}
+              </Accordion>
+            </SortableContext>
+          </DndContext>
         </CardContent>
       </Card>
       </fieldset>
@@ -690,6 +857,26 @@ function EditSimulation() {
           </Button>
         </div>
       )}
+    </div>
+  );
+}
+
+function SortableScene({
+  id,
+  children,
+}: {
+  id: string;
+  children: (p: { handleProps: Record<string, unknown> }) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children({ handleProps: { ...attributes, ...listeners } })}
     </div>
   );
 }

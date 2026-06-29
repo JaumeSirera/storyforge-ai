@@ -248,7 +248,7 @@ function Player({
 
       <Progress value={progress} className="h-1.5" />
 
-      <VideoPlayer video={node.video} />
+      <VideoPlayer video={node.video} videos={node.videos} />
 
       <Card>
         <CardContent className="pt-6">

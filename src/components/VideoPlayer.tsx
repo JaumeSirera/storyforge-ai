@@ -1,10 +1,5 @@
-import { useMemo } from "react";
-
-type VideoSource =
-  | { type: "youtube"; url: string }
-  | { type: "vimeo"; url: string }
-  | { type: "mp4"; url: string }
-  | { type: "none" };
+import { useMemo, useState } from "react";
+import type { VideoClip, VideoSource } from "@/lib/story-types";
 
 function getYouTubeId(url: string): string | null {
   const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([\w-]{11})/);
@@ -16,7 +11,7 @@ function getVimeoId(url: string): string | null {
   return m ? m[1] : null;
 }
 
-export function VideoPlayer({ video }: { video: VideoSource }) {
+function SingleVideo({ video }: { video: VideoSource }) {
   const embed = useMemo(() => {
     if (video.type === "youtube") {
       const id = getYouTubeId(video.url);
@@ -40,6 +35,7 @@ export function VideoPlayer({ video }: { video: VideoSource }) {
   if (video.type === "mp4") {
     return (
       <video
+        key={video.url}
         src={video.url}
         controls
         className="w-full aspect-video rounded-xl bg-black"
@@ -58,11 +54,55 @@ export function VideoPlayer({ video }: { video: VideoSource }) {
   return (
     <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
       <iframe
+        key={embed}
         src={embed}
         className="w-full h-full"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
       />
+    </div>
+  );
+}
+
+export function VideoPlayer({
+  video,
+  videos,
+}: {
+  video?: VideoSource;
+  videos?: VideoClip[];
+}) {
+  const clips: VideoClip[] = useMemo(() => {
+    if (videos && videos.length > 0) return videos;
+    if (video) return [{ id: "default", label: "Clip principal", source: video }];
+    return [{ id: "default", label: "Clip principal", source: { type: "none" } }];
+  }, [video, videos]);
+
+  const [activeId, setActiveId] = useState<string>(clips[0]?.id ?? "default");
+  const active = clips.find((c) => c.id === activeId) ?? clips[0];
+
+  if (clips.length <= 1) {
+    return <SingleVideo video={active.source} />;
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1.5">
+        {clips.map((c, i) => (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => setActiveId(c.id)}
+            className={`text-xs rounded-full border px-3 py-1 transition ${
+              c.id === active.id
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-background hover:bg-accent"
+            }`}
+          >
+            {c.label || `Clip ${i + 1}`}
+          </button>
+        ))}
+      </div>
+      <SingleVideo video={active.source} />
     </div>
   );
 }

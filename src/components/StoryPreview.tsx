@@ -161,7 +161,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
         </div>
       </div>
 
-      <VideoPlayer video={node.video} />
+      <VideoPlayer video={node.video} videos={node.videos} />
 
       {node.narrative && (
         <p className="text-sm text-muted-foreground leading-relaxed">{node.narrative}</p>
