@@ -89,7 +89,11 @@ function EditSimulation() {
     const story = (sim.data.story ?? { startNodeId: "", nodes: {} }) as Story;
     const rawNodes = Object.values(story.nodes ?? {});
     const startNodeId = story.startNodeId || rawNodes[0]?.id || "";
-    const order = computeSceneOrder({ startNodeId, nodes: story.nodes ?? {} });
+    const order = computeSceneOrder({
+      startNodeId,
+      orderMode: story.orderMode,
+      nodes: story.nodes ?? {},
+    });
     const sorted = sortNodesByOrder(rawNodes, order);
     // Ensure every node has a `videos` array (migrating legacy single `video`) and an order.
     const nodes: StoryNode[] = sorted.map((n, i) => {
@@ -125,6 +129,11 @@ function EditSimulation() {
     state?.nodes.forEach((n, i) => m.set(n.id, i + 1));
     return m;
   }, [state]);
+
+  const orderedNodes = useMemo(
+    () => (state ? sortNodesByOrder(state.nodes, sceneOrder) : []),
+    [state, sceneOrder],
+  );
 
   // ---------- drag & drop sensors (must be declared before any early return) ----------
   const sensors = useSensors(
@@ -309,7 +318,7 @@ function EditSimulation() {
         order: i + 1,
         title: renumberTitle(n.title, i + 1),
       }));
-      return { ...s, orderMode: "manual", nodes: reordered };
+      return { ...s, orderMode: "manual", startNodeId: reordered[0]?.id ?? s.startNodeId, nodes: reordered };
     });
   };
 
@@ -525,6 +534,7 @@ function EditSimulation() {
           <StoryPreview
             story={{
               startNodeId: state.startNodeId,
+              orderMode: state.orderMode,
               nodes: Object.fromEntries(state.nodes.map((n) => [n.id, n])),
             }}
             criteria={state.criteria}
@@ -589,8 +599,8 @@ function EditSimulation() {
           <Select value={state.startNodeId} onValueChange={(v) => setState((s) => (s ? { ...s, startNodeId: v } : s))}>
             <SelectTrigger className="max-w-md"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {sortByTitleNumber(state.nodes).map((n) => (
-                <SelectItem key={n.id} value={n.id}>{n.title}</SelectItem>
+              {orderedNodes.map((n) => (
+                <SelectItem key={n.id} value={n.id}>Escena {sceneOrder.get(n.id) ?? "?"} — {n.title}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -902,8 +912,8 @@ function EditSimulation() {
                                   <SelectTrigger className="col-span-2"><SelectValue /></SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="__end__">FIN</SelectItem>
-                                    {sortByTitleNumber(state.nodes.filter((nn) => nn.id !== n.id)).map((nn) => (
-                                      <SelectItem key={nn.id} value={nn.id}>{nn.title}</SelectItem>
+                                    {orderedNodes.filter((nn) => nn.id !== n.id).map((nn) => (
+                                      <SelectItem key={nn.id} value={nn.id}>Escena {sceneOrder.get(nn.id) ?? "?"} — {nn.title}</SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
