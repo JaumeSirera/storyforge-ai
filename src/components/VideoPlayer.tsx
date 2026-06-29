@@ -67,6 +67,13 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded }: SingleVideoP
     firedRef.current = false;
   }, [video, pauseAtSec]);
 
+  // "Sin vídeo" should still trigger end-bound questions.
+  useEffect(() => {
+    if (video.type !== "none") return;
+    const t = setTimeout(() => cbsRef.current.onEnded?.(), 50);
+    return () => clearTimeout(t);
+  }, [video]);
+
   /* ---------- MP4 ---------- */
   if (video.type === "mp4") {
     return (
@@ -92,12 +99,6 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded }: SingleVideoP
   }
 
   if (video.type === "none") {
-    // Treat "no video" as instantly ended so end-triggered questions still fire.
-    useEffect(() => {
-      const t = setTimeout(() => cbsRef.current.onEnded?.(), 50);
-      return () => clearTimeout(t);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
     return (
       <div className="aspect-video w-full grid place-items-center rounded-xl bg-gradient-to-br from-secondary to-accent text-muted-foreground">
         <span className="text-sm">Escena narrada (sin vídeo)</span>
