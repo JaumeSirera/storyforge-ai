@@ -87,7 +87,16 @@ function EditSimulation() {
     const rawNodes = Object.values(story.nodes ?? {});
     const startNodeId = story.startNodeId || rawNodes[0]?.id || "";
     const order = computeSceneOrder({ startNodeId, nodes: story.nodes ?? {} });
-    const nodes = sortNodesByOrder(rawNodes, order);
+    const sorted = sortNodesByOrder(rawNodes, order);
+    // Ensure every node has a `videos` array (migrating legacy single `video`) and an order.
+    const nodes: StoryNode[] = sorted.map((n, i) => ({
+      ...n,
+      order: i + 1,
+      videos:
+        n.videos && n.videos.length > 0
+          ? n.videos
+          : [{ id: uid("clip"), label: "Clip principal", source: n.video ?? { type: "none" } }],
+    }));
     setState({
       startNodeId,
       nodes,
@@ -95,12 +104,11 @@ function EditSimulation() {
     });
   }, [sim.data, state]);
 
+  // Order is now derived directly from the array index (manual ordering).
   const sceneOrder = useMemo(() => {
-    if (!state) return new Map<string, number>();
-    return computeSceneOrder({
-      startNodeId: state.startNodeId,
-      nodes: Object.fromEntries(state.nodes.map((n) => [n.id, n])),
-    });
+    const m = new Map<string, number>();
+    state?.nodes.forEach((n, i) => m.set(n.id, i + 1));
+    return m;
   }, [state]);
 
   
