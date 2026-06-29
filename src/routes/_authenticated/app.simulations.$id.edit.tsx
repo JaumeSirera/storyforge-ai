@@ -53,6 +53,7 @@ export const Route = createFileRoute("/_authenticated/app/simulations/$id/edit")
 
 type EditorState = {
   startNodeId: string;
+  orderMode: "title" | "manual";
   nodes: StoryNode[]; // array form for stable ordering in UI
   criteria: EvaluationCriterion[];
 };
@@ -99,6 +100,7 @@ function EditSimulation() {
     }));
     setState({
       startNodeId,
+      orderMode: story.orderMode === "manual" ? "manual" : "title",
       nodes,
       criteria: (sim.data.evaluation_criteria ?? []) as unknown as EvaluationCriterion[],
     });
@@ -242,7 +244,7 @@ function EditSimulation() {
       const newIdx = s.nodes.findIndex((n) => n.id === over.id);
       if (oldIdx < 0 || newIdx < 0) return s;
       const reordered = arrayMove(s.nodes, oldIdx, newIdx).map((n, i) => ({ ...n, order: i + 1 }));
-      return { ...s, nodes: reordered };
+      return { ...s, orderMode: "manual", nodes: reordered };
     });
   };
 
@@ -351,7 +353,7 @@ function EditSimulation() {
       await save({
         data: {
           id,
-          story: { startNodeId: state.startNodeId, nodes: nodesRecord },
+          story: { startNodeId: state.startNodeId, orderMode: state.orderMode, nodes: nodesRecord },
           evaluationCriteria: state.criteria,
         },
       });
@@ -468,7 +470,7 @@ function EditSimulation() {
                       await save({
                         data: {
                           id,
-                          story: { startNodeId: state.startNodeId, nodes: nodesRecord },
+                          story: { startNodeId: state.startNodeId, orderMode: state.orderMode, nodes: nodesRecord },
                           evaluationCriteria: state.criteria,
                         },
                       });

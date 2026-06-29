@@ -637,6 +637,7 @@ const EditorNodeSchema = z.object({
 
 const EditorStorySchema = z.object({
   startNodeId: z.string().min(1),
+  orderMode: z.enum(["title", "manual"]).optional(),
   nodes: z.record(z.string(), EditorNodeSchema),
 });
 

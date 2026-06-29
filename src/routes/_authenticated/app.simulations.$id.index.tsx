@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getSimulation } from "@/lib/simulations.functions";
 import { startSession } from "@/lib/sessions.functions";
+import { computeSceneOrder, sortNodesByOrder } from "@/lib/scene-order";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +25,9 @@ function SimulationDetail() {
   if (sim.isLoading) return <p className="text-muted-foreground">Cargando...</p>;
   if (!sim.data) return <p>No encontrada.</p>;
 
-  const story = (sim.data.story ?? {}) as { nodes?: Record<string, any>; startNodeId?: string };
+  const story = (sim.data.story ?? {}) as { nodes?: Record<string, any>; startNodeId?: string; orderMode?: "title" | "manual" };
+  const sceneOrder = computeSceneOrder({ startNodeId: story.startNodeId ?? "", orderMode: story.orderMode, nodes: story.nodes ?? {} });
+  const orderedNodes = sortNodesByOrder(Object.values(story.nodes ?? {}), sceneOrder);
   const nodeCount = Object.keys(story.nodes ?? {}).length;
   const questionCount = Object.values(story.nodes ?? {}).filter((n: any) => n.question).length;
   const criteria = (sim.data.evaluation_criteria ?? []) as any[];
@@ -109,7 +112,7 @@ function SimulationDetail() {
           <CardDescription>Vista del árbol de decisiones generado.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {Object.values(story.nodes ?? {}).map((n: any) => (
+          {orderedNodes.map((n: any) => (
             <div key={n.id} className="rounded-lg border border-border p-3">
               <div className="flex items-center justify-between">
                 <div className="font-medium">{n.title}</div>
