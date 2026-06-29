@@ -197,13 +197,12 @@ function EditSimulation() {
         if (i !== nIdx) return n;
         const existing = n.videos ?? [];
         if (existing.length >= 10) return n;
-        return {
-          ...n,
-          videos: [
-            ...existing,
-            { id: uid("clip"), label: `Clip ${existing.length + 1}`, source: { type: "none" } as VideoSource },
-          ],
+        const next: VideoClip = {
+          id: uid("clip"),
+          label: `Clip ${existing.length + 1}`,
+          source: { type: "none" },
         };
+        return { ...n, videos: [...existing, next] };
       });
       return { ...s, nodes };
     });
