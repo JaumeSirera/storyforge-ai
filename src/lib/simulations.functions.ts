@@ -670,14 +670,23 @@ export const updateSimulationStory = createServerFn({ method: "POST" })
       throw new Error("startNodeId no existe en los nodos");
     }
     for (const node of Object.values(data.story.nodes)) {
-      if (node.question) {
-        for (const ch of node.question.choices) {
+      const clipIds = new Set((node.videos ?? []).map((v) => v.id));
+      const allQuestions = [
+        ...(node.question ? [node.question] : []),
+        ...(node.questions ?? []),
+      ];
+      for (const q of allQuestions) {
+        if (q.clipId && !clipIds.has(q.clipId)) {
+          throw new Error(`La pregunta "${q.text.slice(0, 30)}…" referencia un clip inexistente.`);
+        }
+        for (const ch of q.choices) {
           if (ch.next !== null && !ids.has(ch.next)) {
             throw new Error(`La opción "${ch.label}" apunta a un nodo inexistente: ${ch.next}`);
           }
         }
       }
     }
+
 
     // Block edits when the simulation is locked (in_review or published) and load previous snapshot for diffing.
     const { data: current, error: readErr } = await context.supabase
