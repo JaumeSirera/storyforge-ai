@@ -251,7 +251,7 @@ Genera el veredicto (apto / apto_con_reservas / no_apto), un resumen ejecutivo (
       report = experimental_output;
     } catch (e) {
       console.error("generateReport: AI schema failed, using fallback", e);
-      report = buildFallbackReport(score);
+      report = buildFallbackReport(score, (sess.answers as any[]).length, !!sess.completed_at);
     }
 
     // Compute stars from score range (rough heuristic).
