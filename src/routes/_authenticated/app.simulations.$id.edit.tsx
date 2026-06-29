@@ -399,7 +399,7 @@ function EditSimulation() {
             <SelectTrigger className="max-w-md"><SelectValue /></SelectTrigger>
             <SelectContent>
               {state.nodes.map((n) => (
-                <SelectItem key={n.id} value={n.id}>{n.title} ({n.id})</SelectItem>
+                <SelectItem key={n.id} value={n.id}>Escena {sceneOrder.get(n.id) ?? "?"} — {n.title}</SelectItem>
               ))}
             </SelectContent>
           </Select>
