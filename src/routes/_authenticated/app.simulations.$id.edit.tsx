@@ -860,3 +860,23 @@ function EditSimulation() {
     </div>
   );
 }
+
+function SortableScene({
+  id,
+  children,
+}: {
+  id: string;
+  children: (p: { handleProps: Record<string, unknown> }) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children({ handleProps: { ...attributes, ...listeners } })}
+    </div>
+  );
+}
