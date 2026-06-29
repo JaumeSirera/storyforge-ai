@@ -514,8 +514,8 @@ function EditSimulation() {
           <Select value={state.startNodeId} onValueChange={(v) => setState((s) => (s ? { ...s, startNodeId: v } : s))}>
             <SelectTrigger className="max-w-md"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {state.nodes.map((n) => (
-                <SelectItem key={n.id} value={n.id}>Escena {sceneOrder.get(n.id) ?? "?"} — {n.title}</SelectItem>
+              {sortByTitleNumber(state.nodes).map((n) => (
+                <SelectItem key={n.id} value={n.id}>{n.title}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -794,8 +794,8 @@ function EditSimulation() {
                               <SelectTrigger className="col-span-2"><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="__end__">FIN</SelectItem>
-                                {state.nodes.filter((nn) => nn.id !== n.id).map((nn) => (
-                                  <SelectItem key={nn.id} value={nn.id}>Escena {sceneOrder.get(nn.id) ?? "?"} — {nn.title}</SelectItem>
+                                {sortByTitleNumber(state.nodes.filter((nn) => nn.id !== n.id)).map((nn) => (
+                                  <SelectItem key={nn.id} value={nn.id}>{nn.title}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -881,4 +881,17 @@ function SortableScene({
       {children({ handleProps: { ...attributes, ...listeners } })}
     </div>
   );
+}
+
+function sortByTitleNumber<T extends { title: string }>(nodes: T[]): T[] {
+  const num = (t: string) => {
+    const m = t.match(/(\d+)/);
+    return m ? parseInt(m[1], 10) : Number.POSITIVE_INFINITY;
+  };
+  return [...nodes].sort((a, b) => {
+    const da = num(a.title);
+    const db = num(b.title);
+    if (da !== db) return da - db;
+    return a.title.localeCompare(b.title);
+  });
 }
