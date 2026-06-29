@@ -629,8 +629,8 @@ function EditSimulation() {
                               <SelectTrigger className="col-span-2"><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="__end__">FIN</SelectItem>
-                                {nodeIds.filter((nid) => nid !== n.id).map((nid) => (
-                                  <SelectItem key={nid} value={nid}>{nid}</SelectItem>
+                                {state.nodes.filter((nn) => nn.id !== n.id).map((nn) => (
+                                  <SelectItem key={nn.id} value={nn.id}>Escena {sceneOrder.get(nn.id) ?? "?"} — {nn.title}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
