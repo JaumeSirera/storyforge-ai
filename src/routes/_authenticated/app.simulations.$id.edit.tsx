@@ -27,7 +27,9 @@ import { ArrowLeft, Plus, Trash2, Save, Loader2, Flag, GitBranch, Play, Lock, Se
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StoryPreview } from "@/components/StoryPreview";
-import type { Story, StoryNode, Choice, EvaluationCriterion, VideoSource, VideoClip } from "@/lib/story-types";
+import type { Story, StoryNode, Choice, EvaluationCriterion, VideoSource, VideoClip, Question } from "@/lib/story-types";
+import { nodeQuestions } from "@/lib/story-types";
+
 import { computeSceneOrder, sortNodesByOrder } from "@/lib/scene-order";
 import {
   DndContext,
