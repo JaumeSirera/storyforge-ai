@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { VideoPlayer } from "@/components/VideoPlayer";
+import { VideoPrefetch, nextCandidateNodes } from "@/components/VideoPrefetch";
 import { ArrowLeft, RotateCcw, Star, Trophy, Flag, AlertTriangle, Save, Loader2 } from "lucide-react";
 import type { Story, StoryNode, Choice, EvaluationCriterion } from "@/lib/story-types";
 import { computeSceneOrder } from "@/lib/scene-order";
@@ -162,6 +163,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
       </div>
 
       <VideoPlayer video={node.video} videos={node.videos} />
+      <VideoPrefetch nodes={nextCandidateNodes(nodes, node)} />
 
       {node.narrative && (
         <p className="text-sm text-muted-foreground leading-relaxed">{node.narrative}</p>
