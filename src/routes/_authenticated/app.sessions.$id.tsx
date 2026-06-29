@@ -57,9 +57,9 @@ function PlayerPage() {
 }
 
 function Player({
-  sessionId, node, score, answered, totalNodes, simTitle,
+  sessionId, node, score, answered, totalNodes, simTitle, sceneNumber,
 }: {
-  sessionId: string; node: any; score: number; answered: number; totalNodes: number; simTitle: string;
+  sessionId: string; node: any; score: number; answered: number; totalNodes: number; simTitle: string; sceneNumber?: number;
 }) {
   const submit = useServerFn(submitAnswer);
   const qc = useQueryClient();
