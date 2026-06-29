@@ -618,6 +618,13 @@ const EditorChoiceSchema = z.object({
   competencies: z.record(z.string(), z.number()).default({}),
 });
 
+const EditorQuestionSchema = z.object({
+  id: z.string().min(1).optional(),
+  clipId: z.string().optional(),
+  text: z.string().min(1),
+  choices: z.array(EditorChoiceSchema).min(2).max(6),
+});
+
 const EditorNodeSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -625,15 +632,12 @@ const EditorNodeSchema = z.object({
   video: VideoSourceSchema.default({ type: "none" }),
   videos: z.array(VideoClipSchema).max(10).optional(),
   order: z.number().int().optional(),
-  question: z
-    .object({
-      text: z.string().min(1),
-      choices: z.array(EditorChoiceSchema).min(2).max(4),
-    })
-    .optional(),
+  question: EditorQuestionSchema.optional(),
+  questions: z.array(EditorQuestionSchema).max(10).optional(),
   isEnding: z.boolean().optional(),
   endingType: z.enum(["success", "neutral", "fail"]).optional(),
 });
+
 
 const EditorStorySchema = z.object({
   startNodeId: z.string().min(1),
