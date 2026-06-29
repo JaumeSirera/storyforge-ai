@@ -173,7 +173,12 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
         </div>
       </div>
 
-      <VideoPlayer video={node.video} videos={node.videos} />
+      <VideoPlayer
+        video={node.video}
+        videos={node.videos}
+        activeClipId={activeClipId ?? nodeClips(node)[0]?.id}
+        onActiveClipChange={setActiveClipId}
+      />
       <VideoPrefetch nodes={nextCandidateNodes(nodes, node)} />
 
       {node.narrative && (
@@ -189,11 +194,20 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
         </div>
       )}
 
-      {!ended && !node.isEnding && node.question && (
+      {!ended && !node.isEnding && q && (
         <div className="space-y-2">
-          <div className="font-medium text-sm">{node.question.text}</div>
+          {nodeQuestions(node).length > 1 && (
+            <div className="text-[11px] text-muted-foreground">
+              Pregunta vinculada a: <span className="font-medium">
+                {q.clipId
+                  ? (nodeClips(node).find((cl) => cl.id === q.clipId)?.label || q.clipId)
+                  : "cualquier clip"}
+              </span>
+            </div>
+          )}
+          <div className="font-medium text-sm">{q.text}</div>
           <div className="grid gap-2">
-            {node.question.choices.map((c) => (
+            {q.choices.map((c) => (
               <button
                 key={c.id}
                 onClick={() => choose(c)}
@@ -210,6 +224,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
           </div>
         </div>
       )}
+
 
       {(ended || node.isEnding) && (
         <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
