@@ -994,6 +994,13 @@ function SortableScene({
   );
 }
 
+/** If the title follows "Escena N" (any case), replace N with the new index. Otherwise leave it untouched. */
+function renumberTitle(title: string, newIndex: number): string {
+  const m = title.match(/^(\s*escena\s+)(\d+)(\b.*)$/i);
+  if (!m) return title;
+  return `${m[1]}${newIndex}${m[3]}`;
+}
+
 function sortByTitleNumber<T extends { title: string }>(nodes: T[]): T[] {
   const num = (t: string) => {
     const m = t.match(/(\d+)/);
