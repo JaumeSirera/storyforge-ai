@@ -123,18 +123,22 @@ function SimulationDetail() {
                 )}
               </div>
               <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{n.narrative}</p>
-              {n.question && (
-                <div className="mt-2 text-xs">
-                  <span className="font-medium">P:</span> {n.question.text}
+              {[
+                ...(n.question ? [n.question] : []),
+                ...(Array.isArray(n.questions) ? n.questions : []),
+              ].map((q: any, qi: number) => (
+                <div key={q.id ?? qi} className="mt-2 text-xs">
+                  <span className="font-medium">P{qi + 1}:</span> {q.text}
                   <ul className="mt-1 ml-4 list-disc text-muted-foreground">
-                    {n.question.choices.map((c: any) => (
+                    {q.choices.map((c: any) => (
                       <li key={c.id}>
                         {c.label} <span className="opacity-70">({c.points >= 0 ? "+" : ""}{c.points} pts → {c.next ?? "FIN"})</span>
                       </li>
                     ))}
                   </ul>
                 </div>
-              )}
+              ))}
+
             </div>
           ))}
         </CardContent>
