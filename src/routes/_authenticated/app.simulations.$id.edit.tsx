@@ -478,38 +478,99 @@ function EditSimulation() {
                     <Textarea rows={3} value={n.narrative} onChange={(e) => updateNode(nIdx, { narrative: e.target.value })} />
                   </div>
 
-                  <div className="grid sm:grid-cols-3 gap-3">
-                    <div className="space-y-1.5">
-                      <Label>Tipo de vídeo</Label>
-                      <Select
-                        value={n.video?.type ?? "none"}
-                        onValueChange={(v) =>
-                          updateNode(nIdx, {
-                            video:
-                              v === "none"
-                                ? { type: "none" }
-                                : { type: v as "youtube" | "vimeo" | "mp4", url: (n.video as any)?.url ?? "" },
-                          })
-                        }
-                      >
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Sin vídeo</SelectItem>
-                          <SelectItem value="youtube">YouTube</SelectItem>
-                          <SelectItem value="vimeo">Vimeo</SelectItem>
-                          <SelectItem value="mp4">MP4</SelectItem>
-                        </SelectContent>
-                      </Select>
+                  <div className="rounded-lg border p-3 space-y-3 bg-muted/20">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm font-semibold">Vídeo de la escena</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Elige el origen del vídeo y pega la URL. Si no quieres vídeo, deja "Sin vídeo".
+                        </p>
+                      </div>
                     </div>
-                    {n.video?.type !== "none" && (
+                    <div className="grid sm:grid-cols-3 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Tipo de vídeo</Label>
+                        <Select
+                          value={n.video?.type ?? "none"}
+                          onValueChange={(v) =>
+                            updateNode(nIdx, {
+                              video:
+                                v === "none"
+                                  ? { type: "none" }
+                                  : { type: v as "youtube" | "vimeo" | "mp4", url: (n.video as any)?.url ?? "" },
+                            })
+                          }
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Sin vídeo</SelectItem>
+                            <SelectItem value="youtube">YouTube</SelectItem>
+                            <SelectItem value="vimeo">Vimeo</SelectItem>
+                            <SelectItem value="mp4">MP4 (URL directa)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <div className="space-y-1.5 sm:col-span-2">
-                        <Label>URL del vídeo</Label>
+                        <Label className="text-xs">URL del vídeo</Label>
                         <Input
-                          value={(n.video as any).url ?? ""}
+                          placeholder={
+                            n.video?.type === "none"
+                              ? "Selecciona primero un tipo de vídeo arriba"
+                              : n.video?.type === "youtube"
+                              ? "https://www.youtube.com/watch?v=..."
+                              : n.video?.type === "vimeo"
+                              ? "https://vimeo.com/..."
+                              : "https://.../video.mp4"
+                          }
+                          disabled={n.video?.type === "none"}
+                          value={(n.video as any)?.url ?? ""}
                           onChange={(e) =>
-                            updateNode(nIdx, { video: { ...(n.video as any), url: e.target.value } as VideoSource })
+                            updateNode(nIdx, {
+                              video: {
+                                ...(n.video?.type === "none"
+                                  ? { type: "mp4", url: "" }
+                                  : (n.video as any)),
+                                url: e.target.value,
+                              } as VideoSource,
+                            })
                           }
                         />
+                      </div>
+                    </div>
+                    {n.video?.type !== "none" && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Inicio (segundos, opcional)</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={(n.video as any)?.startSec ?? ""}
+                            onChange={(e) =>
+                              updateNode(nIdx, {
+                                video: {
+                                  ...(n.video as any),
+                                  startSec: e.target.value === "" ? undefined : Number(e.target.value),
+                                } as VideoSource,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Fin (segundos, opcional)</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={(n.video as any)?.endSec ?? ""}
+                            onChange={(e) =>
+                              updateNode(nIdx, {
+                                video: {
+                                  ...(n.video as any),
+                                  endSec: e.target.value === "" ? undefined : Number(e.target.value),
+                                } as VideoSource,
+                              })
+                            }
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
