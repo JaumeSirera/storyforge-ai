@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Play } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/app/simulations")({
+export const Route = createFileRoute("/_authenticated/app/simulations/")({
   component: SimulationsList,
 });
 
