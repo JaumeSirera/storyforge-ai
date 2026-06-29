@@ -268,15 +268,19 @@ function validateStory(story: Story): string[] {
   else if (!ids.has(story.startNodeId)) errs.push(`La escena de inicio "${story.startNodeId}" no existe.`);
   for (const n of Object.values(story.nodes)) {
     if (n.isEnding) continue;
-    if (!n.question) {
-      errs.push(`La escena "${n.title}" (${n.id}) no es final pero no tiene pregunta.`);
+    const qs = nodeQuestions(n);
+    if (qs.length === 0) {
+      errs.push(`La escena "${n.title}" (${n.id}) no es final pero no tiene preguntas.`);
       continue;
     }
-    for (const c of n.question.choices) {
-      if (c.next !== null && !ids.has(c.next)) {
-        errs.push(`La opción "${c.label}" de "${n.title}" apunta a un nodo inexistente: ${c.next}`);
+    for (const q of qs) {
+      for (const c of q.choices) {
+        if (c.next !== null && !ids.has(c.next)) {
+          errs.push(`La opción "${c.label}" de "${n.title}" apunta a un nodo inexistente: ${c.next}`);
+        }
       }
     }
   }
+
   return errs;
 }
