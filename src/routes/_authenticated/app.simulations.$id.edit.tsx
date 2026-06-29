@@ -92,14 +92,25 @@ function EditSimulation() {
     const order = computeSceneOrder({ startNodeId, nodes: story.nodes ?? {} });
     const sorted = sortNodesByOrder(rawNodes, order);
     // Ensure every node has a `videos` array (migrating legacy single `video`) and an order.
-    const nodes: StoryNode[] = sorted.map((n, i) => ({
-      ...n,
-      order: i + 1,
-      videos:
-        n.videos && n.videos.length > 0
-          ? n.videos
-          : [{ id: uid("clip"), label: "Clip principal", source: (n.video ?? { type: "none" }) as VideoSource }],
-    }));
+    const nodes: StoryNode[] = sorted.map((n, i) => {
+      const migratedQuestions: Question[] | undefined =
+        n.questions && n.questions.length > 0
+          ? n.questions.map((q) => ({ ...q, id: q.id ?? uid("q") }))
+          : n.question
+          ? [{ id: uid("q"), text: n.question.text, choices: n.question.choices, clipId: n.question.clipId }]
+          : undefined;
+      return {
+        ...n,
+        order: i + 1,
+        videos:
+          n.videos && n.videos.length > 0
+            ? n.videos
+            : [{ id: uid("clip"), label: "Clip principal", source: (n.video ?? { type: "none" }) as VideoSource }],
+        question: undefined,
+        questions: migratedQuestions,
+      };
+    });
+
     setState({
       startNodeId,
       orderMode: story.orderMode === "manual" ? "manual" : "title",
