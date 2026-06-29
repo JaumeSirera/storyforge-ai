@@ -304,7 +304,11 @@ function EditSimulation() {
       const oldIdx = s.nodes.findIndex((n) => n.id === active.id);
       const newIdx = s.nodes.findIndex((n) => n.id === over.id);
       if (oldIdx < 0 || newIdx < 0) return s;
-      const reordered = arrayMove(s.nodes, oldIdx, newIdx).map((n, i) => ({ ...n, order: i + 1 }));
+      const reordered = arrayMove(s.nodes, oldIdx, newIdx).map((n, i) => ({
+        ...n,
+        order: i + 1,
+        title: renumberTitle(n.title, i + 1),
+      }));
       return { ...s, orderMode: "manual", nodes: reordered };
     });
   };
@@ -988,6 +992,13 @@ function SortableScene({
       {children({ handleProps: { ...attributes, ...listeners } })}
     </div>
   );
+}
+
+/** If the title follows "Escena N" (any case), replace N with the new index. Otherwise leave it untouched. */
+function renumberTitle(title: string, newIndex: number): string {
+  const m = title.match(/^(\s*escena\s+)(\d+)(\b.*)$/i);
+  if (!m) return title;
+  return `${m[1]}${newIndex}${m[3]}`;
 }
 
 function sortByTitleNumber<T extends { title: string }>(nodes: T[]): T[] {
