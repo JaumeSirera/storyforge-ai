@@ -111,11 +111,16 @@ function EditSimulation() {
     return m;
   }, [state]);
 
-  
+  // ---------- drag & drop sensors (must be declared before any early return) ----------
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   if (sim.isLoading || !state) {
     return <p className="text-muted-foreground">Cargando editor...</p>;
   }
+
 
   // ---------- node helpers ----------
   const updateNode = (idx: number, patch: Partial<StoryNode>) =>
@@ -226,10 +231,7 @@ function EditSimulation() {
     });
 
   // ---------- drag & drop ordering ----------
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
+
 
   const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
