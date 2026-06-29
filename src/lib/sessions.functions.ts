@@ -147,10 +147,23 @@ export const submitAnswer = createServerFn({ method: "POST" })
 const ReportSchema = z.object({
   outcome: z.enum(["apto", "apto_con_reservas", "no_apto"]),
   summary: z.string(),
-  strengths: z.array(z.string()).min(1).max(6),
-  improvements: z.array(z.string()).min(1).max(6),
+  strengths: z.array(z.string()).max(6),
+  improvements: z.array(z.string()).max(6),
   achievements: z.array(z.string()).max(6),
 });
+
+function buildFallbackReport(score: number): z.infer<typeof ReportSchema> {
+  const outcome =
+    score >= 180 ? "apto" : score >= 80 ? "apto_con_reservas" : "no_apto";
+  return {
+    outcome,
+    summary:
+      "No se pudo generar un informe detallado automáticamente. Este es un resumen básico basado en la puntuación obtenida.",
+    strengths: ["Completó la simulación de principio a fin"],
+    improvements: ["Revisar las decisiones tomadas para identificar áreas de mejora"],
+    achievements: [],
+  };
+}
 
 export const generateReport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
