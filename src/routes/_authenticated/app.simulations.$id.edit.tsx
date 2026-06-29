@@ -86,7 +86,7 @@ function EditSimulation() {
     });
   }, [state]);
 
-  const nodeIds = useMemo(() => state?.nodes.map((n) => n.id) ?? [], [state]);
+  
 
   if (sim.isLoading || !state) {
     return <p className="text-muted-foreground">Cargando editor...</p>;
