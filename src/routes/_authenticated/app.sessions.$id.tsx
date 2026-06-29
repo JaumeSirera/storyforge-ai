@@ -187,7 +187,7 @@ function Player({
     <div className="max-w-4xl mx-auto space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground">{simTitle}</div>
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">{simTitle}{sceneNumber ? ` · Escena ${sceneNumber}` : ""}</div>
           <h1 className="text-2xl font-bold mt-0.5 truncate">{node.title}</h1>
         </div>
         <div className="flex items-center gap-2 shrink-0">
