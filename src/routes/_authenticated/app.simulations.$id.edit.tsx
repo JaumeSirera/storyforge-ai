@@ -893,6 +893,12 @@ function EditSimulation() {
                             </Select>
                           </div>
 
+                          <QuestionTriggerEditor
+                            value={q.triggerAt}
+                            onChange={(t) => updateQuestion(nIdx, qIdx, { triggerAt: t })}
+                          />
+
+
                           <div className="flex items-center justify-between">
                             <Label className="text-sm">Opciones y ramificaciones</Label>
                             <Button type="button" size="sm" variant="outline" onClick={() => addChoice(nIdx, qIdx)} disabled={q.choices.length >= 6}>
