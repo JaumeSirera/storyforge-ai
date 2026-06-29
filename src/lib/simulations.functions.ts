@@ -10,7 +10,7 @@ import { AI_MODEL_IDS, DEFAULT_AI_MODEL } from "./ai-models";
 const GenerateInput = z.object({
   title: z.string().min(3).max(200),
   objective: z.string().min(10).max(500),
-  prompt: z.string().min(20).max(60000),
+  prompt: z.string().min(20).max(500000),
   topic: z.string().max(200).optional(),
   durationMin: z.number().int().min(5).max(60).default(15),
   model: z.enum(AI_MODEL_IDS).default(DEFAULT_AI_MODEL),
