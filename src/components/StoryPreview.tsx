@@ -124,7 +124,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="font-mono text-[10px]">{node.id}</Badge>
+          <Badge variant="default" className="text-[11px]">Escena {sceneOrder.get(node.id) ?? "?"}</Badge>
           <span className="font-semibold">{node.title}</span>
           {node.isEnding && (
             <Badge variant={node.endingType === "success" ? "default" : node.endingType === "fail" ? "destructive" : "secondary"} className="gap-1">
