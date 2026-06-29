@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Play, ArrowLeft, GitBranch, HelpCircle, Loader2, Pencil, CheckCircle2, Lock, ClipboardCheck } from "lucide-react";
 import { useState } from "react";
 
-export const Route = createFileRoute("/_authenticated/app/simulations/$id")({
+export const Route = createFileRoute("/_authenticated/app/simulations/$id/")({
   component: SimulationDetail,
 });
 
