@@ -314,13 +314,13 @@ function EditSimulation() {
       if (!s) return s;
       const removed = s.nodes[idx];
       const nodes = s.nodes.filter((_, i) => i !== idx).map((n) => {
-        if (!n.question) return n;
+        if (!n.questions) return n;
         return {
           ...n,
-          question: {
-            ...n.question,
-            choices: n.question.choices.map((c) => (c.next === removed.id ? { ...c, next: null } : c)),
-          },
+          questions: n.questions.map((q) => ({
+            ...q,
+            choices: q.choices.map((c) => (c.next === removed.id ? { ...c, next: null } : c)),
+          })),
         };
       });
       const startNodeId = s.startNodeId === removed.id ? nodes[0]?.id ?? "" : s.startNodeId;
@@ -328,34 +328,38 @@ function EditSimulation() {
     });
   };
 
-  const addChoice = (nIdx: number) =>
+  const addChoice = (nIdx: number, qIdx: number) =>
     setState((s) => {
       if (!s) return s;
       const nodes = s.nodes.map((n, i) => {
-        if (i !== nIdx) return n;
-        const question = n.question ?? { text: "¿Qué decides?", choices: [] };
-        if (question.choices.length >= 4) return n;
-        return {
-          ...n,
-          question: {
-            ...question,
+        if (i !== nIdx || !n.questions) return n;
+        const questions = n.questions.map((q, k) => {
+          if (k !== qIdx) return q;
+          if (q.choices.length >= 6) return q;
+          return {
+            ...q,
             choices: [
-              ...question.choices,
+              ...q.choices,
               { id: uid("c"), label: "Nueva opción", feedback: "", points: 0, next: null, competencies: {} },
             ],
-          },
-        };
+          };
+        });
+        return { ...n, questions };
       });
       return { ...s, nodes };
     });
 
-  const deleteChoice = (nIdx: number, cIdx: number) =>
+  const deleteChoice = (nIdx: number, qIdx: number, cIdx: number) =>
     setState((s) => {
       if (!s) return s;
       const nodes = s.nodes.map((n, i) => {
-        if (i !== nIdx || !n.question) return n;
-        if (n.question.choices.length <= 2) return n;
-        return { ...n, question: { ...n.question, choices: n.question.choices.filter((_, j) => j !== cIdx) } };
+        if (i !== nIdx || !n.questions) return n;
+        const questions = n.questions.map((q, k) => {
+          if (k !== qIdx) return q;
+          if (q.choices.length <= 2) return q;
+          return { ...q, choices: q.choices.filter((_, j) => j !== cIdx) };
+        });
+        return { ...n, questions };
       });
       return { ...s, nodes };
     });
@@ -366,23 +370,27 @@ function EditSimulation() {
       const nodes = s.nodes.map((n, i) => {
         if (i !== idx) return n;
         if (isEnding) {
-          return { ...n, isEnding: true, endingType: n.endingType ?? "neutral", question: undefined };
+          return { ...n, isEnding: true, endingType: n.endingType ?? "neutral", questions: undefined };
         }
         return {
           ...n,
           isEnding: false,
           endingType: undefined,
-          question: n.question ?? {
-            text: "¿Qué decides?",
-            choices: [
-              { id: uid("c"), label: "Opción A", feedback: "", points: 0, next: null, competencies: {} },
-              { id: uid("c"), label: "Opción B", feedback: "", points: 0, next: null, competencies: {} },
-            ],
-          },
+          questions: n.questions && n.questions.length > 0 ? n.questions : [
+            {
+              id: uid("q"),
+              text: "¿Qué decides?",
+              choices: [
+                { id: uid("c"), label: "Opción A", feedback: "", points: 0, next: null, competencies: {} },
+                { id: uid("c"), label: "Opción B", feedback: "", points: 0, next: null, competencies: {} },
+              ],
+            },
+          ],
         };
       });
       return { ...s, nodes };
     });
+
 
   // ---------- criteria ----------
   const updateCriterion = (idx: number, patch: Partial<EvaluationCriterion>) =>
