@@ -217,7 +217,7 @@ function EditSimulation() {
           // Keep at least one clip slot (can be "Sin vídeo").
           return {
             ...n,
-            videos: [{ id: uid("clip"), label: "Clip principal", source: { type: "none" } }],
+            videos: [{ id: uid("clip"), label: "Clip principal", source: { type: "none" } as VideoSource }],
           };
         }
         return { ...n, videos: existing.filter((_, j) => j !== cIdx) };
