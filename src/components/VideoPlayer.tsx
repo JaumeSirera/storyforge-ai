@@ -15,11 +15,11 @@ function SingleVideo({ video }: { video: VideoSource }) {
   const embed = useMemo(() => {
     if (video.type === "youtube") {
       const id = getYouTubeId(video.url);
-      return id ? `https://www.youtube.com/embed/${id}?rel=0&autoplay=1&mute=1&playsinline=1` : null;
+      return id ? `https://www.youtube.com/embed/${id}?rel=0&autoplay=1&playsinline=1` : null;
     }
     if (video.type === "vimeo") {
       const id = getVimeoId(video.url);
-      return id ? `https://player.vimeo.com/video/${id}?autoplay=1&muted=1&playsinline=1` : null;
+      return id ? `https://player.vimeo.com/video/${id}?autoplay=1&playsinline=1` : null;
     }
     return null;
   }, [video]);
