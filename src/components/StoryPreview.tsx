@@ -51,6 +51,8 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
   const [competencies, setCompetencies] = useState<Record<string, number>>({});
   const [lastFeedback, setLastFeedback] = useState<{ text: string; points: number } | null>(null);
   const [ended, setEnded] = useState(false);
+  const [activeClipId, setActiveClipId] = useState<string | undefined>(undefined);
+
 
   const errors = useMemo(() => validateStory(story), [story]);
   const sceneOrder = useMemo(() => computeSceneOrder(story), [story]);
