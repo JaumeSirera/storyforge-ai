@@ -152,14 +152,43 @@ const ReportSchema = z.object({
   achievements: z.array(z.string()).max(6),
 });
 
-function buildFallbackReport(score: number): z.infer<typeof ReportSchema> {
+function buildFallbackReport(
+  score: number,
+  answersCount: number,
+  completed: boolean,
+): z.infer<typeof ReportSchema> {
   const outcome =
     score >= 180 ? "apto" : score >= 80 ? "apto_con_reservas" : "no_apto";
+
+  const noProgress = answersCount === 0 || score <= 0;
+
+  if (noProgress) {
+    return {
+      outcome: "no_apto",
+      summary:
+        answersCount === 0
+          ? "El participante no respondió ninguna pregunta de la simulación. No hay evidencia de desempeño para evaluar."
+          : "El participante no obtuvo puntuación positiva en la simulación. Las decisiones tomadas no demuestran las competencias esperadas.",
+      strengths: [],
+      improvements: [
+        answersCount === 0
+          ? "Completar la simulación respondiendo a las preguntas planteadas"
+          : "Revisar las decisiones tomadas: ninguna sumó puntuación positiva",
+        "Repasar los criterios de evaluación antes de volver a intentarlo",
+      ],
+      achievements: [],
+    };
+  }
+
+  const strengths: string[] = [];
+  if (completed) strengths.push("Completó la simulación de principio a fin");
+  if (score >= 100) strengths.push("Obtuvo una puntuación sólida en las decisiones clave");
+
   return {
     outcome,
     summary:
       "No se pudo generar un informe detallado automáticamente. Este es un resumen básico basado en la puntuación obtenida.",
-    strengths: ["Completó la simulación de principio a fin"],
+    strengths,
     improvements: ["Revisar las decisiones tomadas para identificar áreas de mejora"],
     achievements: [],
   };
@@ -222,7 +251,7 @@ Genera el veredicto (apto / apto_con_reservas / no_apto), un resumen ejecutivo (
       report = experimental_output;
     } catch (e) {
       console.error("generateReport: AI schema failed, using fallback", e);
-      report = buildFallbackReport(score);
+      report = buildFallbackReport(score, (sess.answers as any[]).length, !!sess.completed_at);
     }
 
     // Compute stars from score range (rough heuristic).
