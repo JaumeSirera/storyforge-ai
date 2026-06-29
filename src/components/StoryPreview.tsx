@@ -163,6 +163,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
       </div>
 
       <VideoPlayer video={node.video} videos={node.videos} />
+      <VideoPrefetch nodes={nextCandidateNodes(nodes, node)} />
 
       {node.narrative && (
         <p className="text-sm text-muted-foreground leading-relaxed">{node.narrative}</p>
