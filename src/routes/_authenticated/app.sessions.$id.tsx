@@ -40,6 +40,9 @@ function PlayerPage() {
   const node = story.nodes[sess.current_node_id!];
   if (!node) return <p>Nodo no encontrado.</p>;
 
+  const sceneOrder = computeSceneOrder(story as any);
+  const sceneNumber = sceneOrder.get(node.id);
+
   return (
     <Player
       sessionId={id}
@@ -48,6 +51,7 @@ function PlayerPage() {
       answered={answered}
       totalNodes={totalNodes}
       simTitle={sim.title}
+      sceneNumber={sceneNumber}
     />
   );
 }
