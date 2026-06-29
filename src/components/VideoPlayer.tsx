@@ -39,7 +39,6 @@ function SingleVideo({ video }: { video: VideoSource }) {
         src={video.url}
         controls
         autoPlay
-        muted
         playsInline
         className="w-full aspect-video rounded-xl bg-black"
       />
