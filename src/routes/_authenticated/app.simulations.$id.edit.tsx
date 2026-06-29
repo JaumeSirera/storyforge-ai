@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StoryPreview } from "@/components/StoryPreview";
 import type { Story, StoryNode, Choice, EvaluationCriterion, VideoSource } from "@/lib/story-types";
+import { computeSceneOrder, sortNodesByOrder } from "@/lib/scene-order";
 
 export const Route = createFileRoute("/_authenticated/app/simulations/$id/edit")({
   component: EditSimulation,
@@ -66,15 +67,26 @@ function EditSimulation() {
   useEffect(() => {
     if (!sim.data || state) return;
     const story = (sim.data.story ?? { startNodeId: "", nodes: {} }) as Story;
-    const nodes = Object.values(story.nodes ?? {});
+    const rawNodes = Object.values(story.nodes ?? {});
+    const startNodeId = story.startNodeId || rawNodes[0]?.id || "";
+    const order = computeSceneOrder({ startNodeId, nodes: story.nodes ?? {} });
+    const nodes = sortNodesByOrder(rawNodes, order);
     setState({
-      startNodeId: story.startNodeId || nodes[0]?.id || "",
+      startNodeId,
       nodes,
       criteria: (sim.data.evaluation_criteria ?? []) as unknown as EvaluationCriterion[],
     });
   }, [sim.data, state]);
 
-  const nodeIds = useMemo(() => state?.nodes.map((n) => n.id) ?? [], [state]);
+  const sceneOrder = useMemo(() => {
+    if (!state) return new Map<string, number>();
+    return computeSceneOrder({
+      startNodeId: state.startNodeId,
+      nodes: Object.fromEntries(state.nodes.map((n) => [n.id, n])),
+    });
+  }, [state]);
+
+  
 
   if (sim.isLoading || !state) {
     return <p className="text-muted-foreground">Cargando editor...</p>;
@@ -387,7 +399,7 @@ function EditSimulation() {
             <SelectTrigger className="max-w-md"><SelectValue /></SelectTrigger>
             <SelectContent>
               {state.nodes.map((n) => (
-                <SelectItem key={n.id} value={n.id}>{n.title} ({n.id})</SelectItem>
+                <SelectItem key={n.id} value={n.id}>Escena {sceneOrder.get(n.id) ?? "?"} — {n.title}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -434,8 +446,9 @@ function EditSimulation() {
               <AccordionItem key={n.id} value={n.id} className="border rounded-lg px-3">
                 <AccordionTrigger className="hover:no-underline">
                   <div className="flex items-center gap-2 text-left">
-                    <Badge variant="outline" className="font-mono text-[10px]">{n.id}</Badge>
+                    <Badge variant="default" className="text-[11px]">Escena {sceneOrder.get(n.id) ?? "?"}</Badge>
                     <span className="font-medium">{n.title}</span>
+                    <span className="text-[10px] text-muted-foreground font-mono hidden sm:inline">{n.id}</span>
                     {n.isEnding && (
                       <Badge variant={n.endingType === "success" ? "default" : "secondary"} className="gap-1">
                         <Flag className="h-3 w-3" /> Final
@@ -465,38 +478,99 @@ function EditSimulation() {
                     <Textarea rows={3} value={n.narrative} onChange={(e) => updateNode(nIdx, { narrative: e.target.value })} />
                   </div>
 
-                  <div className="grid sm:grid-cols-3 gap-3">
-                    <div className="space-y-1.5">
-                      <Label>Tipo de vídeo</Label>
-                      <Select
-                        value={n.video?.type ?? "none"}
-                        onValueChange={(v) =>
-                          updateNode(nIdx, {
-                            video:
-                              v === "none"
-                                ? { type: "none" }
-                                : { type: v as "youtube" | "vimeo" | "mp4", url: (n.video as any)?.url ?? "" },
-                          })
-                        }
-                      >
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Sin vídeo</SelectItem>
-                          <SelectItem value="youtube">YouTube</SelectItem>
-                          <SelectItem value="vimeo">Vimeo</SelectItem>
-                          <SelectItem value="mp4">MP4</SelectItem>
-                        </SelectContent>
-                      </Select>
+                  <div className="rounded-lg border p-3 space-y-3 bg-muted/20">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm font-semibold">Vídeo de la escena</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Elige el origen del vídeo y pega la URL. Si no quieres vídeo, deja "Sin vídeo".
+                        </p>
+                      </div>
                     </div>
-                    {n.video?.type !== "none" && (
+                    <div className="grid sm:grid-cols-3 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Tipo de vídeo</Label>
+                        <Select
+                          value={n.video?.type ?? "none"}
+                          onValueChange={(v) =>
+                            updateNode(nIdx, {
+                              video:
+                                v === "none"
+                                  ? { type: "none" }
+                                  : { type: v as "youtube" | "vimeo" | "mp4", url: (n.video as any)?.url ?? "" },
+                            })
+                          }
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Sin vídeo</SelectItem>
+                            <SelectItem value="youtube">YouTube</SelectItem>
+                            <SelectItem value="vimeo">Vimeo</SelectItem>
+                            <SelectItem value="mp4">MP4 (URL directa)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <div className="space-y-1.5 sm:col-span-2">
-                        <Label>URL del vídeo</Label>
+                        <Label className="text-xs">URL del vídeo</Label>
                         <Input
-                          value={(n.video as any).url ?? ""}
+                          placeholder={
+                            n.video?.type === "none"
+                              ? "Selecciona primero un tipo de vídeo arriba"
+                              : n.video?.type === "youtube"
+                              ? "https://www.youtube.com/watch?v=..."
+                              : n.video?.type === "vimeo"
+                              ? "https://vimeo.com/..."
+                              : "https://.../video.mp4"
+                          }
+                          disabled={n.video?.type === "none"}
+                          value={(n.video as any)?.url ?? ""}
                           onChange={(e) =>
-                            updateNode(nIdx, { video: { ...(n.video as any), url: e.target.value } as VideoSource })
+                            updateNode(nIdx, {
+                              video: {
+                                ...(n.video?.type === "none"
+                                  ? { type: "mp4", url: "" }
+                                  : (n.video as any)),
+                                url: e.target.value,
+                              } as VideoSource,
+                            })
                           }
                         />
+                      </div>
+                    </div>
+                    {n.video?.type !== "none" && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Inicio (segundos, opcional)</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={(n.video as any)?.startSec ?? ""}
+                            onChange={(e) =>
+                              updateNode(nIdx, {
+                                video: {
+                                  ...(n.video as any),
+                                  startSec: e.target.value === "" ? undefined : Number(e.target.value),
+                                } as VideoSource,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Fin (segundos, opcional)</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={(n.video as any)?.endSec ?? ""}
+                            onChange={(e) =>
+                              updateNode(nIdx, {
+                                video: {
+                                  ...(n.video as any),
+                                  endSec: e.target.value === "" ? undefined : Number(e.target.value),
+                                } as VideoSource,
+                              })
+                            }
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -555,8 +629,8 @@ function EditSimulation() {
                               <SelectTrigger className="col-span-2"><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="__end__">FIN</SelectItem>
-                                {nodeIds.filter((nid) => nid !== n.id).map((nid) => (
-                                  <SelectItem key={nid} value={nid}>{nid}</SelectItem>
+                                {state.nodes.filter((nn) => nn.id !== n.id).map((nn) => (
+                                  <SelectItem key={nn.id} value={nn.id}>Escena {sceneOrder.get(nn.id) ?? "?"} — {nn.title}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Trophy, Star, Loader2, CheckCircle2, XCircle, Sparkles, Award, ArrowRight, Home, Maximize2, Minimize2 } from "lucide-react";
+import { computeSceneOrder } from "@/lib/scene-order";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -39,6 +40,9 @@ function PlayerPage() {
   const node = story.nodes[sess.current_node_id!];
   if (!node) return <p>Nodo no encontrado.</p>;
 
+  const sceneOrder = computeSceneOrder(story as any);
+  const sceneNumber = sceneOrder.get(node.id);
+
   return (
     <Player
       sessionId={id}
@@ -47,14 +51,15 @@ function PlayerPage() {
       answered={answered}
       totalNodes={totalNodes}
       simTitle={sim.title}
+      sceneNumber={sceneNumber}
     />
   );
 }
 
 function Player({
-  sessionId, node, score, answered, totalNodes, simTitle,
+  sessionId, node, score, answered, totalNodes, simTitle, sceneNumber,
 }: {
-  sessionId: string; node: any; score: number; answered: number; totalNodes: number; simTitle: string;
+  sessionId: string; node: any; score: number; answered: number; totalNodes: number; simTitle: string; sceneNumber?: number;
 }) {
   const submit = useServerFn(submitAnswer);
   const qc = useQueryClient();
@@ -182,7 +187,7 @@ function Player({
     <div className="max-w-4xl mx-auto space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground">{simTitle}</div>
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">{simTitle}{sceneNumber ? ` · Escena ${sceneNumber}` : ""}</div>
           <h1 className="text-2xl font-bold mt-0.5 truncate">{node.title}</h1>
         </div>
         <div className="flex items-center gap-2 shrink-0">
