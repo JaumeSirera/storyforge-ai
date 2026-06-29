@@ -143,13 +143,57 @@ function EditSimulation() {
       s ? { ...s, nodes: s.nodes.map((n, i) => (i === idx ? { ...n, ...patch } : n)) } : s,
     );
 
-  const updateChoice = (nIdx: number, cIdx: number, patch: Partial<Choice>) =>
+  const updateChoice = (nIdx: number, qIdx: number, cIdx: number, patch: Partial<Choice>) =>
     setState((s) => {
       if (!s) return s;
       const nodes = s.nodes.map((n, i) => {
-        if (i !== nIdx || !n.question) return n;
-        const choices = n.question.choices.map((c, j) => (j === cIdx ? { ...c, ...patch } : c));
-        return { ...n, question: { ...n.question, choices } };
+        if (i !== nIdx || !n.questions) return n;
+        const questions = n.questions.map((q, k) => {
+          if (k !== qIdx) return q;
+          return { ...q, choices: q.choices.map((c, j) => (j === cIdx ? { ...c, ...patch } : c)) };
+        });
+        return { ...n, questions };
+      });
+      return { ...s, nodes };
+    });
+
+  const updateQuestion = (nIdx: number, qIdx: number, patch: Partial<Question>) =>
+    setState((s) => {
+      if (!s) return s;
+      const nodes = s.nodes.map((n, i) => {
+        if (i !== nIdx || !n.questions) return n;
+        const questions = n.questions.map((q, k) => (k === qIdx ? { ...q, ...patch } : q));
+        return { ...n, questions };
+      });
+      return { ...s, nodes };
+    });
+
+  const addQuestion = (nIdx: number, clipId?: string) =>
+    setState((s) => {
+      if (!s) return s;
+      const nodes = s.nodes.map((n, i) => {
+        if (i !== nIdx) return n;
+        const existing = n.questions ?? [];
+        const newQ: Question = {
+          id: uid("q"),
+          clipId,
+          text: "¿Qué decides?",
+          choices: [
+            { id: uid("c"), label: "Opción A", feedback: "", points: 0, next: null, competencies: {} },
+            { id: uid("c"), label: "Opción B", feedback: "", points: 0, next: null, competencies: {} },
+          ],
+        };
+        return { ...n, questions: [...existing, newQ] };
+      });
+      return { ...s, nodes };
+    });
+
+  const deleteQuestion = (nIdx: number, qIdx: number) =>
+    setState((s) => {
+      if (!s) return s;
+      const nodes = s.nodes.map((n, i) => {
+        if (i !== nIdx || !n.questions) return n;
+        return { ...n, questions: n.questions.filter((_, k) => k !== qIdx) };
       });
       return { ...s, nodes };
     });
@@ -169,19 +213,23 @@ function EditSimulation() {
                 order: s.nodes.length + 1,
                 video: { type: "none" } as VideoSource,
                 videos: [{ id: uid("clip"), label: "Clip principal", source: { type: "none" } }],
-                question: {
-                  text: "¿Qué decides?",
-                  choices: [
-                    { id: uid("c"), label: "Opción A", feedback: "", points: 0, next: null, competencies: {} },
-                    { id: uid("c"), label: "Opción B", feedback: "", points: 0, next: null, competencies: {} },
-                  ],
-                },
+                questions: [
+                  {
+                    id: uid("q"),
+                    text: "¿Qué decides?",
+                    choices: [
+                      { id: uid("c"), label: "Opción A", feedback: "", points: 0, next: null, competencies: {} },
+                      { id: uid("c"), label: "Opción B", feedback: "", points: 0, next: null, competencies: {} },
+                    ],
+                  },
+                ],
               },
             ],
           }
         : s,
     );
   };
+
 
   // ---------- video clip helpers ----------
   const updateClip = (nIdx: number, cIdx: number, patch: Partial<VideoClip>) =>
