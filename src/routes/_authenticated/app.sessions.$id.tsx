@@ -252,6 +252,7 @@ function Player({
       <Progress value={progress} className="h-1.5" />
 
       <VideoPlayer video={node.video} videos={node.videos} />
+      <VideoPrefetch nodes={nextNodes} />
 
       <Card>
         <CardContent className="pt-6">
