@@ -12,9 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedAppSimulationsRouteImport } from './routes/_authenticated/app.simulations'
 import { Route as AuthenticatedAppNewRouteImport } from './routes/_authenticated/app.new'
 import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
+import { Route as AuthenticatedAppSimulationsIndexRouteImport } from './routes/_authenticated/app.simulations.index'
 import { Route as AuthenticatedAppSimulationsIdRouteImport } from './routes/_authenticated/app.simulations.$id'
 import { Route as AuthenticatedAppSessionsIdRouteImport } from './routes/_authenticated/app.sessions.$id'
 import { Route as AuthenticatedAppSimulationsIdReviewRouteImport } from './routes/_authenticated/app.simulations.$id.review'
@@ -34,12 +34,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAppSimulationsRoute =
-  AuthenticatedAppSimulationsRouteImport.update({
-    id: '/app/simulations',
-    path: '/app/simulations',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedAppNewRoute = AuthenticatedAppNewRouteImport.update({
   id: '/app/new',
   path: '/app/new',
@@ -51,11 +45,17 @@ const AuthenticatedAppDashboardRoute =
     path: '/app/dashboard',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppSimulationsIndexRoute =
+  AuthenticatedAppSimulationsIndexRouteImport.update({
+    id: '/app/simulations/',
+    path: '/app/simulations/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppSimulationsIdRoute =
   AuthenticatedAppSimulationsIdRouteImport.update({
-    id: '/$id',
-    path: '/$id',
-    getParentRoute: () => AuthenticatedAppSimulationsRoute,
+    id: '/app/simulations/$id',
+    path: '/app/simulations/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppSessionsIdRoute =
   AuthenticatedAppSessionsIdRouteImport.update({
@@ -81,9 +81,9 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/new': typeof AuthenticatedAppNewRoute
-  '/app/simulations': typeof AuthenticatedAppSimulationsRouteWithChildren
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/app/simulations/$id': typeof AuthenticatedAppSimulationsIdRouteWithChildren
+  '/app/simulations/': typeof AuthenticatedAppSimulationsIndexRoute
   '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
 }
@@ -92,9 +92,9 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/new': typeof AuthenticatedAppNewRoute
-  '/app/simulations': typeof AuthenticatedAppSimulationsRouteWithChildren
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/app/simulations/$id': typeof AuthenticatedAppSimulationsIdRouteWithChildren
+  '/app/simulations': typeof AuthenticatedAppSimulationsIndexRoute
   '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
 }
@@ -105,9 +105,9 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/_authenticated/app/new': typeof AuthenticatedAppNewRoute
-  '/_authenticated/app/simulations': typeof AuthenticatedAppSimulationsRouteWithChildren
   '/_authenticated/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/_authenticated/app/simulations/$id': typeof AuthenticatedAppSimulationsIdRouteWithChildren
+  '/_authenticated/app/simulations/': typeof AuthenticatedAppSimulationsIndexRoute
   '/_authenticated/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/_authenticated/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
 }
@@ -118,9 +118,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/app/dashboard'
     | '/app/new'
-    | '/app/simulations'
     | '/app/sessions/$id'
     | '/app/simulations/$id'
+    | '/app/simulations/'
     | '/app/simulations/$id/edit'
     | '/app/simulations/$id/review'
   fileRoutesByTo: FileRoutesByTo
@@ -129,9 +129,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/app/dashboard'
     | '/app/new'
-    | '/app/simulations'
     | '/app/sessions/$id'
     | '/app/simulations/$id'
+    | '/app/simulations'
     | '/app/simulations/$id/edit'
     | '/app/simulations/$id/review'
   id:
@@ -141,9 +141,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/app/dashboard'
     | '/_authenticated/app/new'
-    | '/_authenticated/app/simulations'
     | '/_authenticated/app/sessions/$id'
     | '/_authenticated/app/simulations/$id'
+    | '/_authenticated/app/simulations/'
     | '/_authenticated/app/simulations/$id/edit'
     | '/_authenticated/app/simulations/$id/review'
   fileRoutesById: FileRoutesById
@@ -177,13 +177,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/app/simulations': {
-      id: '/_authenticated/app/simulations'
-      path: '/app/simulations'
-      fullPath: '/app/simulations'
-      preLoaderRoute: typeof AuthenticatedAppSimulationsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/app/new': {
       id: '/_authenticated/app/new'
       path: '/app/new'
@@ -198,12 +191,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/simulations/': {
+      id: '/_authenticated/app/simulations/'
+      path: '/app/simulations'
+      fullPath: '/app/simulations/'
+      preLoaderRoute: typeof AuthenticatedAppSimulationsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/simulations/$id': {
       id: '/_authenticated/app/simulations/$id'
-      path: '/$id'
+      path: '/app/simulations/$id'
       fullPath: '/app/simulations/$id'
       preLoaderRoute: typeof AuthenticatedAppSimulationsIdRouteImport
-      parentRoute: typeof AuthenticatedAppSimulationsRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/sessions/$id': {
       id: '/_authenticated/app/sessions/$id'
@@ -247,34 +247,21 @@ const AuthenticatedAppSimulationsIdRouteWithChildren =
     AuthenticatedAppSimulationsIdRouteChildren,
   )
 
-interface AuthenticatedAppSimulationsRouteChildren {
-  AuthenticatedAppSimulationsIdRoute: typeof AuthenticatedAppSimulationsIdRouteWithChildren
-}
-
-const AuthenticatedAppSimulationsRouteChildren: AuthenticatedAppSimulationsRouteChildren =
-  {
-    AuthenticatedAppSimulationsIdRoute:
-      AuthenticatedAppSimulationsIdRouteWithChildren,
-  }
-
-const AuthenticatedAppSimulationsRouteWithChildren =
-  AuthenticatedAppSimulationsRoute._addFileChildren(
-    AuthenticatedAppSimulationsRouteChildren,
-  )
-
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppDashboardRoute: typeof AuthenticatedAppDashboardRoute
   AuthenticatedAppNewRoute: typeof AuthenticatedAppNewRoute
-  AuthenticatedAppSimulationsRoute: typeof AuthenticatedAppSimulationsRouteWithChildren
   AuthenticatedAppSessionsIdRoute: typeof AuthenticatedAppSessionsIdRoute
+  AuthenticatedAppSimulationsIdRoute: typeof AuthenticatedAppSimulationsIdRouteWithChildren
+  AuthenticatedAppSimulationsIndexRoute: typeof AuthenticatedAppSimulationsIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppDashboardRoute: AuthenticatedAppDashboardRoute,
   AuthenticatedAppNewRoute: AuthenticatedAppNewRoute,
-  AuthenticatedAppSimulationsRoute:
-    AuthenticatedAppSimulationsRouteWithChildren,
   AuthenticatedAppSessionsIdRoute: AuthenticatedAppSessionsIdRoute,
+  AuthenticatedAppSimulationsIdRoute:
+    AuthenticatedAppSimulationsIdRouteWithChildren,
+  AuthenticatedAppSimulationsIndexRoute: AuthenticatedAppSimulationsIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
