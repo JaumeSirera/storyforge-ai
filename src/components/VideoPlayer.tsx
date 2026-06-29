@@ -69,9 +69,13 @@ function SingleVideo({ video }: { video: VideoSource }) {
 export function VideoPlayer({
   video,
   videos,
+  activeClipId,
+  onActiveClipChange,
 }: {
   video?: VideoSource;
   videos?: VideoClip[];
+  activeClipId?: string;
+  onActiveClipChange?: (clipId: string) => void;
 }) {
   const clips: VideoClip[] = useMemo(() => {
     if (videos && videos.length > 0) return videos;
@@ -79,8 +83,14 @@ export function VideoPlayer({
     return [{ id: "default", label: "Clip principal", source: { type: "none" } }];
   }, [video, videos]);
 
-  const [activeId, setActiveId] = useState<string>(clips[0]?.id ?? "default");
-  const active = clips.find((c) => c.id === activeId) ?? clips[0];
+  const [internalActiveId, setInternalActiveId] = useState<string>(clips[0]?.id ?? "default");
+  const effectiveId = activeClipId ?? internalActiveId;
+  const active = clips.find((c) => c.id === effectiveId) ?? clips[0];
+
+  const select = (id: string) => {
+    if (onActiveClipChange) onActiveClipChange(id);
+    else setInternalActiveId(id);
+  };
 
   if (clips.length <= 1) {
     return <SingleVideo video={active.source} />;
@@ -93,7 +103,7 @@ export function VideoPlayer({
           <button
             key={c.id}
             type="button"
-            onClick={() => setActiveId(c.id)}
+            onClick={() => select(c.id)}
             className={`text-xs rounded-full border px-3 py-1 transition ${
               c.id === active.id
                 ? "border-primary bg-primary text-primary-foreground"
@@ -108,3 +118,4 @@ export function VideoPlayer({
     </div>
   );
 }
+
