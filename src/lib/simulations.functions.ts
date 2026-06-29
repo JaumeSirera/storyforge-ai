@@ -415,7 +415,7 @@ export const generateSimulation = createServerFn({ method: "POST" })
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("Missing LOVABLE_API_KEY");
     const gateway = createLovableAiGatewayProvider(key);
-    const sanitizedPrompt = sanitizeCreatorPrompt(data.prompt) || data.prompt;
+    const sanitizedPrompt = (sanitizeCreatorPrompt(data.prompt) || data.prompt).slice(0, 40000);
     const generationData = { ...data, prompt: sanitizedPrompt };
 
     const videoList =
