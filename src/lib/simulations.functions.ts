@@ -603,6 +603,12 @@ const VideoSourceSchema = z.union([
   }),
 ]);
 
+const VideoClipSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().default(""),
+  source: VideoSourceSchema,
+});
+
 const EditorChoiceSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
@@ -617,6 +623,8 @@ const EditorNodeSchema = z.object({
   title: z.string().min(1),
   narrative: z.string().default(""),
   video: VideoSourceSchema.default({ type: "none" }),
+  videos: z.array(VideoClipSchema).max(10).optional(),
+  order: z.number().int().optional(),
   question: z
     .object({
       text: z.string().min(1),
@@ -631,6 +639,7 @@ const EditorStorySchema = z.object({
   startNodeId: z.string().min(1),
   nodes: z.record(z.string(), EditorNodeSchema),
 });
+
 
 const EditorCriterionSchema = z.object({
   key: z.string().min(1),
