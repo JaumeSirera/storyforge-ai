@@ -200,14 +200,17 @@ export const generateReport = createServerFn({ method: "POST" })
 
     const comp = sess.competency_scores as Record<string, number>;
 
-    const { experimental_output: report } = await generateText({
-      model: gateway("google/gemini-3-flash-preview"),
-      experimental_output: Output.object({ schema: ReportSchema }),
-      system:
-        "Eres un evaluador profesional. Generas un informe final breve, claro y útil sobre el desempeño del participante. Idioma: español.",
-      prompt: `Simulación: ${sim.title}
+    const score = sess.score ?? 0;
+    let report: z.infer<typeof ReportSchema>;
+    try {
+      const { experimental_output } = await generateText({
+        model: gateway("google/gemini-3-flash-preview"),
+        experimental_output: Output.object({ schema: ReportSchema }),
+        system:
+          "Eres un evaluador profesional. Generas un informe final breve, claro y útil sobre el desempeño del participante. Idioma: español. Devuelve SIEMPRE el JSON con todos los campos requeridos.",
+        prompt: `Simulación: ${sim.title}
 Objetivo: ${sim.objective}
-Puntuación total: ${sess.score}
+Puntuación total: ${score}
 Competencias y deltas: ${JSON.stringify(comp)}
 Criterios definidos: ${JSON.stringify(sim.evaluation_criteria)}
 
@@ -215,10 +218,14 @@ Transcripción de decisiones del participante:
 ${transcript}
 
 Genera el veredicto (apto / apto_con_reservas / no_apto), un resumen ejecutivo (2-4 frases), fortalezas, áreas de mejora y logros desbloqueados.`,
-    });
+      });
+      report = experimental_output;
+    } catch (e) {
+      console.error("generateReport: AI schema failed, using fallback", e);
+      report = buildFallbackReport(score);
+    }
 
     // Compute stars from score range (rough heuristic).
-    const score = sess.score ?? 0;
     let stars = 1;
     if (score >= 250) stars = 5;
     else if (score >= 180) stars = 4;
