@@ -43,6 +43,7 @@ function PlayerPage() {
 
   const sceneOrder = computeSceneOrder(story as any);
   const sceneNumber = sceneOrder.get(node.id);
+  const nextNodes = nextCandidateNodes(story.nodes as any, node);
 
   return (
     <Player
@@ -53,14 +54,15 @@ function PlayerPage() {
       totalNodes={totalNodes}
       simTitle={sim.title}
       sceneNumber={sceneNumber}
+      nextNodes={nextNodes}
     />
   );
 }
 
 function Player({
-  sessionId, node, score, answered, totalNodes, simTitle, sceneNumber,
+  sessionId, node, score, answered, totalNodes, simTitle, sceneNumber, nextNodes,
 }: {
-  sessionId: string; node: any; score: number; answered: number; totalNodes: number; simTitle: string; sceneNumber?: number;
+  sessionId: string; node: any; score: number; answered: number; totalNodes: number; simTitle: string; sceneNumber?: number; nextNodes: any[];
 }) {
   const submit = useServerFn(submitAnswer);
   const qc = useQueryClient();
