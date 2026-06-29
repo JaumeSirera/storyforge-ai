@@ -67,13 +67,24 @@ function EditSimulation() {
   useEffect(() => {
     if (!sim.data || state) return;
     const story = (sim.data.story ?? { startNodeId: "", nodes: {} }) as Story;
-    const nodes = Object.values(story.nodes ?? {});
+    const rawNodes = Object.values(story.nodes ?? {});
+    const startNodeId = story.startNodeId || rawNodes[0]?.id || "";
+    const order = computeSceneOrder({ startNodeId, nodes: story.nodes ?? {} });
+    const nodes = sortNodesByOrder(rawNodes, order);
     setState({
-      startNodeId: story.startNodeId || nodes[0]?.id || "",
+      startNodeId,
       nodes,
       criteria: (sim.data.evaluation_criteria ?? []) as unknown as EvaluationCriterion[],
     });
   }, [sim.data, state]);
+
+  const sceneOrder = useMemo(() => {
+    if (!state) return new Map<string, number>();
+    return computeSceneOrder({
+      startNodeId: state.startNodeId,
+      nodes: Object.fromEntries(state.nodes.map((n) => [n.id, n])),
+    });
+  }, [state]);
 
   const nodeIds = useMemo(() => state?.nodes.map((n) => n.id) ?? [], [state]);
 
