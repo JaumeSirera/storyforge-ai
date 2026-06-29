@@ -66,7 +66,12 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     setCompetencies({});
     setLastFeedback(null);
     setEnded(false);
+    setActiveClipId(undefined);
   };
+
+  const q = node ? activeQuestion(node, activeClipId) : undefined;
+
+
 
   const choose = (c: Choice) => {
     if (!node) return;
