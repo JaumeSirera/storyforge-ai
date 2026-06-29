@@ -21,11 +21,24 @@ export interface Choice {
   competencies: Record<string, number>; // competency -> delta
 }
 
+/**
+ * When the question should be presented during playback.
+ *  - immediate: as soon as the scene/clip is shown (default; legacy behaviour).
+ *  - time: pause the video at `seconds` and show the question.
+ *  - end: show the question when the video naturally ends.
+ */
+export type QuestionTrigger =
+  | { mode: "immediate" }
+  | { mode: "time"; seconds: number }
+  | { mode: "end" };
+
 export interface Question {
   /** Stable id within the node. Optional for legacy single-question data. */
   id?: string;
   /** Optional: bind the question to a specific clip of the scene. */
   clipId?: string;
+  /** When to surface the question relative to the bound (or active) clip. */
+  triggerAt?: QuestionTrigger;
   text: string;
   choices: Choice[];
 }
