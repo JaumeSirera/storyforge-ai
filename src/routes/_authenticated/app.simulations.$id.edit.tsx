@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StoryPreview } from "@/components/StoryPreview";
 import type { Story, StoryNode, Choice, EvaluationCriterion, VideoSource } from "@/lib/story-types";
+import { computeSceneOrder, sortNodesByOrder } from "@/lib/scene-order";
 
 export const Route = createFileRoute("/_authenticated/app/simulations/$id/edit")({
   component: EditSimulation,
