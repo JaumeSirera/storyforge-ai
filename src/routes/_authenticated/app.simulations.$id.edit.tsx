@@ -514,8 +514,8 @@ function EditSimulation() {
           <Select value={state.startNodeId} onValueChange={(v) => setState((s) => (s ? { ...s, startNodeId: v } : s))}>
             <SelectTrigger className="max-w-md"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {state.nodes.map((n) => (
-                <SelectItem key={n.id} value={n.id}>Escena {sceneOrder.get(n.id) ?? "?"} — {n.title}</SelectItem>
+              {sortByTitleNumber(state.nodes).map((n) => (
+                <SelectItem key={n.id} value={n.id}>{n.title}</SelectItem>
               ))}
             </SelectContent>
           </Select>
