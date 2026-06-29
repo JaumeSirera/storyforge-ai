@@ -94,14 +94,21 @@ export function nextCandidateNodes(
   nodes: Record<string, StoryNode>,
   current: StoryNode | undefined | null,
 ): StoryNode[] {
-  if (!current || !current.question) return [];
+  if (!current) return [];
   const seen = new Set<string>();
   const out: StoryNode[] = [];
-  for (const c of current.question.choices) {
-    if (c.next && nodes[c.next] && !seen.has(c.next)) {
-      seen.add(c.next);
-      out.push(nodes[c.next]);
+  const allQuestions = [
+    ...(current.question ? [current.question] : []),
+    ...(current.questions ?? []),
+  ];
+  for (const q of allQuestions) {
+    for (const c of q.choices) {
+      if (c.next && nodes[c.next] && !seen.has(c.next)) {
+        seen.add(c.next);
+        out.push(nodes[c.next]);
+      }
     }
   }
   return out;
 }
+

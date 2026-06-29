@@ -5,6 +5,8 @@ import { VideoPlayer } from "@/components/VideoPlayer";
 import { VideoPrefetch, nextCandidateNodes } from "@/components/VideoPrefetch";
 import { ArrowLeft, RotateCcw, Star, Trophy, Flag, AlertTriangle, Save, Loader2 } from "lucide-react";
 import type { Story, StoryNode, Choice, EvaluationCriterion } from "@/lib/story-types";
+import { activeQuestion, nodeClips, nodeQuestions } from "@/lib/story-types";
+
 import { computeSceneOrder } from "@/lib/scene-order";
 
 export interface PreviewDraftPayload {
@@ -49,6 +51,8 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
   const [competencies, setCompetencies] = useState<Record<string, number>>({});
   const [lastFeedback, setLastFeedback] = useState<{ text: string; points: number } | null>(null);
   const [ended, setEnded] = useState(false);
+  const [activeClipId, setActiveClipId] = useState<string | undefined>(undefined);
+
 
   const errors = useMemo(() => validateStory(story), [story]);
   const sceneOrder = useMemo(() => computeSceneOrder(story), [story]);
@@ -62,14 +66,19 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     setCompetencies({});
     setLastFeedback(null);
     setEnded(false);
+    setActiveClipId(undefined);
   };
 
+  const q = node ? activeQuestion(node, activeClipId) : undefined;
+
+
+
   const choose = (c: Choice) => {
-    if (!node) return;
+    if (!node || !q) return;
     setHistory((h) => [...h, {
       nodeId: node.id,
       nodeTitle: node.title,
-      question: node.question?.text ?? "",
+      question: q.text,
       choiceId: c.id,
       choiceLabel: c.label,
       feedback: c.feedback,
@@ -88,11 +97,13 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
 
     if (c.next && nodes[c.next]) {
       setCurrentId(c.next);
+      setActiveClipId(undefined);
       if (nodes[c.next].isEnding) setEnded(true);
     } else {
       setEnded(true);
     }
   };
+
 
   const goBack = () => {
     if (history.length === 0) return;
@@ -162,7 +173,12 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
         </div>
       </div>
 
-      <VideoPlayer video={node.video} videos={node.videos} />
+      <VideoPlayer
+        video={node.video}
+        videos={node.videos}
+        activeClipId={activeClipId ?? nodeClips(node)[0]?.id}
+        onActiveClipChange={setActiveClipId}
+      />
       <VideoPrefetch nodes={nextCandidateNodes(nodes, node)} />
 
       {node.narrative && (
@@ -178,11 +194,20 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
         </div>
       )}
 
-      {!ended && !node.isEnding && node.question && (
+      {!ended && !node.isEnding && q && (
         <div className="space-y-2">
-          <div className="font-medium text-sm">{node.question.text}</div>
+          {nodeQuestions(node).length > 1 && (
+            <div className="text-[11px] text-muted-foreground">
+              Pregunta vinculada a: <span className="font-medium">
+                {q.clipId
+                  ? (nodeClips(node).find((cl) => cl.id === q.clipId)?.label || q.clipId)
+                  : "cualquier clip"}
+              </span>
+            </div>
+          )}
+          <div className="font-medium text-sm">{q.text}</div>
           <div className="grid gap-2">
-            {node.question.choices.map((c) => (
+            {q.choices.map((c) => (
               <button
                 key={c.id}
                 onClick={() => choose(c)}
@@ -199,6 +224,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
           </div>
         </div>
       )}
+
 
       {(ended || node.isEnding) && (
         <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
@@ -242,15 +268,19 @@ function validateStory(story: Story): string[] {
   else if (!ids.has(story.startNodeId)) errs.push(`La escena de inicio "${story.startNodeId}" no existe.`);
   for (const n of Object.values(story.nodes)) {
     if (n.isEnding) continue;
-    if (!n.question) {
-      errs.push(`La escena "${n.title}" (${n.id}) no es final pero no tiene pregunta.`);
+    const qs = nodeQuestions(n);
+    if (qs.length === 0) {
+      errs.push(`La escena "${n.title}" (${n.id}) no es final pero no tiene preguntas.`);
       continue;
     }
-    for (const c of n.question.choices) {
-      if (c.next !== null && !ids.has(c.next)) {
-        errs.push(`La opción "${c.label}" de "${n.title}" apunta a un nodo inexistente: ${c.next}`);
+    for (const q of qs) {
+      for (const c of q.choices) {
+        if (c.next !== null && !ids.has(c.next)) {
+          errs.push(`La opción "${c.label}" de "${n.title}" apunta a un nodo inexistente: ${c.next}`);
+        }
       }
     }
   }
+
   return errs;
 }

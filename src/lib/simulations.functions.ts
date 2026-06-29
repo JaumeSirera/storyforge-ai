@@ -618,6 +618,13 @@ const EditorChoiceSchema = z.object({
   competencies: z.record(z.string(), z.number()).default({}),
 });
 
+const EditorQuestionSchema = z.object({
+  id: z.string().min(1).optional(),
+  clipId: z.string().optional(),
+  text: z.string().min(1),
+  choices: z.array(EditorChoiceSchema).min(2).max(6),
+});
+
 const EditorNodeSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -625,15 +632,12 @@ const EditorNodeSchema = z.object({
   video: VideoSourceSchema.default({ type: "none" }),
   videos: z.array(VideoClipSchema).max(10).optional(),
   order: z.number().int().optional(),
-  question: z
-    .object({
-      text: z.string().min(1),
-      choices: z.array(EditorChoiceSchema).min(2).max(4),
-    })
-    .optional(),
+  question: EditorQuestionSchema.optional(),
+  questions: z.array(EditorQuestionSchema).max(10).optional(),
   isEnding: z.boolean().optional(),
   endingType: z.enum(["success", "neutral", "fail"]).optional(),
 });
+
 
 const EditorStorySchema = z.object({
   startNodeId: z.string().min(1),
@@ -666,14 +670,23 @@ export const updateSimulationStory = createServerFn({ method: "POST" })
       throw new Error("startNodeId no existe en los nodos");
     }
     for (const node of Object.values(data.story.nodes)) {
-      if (node.question) {
-        for (const ch of node.question.choices) {
+      const clipIds = new Set((node.videos ?? []).map((v) => v.id));
+      const allQuestions = [
+        ...(node.question ? [node.question] : []),
+        ...(node.questions ?? []),
+      ];
+      for (const q of allQuestions) {
+        if (q.clipId && !clipIds.has(q.clipId)) {
+          throw new Error(`La pregunta "${q.text.slice(0, 30)}…" referencia un clip inexistente.`);
+        }
+        for (const ch of q.choices) {
           if (ch.next !== null && !ids.has(ch.next)) {
             throw new Error(`La opción "${ch.label}" apunta a un nodo inexistente: ${ch.next}`);
           }
         }
       }
     }
+
 
     // Block edits when the simulation is locked (in_review or published) and load previous snapshot for diffing.
     const { data: current, error: readErr } = await context.supabase

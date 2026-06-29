@@ -21,6 +21,16 @@ export interface Choice {
   competencies: Record<string, number>; // competency -> delta
 }
 
+export interface Question {
+  /** Stable id within the node. Optional for legacy single-question data. */
+  id?: string;
+  /** Optional: bind the question to a specific clip of the scene. */
+  clipId?: string;
+  text: string;
+  choices: Choice[];
+}
+
+
 export interface StoryNode {
   id: string;
   title: string;
@@ -31,10 +41,10 @@ export interface StoryNode {
   videos?: VideoClip[];
   /** Manual chronological order (1..N). Falls back to insertion order if missing. */
   order?: number;
-  question?: {
-    text: string;
-    choices: Choice[];
-  };
+  /** Legacy single question. Kept for backward compatibility. */
+  question?: Question;
+  /** New multi-question model. Each question can be tied to a specific clip. */
+  questions?: Question[];
   isEnding?: boolean;
   endingType?: "success" | "neutral" | "fail";
 }
@@ -79,3 +89,44 @@ export function nodeClips(node: Pick<StoryNode, "video" | "videos">): VideoClip[
   if (node.videos && node.videos.length > 0) return node.videos;
   return [{ id: "default", label: "Clip principal", source: node.video ?? { type: "none" } }];
 }
+
+/** Returns the canonical list of questions for a node (migrates legacy single `question`). */
+export function nodeQuestions(node: Pick<StoryNode, "question" | "questions">): Question[] {
+  if (node.questions && node.questions.length > 0) return node.questions;
+  if (node.question) {
+    return [{
+      id: node.question.id ?? "q_default",
+      clipId: node.question.clipId,
+      text: node.question.text,
+      choices: node.question.choices,
+    }];
+  }
+  return [];
+}
+
+/** Picks the question to show given the currently active clip. */
+export function activeQuestion(
+  node: Pick<StoryNode, "question" | "questions">,
+  activeClipId: string | undefined,
+): Question | undefined {
+  const qs = nodeQuestions(node);
+  if (qs.length === 0) return undefined;
+  if (activeClipId) {
+    const tied = qs.find((q) => q.clipId === activeClipId);
+    if (tied) return tied;
+  }
+  return qs.find((q) => !q.clipId) ?? qs[0];
+}
+
+/** Finds a choice anywhere in a node's questions (single or multiple). */
+export function findChoiceInNode(
+  node: Pick<StoryNode, "question" | "questions">,
+  choiceId: string,
+): { question: Question; choice: Choice } | null {
+  for (const q of nodeQuestions(node)) {
+    const choice = q.choices.find((c) => c.id === choiceId);
+    if (choice) return { question: q, choice };
+  }
+  return null;
+}
+
