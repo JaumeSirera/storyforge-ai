@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { ArrowLeft, RotateCcw, Star, Trophy, Flag, AlertTriangle, Save, Loader2 } from "lucide-react";
 import type { Story, StoryNode, Choice, EvaluationCriterion } from "@/lib/story-types";
+import { computeSceneOrder } from "@/lib/scene-order";
 
 export interface PreviewDraftPayload {
   currentNodeId: string | null;
