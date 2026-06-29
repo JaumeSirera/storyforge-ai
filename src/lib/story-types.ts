@@ -22,12 +22,14 @@ export interface Choice {
 }
 
 export interface Question {
-  id: string;
+  /** Stable id within the node. Optional for legacy single-question data. */
+  id?: string;
   /** Optional: bind the question to a specific clip of the scene. */
   clipId?: string;
   text: string;
   choices: Choice[];
 }
+
 
 export interface StoryNode {
   id: string;
