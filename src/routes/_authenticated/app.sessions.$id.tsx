@@ -253,7 +253,40 @@ function Player({
 
       <Progress value={progress} className="h-1.5" />
 
-      <VideoPlayer video={node.video} videos={node.videos} />
+      <ScenePlayback node={node} submitting={submitting} feedback={feedback} selected={selected} onPick={pick} nextNodes={nextNodes} />
+    </div>
+    </div>
+  );
+}
+
+function ScenePlayback({
+  node, submitting, feedback, selected, onPick, nextNodes,
+}: {
+  node: any;
+  submitting: boolean;
+  feedback: { feedback: string; points: number } | null;
+  selected: string | null;
+  onPick: (id: string) => void;
+  nextNodes: any[];
+}) {
+  const clips = nodeClips(node);
+  const [activeClipId, setActiveClipId] = useState<string>(clips[0]?.id ?? "default");
+  // Reset active clip when the scene changes.
+  useEffect(() => {
+    setActiveClipId(clips[0]?.id ?? "default");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node.id]);
+
+  const q = activeQuestion(node, activeClipId);
+
+  return (
+    <>
+      <VideoPlayer
+        video={node.video}
+        videos={node.videos}
+        activeClipId={activeClipId}
+        onActiveClipChange={setActiveClipId}
+      />
       <VideoPrefetch nodes={nextNodes} />
 
       <Card>
@@ -280,15 +313,15 @@ function Player({
         </Card>
       )}
 
-      {node.question && !feedback && (
+      {q && !feedback && (
         <div className="space-y-3">
-          <h3 className="font-semibold text-lg">{node.question.text}</h3>
+          <h3 className="font-semibold text-lg">{q.text}</h3>
           <div className="grid gap-2 sm:grid-cols-2">
-            {node.question.choices.map((c: any) => (
+            {q.choices.map((c: any) => (
               <button
                 key={c.id}
                 disabled={submitting}
-                onClick={() => pick(c.id)}
+                onClick={() => onPick(c.id)}
                 className={`text-left rounded-xl border-2 p-4 transition shadow-soft hover:border-primary hover:bg-accent ${
                   selected === c.id ? "border-primary bg-accent" : "border-border bg-card"
                 } disabled:opacity-60`}
@@ -299,10 +332,10 @@ function Player({
           </div>
         </div>
       )}
-    </div>
-    </div>
+    </>
   );
 }
+
 
 function FinalReport({ sessionId, sess, sim }: { sessionId: string; sess: any; sim: any }) {
   const gen = useServerFn(generateReport);
