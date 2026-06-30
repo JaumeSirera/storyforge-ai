@@ -397,21 +397,8 @@ function ScenePlayback({
               </p>
             )}
 
-            {feedback && (
-              <div className="flex items-start gap-3 rounded-xl border border-white/20 bg-black/60 p-4 backdrop-blur-md">
-                {feedback.points >= 0 ? (
-                  <CheckCircle2 className="h-5 w-5 text-success shrink-0 mt-0.5" />
-                ) : (
-                  <XCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-                )}
-                <div>
-                  <div className="font-semibold">
-                    {feedback.points >= 0 ? "+" : ""}{feedback.points} puntos
-                  </div>
-                  <p className="text-sm text-white/85 mt-1">{feedback.feedback}</p>
-                </div>
-              </div>
-            )}
+
+
 
             {q && !feedback && !questionReady && (
               <p className="text-xs text-white/80 italic">
