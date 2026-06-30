@@ -13,8 +13,8 @@ import { Sparkles } from "lucide-react";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Acceder — Playloop" },
-      { name: "description", content: "Inicia sesión o crea una cuenta en Playloop." },
+      { title: "Acceder — PlayGame" },
+      { name: "description", content: "Inicia sesión o crea una cuenta en PlayGame." },
     ],
   }),
   component: AuthPage,
@@ -36,7 +36,7 @@ function AuthPage() {
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
             <Sparkles className="h-4 w-4" />
           </span>
-          Playloop
+          PlayGame
         </Link>
         <Card className="shadow-glow">
           <CardHeader>
