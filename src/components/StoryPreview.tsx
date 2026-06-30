@@ -196,7 +196,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
         />
 
         {/* Bottom overlay: narrative + feedback + question/choices */}
-        {(node.narrative || lastFeedback || (!ended && !node.isEnding && q)) && (
+        {(node.narrative || (!ended && !node.isEnding && q)) && (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/60 to-transparent p-4 pt-16">
             <div className="pointer-events-auto space-y-3 max-h-[70%] overflow-y-auto">
               {node.narrative && (
@@ -204,16 +204,6 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
                   {node.narrative}
                 </p>
               )}
-
-              {lastFeedback && (
-                <div className="rounded-md border border-white/20 bg-black/50 backdrop-blur-md p-3 text-sm text-white">
-                  <div className="font-medium mb-1">
-                    Feedback ({lastFeedback.points >= 0 ? "+" : ""}{lastFeedback.points} pts)
-                  </div>
-                  <div className="text-white/85">{lastFeedback.text || "(sin feedback definido)"}</div>
-                </div>
-              )}
-
               {!ended && !node.isEnding && q && !questionReady && (
                 <p className="text-[11px] text-white/80 italic">
                   {trig.mode === "time"
@@ -224,16 +214,6 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
 
               {!ended && !node.isEnding && q && questionReady && (
                 <div className="space-y-2">
-                  {nodeQuestions(node).length > 1 && (
-                    <div className="text-[11px] text-white/75">
-                      Pregunta vinculada a:{" "}
-                      <span className="font-medium text-white">
-                        {q.clipId
-                          ? (nodeClips(node).find((cl) => cl.id === q.clipId)?.label || q.clipId)
-                          : "cualquier clip"}
-                      </span>
-                    </div>
-                  )}
                   <div className="font-semibold text-base text-white drop-shadow">{q.text}</div>
                   <div className="grid gap-2">
                     {q.choices.map((c) => (
@@ -242,17 +222,13 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
                         onClick={() => choose(c)}
                         className="text-left rounded-lg border border-white/30 bg-white/10 backdrop-blur-md p-3 hover:border-primary hover:bg-white/20 transition-colors text-white"
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="text-sm font-medium">{c.label}</span>
-                          <span className="text-xs text-white/80 whitespace-nowrap">
-                            {c.points >= 0 ? "+" : ""}{c.points} pts → {c.next ?? "FIN"}
-                          </span>
-                        </div>
+                        <span className="text-sm font-medium">{c.label}</span>
                       </button>
                     ))}
                   </div>
                 </div>
               )}
+
             </div>
           </div>
         )}
