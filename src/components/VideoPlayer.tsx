@@ -54,9 +54,10 @@ interface SingleVideoProps {
   pauseAtSec?: number;
   onPauseAtTime?: () => void;
   onEnded?: () => void;
+  fill?: boolean;
 }
 
-function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded }: SingleVideoProps) {
+function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, fill }: SingleVideoProps) {
   const cbsRef = useRef({ onPauseAtTime, onEnded, pauseAtSec });
   useEffect(() => {
     cbsRef.current = { onPauseAtTime, onEnded, pauseAtSec };
@@ -74,6 +75,8 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded }: SingleVideoP
     return () => clearTimeout(t);
   }, [video]);
 
+  const sizeCls = fill ? "absolute inset-0 h-full w-full" : "aspect-video w-full rounded-xl";
+
   /* ---------- MP4 ---------- */
   if (video.type === "mp4") {
     return (
@@ -83,7 +86,7 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded }: SingleVideoP
         controls
         autoPlay
         playsInline
-        className="w-full aspect-video rounded-xl bg-black"
+        className={`${sizeCls} bg-black ${fill ? "object-contain" : ""}`}
         onTimeUpdate={(e) => {
           const cur = e.currentTarget.currentTime;
           const tgt = cbsRef.current.pauseAtSec;
@@ -100,7 +103,7 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded }: SingleVideoP
 
   if (video.type === "none") {
     return (
-      <div className="aspect-video w-full grid place-items-center rounded-xl bg-gradient-to-br from-secondary to-accent text-muted-foreground">
+      <div className={`${sizeCls} grid place-items-center bg-gradient-to-br from-secondary to-accent text-muted-foreground`}>
         <span className="text-sm">Escena narrada (sin vídeo)</span>
       </div>
     );
@@ -108,12 +111,12 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded }: SingleVideoP
 
   /* ---------- YouTube ---------- */
   if (video.type === "youtube") {
-    return <YouTubePlayer video={video} cbsRef={cbsRef} firedRef={firedRef} />;
+    return <YouTubePlayer video={video} cbsRef={cbsRef} firedRef={firedRef} fill={fill} />;
   }
 
   /* ---------- Vimeo ---------- */
   if (video.type === "vimeo") {
-    return <VimeoPlayer video={video} cbsRef={cbsRef} firedRef={firedRef} />;
+    return <VimeoPlayer video={video} cbsRef={cbsRef} firedRef={firedRef} fill={fill} />;
   }
 
   return null;
@@ -123,10 +126,12 @@ function YouTubePlayer({
   video,
   cbsRef,
   firedRef,
+  fill,
 }: {
   video: Extract<VideoSource, { type: "youtube" }>;
   cbsRef: React.MutableRefObject<{ onPauseAtTime?: () => void; onEnded?: () => void; pauseAtSec?: number }>;
   firedRef: React.MutableRefObject<boolean>;
+  fill?: boolean;
 }) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const id = getYouTubeId(video.url);
@@ -176,16 +181,20 @@ function YouTubePlayer({
     };
   }, [id, video.url]);
 
+  const wrapCls = fill
+    ? "absolute inset-0 h-full w-full overflow-hidden bg-black"
+    : "aspect-video w-full overflow-hidden rounded-xl bg-black";
+
   if (!id) {
     return (
-      <div className="aspect-video w-full grid place-items-center rounded-xl bg-muted text-muted-foreground text-sm">
+      <div className={`${wrapCls} grid place-items-center text-muted-foreground text-sm`}>
         URL de YouTube no válida
       </div>
     );
   }
 
   return (
-    <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
+    <div className={wrapCls}>
       <div ref={hostRef} className="w-full h-full" />
     </div>
   );
@@ -195,10 +204,12 @@ function VimeoPlayer({
   video,
   cbsRef,
   firedRef,
+  fill,
 }: {
   video: Extract<VideoSource, { type: "vimeo" }>;
   cbsRef: React.MutableRefObject<{ onPauseAtTime?: () => void; onEnded?: () => void; pauseAtSec?: number }>;
   firedRef: React.MutableRefObject<boolean>;
+  fill?: boolean;
 }) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const id = getVimeoId(video.url);
@@ -231,16 +242,20 @@ function VimeoPlayer({
     };
   }, [src]);
 
+  const wrapCls = fill
+    ? "absolute inset-0 h-full w-full overflow-hidden bg-black"
+    : "aspect-video w-full overflow-hidden rounded-xl bg-black";
+
   if (!src) {
     return (
-      <div className="aspect-video w-full grid place-items-center rounded-xl bg-muted text-muted-foreground text-sm">
+      <div className={`${wrapCls} grid place-items-center text-muted-foreground text-sm`}>
         URL de Vimeo no válida
       </div>
     );
   }
 
   return (
-    <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
+    <div className={wrapCls}>
       <iframe
         ref={iframeRef}
         src={src}
@@ -260,6 +275,7 @@ export function VideoPlayer({
   pauseAtSec,
   onPauseAtTime,
   onEnded,
+  fill,
 }: {
   video?: VideoSource;
   videos?: VideoClip[];
@@ -269,6 +285,8 @@ export function VideoPlayer({
   pauseAtSec?: number;
   onPauseAtTime?: () => void;
   onEnded?: () => void;
+  /** Make the player fill its (positioned) container instead of using aspect-video. */
+  fill?: boolean;
 }) {
   const clips: VideoClip[] = useMemo(() => {
     if (videos && videos.length > 0) return videos;
@@ -292,7 +310,39 @@ export function VideoPlayer({
         pauseAtSec={pauseAtSec}
         onPauseAtTime={onPauseAtTime}
         onEnded={onEnded}
+        fill={fill}
       />
+    );
+  }
+
+  if (fill) {
+    return (
+      <>
+        <SingleVideo
+          key={active.id}
+          video={active.source}
+          pauseAtSec={pauseAtSec}
+          onPauseAtTime={onPauseAtTime}
+          onEnded={onEnded}
+          fill
+        />
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex flex-wrap gap-1.5 pointer-events-auto">
+          {clips.map((c, i) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => select(c.id)}
+              className={`text-xs rounded-full border px-3 py-1 backdrop-blur-md transition ${
+                c.id === active.id
+                  ? "border-primary bg-primary/80 text-primary-foreground"
+                  : "border-white/30 bg-black/40 text-white hover:bg-black/60"
+              }`}
+            >
+              {c.label || `Clip ${i + 1}`}
+            </button>
+          ))}
+        </div>
+      </>
     );
   }
 

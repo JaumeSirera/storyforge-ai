@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, Star, Loader2, CheckCircle2, XCircle, Sparkles, Award, ArrowRight, Home, Maximize2, Minimize2 } from "lucide-react";
+import { Trophy, Star, Loader2, CheckCircle2, XCircle, Sparkles, Award, ArrowRight, Home, Maximize2, Minimize2, PanelTopOpen, Square } from "lucide-react";
 import { computeSceneOrder } from "@/lib/scene-order";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
@@ -73,6 +73,10 @@ function Player({
   const [submitting, setSubmitting] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [windowed, setWindowed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(`session-windowed:${sessionId}`) === "1";
+  });
 
   const prefKey = `session-fullscreen:${sessionId}`;
 
@@ -180,6 +184,109 @@ function Player({
 
   const progress = totalNodes > 0 ? Math.min(100, Math.round((answered / Math.max(1, totalNodes - 1)) * 100)) : 0;
 
+  function toggleWindowed() {
+    setWindowed((w) => {
+      const next = !w;
+      try {
+        if (next) window.localStorage.setItem(`session-windowed:${sessionId}`, "1");
+        else window.localStorage.removeItem(`session-windowed:${sessionId}`);
+      } catch {}
+      return next;
+    });
+  }
+
+  // ============ Immersive mode (default) ============
+  if (!windowed) {
+    return (
+      <div
+        ref={containerRef}
+        className="fixed inset-0 z-40 bg-black text-white overflow-hidden"
+      >
+        <ScenePlayback
+          immersive
+          node={node}
+          submitting={submitting}
+          feedback={feedback}
+          selected={selected}
+          onPick={pick}
+          nextNodes={nextNodes}
+        />
+
+        {/* Top bar overlay */}
+        <div className="absolute top-0 inset-x-0 z-30 flex items-start justify-between gap-3 px-4 pt-4 pb-8 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
+          <div className="min-w-0 pointer-events-auto">
+            <div className="text-[11px] uppercase tracking-wider text-white/70 drop-shadow">
+              {simTitle}{sceneNumber ? ` · Escena ${sceneNumber}` : ""}
+            </div>
+            <h1 className="text-lg md:text-2xl font-bold truncate text-white drop-shadow">
+              {node.title}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 pointer-events-auto">
+            <Badge
+              variant="secondary"
+              className="gap-1 bg-black/50 text-white border border-white/20 backdrop-blur-md"
+            >
+              <Trophy className="h-3 w-3" /> {score} pts
+            </Badge>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={toggleWindowed}
+              className="gap-1 bg-black/40 text-white border-white/30 hover:bg-black/60 hover:text-white backdrop-blur-md"
+              aria-label="Modo ventana"
+            >
+              <PanelTopOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">Ventana</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={toggleFullscreen}
+              className="gap-1 bg-black/40 text-white border-white/30 hover:bg-black/60 hover:text-white backdrop-blur-md"
+              aria-label={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+            >
+              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+
+        <Progress value={progress} className="absolute top-0 inset-x-0 h-1 z-40 rounded-none bg-white/10" />
+
+        {pendingRestore && !isFullscreen && env.isMobile && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-50 grid place-items-center bg-background/95 p-6 backdrop-blur-sm text-foreground"
+          >
+            <div className="w-full max-w-sm space-y-4 rounded-2xl border border-border bg-card p-6 text-center shadow-glow">
+              <Maximize2 className="mx-auto h-10 w-10 text-primary" />
+              <div>
+                <h2 className="text-lg font-bold">Restaurar pantalla completa</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {env.isIOS && !env.supportsFs
+                    ? "En iOS, usa el icono de pantalla completa del reproductor de vídeo para ampliar la escena."
+                    : "Tu navegador móvil necesita un toque para volver al modo inmersivo."}
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Button type="button" onClick={toggleFullscreen} className="w-full gap-2" size="lg">
+                  <Maximize2 className="h-5 w-5" /> Activar pantalla completa
+                </Button>
+                <Button type="button" variant="ghost" onClick={dismissRestore} className="w-full">
+                  Continuar sin pantalla completa
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ============ Windowed mode ============
   return (
     <div
       ref={containerRef}
@@ -197,6 +304,10 @@ function Player({
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Badge variant="secondary" className="gap-1"><Trophy className="h-3 w-3" /> {score} pts</Badge>
+          <Button type="button" variant="outline" size="sm" onClick={toggleWindowed} className="gap-1" aria-label="Modo inmersivo">
+            <Maximize2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Inmersivo</span>
+          </Button>
           <Button
             type="button"
             variant="outline"
@@ -223,34 +334,6 @@ function Player({
         </div>
       )}
 
-      {pendingRestore && !isFullscreen && env.isMobile && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 grid place-items-center bg-background/95 p-6 backdrop-blur-sm"
-        >
-          <div className="w-full max-w-sm space-y-4 rounded-2xl border border-border bg-card p-6 text-center shadow-glow">
-            <Maximize2 className="mx-auto h-10 w-10 text-primary" />
-            <div>
-              <h2 className="text-lg font-bold">Restaurar pantalla completa</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {env.isIOS && !env.supportsFs
-                  ? "En iOS, usa el icono de pantalla completa del reproductor de vídeo para ampliar la escena."
-                  : "Tu navegador móvil necesita un toque para volver al modo inmersivo."}
-              </p>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Button type="button" onClick={toggleFullscreen} className="w-full gap-2" size="lg">
-                <Maximize2 className="h-5 w-5" /> Activar pantalla completa
-              </Button>
-              <Button type="button" variant="ghost" onClick={dismissRestore} className="w-full">
-                Continuar sin pantalla completa
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <Progress value={progress} className="h-1.5" />
 
       <ScenePlayback node={node} submitting={submitting} feedback={feedback} selected={selected} onPick={pick} nextNodes={nextNodes} />
@@ -260,7 +343,7 @@ function Player({
 }
 
 function ScenePlayback({
-  node, submitting, feedback, selected, onPick, nextNodes,
+  node, submitting, feedback, selected, onPick, nextNodes, immersive,
 }: {
   node: any;
   submitting: boolean;
@@ -268,6 +351,7 @@ function ScenePlayback({
   selected: string | null;
   onPick: (id: string) => void;
   nextNodes: any[];
+  immersive?: boolean;
 }) {
   const clips = nodeClips(node);
   const [activeClipId, setActiveClipId] = useState<string>(clips[0]?.id ?? "default");
@@ -288,6 +372,83 @@ function ScenePlayback({
 
   const pauseAtSec =
     !questionReady && trig.mode === "time" ? trig.seconds : undefined;
+
+  if (immersive) {
+    return (
+      <>
+        <VideoPlayer
+          fill
+          video={node.video}
+          videos={node.videos}
+          activeClipId={activeClipId}
+          onActiveClipChange={setActiveClipId}
+          pauseAtSec={pauseAtSec}
+          onPauseAtTime={() => setQuestionReady(true)}
+          onEnded={() => { if (trig.mode === "end") setQuestionReady(true); }}
+        />
+        <VideoPrefetch nodes={nextNodes} />
+
+        {/* Bottom overlay: narrative + question + answers */}
+        <div className="absolute inset-x-0 bottom-0 z-20 max-h-[65%] overflow-y-auto p-4 sm:p-6 pt-16 bg-gradient-to-t from-black/85 via-black/65 to-transparent text-white">
+          <div className="mx-auto max-w-4xl space-y-4">
+            {node.narrative && (
+              <p className="text-sm md:text-base leading-relaxed text-white/95 drop-shadow">
+                {node.narrative}
+              </p>
+            )}
+
+            {feedback && (
+              <div className="flex items-start gap-3 rounded-xl border border-white/20 bg-black/60 p-4 backdrop-blur-md">
+                {feedback.points >= 0 ? (
+                  <CheckCircle2 className="h-5 w-5 text-success shrink-0 mt-0.5" />
+                ) : (
+                  <XCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                )}
+                <div>
+                  <div className="font-semibold">
+                    {feedback.points >= 0 ? "+" : ""}{feedback.points} puntos
+                  </div>
+                  <p className="text-sm text-white/85 mt-1">{feedback.feedback}</p>
+                </div>
+              </div>
+            )}
+
+            {q && !feedback && !questionReady && (
+              <p className="text-xs text-white/80 italic">
+                {trig.mode === "time"
+                  ? `La pregunta aparecerá en ${formatMmSs(trig.seconds)}.`
+                  : "La pregunta aparecerá al terminar el vídeo."}
+              </p>
+            )}
+
+            {q && questionReady && !feedback && (
+              <div className="space-y-3">
+                <h3 className="font-semibold text-base md:text-lg text-white drop-shadow">
+                  {q.text}
+                </h3>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {q.choices.map((c: any) => (
+                    <button
+                      key={c.id}
+                      disabled={submitting}
+                      onClick={() => onPick(c.id)}
+                      className={`text-left rounded-xl border-2 p-4 transition backdrop-blur-md shadow-lg text-white ${
+                        selected === c.id
+                          ? "border-primary bg-primary/40"
+                          : "border-white/30 bg-black/50 hover:border-primary hover:bg-primary/30"
+                      } disabled:opacity-60`}
+                    >
+                      <div className="font-medium drop-shadow">{c.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
