@@ -181,20 +181,36 @@ function YouTubePlayer({
     };
   }, [id, video.url]);
 
+  const wrapCls = fill
+    ? "absolute inset-0 h-full w-full overflow-hidden bg-black"
+    : "aspect-video w-full overflow-hidden rounded-xl bg-black";
+
   if (!id) {
     return (
-      <div className="aspect-video w-full grid place-items-center rounded-xl bg-muted text-muted-foreground text-sm">
+      <div className={`${wrapCls} grid place-items-center text-muted-foreground text-sm`}>
         URL de YouTube no válida
       </div>
     );
   }
 
   return (
-    <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
+    <div className={wrapCls}>
       <div ref={hostRef} className="w-full h-full" />
     </div>
   );
 }
+
+function VimeoPlayer({
+  video,
+  cbsRef,
+  firedRef,
+  fill,
+}: {
+  video: Extract<VideoSource, { type: "vimeo" }>;
+  cbsRef: React.MutableRefObject<{ onPauseAtTime?: () => void; onEnded?: () => void; pauseAtSec?: number }>;
+  firedRef: React.MutableRefObject<boolean>;
+  fill?: boolean;
+}) {
 
 function VimeoPlayer({
   video,
