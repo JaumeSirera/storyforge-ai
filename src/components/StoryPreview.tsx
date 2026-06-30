@@ -204,13 +204,8 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
                   {node.narrative}
                 </p>
               )}
-              {!ended && !node.isEnding && q && !questionReady && (
-                <p className="text-[11px] text-white/80 italic">
-                  {trig.mode === "time"
-                    ? `La pregunta aparecerá en ${Math.floor(trig.seconds / 60)}:${String(Math.round(trig.seconds % 60)).padStart(2, "0")}.`
-                    : "La pregunta aparecerá al terminar el vídeo."}
-                </p>
-              )}
+
+
 
               {!ended && !node.isEnding && q && questionReady && (
                 <div className="space-y-2">

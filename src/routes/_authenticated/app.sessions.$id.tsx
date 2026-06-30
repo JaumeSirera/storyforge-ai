@@ -400,13 +400,8 @@ function ScenePlayback({
 
 
 
-            {q && !feedback && !questionReady && (
-              <p className="text-xs text-white/80 italic">
-                {trig.mode === "time"
-                  ? `La pregunta aparecerá en ${formatMmSs(trig.seconds)}.`
-                  : "La pregunta aparecerá al terminar el vídeo."}
-              </p>
-            )}
+
+
 
             {q && questionReady && !feedback && (
               <div className="space-y-3">
@@ -461,13 +456,8 @@ function ScenePlayback({
 
 
 
-      {q && !feedback && !questionReady && (
-        <p className="text-xs text-muted-foreground italic">
-          {trig.mode === "time"
-            ? `La pregunta aparecerá en ${formatMmSs(trig.seconds)}.`
-            : "La pregunta aparecerá al terminar el vídeo."}
-        </p>
-      )}
+
+
 
       {q && questionReady && !feedback && (
         <div className="space-y-3">
