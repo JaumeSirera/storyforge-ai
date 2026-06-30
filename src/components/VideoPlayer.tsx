@@ -54,9 +54,10 @@ interface SingleVideoProps {
   pauseAtSec?: number;
   onPauseAtTime?: () => void;
   onEnded?: () => void;
+  fill?: boolean;
 }
 
-function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded }: SingleVideoProps) {
+function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, fill }: SingleVideoProps) {
   const cbsRef = useRef({ onPauseAtTime, onEnded, pauseAtSec });
   useEffect(() => {
     cbsRef.current = { onPauseAtTime, onEnded, pauseAtSec };
