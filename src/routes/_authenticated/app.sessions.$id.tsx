@@ -458,23 +458,8 @@ function ScenePlayback({
         </CardContent>
       </Card>
 
-      {feedback && (
-        <Card className="border-primary/40 bg-accent/40">
-          <CardContent className="pt-6 flex items-start gap-3">
-            {feedback.points >= 0 ? (
-              <CheckCircle2 className="h-5 w-5 text-success shrink-0 mt-0.5" />
-            ) : (
-              <XCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-            )}
-            <div>
-              <div className="font-semibold">
-                {feedback.points >= 0 ? "+" : ""}{feedback.points} puntos
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">{feedback.feedback}</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
+
 
       {q && !feedback && !questionReady && (
         <p className="text-xs text-muted-foreground italic">
