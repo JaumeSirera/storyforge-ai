@@ -211,16 +211,6 @@ function VimeoPlayer({
   firedRef: React.MutableRefObject<boolean>;
   fill?: boolean;
 }) {
-
-function VimeoPlayer({
-  video,
-  cbsRef,
-  firedRef,
-}: {
-  video: Extract<VideoSource, { type: "vimeo" }>;
-  cbsRef: React.MutableRefObject<{ onPauseAtTime?: () => void; onEnded?: () => void; pauseAtSec?: number }>;
-  firedRef: React.MutableRefObject<boolean>;
-}) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const id = getVimeoId(video.url);
   const src = id
