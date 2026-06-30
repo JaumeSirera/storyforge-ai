@@ -73,6 +73,10 @@ function Player({
   const [submitting, setSubmitting] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [windowed, setWindowed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(`session-windowed:${sessionId}`) === "1";
+  });
 
   const prefKey = `session-fullscreen:${sessionId}`;
 
