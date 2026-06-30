@@ -196,7 +196,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
         />
 
         {/* Bottom overlay: narrative + feedback + question/choices */}
-        {(node.narrative || lastFeedback || (!ended && !node.isEnding && q)) && (
+        {(node.narrative || (!ended && !node.isEnding && q)) && (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/60 to-transparent p-4 pt-16">
             <div className="pointer-events-auto space-y-3 max-h-[70%] overflow-y-auto">
               {node.narrative && (
@@ -205,7 +205,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
                 </p>
               )}
 
-              {lastFeedback && (
+
                 <div className="rounded-md border border-white/20 bg-black/50 backdrop-blur-md p-3 text-sm text-white">
                   <div className="font-medium mb-1">
                     Feedback ({lastFeedback.points >= 0 ? "+" : ""}{lastFeedback.points} pts)
