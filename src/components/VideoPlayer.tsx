@@ -75,6 +75,8 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, fill }: Single
     return () => clearTimeout(t);
   }, [video]);
 
+  const sizeCls = fill ? "absolute inset-0 h-full w-full" : "aspect-video w-full rounded-xl";
+
   /* ---------- MP4 ---------- */
   if (video.type === "mp4") {
     return (
@@ -84,7 +86,7 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, fill }: Single
         controls
         autoPlay
         playsInline
-        className="w-full aspect-video rounded-xl bg-black"
+        className={`${sizeCls} bg-black ${fill ? "object-contain" : ""}`}
         onTimeUpdate={(e) => {
           const cur = e.currentTarget.currentTime;
           const tgt = cbsRef.current.pauseAtSec;
@@ -101,7 +103,7 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, fill }: Single
 
   if (video.type === "none") {
     return (
-      <div className="aspect-video w-full grid place-items-center rounded-xl bg-gradient-to-br from-secondary to-accent text-muted-foreground">
+      <div className={`${sizeCls} grid place-items-center bg-gradient-to-br from-secondary to-accent text-muted-foreground`}>
         <span className="text-sm">Escena narrada (sin vídeo)</span>
       </div>
     );
@@ -109,12 +111,12 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, fill }: Single
 
   /* ---------- YouTube ---------- */
   if (video.type === "youtube") {
-    return <YouTubePlayer video={video} cbsRef={cbsRef} firedRef={firedRef} />;
+    return <YouTubePlayer video={video} cbsRef={cbsRef} firedRef={firedRef} fill={fill} />;
   }
 
   /* ---------- Vimeo ---------- */
   if (video.type === "vimeo") {
-    return <VimeoPlayer video={video} cbsRef={cbsRef} firedRef={firedRef} />;
+    return <VimeoPlayer video={video} cbsRef={cbsRef} firedRef={firedRef} fill={fill} />;
   }
 
   return null;
