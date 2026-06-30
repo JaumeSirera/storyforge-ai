@@ -5,7 +5,7 @@ import { Sparkles, Film, GitBranch, BarChart3, Award, ArrowRight } from "lucide-
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Playloop — Simulaciones profesionales gamificadas con IA" },
+      { title: "PlayGame — Simulaciones profesionales gamificadas con IA" },
       {
         name: "description",
         content:
@@ -40,7 +40,7 @@ function Header() {
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
             <Sparkles className="h-4 w-4" />
           </span>
-          Playloop
+          PlayGame
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
           <a href="#features" className="hover:text-foreground">Funciones</a>
@@ -247,7 +247,7 @@ function CTA() {
 function Footer() {
   return (
     <footer className="border-t border-border/60 py-10 text-center text-sm text-muted-foreground">
-      © {new Date().getFullYear()} Playloop. Simulaciones profesionales con IA.
+      © {new Date().getFullYear()} PlayGame. Simulaciones profesionales con IA.
     </footer>
   );
 }
