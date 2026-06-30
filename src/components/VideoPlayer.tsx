@@ -275,6 +275,7 @@ export function VideoPlayer({
   pauseAtSec,
   onPauseAtTime,
   onEnded,
+  fill,
 }: {
   video?: VideoSource;
   videos?: VideoClip[];
@@ -284,6 +285,8 @@ export function VideoPlayer({
   pauseAtSec?: number;
   onPauseAtTime?: () => void;
   onEnded?: () => void;
+  /** Make the player fill its (positioned) container instead of using aspect-video. */
+  fill?: boolean;
 }) {
   const clips: VideoClip[] = useMemo(() => {
     if (videos && videos.length > 0) return videos;
@@ -307,7 +310,39 @@ export function VideoPlayer({
         pauseAtSec={pauseAtSec}
         onPauseAtTime={onPauseAtTime}
         onEnded={onEnded}
+        fill={fill}
       />
+    );
+  }
+
+  if (fill) {
+    return (
+      <>
+        <SingleVideo
+          key={active.id}
+          video={active.source}
+          pauseAtSec={pauseAtSec}
+          onPauseAtTime={onPauseAtTime}
+          onEnded={onEnded}
+          fill
+        />
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex flex-wrap gap-1.5 pointer-events-auto">
+          {clips.map((c, i) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => select(c.id)}
+              className={`text-xs rounded-full border px-3 py-1 backdrop-blur-md transition ${
+                c.id === active.id
+                  ? "border-primary bg-primary/80 text-primary-foreground"
+                  : "border-white/30 bg-black/40 text-white hover:bg-black/60"
+              }`}
+            >
+              {c.label || `Clip ${i + 1}`}
+            </button>
+          ))}
+        </div>
+      </>
     );
   }
 
