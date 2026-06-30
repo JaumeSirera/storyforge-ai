@@ -252,16 +252,20 @@ function VimeoPlayer({
     };
   }, [src]);
 
+  const wrapCls = fill
+    ? "absolute inset-0 h-full w-full overflow-hidden bg-black"
+    : "aspect-video w-full overflow-hidden rounded-xl bg-black";
+
   if (!src) {
     return (
-      <div className="aspect-video w-full grid place-items-center rounded-xl bg-muted text-muted-foreground text-sm">
+      <div className={`${wrapCls} grid place-items-center text-muted-foreground text-sm`}>
         URL de Vimeo no válida
       </div>
     );
   }
 
   return (
-    <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
+    <div className={wrapCls}>
       <iframe
         ref={iframeRef}
         src={src}
