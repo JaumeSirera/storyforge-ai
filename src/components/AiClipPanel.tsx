@@ -102,7 +102,12 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState(source.prompt ?? "");
   const [durationSec, setDurationSec] = useState<5 | 10>((source.durationSec as 5 | 10) ?? 5);
-  const [characterId, setCharacterId] = useState<string | null>(source.characterId ?? null);
+  const [characterIds, setCharacterIds] = useState<string[]>(
+    source.characterId ? [source.characterId] : [],
+  );
+  const [useFirstAsReference, setUseFirstAsReference] = useState<boolean>(
+    !!source.characterId,
+  );
   const [consent, setConsent] = useState(false);
   const [starting, setStarting] = useState(false);
 
