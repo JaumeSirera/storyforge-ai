@@ -48,6 +48,15 @@ function fmtElapsed(sec?: number) {
   const s = sec % 60;
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
+
+// Coste estimado del modelo wan-2.2-t2v-fast en Replicate (~$0.05 / segundo generado).
+const COST_PER_SECOND_USD = 0.05;
+function estimateCostUsd(durationSec: number) {
+  return +(durationSec * COST_PER_SECOND_USD).toFixed(3);
+}
+function fmtUsd(usd: number) {
+  return `$${usd.toFixed(usd < 1 ? 3 : 2)}`;
+}
 import type { VideoSource } from "@/lib/story-types";
 
 type AiSource = Extract<VideoSource, { type: "ai" }>;
