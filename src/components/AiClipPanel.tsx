@@ -96,6 +96,7 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
   const listFn = useServerFn(listCharacters);
   const createFn = useServerFn(createCharacter);
   const deleteFn = useServerFn(deleteCharacter);
+  const generateCharFn = useServerFn(generateCharacterImage);
   const qc = useQueryClient();
 
   const [open, setOpen] = useState(false);
