@@ -57,6 +57,86 @@ interface SingleVideoProps {
   fill?: boolean;
 }
 
+type CbsRef = React.MutableRefObject<{
+  onPauseAtTime?: () => void;
+  onEnded?: () => void;
+  pauseAtSec?: number;
+}>;
+
+function MediaWithDialogue({
+  src,
+  dialogueUrl,
+  sizeCls,
+  fill,
+  cbsRef,
+  firedRef,
+}: {
+  src: string;
+  dialogueUrl: string | null;
+  sizeCls: string;
+  fill?: boolean;
+  cbsRef: CbsRef;
+  firedRef: React.MutableRefObject<boolean>;
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Keep audio in sync with video events.
+  useEffect(() => {
+    const v = videoRef.current;
+    const a = audioRef.current;
+    if (!v || !a) return;
+    const sync = () => {
+      if (Math.abs(a.currentTime - v.currentTime) > 0.25) a.currentTime = v.currentTime;
+    };
+    const onPlay = () => {
+      sync();
+      a.play().catch(() => {});
+    };
+    const onPause = () => a.pause();
+    const onSeeked = () => (a.currentTime = v.currentTime);
+    const onRate = () => (a.playbackRate = v.playbackRate);
+    v.addEventListener("play", onPlay);
+    v.addEventListener("pause", onPause);
+    v.addEventListener("seeked", onSeeked);
+    v.addEventListener("ratechange", onRate);
+    return () => {
+      v.removeEventListener("play", onPlay);
+      v.removeEventListener("pause", onPause);
+      v.removeEventListener("seeked", onSeeked);
+      v.removeEventListener("ratechange", onRate);
+    };
+  }, [dialogueUrl, src]);
+
+  return (
+    <>
+      <video
+        ref={videoRef}
+        src={src}
+        controls
+        autoPlay
+        playsInline
+        className={`${sizeCls} bg-black ${fill ? "object-contain" : ""}`}
+        onTimeUpdate={(e) => {
+          const cur = e.currentTarget.currentTime;
+          const tgt = cbsRef.current.pauseAtSec;
+          if (tgt && !firedRef.current && cur >= tgt) {
+            firedRef.current = true;
+            e.currentTarget.pause();
+            cbsRef.current.onPauseAtTime?.();
+          }
+        }}
+        onEnded={() => {
+          audioRef.current?.pause();
+          cbsRef.current.onEnded?.();
+        }}
+      />
+      {dialogueUrl && <audio ref={audioRef} src={dialogueUrl} preload="auto" />}
+    </>
+  );
+}
+
+
 function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, fill }: SingleVideoProps) {
   const cbsRef = useRef({ onPauseAtTime, onEnded, pauseAtSec });
   useEffect(() => {
