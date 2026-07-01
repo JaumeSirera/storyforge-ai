@@ -297,7 +297,7 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
     if (!confirm("¿Eliminar este personaje?")) return;
     try {
       await deleteFn({ data: { id } });
-      if (characterId === id) setCharacterId(null);
+      setCharacterIds((prev) => prev.filter((x) => x !== id));
       await qc.invalidateQueries({ queryKey: ["characters"] });
     } catch (err: any) {
       toast.error(err?.message ?? "No se pudo eliminar");
