@@ -107,15 +107,7 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
           logsTail: res.logsTail,
           elapsedSec: res.elapsedSec,
         });
-          onChange({ status: "ready", url: res.url, storagePath: res.storagePath });
-          toast.success("Vídeo generado con IA");
-          return;
-        }
-        if (res.status === "failed") {
-          onChange({ status: "failed", error: res.error });
-          toast.error(`Generación fallida: ${res.error}`);
-          return;
-        }
+      } catch (err: any) {
       } catch (err: any) {
         // Transient: keep polling.
         console.warn("poll error", err?.message);
