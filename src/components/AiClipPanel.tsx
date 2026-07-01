@@ -37,6 +37,7 @@ import {
   UserPlus,
   Trash2,
   ImagePlus,
+  Wand2,
 } from "lucide-react";
 import type { JobStage } from "@/lib/ai-video.functions";
 import type { VideoSource } from "@/lib/story-types";
