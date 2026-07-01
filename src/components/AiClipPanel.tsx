@@ -261,7 +261,7 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
         },
       });
       await qc.invalidateQueries({ queryKey: ["characters"] });
-      setCharacterId(created.id);
+      setCharacterIds((prev) => (prev.includes(created.id) ? prev : [...prev, created.id]));
       setNewCharOpen(false);
       setNewName("");
       setNewDesc("");
