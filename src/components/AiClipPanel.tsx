@@ -220,13 +220,15 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
   };
 
   const handleCreateCharacter = async () => {
-    if (!newFile) return toast.error("Selecciona una imagen");
+    const hasFile = !!newFile;
+    const hasAi = !!aiPreviewDataUrl;
+    if (!hasFile && !hasAi) return toast.error("Sube o genera una imagen");
     if (!newName.trim()) return toast.error("Escribe un nombre");
-    if (!newConsent) return toast.error("Confirma el consentimiento");
-    if (newFile.size > 8 * 1024 * 1024) return toast.error("Imagen > 8 MB");
+    if (!newConsent) return toast.error("Confirma el consentimiento / ficticio");
+    if (hasFile && newFile!.size > 8 * 1024 * 1024) return toast.error("Imagen > 8 MB");
     setCreating(true);
     try {
-      const dataUrl = await fileToDataUrl(newFile);
+      const dataUrl = hasAi ? aiPreviewDataUrl! : await fileToDataUrl(newFile!);
       const created = await createFn({
         data: {
           name: newName.trim(),
@@ -242,6 +244,8 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
       setNewDesc("");
       setNewFile(null);
       setNewConsent(false);
+      setAiPreviewDataUrl(null);
+      setAiPrompt("");
       toast.success("Personaje guardado");
     } catch (err: any) {
       toast.error(err?.message ?? "No se pudo guardar el personaje");
@@ -249,6 +253,22 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
       setCreating(false);
     }
   };
+
+  const handleGenerateAiCharacter = async () => {
+    if (aiPrompt.trim().length < 5) return toast.error("Describe el personaje (mín. 5 caracteres)");
+    setGeneratingAi(true);
+    try {
+      const res = await generateCharFn({ data: { prompt: aiPrompt.trim(), model: aiModel } });
+      setAiPreviewDataUrl(res.imageDataUrl);
+      setNewFile(null);
+      toast.success("Personaje generado. Revísalo y guárdalo si te gusta.");
+    } catch (err: any) {
+      toast.error(err?.message ?? "No se pudo generar");
+    } finally {
+      setGeneratingAi(false);
+    }
+  };
+
 
   const handleDeleteCharacter = async (id: string) => {
     if (!confirm("¿Eliminar este personaje?")) return;
