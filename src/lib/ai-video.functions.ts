@@ -62,10 +62,34 @@ const PollInput = z.object({
   simulationId: z.string().uuid(),
 });
 
+export type JobStage =
+  | "queued"
+  | "running"
+  | "uploading"
+  | "finished"
+  | "failed";
+
 type PollResult =
-  | { status: "pending" }
-  | { status: "ready"; url: string; storagePath: string }
-  | { status: "failed"; error: string };
+  | { status: "pending"; stage: JobStage; progress: number; logsTail?: string; startedAt?: string | null; elapsedSec?: number }
+  | { status: "ready"; stage: "finished"; progress: 100; url: string; storagePath: string; elapsedSec?: number }
+  | { status: "failed"; stage: "failed"; progress: number; error: string; logsTail?: string };
+
+function tailLogs(logs: string | null | undefined, maxLines = 8): string | undefined {
+  if (!logs) return undefined;
+  const lines = logs.trim().split(/\r?\n/);
+  return lines.slice(-maxLines).join("\n");
+}
+
+// Rough progress heuristic: Replicate doesn't expose a percentage for video models.
+function estimateProgress(stage: JobStage, elapsedSec: number): number {
+  switch (stage) {
+    case "queued": return Math.min(10, 2 + elapsedSec);
+    case "running": return Math.min(85, 15 + Math.round((elapsedSec / 120) * 70));
+    case "uploading": return 92;
+    case "finished": return 100;
+    case "failed": return 0;
+  }
+}
 
 export const pollAiVideoGeneration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -76,27 +100,42 @@ export const pollAiVideoGeneration = createServerFn({ method: "POST" })
     });
     const body = await res.text();
     if (!res.ok) {
-      return { status: "failed", error: `Replicate ${res.status}: ${body.slice(0, 200)}` };
+      return { status: "failed", stage: "failed", progress: 0, error: `Replicate ${res.status}: ${body.slice(0, 200)}` };
     }
     const json = JSON.parse(body) as {
       status: "starting" | "processing" | "succeeded" | "failed" | "canceled";
       output: string | string[] | null;
       error: string | null;
+      logs?: string | null;
+      created_at?: string | null;
+      started_at?: string | null;
+      completed_at?: string | null;
     };
 
+    const startedAt = json.started_at ?? json.created_at ?? null;
+    const elapsedSec = startedAt ? Math.max(0, Math.round((Date.now() - new Date(startedAt).getTime()) / 1000)) : 0;
+    const logsTail = tailLogs(json.logs);
+
     if (json.status === "failed" || json.status === "canceled") {
-      return { status: "failed", error: json.error ?? json.status };
+      return { status: "failed", stage: "failed", progress: 0, error: json.error ?? json.status, logsTail };
     }
     if (json.status !== "succeeded" || !json.output) {
-      return { status: "pending" };
+      const stage: JobStage = json.status === "starting" ? "queued" : "running";
+      return {
+        status: "pending",
+        stage,
+        progress: estimateProgress(stage, elapsedSec),
+        logsTail,
+        startedAt,
+        elapsedSec,
+      };
     }
 
     const outputUrl = Array.isArray(json.output) ? json.output[0] : json.output;
 
-    // Fetch the MP4 and persist it to the private `videos` bucket.
     const videoRes = await fetch(outputUrl);
     if (!videoRes.ok) {
-      return { status: "failed", error: `No se pudo descargar el vídeo generado (${videoRes.status})` };
+      return { status: "failed", stage: "failed", progress: 0, error: `No se pudo descargar el vídeo generado (${videoRes.status})`, logsTail };
     }
     const buf = new Uint8Array(await videoRes.arrayBuffer());
 
@@ -105,12 +144,12 @@ export const pollAiVideoGeneration = createServerFn({ method: "POST" })
     const { error: upErr } = await supabaseAdmin.storage
       .from("videos")
       .upload(storagePath, buf, { contentType: "video/mp4", upsert: true });
-    if (upErr) return { status: "failed", error: upErr.message };
+    if (upErr) return { status: "failed", stage: "failed", progress: 0, error: upErr.message, logsTail };
 
     const { data: signed, error: signErr } = await supabaseAdmin.storage
       .from("videos")
       .createSignedUrl(storagePath, SIGNED_URL_TTL);
-    if (signErr || !signed) return { status: "failed", error: signErr?.message ?? "sign failed" };
+    if (signErr || !signed) return { status: "failed", stage: "failed", progress: 0, error: signErr?.message ?? "sign failed", logsTail };
 
-    return { status: "ready", url: signed.signedUrl, storagePath };
+    return { status: "ready", stage: "finished", progress: 100, url: signed.signedUrl, storagePath, elapsedSec };
   });
