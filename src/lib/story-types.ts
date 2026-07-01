@@ -34,6 +34,15 @@ export type VideoSource =
         status?: "idle" | "generating" | "ready" | "failed";
         error?: string;
       };
+      /** Optional lip-sync pass: video with mouths synced to the dialogue audio. */
+      lipsync?: {
+        status: "idle" | "generating" | "ready" | "failed";
+        predictionId?: string;
+        url?: string | null;
+        storagePath?: string;
+        progress?: number;
+        error?: string;
+      };
       startSec?: number;
       endSec?: number;
     }
