@@ -108,7 +108,6 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
           elapsedSec: res.elapsedSec,
         });
       } catch (err: any) {
-      } catch (err: any) {
         // Transient: keep polling.
         console.warn("poll error", err?.message);
       }
