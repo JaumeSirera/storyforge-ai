@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { startAiVideoGeneration, pollAiVideoGeneration } from "@/lib/ai-video.functions";
 import { generateClipDialogue, TTS_VOICES } from "@/lib/tts.functions";
+import { startLipsync, pollLipsync, estimateLipsyncCostUsd } from "@/lib/lipsync.functions";
 import { listCharacters, createCharacter, deleteCharacter, generateCharacterImage, type CharacterDTO } from "@/lib/characters.functions";
 
 import { Button } from "@/components/ui/button";
