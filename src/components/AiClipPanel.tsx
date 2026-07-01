@@ -441,6 +441,76 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
           </div>
         )}
 
+        {source.status === "ready" && (
+          <div className="rounded-md border bg-background/60 p-2.5 space-y-2">
+            <div className="flex items-center gap-2 text-xs font-medium">
+              <Mic className="h-3.5 w-3.5 text-primary" />
+              Diálogo del personaje (voz IA)
+              {dialogue?.status === "ready" && (
+                <Badge variant="outline" className="ml-auto py-0 text-[10px] text-emerald-600 border-emerald-600/40">
+                  Voz lista
+                </Badge>
+              )}
+              {dialogue?.status === "generating" && (
+                <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Generando voz…
+                </span>
+              )}
+              {dialogue?.status === "failed" && (
+                <Badge variant="outline" className="ml-auto py-0 text-[10px] text-destructive border-destructive/40">
+                  Fallido
+                </Badge>
+              )}
+            </div>
+            <Textarea
+              rows={2}
+              value={dialogueText}
+              onChange={(e) => setDialogueText(e.target.value)}
+              placeholder="Ej. Buenos días, ¿en qué puedo ayudarle hoy?"
+              className="text-xs"
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={voiceId} onValueChange={setVoiceId}>
+                <SelectTrigger className="h-8 w-auto text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TTS_VOICES.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.name}
+                      {v.hint ? ` — ${v.hint}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleGenerateDialogue}
+                disabled={generatingDialogue || dialogueText.trim().length < 2}
+              >
+                {generatingDialogue ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                ) : (
+                  <Volume2 className="h-3.5 w-3.5 mr-1" />
+                )}
+                {dialogue?.status === "ready" ? "Regenerar voz" : "Generar voz"}
+              </Button>
+              {dialogue?.status === "ready" && dialogue.audioUrl && (
+                <audio src={dialogue.audioUrl} controls className="h-8 max-w-[220px]" />
+              )}
+            </div>
+            {dialogue?.error && (
+              <p className="text-[11px] text-destructive">{dialogue.error}</p>
+            )}
+            <p className="text-[10px] text-muted-foreground">
+              La voz se sincroniza con el clip mudo durante la reproducción (no hay lip-sync labial).
+            </p>
+          </div>
+        )}
+
+
+
         <div className="flex flex-wrap gap-2 pt-1">
           <Button type="button" size="sm" variant="outline" onClick={() => setOpen(true)}>
             {source.status === "ready" ? (
