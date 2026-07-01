@@ -77,12 +77,13 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, fill }: Single
 
   const sizeCls = fill ? "absolute inset-0 h-full w-full" : "aspect-video w-full rounded-xl";
 
-  /* ---------- MP4 ---------- */
-  if (video.type === "mp4") {
+  /* ---------- MP4 (also used for ready AI clips) ---------- */
+  if (video.type === "mp4" || (video.type === "ai" && video.status === "ready" && video.url)) {
+    const url = video.url as string;
     return (
       <video
-        key={video.url}
-        src={video.url}
+        key={url}
+        src={url}
         controls
         autoPlay
         playsInline
@@ -98,6 +99,18 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, fill }: Single
         }}
         onEnded={() => cbsRef.current.onEnded?.()}
       />
+    );
+  }
+
+  if (video.type === "ai") {
+    const label =
+      video.status === "failed"
+        ? `Generación fallida${video.error ? `: ${video.error}` : ""}`
+        : "Generando vídeo con IA...";
+    return (
+      <div className={`${sizeCls} grid place-items-center bg-gradient-to-br from-secondary to-accent text-muted-foreground text-center px-6`}>
+        <span className="text-sm">{label}</span>
+      </div>
     );
   }
 
