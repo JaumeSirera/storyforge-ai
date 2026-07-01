@@ -579,10 +579,75 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
               <p className="text-[11px] text-destructive">{dialogue.error}</p>
             )}
             <p className="text-[10px] text-muted-foreground">
-              La voz se sincroniza con el clip mudo durante la reproducción (no hay lip-sync labial).
+              La voz se sincroniza con el clip mudo durante la reproducción. Para labios sincronizados,
+              aplica lip-sync abajo.
             </p>
           </div>
         )}
+
+        {source.status === "ready" && dialogue?.status === "ready" && dialogue.audioUrl && (
+          <div className="rounded-md border bg-background/60 p-2.5 space-y-2">
+            <div className="flex items-center gap-2 text-xs font-medium">
+              <Wand2 className="h-3.5 w-3.5 text-primary" />
+              Lip-sync labial (opcional)
+              {source.lipsync?.status === "ready" && (
+                <Badge variant="outline" className="ml-auto py-0 text-[10px] text-emerald-600 border-emerald-600/40">
+                  Aplicado
+                </Badge>
+              )}
+              {source.lipsync?.status === "generating" && (
+                <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Procesando…
+                </span>
+              )}
+              {source.lipsync?.status === "failed" && (
+                <Badge variant="outline" className="ml-auto py-0 text-[10px] text-destructive border-destructive/40">
+                  Fallido
+                </Badge>
+              )}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Sincroniza los labios del personaje con la voz generada usando <code>sync/lipsync-2</code>.
+              El MP4 final se actualiza con el audio integrado. Coste estimado:{" "}
+              <span className="font-medium text-foreground">
+                {fmtUsd(estimateLipsyncCostUsd(source.durationSec ?? 5))}
+              </span>. Tarda 1-3 min.
+            </p>
+            {source.lipsync?.status === "generating" && (
+              <Progress value={source.lipsync.progress ?? 10} className="h-1.5" />
+            )}
+            {source.lipsync?.error && (
+              <p className="text-[11px] text-destructive">{source.lipsync.error}</p>
+            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={source.lipsync?.status === "ready" ? "outline" : "default"}
+                onClick={handleStartLipsync}
+                disabled={startingLipsync || source.lipsync?.status === "generating"}
+              >
+                {startingLipsync || source.lipsync?.status === "generating" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                ) : (
+                  <Wand2 className="h-3.5 w-3.5 mr-1" />
+                )}
+                {source.lipsync?.status === "ready" ? "Regenerar lip-sync" : "Aplicar lip-sync"}
+              </Button>
+              {source.lipsync?.status === "ready" && source.lipsync.url && (
+                <a
+                  href={source.lipsync.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[11px] text-primary underline"
+                >
+                  Ver MP4 sincronizado
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
 
 
 
