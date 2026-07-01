@@ -20,8 +20,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Sparkles, RefreshCw } from "lucide-react";
+import { Loader2, Sparkles, RefreshCw, CheckCircle2, XCircle, Clock, Cog, UploadCloud } from "lucide-react";
+import type { JobStage } from "@/lib/ai-video.functions";
+
+interface JobProgress {
+  stage: JobStage;
+  progress: number;
+  logsTail?: string;
+  elapsedSec?: number;
+  error?: string;
+}
+
+const STAGE_META: Record<JobStage, { label: string; Icon: typeof Loader2; tone: string }> = {
+  queued:    { label: "En cola",     Icon: Clock,       tone: "text-muted-foreground" },
+  running:   { label: "Generando",   Icon: Cog,         tone: "text-primary" },
+  uploading: { label: "Subiendo",    Icon: UploadCloud, tone: "text-primary" },
+  finished:  { label: "Finalizado",  Icon: CheckCircle2, tone: "text-emerald-600" },
+  failed:    { label: "Fallido",     Icon: XCircle,     tone: "text-destructive" },
+};
+
+function fmtElapsed(sec?: number) {
+  if (!sec || sec < 0) return "0s";
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
 import type { VideoSource } from "@/lib/story-types";
 
 type AiSource = Extract<VideoSource, { type: "ai" }>;
@@ -41,6 +67,15 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
   const [durationSec, setDurationSec] = useState<5 | 10>((source.durationSec as 5 | 10) ?? 5);
   const [consent, setConsent] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [progress, setProgress] = useState<JobProgress | null>(
+    source.status === "pending"
+      ? { stage: "queued", progress: 5 }
+      : source.status === "failed"
+      ? { stage: "failed", progress: 0, error: source.error }
+      : source.status === "ready"
+      ? { stage: "finished", progress: 100 }
+      : null,
+  );
 
   // Poll while a job is pending.
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -55,15 +90,23 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
         });
         if (cancelled) return;
         if (res.status === "ready") {
+          setProgress({ stage: "finished", progress: 100, elapsedSec: res.elapsedSec });
           onChange({ status: "ready", url: res.url, storagePath: res.storagePath });
           toast.success("Vídeo generado con IA");
           return;
         }
         if (res.status === "failed") {
+          setProgress({ stage: "failed", progress: 0, error: res.error, logsTail: res.logsTail });
           onChange({ status: "failed", error: res.error });
           toast.error(`Generación fallida: ${res.error}`);
           return;
         }
+        setProgress({
+          stage: res.stage,
+          progress: res.progress,
+          logsTail: res.logsTail,
+          elapsedSec: res.elapsedSec,
+        });
       } catch (err: any) {
         // Transient: keep polling.
         console.warn("poll error", err?.message);
@@ -126,9 +169,41 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
         {source.prompt && (
           <p className="text-xs text-muted-foreground line-clamp-3">“{source.prompt}”</p>
         )}
-        {source.status === "failed" && source.error && (
-          <p className="text-xs text-destructive">{source.error}</p>
+
+        {progress && (source.status === "pending" || source.status === "failed" || source.status === "ready") && (
+          <div className="rounded-md border bg-background/60 p-2.5 space-y-2">
+            <div className="flex items-center gap-2 text-xs">
+              {(() => {
+                const meta = STAGE_META[progress.stage];
+                const Icon = meta.Icon;
+                const spinning = progress.stage === "queued" || progress.stage === "running" || progress.stage === "uploading";
+                return (
+                  <>
+                    <Icon className={`h-3.5 w-3.5 ${meta.tone} ${spinning ? "animate-spin" : ""}`} />
+                    <span className={`font-medium ${meta.tone}`}>{meta.label}</span>
+                    <Badge variant="outline" className="ml-1 py-0 text-[10px]">
+                      {progress.progress}%
+                    </Badge>
+                    {typeof progress.elapsedSec === "number" && (
+                      <span className="ml-auto text-muted-foreground">{fmtElapsed(progress.elapsedSec)}</span>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+            <Progress value={progress.progress} className="h-1.5" />
+            {progress.logsTail && (
+              <pre className="max-h-24 overflow-auto rounded bg-muted/60 p-1.5 text-[10px] leading-tight text-muted-foreground whitespace-pre-wrap">
+                {progress.logsTail}
+              </pre>
+            )}
+            {progress.error && (
+              <p className="text-xs text-destructive">{progress.error}</p>
+            )}
+          </div>
         )}
+
+
         <div className="flex flex-wrap gap-2 pt-1">
           <Button type="button" size="sm" variant="outline" onClick={() => setOpen(true)}>
             {source.status === "ready" ? (
