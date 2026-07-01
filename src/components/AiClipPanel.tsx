@@ -521,55 +521,110 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
               )}
 
 
+              {cast.length > 0 && (
+                <div className="rounded-md border bg-primary/5 p-2 text-xs space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">
+                      Reparto seleccionado ({cast.length})
+                    </span>
+                    <button
+                      type="button"
+                      className="text-[11px] text-muted-foreground hover:text-destructive"
+                      onClick={() => setCharacterIds([])}
+                    >
+                      Quitar todos
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {cast.map((c) => c.name).join(" · ")}
+                  </p>
+                  {cast.length >= 1 && (
+                    <label className="flex items-center gap-2 text-[11px] cursor-pointer pt-1">
+                      <input
+                        type="checkbox"
+                        className="h-3.5 w-3.5"
+                        checked={useFirstAsReference}
+                        onChange={(e) => setUseFirstAsReference(e.target.checked)}
+                      />
+                      <span>
+                        Usar <b>{cast[0].name}</b> como imagen de referencia (primer fotograma)
+                        {cast.length > 1 && <> — al resto se les describirá sólo en el prompt</>}
+                      </span>
+                    </label>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button
                   type="button"
-                  onClick={() => setCharacterId(null)}
+                  onClick={() => setCharacterIds([])}
                   className={`rounded-md border p-2 text-xs text-left ${
-                    characterId === null ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+                    characterIds.length === 0 ? "border-primary bg-primary/5" : "hover:bg-muted/50"
                   }`}
                 >
                   <div className="h-16 flex items-center justify-center text-muted-foreground">
-                    Sin personaje
+                    Sin personajes
                   </div>
                   <div className="mt-1 text-center text-[11px]">Texto → vídeo</div>
                 </button>
-                {(charsQuery.data ?? []).map((c: CharacterDTO) => (
-                  <div key={c.id} className="relative group">
-                    <button
-                      type="button"
-                      onClick={() => setCharacterId(c.id)}
-                      className={`w-full rounded-md border p-1.5 text-xs text-left ${
-                        characterId === c.id ? "border-primary bg-primary/5" : "hover:bg-muted/50"
-                      }`}
-                    >
-                      {c.imageUrl ? (
-                        <img src={c.imageUrl} alt={c.name} className="h-16 w-full object-cover rounded" />
-                      ) : (
-                        <div className="h-16 bg-muted rounded" />
-                      )}
-                      <div className="mt-1 truncate text-center text-[11px] font-medium">{c.name}</div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteCharacter(c.id)}
-                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 bg-background/90 border rounded p-0.5"
-                      title="Eliminar"
-                    >
-                      <Trash2 className="h-3 w-3 text-destructive" />
-                    </button>
-                  </div>
-                ))}
+                {(charsQuery.data ?? []).map((c: CharacterDTO) => {
+                  const idx = characterIds.indexOf(c.id);
+                  const selected = idx >= 0;
+                  const toggle = () =>
+                    setCharacterIds((prev) =>
+                      prev.includes(c.id) ? prev.filter((x) => x !== c.id) : [...prev, c.id],
+                    );
+                  return (
+                    <div key={c.id} className="relative group">
+                      <button
+                        type="button"
+                        onClick={toggle}
+                        className={`w-full rounded-md border p-1.5 text-xs text-left ${
+                          selected ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+                        }`}
+                      >
+                        {c.imageUrl ? (
+                          <img src={c.imageUrl} alt={c.name} className="h-16 w-full object-cover rounded" />
+                        ) : (
+                          <div className="h-16 bg-muted rounded" />
+                        )}
+                        <div className="mt-1 truncate text-center text-[11px] font-medium">{c.name}</div>
+                        {selected && (
+                          <div className="absolute top-1 left-1 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
+                            {idx + 1}
+                          </div>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCharacter(c.id)}
+                        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 bg-background/90 border rounded p-0.5"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="h-3 w-3 text-destructive" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
               {charsQuery.isLoading && (
                 <p className="text-[11px] text-muted-foreground">Cargando personajes…</p>
               )}
               <p className="text-[11px] text-muted-foreground">
-                {characterId
-                  ? "Modelo: wan-2.2-i2v-fast (image-to-video). La imagen se usará como primer fotograma."
-                  : "Modelo: wan-2.2-t2v-fast (text-to-video)."}
+                {referenceChar
+                  ? `Modelo: wan-2.2-i2v-fast (image-to-video). Referencia: ${referenceChar.name}.`
+                  : "Modelo: wan-2.2-t2v-fast (text-to-video). El reparto se describe automáticamente en el prompt."}
               </p>
+
+              {cast.length > 0 && (
+                <div className="rounded-md border bg-muted/40 p-2 text-[11px]">
+                  <div className="font-medium mb-1">Prompt final que se enviará:</div>
+                  <p className="text-muted-foreground whitespace-pre-wrap">{composedPrompt || "(vacío)"}</p>
+                </div>
+              )}
             </div>
+
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
