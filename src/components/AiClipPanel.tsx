@@ -90,6 +90,23 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
         });
         if (cancelled) return;
         if (res.status === "ready") {
+          setProgress({ stage: "finished", progress: 100, elapsedSec: res.elapsedSec });
+          onChange({ status: "ready", url: res.url, storagePath: res.storagePath });
+          toast.success("Vídeo generado con IA");
+          return;
+        }
+        if (res.status === "failed") {
+          setProgress({ stage: "failed", progress: 0, error: res.error, logsTail: res.logsTail });
+          onChange({ status: "failed", error: res.error });
+          toast.error(`Generación fallida: ${res.error}`);
+          return;
+        }
+        setProgress({
+          stage: res.stage,
+          progress: res.progress,
+          logsTail: res.logsTail,
+          elapsedSec: res.elapsedSec,
+        });
           onChange({ status: "ready", url: res.url, storagePath: res.storagePath });
           toast.success("Vídeo generado con IA");
           return;
