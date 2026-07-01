@@ -408,6 +408,38 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
     }
   };
 
+  const handleStartLipsync = async () => {
+    if (source.status !== "ready" || !source.url) {
+      toast.error("Genera primero el clip.");
+      return;
+    }
+    if (!source.dialogue || source.dialogue.status !== "ready" || !source.dialogue.audioUrl) {
+      toast.error("Genera primero la voz del diálogo.");
+      return;
+    }
+    setStartingLipsync(true);
+    try {
+      const res = await startLipsyncFn({
+        data: { videoUrl: source.url, audioUrl: source.dialogue.audioUrl },
+      });
+      onChange({
+        lipsync: {
+          status: "generating",
+          predictionId: res.predictionId,
+          progress: 5,
+        },
+      });
+      toast.success("Lip-sync en cola. Puede tardar 1-3 minutos.");
+    } catch (err: any) {
+      onChange({ lipsync: { status: "failed", error: err?.message ?? "Fallo" } });
+      toast.error(err?.message ?? "No se pudo iniciar el lip-sync");
+    } finally {
+      setStartingLipsync(false);
+    }
+  };
+
+
+
 
   return (
     <div className="space-y-3">
