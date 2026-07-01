@@ -777,7 +777,7 @@ function EditSimulation() {
                               {src.type === "ai" ? (
                                 <div className="sm:col-span-2">
                                   <AiClipPanel
-                                    simulationId={simId}
+                                    simulationId={id}
                                     source={src}
                                     onChange={(patch) =>
                                       updateClipSource(nIdx, cIdx, { ...(src as any), ...patch } as VideoSource)
