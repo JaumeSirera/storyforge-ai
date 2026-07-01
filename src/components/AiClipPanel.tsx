@@ -267,15 +267,6 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
                 placeholder="Ej. Un comercial saluda al cliente en una oficina moderna, plano medio, luz natural..."
               />
             </div>
-            <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs space-y-0.5">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Coste estimado</span>
-                <span className="font-semibold">{fmtUsd(estimateCostUsd(durationSec))}</span>
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                Modelo wan-2.2-t2v-fast · ~{fmtUsd(COST_PER_SECOND_USD)}/segundo generado. El coste real puede variar.
-              </p>
-            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Duración</Label>
@@ -287,6 +278,15 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs space-y-0.5">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Coste estimado</span>
+                <span className="font-semibold">{fmtUsd(estimateCostUsd(durationSec))}</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Modelo wan-2.2-t2v-fast · ~{fmtUsd(COST_PER_SECOND_USD)}/segundo generado. El coste real puede variar.
+              </p>
             </div>
             <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer">
               <Input
