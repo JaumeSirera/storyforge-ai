@@ -4,6 +4,24 @@ export type VideoSource =
   | { type: "youtube"; url: string; startSec?: number; endSec?: number }
   | { type: "vimeo"; url: string; startSec?: number; endSec?: number }
   | { type: "mp4"; url: string; startSec?: number; endSec?: number }
+  | {
+      type: "ai";
+      /** Public/signed URL of the generated MP4, once ready. */
+      url: string | null;
+      status: "pending" | "ready" | "failed";
+      /** Replicate prediction id (used to poll). */
+      predictionId?: string;
+      /** Storage path in the `videos` bucket, once persisted. */
+      storagePath?: string;
+      /** Prompt used to generate. */
+      prompt?: string;
+      /** Duration in seconds requested. */
+      durationSec?: number;
+      /** Optional error message when status = "failed". */
+      error?: string;
+      startSec?: number;
+      endSec?: number;
+    }
   | { type: "none" };
 
 export interface VideoClip {
