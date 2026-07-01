@@ -601,6 +601,18 @@ const VideoSourceSchema = z.union([
     startSec: z.number().optional(),
     endSec: z.number().optional(),
   }),
+  z.object({
+    type: z.literal("ai"),
+    url: z.string().url().nullable(),
+    status: z.enum(["pending", "ready", "failed"]),
+    predictionId: z.string().optional(),
+    storagePath: z.string().optional(),
+    prompt: z.string().optional(),
+    durationSec: z.number().optional(),
+    error: z.string().optional(),
+    startSec: z.number().optional(),
+    endSec: z.number().optional(),
+  }),
 ]);
 
 const VideoClipSchema = z.object({
