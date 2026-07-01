@@ -24,9 +24,20 @@ export type VideoSource =
       characterName?: string;
       /** Signed preview URL of the reference image (for UI display). */
       referenceImageUrl?: string;
+      /** Voice dialogue synthesised with ElevenLabs and mixed over the muted clip. */
+      dialogue?: {
+        text: string;
+        voiceId: string;
+        voiceName?: string;
+        audioUrl?: string | null;
+        audioPath?: string;
+        status?: "idle" | "generating" | "ready" | "failed";
+        error?: string;
+      };
       startSec?: number;
       endSec?: number;
     }
+
   | { type: "none" };
 
 export interface VideoClip {
