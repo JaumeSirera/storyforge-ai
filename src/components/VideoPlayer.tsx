@@ -80,27 +80,23 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, fill }: Single
   /* ---------- MP4 (also used for ready AI clips) ---------- */
   if (video.type === "mp4" || (video.type === "ai" && video.status === "ready" && video.url)) {
     const url = video.url as string;
+    const dialogueAudio =
+      video.type === "ai" && video.dialogue?.status === "ready" && video.dialogue.audioUrl
+        ? video.dialogue.audioUrl
+        : null;
     return (
-      <video
+      <MediaWithDialogue
         key={url}
         src={url}
-        controls
-        autoPlay
-        playsInline
-        className={`${sizeCls} bg-black ${fill ? "object-contain" : ""}`}
-        onTimeUpdate={(e) => {
-          const cur = e.currentTarget.currentTime;
-          const tgt = cbsRef.current.pauseAtSec;
-          if (tgt && !firedRef.current && cur >= tgt) {
-            firedRef.current = true;
-            e.currentTarget.pause();
-            cbsRef.current.onPauseAtTime?.();
-          }
-        }}
-        onEnded={() => cbsRef.current.onEnded?.()}
+        dialogueUrl={dialogueAudio}
+        sizeCls={sizeCls}
+        fill={fill}
+        cbsRef={cbsRef}
+        firedRef={firedRef}
       />
     );
   }
+
 
   if (video.type === "ai") {
     const label =
