@@ -159,9 +159,12 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, fill }: Single
 
   /* ---------- MP4 (also used for ready AI clips) ---------- */
   if (video.type === "mp4" || (video.type === "ai" && video.status === "ready" && video.url)) {
-    const url = video.url as string;
+    // Prefer the lip-synced MP4 (video + audio baked in) when available.
+    const lipsyncReady =
+      video.type === "ai" && video.lipsync?.status === "ready" && video.lipsync.url;
+    const url = (lipsyncReady ? (video as any).lipsync.url : video.url) as string;
     const dialogueAudio =
-      video.type === "ai" && video.dialogue?.status === "ready" && video.dialogue.audioUrl
+      !lipsyncReady && video.type === "ai" && video.dialogue?.status === "ready" && video.dialogue.audioUrl
         ? video.dialogue.audioUrl
         : null;
     return (
