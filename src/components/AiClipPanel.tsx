@@ -184,6 +184,21 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
     };
   }, [source.status, source.predictionId, simulationId, poll, onChange]);
 
+  const selectedChars: CharacterDTO[] =
+    (charsQuery.data ?? []).filter((c) => characterIds.includes(c.id));
+
+  const buildCastPrefix = (chars: CharacterDTO[]): string => {
+    if (chars.length === 0) return "";
+    const parts = chars.map((c) => (c.description ? `${c.name} (${c.description})` : c.name));
+    if (chars.length === 1) return `Protagonista: ${parts[0]}. `;
+    return `Reparto (${chars.length} personas en escena): ${parts.join("; ")}. `;
+  };
+
+  const cast = selectedChars;
+  const referenceChar: CharacterDTO | undefined =
+    useFirstAsReference && cast.length >= 1 ? cast[0] : undefined;
+  const composedPrompt = (buildCastPrefix(cast) + prompt.trim()).trim();
+
   const handleStart = async () => {
     if (!consent) {
       toast.error("Debes confirmar el consentimiento antes de generar.");
@@ -191,30 +206,32 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
     }
     setStarting(true);
     try {
-      const chosen = charsQuery.data?.find((c) => c.id === characterId);
       const res = await start({
         data: {
-          prompt: prompt.trim(),
+          prompt: composedPrompt,
           durationSec,
           aspectRatio: "16:9",
-          ...(characterId ? { characterId } : {}),
+          ...(referenceChar ? { characterId: referenceChar.id } : {}),
         },
       });
       onChange({
         status: "pending",
         predictionId: res.predictionId,
-        prompt: prompt.trim(),
+        prompt: composedPrompt,
         durationSec,
         url: null,
         error: undefined,
-        characterId: characterId ?? undefined,
-        characterName: chosen?.name,
-        referenceImageUrl: chosen?.imageUrl,
+        characterId: referenceChar?.id,
+        characterName:
+          cast.length > 1
+            ? `${cast.length} personajes${referenceChar ? ` (ref: ${referenceChar.name})` : ""}`
+            : referenceChar?.name,
+        referenceImageUrl: referenceChar?.imageUrl,
       });
       setOpen(false);
       toast.info(
-        characterId
-          ? "Generación iniciada con imagen de personaje (i2v)."
+        referenceChar
+          ? `Generación iniciada con ${cast.length > 1 ? "reparto y " : ""}imagen de referencia (i2v).`
           : "Generación iniciada. Puede tardar 1-3 minutos.",
       );
     } catch (err: any) {
@@ -223,6 +240,7 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
       setStarting(false);
     }
   };
+
 
   const handleCreateCharacter = async () => {
     const hasFile = !!newFile;
