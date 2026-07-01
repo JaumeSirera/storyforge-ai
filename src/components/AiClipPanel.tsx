@@ -67,6 +67,15 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
   const [durationSec, setDurationSec] = useState<5 | 10>((source.durationSec as 5 | 10) ?? 5);
   const [consent, setConsent] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [progress, setProgress] = useState<JobProgress | null>(
+    source.status === "pending"
+      ? { stage: "queued", progress: 5 }
+      : source.status === "failed"
+      ? { stage: "failed", progress: 0, error: source.error }
+      : source.status === "ready"
+      ? { stage: "finished", progress: 100 }
+      : null,
+  );
 
   // Poll while a job is pending.
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
