@@ -128,3 +128,55 @@ export const deleteCharacter = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
+const GenerateInput = z.object({
+  prompt: z.string().min(5).max(1000),
+  model: z.enum(["google/gemini-2.5-flash-image", "google/gemini-3-pro-image"]).default("google/gemini-2.5-flash-image"),
+});
+
+/**
+ * Genera una imagen de personaje ficticio con IA (nano-banana o Gemini 3 Pro Image)
+ * y devuelve un data URL. El cliente decide si guardarla luego como personaje reutilizable
+ * llamando a createCharacter.
+ */
+export const generateCharacterImage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => GenerateInput.parse(input))
+  .handler(async ({ data }): Promise<{ imageDataUrl: string; model: string }> => {
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY no configurada");
+
+    const systemHint =
+      "Genera una fotografía realista de una persona ficticia (que no existe), " +
+      "encuadre plano medio, mirando ligeramente a cámara, fondo neutro suave, iluminación natural, " +
+      "estilo casting profesional. Descripción:";
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: data.model,
+        messages: [{ role: "user", content: `${systemHint} ${data.prompt}` }],
+        modalities: ["image", "text"],
+      }),
+    });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      if (res.status === 429) throw new Error("Límite de generación alcanzado, prueba en unos segundos.");
+      if (res.status === 402) throw new Error("Créditos de IA agotados. Recárgalos en Ajustes.");
+      throw new Error(`Fallo generando imagen (${res.status}): ${txt.slice(0, 200)}`);
+    }
+
+    const json = await res.json();
+    const imageUrl: string | undefined =
+      json?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    if (!imageUrl || !imageUrl.startsWith("data:")) {
+      throw new Error("La IA no devolvió imagen.");
+    }
+    return { imageDataUrl: imageUrl, model: data.model };
+  });
+

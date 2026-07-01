@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { startAiVideoGeneration, pollAiVideoGeneration } from "@/lib/ai-video.functions";
-import { listCharacters, createCharacter, deleteCharacter, type CharacterDTO } from "@/lib/characters.functions";
+import { listCharacters, createCharacter, deleteCharacter, generateCharacterImage, type CharacterDTO } from "@/lib/characters.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +37,7 @@ import {
   UserPlus,
   Trash2,
   ImagePlus,
+  Wand2,
 } from "lucide-react";
 import type { JobStage } from "@/lib/ai-video.functions";
 import type { VideoSource } from "@/lib/story-types";
@@ -95,6 +96,7 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
   const listFn = useServerFn(listCharacters);
   const createFn = useServerFn(createCharacter);
   const deleteFn = useServerFn(deleteCharacter);
+  const generateCharFn = useServerFn(generateCharacterImage);
   const qc = useQueryClient();
 
   const [open, setOpen] = useState(false);
@@ -111,6 +113,13 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
   const [newConsent, setNewConsent] = useState(false);
   const [newFile, setNewFile] = useState<File | null>(null);
   const [creating, setCreating] = useState(false);
+  // AI-generated preview
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiModel, setAiModel] = useState<"google/gemini-2.5-flash-image" | "google/gemini-3-pro-image">(
+    "google/gemini-2.5-flash-image",
+  );
+  const [aiPreviewDataUrl, setAiPreviewDataUrl] = useState<string | null>(null);
+  const [generatingAi, setGeneratingAi] = useState(false);
 
   const charsQuery = useQuery({
     queryKey: ["characters"],
@@ -211,13 +220,15 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
   };
 
   const handleCreateCharacter = async () => {
-    if (!newFile) return toast.error("Selecciona una imagen");
+    const hasFile = !!newFile;
+    const hasAi = !!aiPreviewDataUrl;
+    if (!hasFile && !hasAi) return toast.error("Sube o genera una imagen");
     if (!newName.trim()) return toast.error("Escribe un nombre");
-    if (!newConsent) return toast.error("Confirma el consentimiento");
-    if (newFile.size > 8 * 1024 * 1024) return toast.error("Imagen > 8 MB");
+    if (!newConsent) return toast.error("Confirma el consentimiento / ficticio");
+    if (hasFile && newFile!.size > 8 * 1024 * 1024) return toast.error("Imagen > 8 MB");
     setCreating(true);
     try {
-      const dataUrl = await fileToDataUrl(newFile);
+      const dataUrl = hasAi ? aiPreviewDataUrl! : await fileToDataUrl(newFile!);
       const created = await createFn({
         data: {
           name: newName.trim(),
@@ -233,6 +244,8 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
       setNewDesc("");
       setNewFile(null);
       setNewConsent(false);
+      setAiPreviewDataUrl(null);
+      setAiPrompt("");
       toast.success("Personaje guardado");
     } catch (err: any) {
       toast.error(err?.message ?? "No se pudo guardar el personaje");
@@ -240,6 +253,22 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
       setCreating(false);
     }
   };
+
+  const handleGenerateAiCharacter = async () => {
+    if (aiPrompt.trim().length < 5) return toast.error("Describe el personaje (mín. 5 caracteres)");
+    setGeneratingAi(true);
+    try {
+      const res = await generateCharFn({ data: { prompt: aiPrompt.trim(), model: aiModel } });
+      setAiPreviewDataUrl(res.imageDataUrl);
+      setNewFile(null);
+      toast.success("Personaje generado. Revísalo y guárdalo si te gusta.");
+    } catch (err: any) {
+      toast.error(err?.message ?? "No se pudo generar");
+    } finally {
+      setGeneratingAi(false);
+    }
+  };
+
 
   const handleDeleteCharacter = async (id: string) => {
     if (!confirm("¿Eliminar este personaje?")) return;
@@ -385,18 +414,61 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
               </div>
 
               {newCharOpen && (
-                <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+                <div className="rounded-md border bg-muted/30 p-3 space-y-3">
+                  {/* AI generation block */}
+                  <div className="rounded-md border border-dashed bg-background/60 p-2.5 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-medium">
+                      <Wand2 className="h-3.5 w-3.5 text-primary" />
+                      Generar personaje ficticio con IA (gratis con tus créditos)
+                    </div>
+                    <Textarea
+                      rows={2}
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      placeholder="Ej. Hombre 45 años, latino, traje gris, ejecutivo, sonrisa amable. O varios: dos comerciales, hombre y mujer, hablando entre ellos."
+                    />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Select value={aiModel} onValueChange={(v) => setAiModel(v as typeof aiModel)}>
+                        <SelectTrigger className="h-8 w-auto text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="google/gemini-2.5-flash-image">Nano-banana (rápido, barato)</SelectItem>
+                          <SelectItem value="google/gemini-3-pro-image">Gemini 3 Pro Image (calidad alta)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button type="button" size="sm" onClick={handleGenerateAiCharacter} disabled={generatingAi}>
+                        {generatingAi ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Wand2 className="h-3.5 w-3.5 mr-1" />}
+                        Generar
+                      </Button>
+                      {aiPreviewDataUrl && (
+                        <Button type="button" size="sm" variant="ghost" onClick={() => setAiPreviewDataUrl(null)}>
+                          Descartar
+                        </Button>
+                      )}
+                    </div>
+                    {aiPreviewDataUrl && (
+                      <img src={aiPreviewDataUrl} alt="Previsualización IA" className="max-h-48 rounded border object-contain" />
+                    )}
+                    <p className="text-[10px] text-muted-foreground">
+                      Tip: para escenas con varios protagonistas, describe a todas las personas en el prompt (una sola imagen compuesta).
+                    </p>
+                  </div>
+
+                  <div className="text-[11px] text-center text-muted-foreground">— o sube tu propia imagen —</div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <Label className="text-xs">Nombre</Label>
                       <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ana comercial" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Imagen (JPG/PNG, ≤ 8 MB)</Label>
+                      <Label className="text-xs">Imagen propia (JPG/PNG, ≤ 8 MB)</Label>
                       <Input
                         type="file"
                         accept="image/png,image/jpeg,image/webp"
-                        onChange={(e) => setNewFile(e.target.files?.[0] ?? null)}
+                        onChange={(e) => {
+                          setNewFile(e.target.files?.[0] ?? null);
+                          if (e.target.files?.[0]) setAiPreviewDataUrl(null);
+                        }}
                       />
                     </div>
                   </div>
@@ -411,7 +483,10 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
                       checked={newConsent}
                       onChange={(e) => setNewConsent(e.target.checked)}
                     />
-                    <span>Tengo el consentimiento por escrito de esta persona para usar su imagen en vídeos generados por IA.</span>
+                    <span>
+                      Confirmo que la imagen es de un personaje ficticio generado por IA, o que tengo el
+                      consentimiento por escrito de las personas reales que aparecen en ella.
+                    </span>
                   </label>
                   <div className="flex justify-end">
                     <Button type="button" size="sm" onClick={handleCreateCharacter} disabled={creating}>
@@ -421,6 +496,7 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
                   </div>
                 </div>
               )}
+
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button
