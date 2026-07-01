@@ -29,6 +29,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { StoryPreview } from "@/components/StoryPreview";
 import type { Story, StoryNode, Choice, EvaluationCriterion, VideoSource, VideoClip, Question, QuestionTrigger } from "@/lib/story-types";
 import { nodeQuestions } from "@/lib/story-types";
+import { AiClipPanel } from "@/components/AiClipPanel";
 
 import { computeSceneOrder, sortNodesByOrder } from "@/lib/scene-order";
 import {
