@@ -28,7 +28,7 @@ async function uploadReferenceImage(
   filename: string,
 ): Promise<string> {
   const form = new FormData();
-  form.append("content", new Blob([buffer], { type: contentType }), filename);
+  form.append("content", new Blob([buffer as BlobPart], { type: contentType }), filename);
   const res = await fetch(`${GATEWAY}/files`, {
     method: "POST",
     headers: gatewayHeaders(),
