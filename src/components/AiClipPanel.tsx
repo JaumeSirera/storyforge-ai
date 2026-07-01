@@ -113,6 +113,13 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
   const [newConsent, setNewConsent] = useState(false);
   const [newFile, setNewFile] = useState<File | null>(null);
   const [creating, setCreating] = useState(false);
+  // AI-generated preview
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiModel, setAiModel] = useState<"google/gemini-2.5-flash-image" | "google/gemini-3-pro-image">(
+    "google/gemini-2.5-flash-image",
+  );
+  const [aiPreviewDataUrl, setAiPreviewDataUrl] = useState<string | null>(null);
+  const [generatingAi, setGeneratingAi] = useState(false);
 
   const charsQuery = useQuery({
     queryKey: ["characters"],
