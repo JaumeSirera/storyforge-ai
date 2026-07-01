@@ -29,6 +29,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { StoryPreview } from "@/components/StoryPreview";
 import type { Story, StoryNode, Choice, EvaluationCriterion, VideoSource, VideoClip, Question, QuestionTrigger } from "@/lib/story-types";
 import { nodeQuestions } from "@/lib/story-types";
+import { AiClipPanel } from "@/components/AiClipPanel";
 
 import { computeSceneOrder, sortNodesByOrder } from "@/lib/scene-order";
 import {
@@ -747,6 +748,13 @@ function EditSimulation() {
                                   onValueChange={(v) => {
                                     if (v === "none") {
                                       updateClipSource(nIdx, cIdx, { type: "none" } as VideoSource);
+                                    } else if (v === "ai") {
+                                      updateClipSource(nIdx, cIdx, {
+                                        type: "ai",
+                                        status: "failed",
+                                        url: null,
+                                        error: "Sin configurar",
+                                      } as VideoSource);
                                     } else {
                                       const prevUrl = (src as any).url ?? "";
                                       updateClipSource(nIdx, cIdx, {
@@ -762,32 +770,45 @@ function EditSimulation() {
                                     <SelectItem value="youtube">YouTube</SelectItem>
                                     <SelectItem value="vimeo">Vimeo</SelectItem>
                                     <SelectItem value="mp4">MP4 (URL directa)</SelectItem>
+                                    <SelectItem value="ai">Generado con IA</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </div>
-                              <div className="space-y-1.5 sm:col-span-2">
-                                <Label className="text-xs">URL</Label>
-                                <Input
-                                  placeholder={
-                                    isNone
-                                      ? "Selecciona primero un tipo de vídeo"
-                                      : src.type === "youtube"
-                                      ? "https://www.youtube.com/watch?v=..."
-                                      : src.type === "vimeo"
-                                      ? "https://vimeo.com/..."
-                                      : "https://.../video.mp4"
-                                  }
-                                  disabled={isNone}
-                                  value={isNone ? "" : (src as any).url ?? ""}
-                                  onChange={(e) => {
-                                    if (isNone) {
-                                      updateClipSource(nIdx, cIdx, { type: "mp4", url: e.target.value } as VideoSource);
-                                    } else {
-                                      updateClipSource(nIdx, cIdx, { url: e.target.value } as any);
+                              {src.type === "ai" ? (
+                                <div className="sm:col-span-2">
+                                  <AiClipPanel
+                                    simulationId={id}
+                                    source={src}
+                                    onChange={(patch) =>
+                                      updateClipSource(nIdx, cIdx, { ...(src as any), ...patch } as VideoSource)
                                     }
-                                  }}
-                                />
-                              </div>
+                                  />
+                                </div>
+                              ) : (
+                                <div className="space-y-1.5 sm:col-span-2">
+                                  <Label className="text-xs">URL</Label>
+                                  <Input
+                                    placeholder={
+                                      isNone
+                                        ? "Selecciona primero un tipo de vídeo"
+                                        : src.type === "youtube"
+                                        ? "https://www.youtube.com/watch?v=..."
+                                        : src.type === "vimeo"
+                                        ? "https://vimeo.com/..."
+                                        : "https://.../video.mp4"
+                                    }
+                                    disabled={isNone}
+                                    value={isNone ? "" : (src as any).url ?? ""}
+                                    onChange={(e) => {
+                                      if (isNone) {
+                                        updateClipSource(nIdx, cIdx, { type: "mp4", url: e.target.value } as VideoSource);
+                                      } else {
+                                        updateClipSource(nIdx, cIdx, { url: e.target.value } as any);
+                                      }
+                                    }}
+                                  />
+                                </div>
+                              )}
                             </div>
                             {!isNone && (
                               <div className="grid grid-cols-2 gap-3">
