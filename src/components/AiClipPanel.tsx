@@ -178,6 +178,16 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
         {source.prompt && (
           <p className="text-xs text-muted-foreground line-clamp-3">“{source.prompt}”</p>
         )}
+        {typeof source.durationSec === "number" && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Duración: <span className="font-medium text-foreground">{source.durationSec}s</span></span>
+            <span>·</span>
+            <span>
+              Coste estimado:{" "}
+              <span className="font-medium text-foreground">{fmtUsd(estimateCostUsd(source.durationSec))}</span>
+            </span>
+          </div>
+        )}
 
         {progress && (source.status === "pending" || source.status === "failed" || source.status === "ready") && (
           <div className="rounded-md border bg-background/60 p-2.5 space-y-2">
