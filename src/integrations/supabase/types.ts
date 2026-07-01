@@ -97,6 +97,50 @@ export type Database = {
           },
         ]
       }
+      simulation_characters: {
+        Row: {
+          consent_acknowledged: boolean
+          created_at: string
+          description: string | null
+          id: string
+          image_path: string
+          name: string
+          simulation_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          consent_acknowledged?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_path: string
+          name: string
+          simulation_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          consent_acknowledged?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_path?: string
+          name?: string
+          simulation_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_characters_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "simulations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       simulation_revisions: {
         Row: {
           action: string
