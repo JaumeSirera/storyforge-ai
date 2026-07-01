@@ -313,6 +313,59 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
     }
   };
 
+  const dialogue = source.dialogue;
+  const [dialogueText, setDialogueText] = useState(dialogue?.text ?? "");
+  const [voiceId, setVoiceId] = useState(dialogue?.voiceId ?? TTS_VOICES[0].id);
+
+  const handleGenerateDialogue = async () => {
+    if (dialogueText.trim().length < 2) {
+      toast.error("Escribe el diálogo primero.");
+      return;
+    }
+    const voice = TTS_VOICES.find((v) => v.id === voiceId) ?? TTS_VOICES[0];
+    setGeneratingDialogue(true);
+    onChange({
+      dialogue: {
+        text: dialogueText.trim(),
+        voiceId: voice.id,
+        voiceName: voice.name,
+        status: "generating",
+        audioUrl: null,
+      },
+    });
+    try {
+      const res = await generateDialogueFn({
+        data: { simulationId, text: dialogueText.trim(), voiceId: voice.id },
+      });
+      onChange({
+        dialogue: {
+          text: dialogueText.trim(),
+          voiceId: voice.id,
+          voiceName: voice.name,
+          status: "ready",
+          audioUrl: res.audioUrl,
+          audioPath: res.audioPath,
+        },
+      });
+      toast.success("Voz generada y mezclada con el clip.");
+    } catch (err: any) {
+      onChange({
+        dialogue: {
+          text: dialogueText.trim(),
+          voiceId: voice.id,
+          voiceName: voice.name,
+          status: "failed",
+          error: err?.message ?? "Fallo",
+          audioUrl: null,
+        },
+      });
+      toast.error(err?.message ?? "No se pudo generar la voz");
+    } finally {
+      setGeneratingDialogue(false);
+    }
+  };
+
+
   return (
     <div className="space-y-3">
       <div className="rounded-md border bg-muted/30 p-3 space-y-2 text-sm">
