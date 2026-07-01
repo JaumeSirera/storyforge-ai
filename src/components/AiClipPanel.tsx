@@ -102,7 +102,11 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
   const createFn = useServerFn(createCharacter);
   const deleteFn = useServerFn(deleteCharacter);
   const generateCharFn = useServerFn(generateCharacterImage);
+  const generateDialogueFn = useServerFn(generateClipDialogue);
   const qc = useQueryClient();
+
+  const [generatingDialogue, setGeneratingDialogue] = useState(false);
+
 
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState(source.prompt ?? "");
