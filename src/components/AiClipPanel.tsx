@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { startAiVideoGeneration, pollAiVideoGeneration } from "@/lib/ai-video.functions";
+import { generateClipDialogue, TTS_VOICES } from "@/lib/tts.functions";
 import { listCharacters, createCharacter, deleteCharacter, generateCharacterImage, type CharacterDTO } from "@/lib/characters.functions";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,8 +40,11 @@ import {
   Trash2,
   ImagePlus,
   Wand2,
+  Mic,
+  Volume2,
 } from "lucide-react";
 import type { JobStage } from "@/lib/ai-video.functions";
+
 import type { VideoSource } from "@/lib/story-types";
 
 interface JobProgress {
@@ -97,7 +102,11 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
   const createFn = useServerFn(createCharacter);
   const deleteFn = useServerFn(deleteCharacter);
   const generateCharFn = useServerFn(generateCharacterImage);
+  const generateDialogueFn = useServerFn(generateClipDialogue);
   const qc = useQueryClient();
+
+  const [generatingDialogue, setGeneratingDialogue] = useState(false);
+
 
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState(source.prompt ?? "");
@@ -304,6 +313,59 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
     }
   };
 
+  const dialogue = source.dialogue;
+  const [dialogueText, setDialogueText] = useState(dialogue?.text ?? "");
+  const [voiceId, setVoiceId] = useState(dialogue?.voiceId ?? TTS_VOICES[0].id);
+
+  const handleGenerateDialogue = async () => {
+    if (dialogueText.trim().length < 2) {
+      toast.error("Escribe el diálogo primero.");
+      return;
+    }
+    const voice = TTS_VOICES.find((v) => v.id === voiceId) ?? TTS_VOICES[0];
+    setGeneratingDialogue(true);
+    onChange({
+      dialogue: {
+        text: dialogueText.trim(),
+        voiceId: voice.id,
+        voiceName: voice.name,
+        status: "generating",
+        audioUrl: null,
+      },
+    });
+    try {
+      const res = await generateDialogueFn({
+        data: { simulationId, text: dialogueText.trim(), voiceId: voice.id },
+      });
+      onChange({
+        dialogue: {
+          text: dialogueText.trim(),
+          voiceId: voice.id,
+          voiceName: voice.name,
+          status: "ready",
+          audioUrl: res.audioUrl,
+          audioPath: res.audioPath,
+        },
+      });
+      toast.success("Voz generada y mezclada con el clip.");
+    } catch (err: any) {
+      onChange({
+        dialogue: {
+          text: dialogueText.trim(),
+          voiceId: voice.id,
+          voiceName: voice.name,
+          status: "failed",
+          error: err?.message ?? "Fallo",
+          audioUrl: null,
+        },
+      });
+      toast.error(err?.message ?? "No se pudo generar la voz");
+    } finally {
+      setGeneratingDialogue(false);
+    }
+  };
+
+
   return (
     <div className="space-y-3">
       <div className="rounded-md border bg-muted/30 p-3 space-y-2 text-sm">
@@ -378,6 +440,76 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
             )}
           </div>
         )}
+
+        {source.status === "ready" && (
+          <div className="rounded-md border bg-background/60 p-2.5 space-y-2">
+            <div className="flex items-center gap-2 text-xs font-medium">
+              <Mic className="h-3.5 w-3.5 text-primary" />
+              Diálogo del personaje (voz IA)
+              {dialogue?.status === "ready" && (
+                <Badge variant="outline" className="ml-auto py-0 text-[10px] text-emerald-600 border-emerald-600/40">
+                  Voz lista
+                </Badge>
+              )}
+              {dialogue?.status === "generating" && (
+                <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Generando voz…
+                </span>
+              )}
+              {dialogue?.status === "failed" && (
+                <Badge variant="outline" className="ml-auto py-0 text-[10px] text-destructive border-destructive/40">
+                  Fallido
+                </Badge>
+              )}
+            </div>
+            <Textarea
+              rows={2}
+              value={dialogueText}
+              onChange={(e) => setDialogueText(e.target.value)}
+              placeholder="Ej. Buenos días, ¿en qué puedo ayudarle hoy?"
+              className="text-xs"
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={voiceId} onValueChange={setVoiceId}>
+                <SelectTrigger className="h-8 w-auto text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TTS_VOICES.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.name}
+                      {v.hint ? ` — ${v.hint}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleGenerateDialogue}
+                disabled={generatingDialogue || dialogueText.trim().length < 2}
+              >
+                {generatingDialogue ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                ) : (
+                  <Volume2 className="h-3.5 w-3.5 mr-1" />
+                )}
+                {dialogue?.status === "ready" ? "Regenerar voz" : "Generar voz"}
+              </Button>
+              {dialogue?.status === "ready" && dialogue.audioUrl && (
+                <audio src={dialogue.audioUrl} controls className="h-8 max-w-[220px]" />
+              )}
+            </div>
+            {dialogue?.error && (
+              <p className="text-[11px] text-destructive">{dialogue.error}</p>
+            )}
+            <p className="text-[10px] text-muted-foreground">
+              La voz se sincroniza con el clip mudo durante la reproducción (no hay lip-sync labial).
+            </p>
+          </div>
+        )}
+
+
 
         <div className="flex flex-wrap gap-2 pt-1">
           <Button type="button" size="sm" variant="outline" onClick={() => setOpen(true)}>
