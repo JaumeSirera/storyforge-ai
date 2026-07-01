@@ -169,9 +169,41 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
         {source.prompt && (
           <p className="text-xs text-muted-foreground line-clamp-3">“{source.prompt}”</p>
         )}
-        {source.status === "failed" && source.error && (
-          <p className="text-xs text-destructive">{source.error}</p>
+
+        {progress && (source.status === "pending" || source.status === "failed" || source.status === "ready") && (
+          <div className="rounded-md border bg-background/60 p-2.5 space-y-2">
+            <div className="flex items-center gap-2 text-xs">
+              {(() => {
+                const meta = STAGE_META[progress.stage];
+                const Icon = meta.Icon;
+                const spinning = progress.stage === "queued" || progress.stage === "running" || progress.stage === "uploading";
+                return (
+                  <>
+                    <Icon className={`h-3.5 w-3.5 ${meta.tone} ${spinning ? "animate-spin" : ""}`} />
+                    <span className={`font-medium ${meta.tone}`}>{meta.label}</span>
+                    <Badge variant="outline" className="ml-1 py-0 text-[10px]">
+                      {progress.progress}%
+                    </Badge>
+                    {typeof progress.elapsedSec === "number" && (
+                      <span className="ml-auto text-muted-foreground">{fmtElapsed(progress.elapsedSec)}</span>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+            <Progress value={progress.progress} className="h-1.5" />
+            {progress.logsTail && (
+              <pre className="max-h-24 overflow-auto rounded bg-muted/60 p-1.5 text-[10px] leading-tight text-muted-foreground whitespace-pre-wrap">
+                {progress.logsTail}
+              </pre>
+            )}
+            {progress.error && (
+              <p className="text-xs text-destructive">{progress.error}</p>
+            )}
+          </div>
         )}
+
+
         <div className="flex flex-wrap gap-2 pt-1">
           <Button type="button" size="sm" variant="outline" onClick={() => setOpen(true)}>
             {source.status === "ready" ? (
