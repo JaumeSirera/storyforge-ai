@@ -19,6 +19,11 @@ export type VideoSource =
       durationSec?: number;
       /** Optional error message when status = "failed". */
       error?: string;
+      /** Reference character used as first frame (image-to-video). */
+      characterId?: string;
+      characterName?: string;
+      /** Signed preview URL of the reference image (for UI display). */
+      referenceImageUrl?: string;
       startSec?: number;
       endSec?: number;
     }
