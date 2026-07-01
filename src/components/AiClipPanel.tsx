@@ -48,6 +48,15 @@ function fmtElapsed(sec?: number) {
   const s = sec % 60;
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
+
+// Coste estimado del modelo wan-2.2-t2v-fast en Replicate (~$0.05 / segundo generado).
+const COST_PER_SECOND_USD = 0.05;
+function estimateCostUsd(durationSec: number) {
+  return +(durationSec * COST_PER_SECOND_USD).toFixed(3);
+}
+function fmtUsd(usd: number) {
+  return `$${usd.toFixed(usd < 1 ? 3 : 2)}`;
+}
 import type { VideoSource } from "@/lib/story-types";
 
 type AiSource = Extract<VideoSource, { type: "ai" }>;
@@ -169,6 +178,16 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
         {source.prompt && (
           <p className="text-xs text-muted-foreground line-clamp-3">“{source.prompt}”</p>
         )}
+        {typeof source.durationSec === "number" && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Duración: <span className="font-medium text-foreground">{source.durationSec}s</span></span>
+            <span>·</span>
+            <span>
+              Coste estimado:{" "}
+              <span className="font-medium text-foreground">{fmtUsd(estimateCostUsd(source.durationSec))}</span>
+            </span>
+          </div>
+        )}
 
         {progress && (source.status === "pending" || source.status === "failed" || source.status === "ready") && (
           <div className="rounded-md border bg-background/60 p-2.5 space-y-2">
@@ -259,6 +278,15 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs space-y-0.5">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Coste estimado</span>
+                <span className="font-semibold">{fmtUsd(estimateCostUsd(durationSec))}</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Modelo wan-2.2-t2v-fast · ~{fmtUsd(COST_PER_SECOND_USD)}/segundo generado. El coste real puede variar.
+              </p>
             </div>
             <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer">
               <Input
