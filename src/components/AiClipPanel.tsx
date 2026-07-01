@@ -197,6 +197,45 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
     };
   }, [source.status, source.predictionId, simulationId, poll, onChange]);
 
+  // Lipsync poller
+  const lsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const ls = source.lipsync;
+    if (!ls || ls.status !== "generating" || !ls.predictionId) return;
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const res = await pollLipsyncFn({
+          data: { predictionId: ls.predictionId!, simulationId },
+        });
+        if (cancelled) return;
+        if (res.status === "ready") {
+          onChange({
+            lipsync: { ...ls, status: "ready", url: res.url, storagePath: res.storagePath, progress: 100 },
+          });
+          toast.success("Lip-sync aplicado. El clip ahora tiene labios sincronizados.");
+          return;
+        }
+        if (res.status === "failed") {
+          onChange({ lipsync: { ...ls, status: "failed", error: res.error } });
+          toast.error(`Lip-sync fallido: ${res.error}`);
+          return;
+        }
+        onChange({ lipsync: { ...ls, status: "generating", progress: res.progress } });
+      } catch (err: any) {
+        console.warn("lipsync poll error", err?.message);
+      }
+      lsTimerRef.current = setTimeout(tick, 6000);
+    };
+    lsTimerRef.current = setTimeout(tick, 4000);
+    return () => {
+      cancelled = true;
+      if (lsTimerRef.current) clearTimeout(lsTimerRef.current);
+    };
+  }, [source.lipsync?.status, source.lipsync?.predictionId, simulationId, pollLipsyncFn, onChange]);
+
+
+
   const selectedChars: CharacterDTO[] =
     (charsQuery.data ?? []).filter((c) => characterIds.includes(c.id));
 
