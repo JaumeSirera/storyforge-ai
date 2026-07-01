@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { startAiVideoGeneration, pollAiVideoGeneration } from "@/lib/ai-video.functions";
+import { generateClipDialogue, TTS_VOICES } from "@/lib/tts.functions";
 import { listCharacters, createCharacter, deleteCharacter, generateCharacterImage, type CharacterDTO } from "@/lib/characters.functions";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,8 +40,11 @@ import {
   Trash2,
   ImagePlus,
   Wand2,
+  Mic,
+  Volume2,
 } from "lucide-react";
 import type { JobStage } from "@/lib/ai-video.functions";
+
 import type { VideoSource } from "@/lib/story-types";
 
 interface JobProgress {
