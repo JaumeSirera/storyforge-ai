@@ -23,7 +23,31 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Sparkles, RefreshCw } from "lucide-react";
+import { Loader2, Sparkles, RefreshCw, CheckCircle2, XCircle, Clock, Cog, UploadCloud } from "lucide-react";
+import type { JobStage } from "@/lib/ai-video.functions";
+
+interface JobProgress {
+  stage: JobStage;
+  progress: number;
+  logsTail?: string;
+  elapsedSec?: number;
+  error?: string;
+}
+
+const STAGE_META: Record<JobStage, { label: string; Icon: typeof Loader2; tone: string }> = {
+  queued:    { label: "En cola",     Icon: Clock,       tone: "text-muted-foreground" },
+  running:   { label: "Generando",   Icon: Cog,         tone: "text-primary" },
+  uploading: { label: "Subiendo",    Icon: UploadCloud, tone: "text-primary" },
+  finished:  { label: "Finalizado",  Icon: CheckCircle2, tone: "text-emerald-600" },
+  failed:    { label: "Fallido",     Icon: XCircle,     tone: "text-destructive" },
+};
+
+function fmtElapsed(sec?: number) {
+  if (!sec || sec < 0) return "0s";
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
 import type { VideoSource } from "@/lib/story-types";
 
 type AiSource = Extract<VideoSource, { type: "ai" }>;
