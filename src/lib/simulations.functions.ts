@@ -610,6 +610,30 @@ const VideoSourceSchema = z.union([
     prompt: z.string().optional(),
     durationSec: z.number().optional(),
     error: z.string().optional(),
+    characterId: z.string().optional(),
+    characterName: z.string().optional(),
+    referenceImageUrl: z.string().optional(),
+    dialogue: z
+      .object({
+        text: z.string(),
+        voiceId: z.string(),
+        voiceName: z.string().optional(),
+        audioUrl: z.string().nullable().optional(),
+        audioPath: z.string().optional(),
+        status: z.enum(["idle", "generating", "ready", "failed"]).optional(),
+        error: z.string().optional(),
+      })
+      .optional(),
+    lipsync: z
+      .object({
+        status: z.enum(["idle", "generating", "ready", "failed"]),
+        predictionId: z.string().optional(),
+        url: z.string().nullable().optional(),
+        storagePath: z.string().optional(),
+        progress: z.number().optional(),
+        error: z.string().optional(),
+      })
+      .optional(),
     startSec: z.number().optional(),
     endSec: z.number().optional(),
   }),
