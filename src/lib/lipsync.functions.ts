@@ -29,10 +29,38 @@ const StartInput = z.object({
   audioUrl: z.string().url(),
 });
 
+async function uploadToReplicate(
+  url: string,
+  contentType: string,
+  filename: string,
+): Promise<string> {
+  const dl = await fetch(url);
+  if (!dl.ok) throw new Error(`No se pudo descargar ${filename} (${dl.status})`);
+  const buf = new Uint8Array(await dl.arrayBuffer());
+  const form = new FormData();
+  form.append("content", new Blob([buf as BlobPart], { type: contentType }), filename);
+  const res = await fetch(`${GATEWAY}/files`, {
+    method: "POST",
+    headers: gatewayHeaders(),
+    body: form,
+  });
+  const body = await res.text();
+  if (!res.ok) throw new Error(`Replicate files error ${res.status}: ${body.slice(0, 300)}`);
+  const json = JSON.parse(body) as { urls: { get: string } };
+  return json.urls.get;
+}
+
 export const startLipsync = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => StartInput.parse(input))
   .handler(async ({ data }) => {
+    // Re-hospedar en Replicate Files para evitar bloqueos de Cloudflare al
+    // descargar desde URLs firmadas de *.lovable.app / Supabase.
+    const [videoRef, audioRef] = await Promise.all([
+      uploadToReplicate(data.videoUrl, "video/mp4", "input.mp4"),
+      uploadToReplicate(data.audioUrl, "audio/mpeg", "input.mp3"),
+    ]);
+
     const res = await fetch(
       `${GATEWAY}/models/${LIPSYNC_MODEL.owner}/${LIPSYNC_MODEL.name}/predictions`,
       {
@@ -40,8 +68,8 @@ export const startLipsync = createServerFn({ method: "POST" })
         headers: { ...gatewayHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({
           input: {
-            video: data.videoUrl,
-            audio: data.audioUrl,
+            video: videoRef,
+            audio: audioRef,
             sync_mode: "cut_off",
           },
         }),
