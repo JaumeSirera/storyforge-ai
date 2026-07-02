@@ -420,7 +420,12 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
     setStartingLipsync(true);
     try {
       const res = await startLipsyncFn({
-        data: { videoUrl: source.url, audioUrl: source.dialogue.audioUrl },
+        data: {
+          videoUrl: source.url,
+          audioUrl: source.dialogue.audioUrl,
+          videoStoragePath: source.storagePath,
+          audioStoragePath: source.dialogue.audioPath,
+        },
       });
       onChange({
         lipsync: {
