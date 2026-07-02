@@ -9,12 +9,74 @@ const SIGNED_URL_TTL = 60 * 60 * 24 * 365 * 10;
 
 function gatewayHeaders() {
   const lovable = process.env.LOVABLE_API_KEY;
-  const rep = process.env.REPLICATE_API_KEY;
+  const rep = process.env.REPLICATE_API_KEY ?? process.env.LOVABLE_CONNECTOR_REPLICATE_API_KEY;
   if (!lovable || !rep) throw new Error("Replicate no está conectado.");
   return {
     Authorization: `Bearer ${lovable}`,
     "X-Connection-Api-Key": rep,
   } as Record<string, string>;
+}
+
+function summarizeProviderError(value: unknown): string {
+  const raw = typeof value === "string" ? value : JSON.stringify(value ?? "");
+  if (/<!doctype|<html|cloudflare|attention required|sorry, you have been blocked/i.test(raw)) {
+    return "El proveedor recibió una página HTML de bloqueo en lugar del archivo multimedia. Se ha cambiado el flujo para leer el MP4/MP3 desde Storage interno; vuelve a aplicar lip-sync.";
+  }
+  return raw.slice(0, 500);
+}
+
+function assertMediaBytes(buffer: Uint8Array, contentType: string, filename: string) {
+  const head = new TextDecoder().decode(buffer.slice(0, Math.min(buffer.length, 220))).trim().toLowerCase();
+  if (contentType.toLowerCase().includes("text/html") || head.startsWith("<!doctype") || head.startsWith("<html")) {
+    throw new Error(`${filename} no es un archivo multimedia válido; se recibió HTML de bloqueo.`);
+  }
+  if (buffer.byteLength < 1024) {
+    throw new Error(`${filename} parece estar vacío o incompleto.`);
+  }
+}
+
+function storagePathFromSignedUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  try {
+    const path = decodeURIComponent(new URL(url).pathname);
+    const match = path.match(/\/storage\/v1\/object\/(?:sign|public)\/videos\/(.+)$/);
+    return match?.[1];
+  } catch {
+    return undefined;
+  }
+}
+
+async function readMediaAsset(options: {
+  storagePath?: string;
+  url?: string;
+  userId: string;
+  allowedPrefixes: string[];
+  defaultContentType: string;
+  filename: string;
+}): Promise<{ buffer: Uint8Array; contentType: string }> {
+  const storagePath = options.storagePath ?? storagePathFromSignedUrl(options.url);
+  if (storagePath) {
+    if (!options.allowedPrefixes.some((prefix) => storagePath.startsWith(prefix))) {
+      throw new Error(`${options.filename} no pertenece a tu simulación.`);
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: file, error } = await supabaseAdmin.storage.from("videos").download(storagePath);
+    if (error || !file) {
+      throw new Error(`No se pudo leer ${options.filename} desde Storage: ${error?.message ?? "sin archivo"}`);
+    }
+    const buffer = new Uint8Array(await file.arrayBuffer());
+    const contentType = file.type || options.defaultContentType;
+    assertMediaBytes(buffer, contentType, options.filename);
+    return { buffer, contentType };
+  }
+
+  if (!options.url) throw new Error(`Falta ${options.filename}.`);
+  const dl = await fetch(options.url);
+  const contentType = dl.headers.get("content-type") ?? options.defaultContentType;
+  const buffer = new Uint8Array(await dl.arrayBuffer());
+  if (!dl.ok) throw new Error(`No se pudo descargar ${options.filename} (${dl.status})`);
+  assertMediaBytes(buffer, contentType, options.filename);
+  return { buffer, contentType };
 }
 
 /** Estimate lip-sync cost (~$0.10/s of clip). */
@@ -25,20 +87,22 @@ export function estimateLipsyncCostUsd(durationSec: number): number {
 // ---------- Start ----------
 
 const StartInput = z.object({
-  videoUrl: z.string().url(),
-  audioUrl: z.string().url(),
-});
+  videoUrl: z.string().url().optional(),
+  audioUrl: z.string().url().optional(),
+  videoStoragePath: z.string().min(1).optional(),
+  audioStoragePath: z.string().min(1).optional(),
+}).refine(
+  (data) => (data.videoUrl || data.videoStoragePath) && (data.audioUrl || data.audioStoragePath),
+  "Faltan el vídeo o el audio para aplicar lip-sync.",
+);
 
 async function uploadToReplicate(
-  url: string,
+  buffer: Uint8Array,
   contentType: string,
   filename: string,
 ): Promise<string> {
-  const dl = await fetch(url);
-  if (!dl.ok) throw new Error(`No se pudo descargar ${filename} (${dl.status})`);
-  const buf = new Uint8Array(await dl.arrayBuffer());
   const form = new FormData();
-  form.append("content", new Blob([buf as BlobPart], { type: contentType }), filename);
+  form.append("content", new Blob([buffer as BlobPart], { type: contentType }), filename);
   const res = await fetch(`${GATEWAY}/files`, {
     method: "POST",
     headers: gatewayHeaders(),
@@ -46,19 +110,42 @@ async function uploadToReplicate(
   });
   const body = await res.text();
   if (!res.ok) throw new Error(`Replicate files error ${res.status}: ${body.slice(0, 300)}`);
-  const json = JSON.parse(body) as { urls: { get: string } };
-  return json.urls.get;
+  const json = JSON.parse(body) as { urls?: { get?: string; download?: string } };
+  const fileUrl = json.urls?.download ?? json.urls?.get;
+  if (!fileUrl) throw new Error("Replicate Files no devolvió URL de descarga.");
+  return fileUrl;
 }
 
 export const startLipsync = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => StartInput.parse(input))
-  .handler(async ({ data }) => {
-    // Re-hospedar en Replicate Files para evitar bloqueos de Cloudflare al
-    // descargar desde URLs firmadas de *.lovable.app / Supabase.
+  .handler(async ({ data, context }) => {
+    // Leer los ficheros desde Storage interno cuando esté disponible. Así no
+    // subimos una página HTML de bloqueo si una URL firmada es interceptada.
+    const [videoAsset, audioAsset] = await Promise.all([
+      readMediaAsset({
+        storagePath: data.videoStoragePath,
+        url: data.videoUrl,
+        userId: context.userId,
+        allowedPrefixes: [`ai/${context.userId}/`, `lipsync/${context.userId}/`],
+        defaultContentType: "video/mp4",
+        filename: "input.mp4",
+      }),
+      readMediaAsset({
+        storagePath: data.audioStoragePath,
+        url: data.audioUrl,
+        userId: context.userId,
+        allowedPrefixes: [`ai-audio/${context.userId}/`],
+        defaultContentType: "audio/mpeg",
+        filename: "input.mp3",
+      }),
+    ]);
+
+    // Re-hospedar en Replicate Files para que sync/lipsync-2 descargue desde
+    // Replicate, no desde URLs firmadas del proyecto.
     const [videoRef, audioRef] = await Promise.all([
-      uploadToReplicate(data.videoUrl, "video/mp4", "input.mp4"),
-      uploadToReplicate(data.audioUrl, "audio/mpeg", "input.mp3"),
+      uploadToReplicate(videoAsset.buffer, videoAsset.contentType, "input.mp4"),
+      uploadToReplicate(audioAsset.buffer, audioAsset.contentType, "input.mp3"),
     ]);
 
     const res = await fetch(
@@ -76,7 +163,7 @@ export const startLipsync = createServerFn({ method: "POST" })
       },
     );
     const body = await res.text();
-    if (!res.ok) throw new Error(`Replicate error ${res.status}: ${body.slice(0, 400)}`);
+    if (!res.ok) throw new Error(`Replicate error ${res.status}: ${summarizeProviderError(body)}`);
     const json = JSON.parse(body) as { id: string; status: string };
     return { predictionId: json.id, status: json.status };
   });
@@ -92,6 +179,31 @@ type PollResult =
   | { status: "pending"; progress: number; elapsedSec?: number; logsTail?: string }
   | { status: "ready"; progress: 100; url: string; storagePath: string; elapsedSec?: number }
   | { status: "failed"; error: string; logsTail?: string };
+
+function outputToUrl(output: unknown): string | null {
+  if (typeof output === "string") return output;
+  if (Array.isArray(output)) return outputToUrl(output[0]);
+  if (output && typeof output === "object") {
+    const record = output as { url?: unknown; urls?: { get?: unknown; download?: unknown } };
+    if (typeof record.url === "string") return record.url;
+    if (typeof record.urls?.download === "string") return record.urls.download;
+    if (typeof record.urls?.get === "string") return record.urls.get;
+  }
+  return null;
+}
+
+async function fetchReplicateOutput(url: string): Promise<Response> {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === "api.replicate.com" && parsed.pathname.startsWith("/v1/")) {
+      const gatewayUrl = `${GATEWAY}${parsed.pathname.slice("/v1".length)}${parsed.search}`;
+      return fetch(gatewayUrl, { headers: gatewayHeaders() });
+    }
+  } catch {
+    // Fall through to regular fetch.
+  }
+  return fetch(url);
+}
 
 function tailLogs(logs: string | null | undefined, maxLines = 6): string | undefined {
   if (!logs) return undefined;
@@ -123,15 +235,16 @@ export const pollLipsync = createServerFn({ method: "POST" })
     const logsTail = tailLogs(json.logs);
 
     if (json.status === "failed" || json.status === "canceled") {
-      return { status: "failed", error: json.error ?? json.status, logsTail };
+      return { status: "failed", error: summarizeProviderError(json.error ?? json.status), logsTail };
     }
     if (json.status !== "succeeded" || !json.output) {
       const progress = json.status === "starting" ? Math.min(10, 2 + elapsedSec) : Math.min(90, 15 + elapsedSec * 2);
       return { status: "pending", progress, elapsedSec, logsTail };
     }
 
-    const outputUrl = Array.isArray(json.output) ? json.output[0] : json.output;
-    const videoRes = await fetch(outputUrl);
+    const outputUrl = outputToUrl(json.output);
+    if (!outputUrl) return { status: "failed", error: "Replicate no devolvió un MP4 final.", logsTail };
+    const videoRes = await fetchReplicateOutput(outputUrl);
     if (!videoRes.ok) return { status: "failed", error: `Descarga fallida (${videoRes.status})`, logsTail };
     const buf = new Uint8Array(await videoRes.arrayBuffer());
 
