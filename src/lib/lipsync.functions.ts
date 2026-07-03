@@ -19,10 +19,8 @@ function gatewayHeaders() {
 
 function summarizeProviderError(value: unknown): string {
   const raw = typeof value === "string" ? value : JSON.stringify(value ?? "");
-  if (/<!doctype|<html|cloudflare|attention required|sorry, you have been blocked/i.test(raw)) {
-    return "El proveedor de lip-sync devolvió HTML al procesar el archivo. He cambiado el envío a archivos internos de Replicate; reintenta el lip-sync.";
-  }
-  return raw.slice(0, 500);
+  console.error("[lipsync] provider error:", raw.slice(0, 2000));
+  return raw.slice(0, 800);
 }
 
 function assertMediaBytes(buffer: Uint8Array, contentType: string, filename: string) {
