@@ -110,7 +110,8 @@ async function uploadBytesToReplicate(
   const body = await res.text();
   if (!res.ok) throw new Error(`Replicate files error ${res.status}: ${summarizeProviderError(body)}`);
 
-  const json = JSON.parse(body) as { urls?: { get?: string } };
+  const json = JSON.parse(body) as { id?: string; urls?: { get?: string } };
+  console.log(`[lipsync] uploaded ${filename} (${buffer.byteLength}B) →`, json.urls?.get, "id:", json.id);
   if (!json.urls?.get) throw new Error("Replicate no devolvió URL interna del archivo.");
   return json.urls.get;
 }
