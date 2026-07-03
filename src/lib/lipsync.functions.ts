@@ -96,24 +96,9 @@ const StartInput = z.object({
   "Faltan el vídeo o el audio para aplicar lip-sync.",
 );
 
-async function uploadToReplicate(
-  buffer: Uint8Array,
-  contentType: string,
-  filename: string,
-): Promise<string> {
-  const form = new FormData();
-  form.append("content", new Blob([buffer as BlobPart], { type: contentType }), filename);
-  const res = await fetch(`${GATEWAY}/files`, {
-    method: "POST",
-    headers: gatewayHeaders(),
-    body: form,
-  });
-  const body = await res.text();
-  if (!res.ok) throw new Error(`Replicate files error ${res.status}: ${body.slice(0, 300)}`);
-  const json = JSON.parse(body) as { urls?: { get?: string; download?: string } };
-  const fileUrl = json.urls?.download ?? json.urls?.get;
-  if (!fileUrl) throw new Error("Replicate Files no devolvió URL de descarga.");
-  return fileUrl;
+function toDataUri(buffer: Uint8Array, contentType: string): string {
+  const base64 = Buffer.from(buffer).toString("base64");
+  return `data:${contentType};base64,${base64}`;
 }
 
 export const startLipsync = createServerFn({ method: "POST" })
@@ -121,7 +106,7 @@ export const startLipsync = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => StartInput.parse(input))
   .handler(async ({ data, context }) => {
     // Leer los ficheros desde Storage interno cuando esté disponible. Así no
-    // subimos una página HTML de bloqueo si una URL firmada es interceptada.
+    // dependemos de URLs firmadas que un WAF pueda interceptar.
     const [videoAsset, audioAsset] = await Promise.all([
       readMediaAsset({
         storagePath: data.videoStoragePath,
@@ -141,12 +126,10 @@ export const startLipsync = createServerFn({ method: "POST" })
       }),
     ]);
 
-    // Re-hospedar en Replicate Files para que sync/lipsync-2 descargue desde
-    // Replicate, no desde URLs firmadas del proyecto.
-    const [videoRef, audioRef] = await Promise.all([
-      uploadToReplicate(videoAsset.buffer, videoAsset.contentType, "input.mp4"),
-      uploadToReplicate(audioAsset.buffer, audioAsset.contentType, "input.mp3"),
-    ]);
+    // Enviar los ficheros como data URIs para que Replicate no tenga que
+    // descargar nada de ninguna URL externa (evita bloqueos de Cloudflare).
+    const videoDataUri = toDataUri(videoAsset.buffer, videoAsset.contentType || "video/mp4");
+    const audioDataUri = toDataUri(audioAsset.buffer, audioAsset.contentType || "audio/mpeg");
 
     const res = await fetch(
       `${GATEWAY}/models/${LIPSYNC_MODEL.owner}/${LIPSYNC_MODEL.name}/predictions`,
@@ -155,8 +138,8 @@ export const startLipsync = createServerFn({ method: "POST" })
         headers: { ...gatewayHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({
           input: {
-            video: videoRef,
-            audio: audioRef,
+            video: videoDataUri,
+            audio: audioDataUri,
             sync_mode: "cut_off",
           },
         }),
