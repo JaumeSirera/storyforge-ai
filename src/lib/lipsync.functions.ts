@@ -20,7 +20,7 @@ function gatewayHeaders() {
 function summarizeProviderError(value: unknown): string {
   const raw = typeof value === "string" ? value : JSON.stringify(value ?? "");
   if (/<!doctype|<html|cloudflare|attention required|sorry, you have been blocked/i.test(raw)) {
-    return "El proveedor recibió una página HTML de bloqueo en lugar del archivo multimedia. Se ha cambiado el flujo para leer el MP4/MP3 desde Storage interno; vuelve a aplicar lip-sync.";
+    return "Replicate no pudo procesar el archivo multimedia (respuesta HTML del proveedor). Reintenta en unos segundos.";
   }
   return raw.slice(0, 500);
 }
