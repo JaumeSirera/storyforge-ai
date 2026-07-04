@@ -623,7 +623,7 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
               )}
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Sincroniza los labios del personaje con la voz generada usando <code>sync/lipsync-2</code>.
+              Sincroniza los labios del personaje con la voz generada usando <code>bytedance/latentsync</code>.
               El MP4 final se actualiza con el audio integrado. Coste estimado:{" "}
               <span className="font-medium text-foreground">
                 {fmtUsd(estimateLipsyncCostUsd(source.durationSec ?? 5))}
