@@ -5,6 +5,8 @@ import { z } from "zod";
 const GATEWAY = "https://connector-gateway.lovable.dev/replicate/v1";
 // Avoid sync.so-backed models: their provider currently returns a Cloudflare block page.
 const LIPSYNC_MODEL = { owner: "bytedance", name: "latentsync" };
+// bytedance/latentsync es un community model → hay que usar /predictions con "version".
+const LIPSYNC_VERSION = "637ce1919f807ca20da3a448ddc2743535d2853649574cd52a933120e9b9e293";
 const SIGNED_URL_TTL = 60 * 60 * 24 * 365 * 10;
 
 function gatewayHeaders() {
@@ -149,11 +151,12 @@ export const startLipsync = createServerFn({ method: "POST" })
     ]);
 
     const res = await fetch(
-      `${GATEWAY}/models/${LIPSYNC_MODEL.owner}/${LIPSYNC_MODEL.name}/predictions`,
+      `${GATEWAY}/predictions`,
       {
         method: "POST",
         headers: { ...gatewayHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({
+          version: LIPSYNC_VERSION,
           input: {
             video: videoFileUrl,
             audio: audioFileUrl,
