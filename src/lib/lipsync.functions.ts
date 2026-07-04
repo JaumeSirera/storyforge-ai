@@ -19,8 +19,8 @@ function gatewayHeaders() {
 
 function summarizeProviderError(value: unknown): string {
   const raw = typeof value === "string" ? value : JSON.stringify(value ?? "");
-  console.error("[lipsync] provider error:", raw.slice(0, 2000));
-  return raw.slice(0, 800);
+  console.error("[lipsync] provider error:", raw);
+  return raw;
 }
 
 function assertMediaBytes(buffer: Uint8Array, contentType: string, filename: string) {
@@ -217,7 +217,7 @@ export const pollLipsync = createServerFn({ method: "POST" })
       headers: gatewayHeaders(),
     });
     const body = await res.text();
-    if (!res.ok) return { status: "failed", error: `Replicate ${res.status}: ${body.slice(0, 200)}` };
+    if (!res.ok) return { status: "failed", error: `Replicate ${res.status}: ${body}` };
     const json = JSON.parse(body) as {
       status: "starting" | "processing" | "succeeded" | "failed" | "canceled";
       output: string | string[] | null;

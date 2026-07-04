@@ -79,6 +79,17 @@ function fmtUsd(usd: number) {
   return `$${usd.toFixed(usd < 1 ? 3 : 2)}`;
 }
 
+function FullErrorBlock({ label = "Error completo de Replicate", error }: { label?: string; error: string }) {
+  return (
+    <div className="space-y-1">
+      <div className="text-[11px] font-medium text-destructive">{label}</div>
+      <pre className="max-h-56 overflow-auto rounded-md border border-destructive/30 bg-destructive/5 p-2 text-[10px] leading-snug text-destructive whitespace-pre-wrap break-words">
+        {error}
+      </pre>
+    </div>
+  );
+}
+
 type AiSource = Extract<VideoSource, { type: "ai" }>;
 
 interface Props {
@@ -516,7 +527,7 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
               </pre>
             )}
             {progress.error && (
-              <p className="text-xs text-destructive">{progress.error}</p>
+              <FullErrorBlock error={progress.error} />
             )}
           </div>
         )}
@@ -622,7 +633,7 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
               <Progress value={source.lipsync.progress ?? 10} className="h-1.5" />
             )}
             {source.lipsync?.error && (
-              <p className="text-[11px] text-destructive">{source.lipsync.error}</p>
+              <FullErrorBlock error={source.lipsync.error} />
             )}
             <div className="flex flex-wrap items-center gap-2">
               <Button
