@@ -151,11 +151,12 @@ export const startLipsync = createServerFn({ method: "POST" })
     ]);
 
     const res = await fetch(
-      `${GATEWAY}/models/${LIPSYNC_MODEL.owner}/${LIPSYNC_MODEL.name}/predictions`,
+      `${GATEWAY}/predictions`,
       {
         method: "POST",
         headers: { ...gatewayHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({
+          version: LIPSYNC_VERSION,
           input: {
             video: videoFileUrl,
             audio: audioFileUrl,
