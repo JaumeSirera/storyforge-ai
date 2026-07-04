@@ -3,8 +3,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/replicate/v1";
-// sync.so lipsync-2: fast, high-quality lip-sync. ~$0.05-0.15/s.
-const LIPSYNC_MODEL = { owner: "sync", name: "lipsync-2" };
+// Avoid sync.so-backed models: their provider currently returns a Cloudflare block page.
+const LIPSYNC_MODEL = { owner: "bytedance", name: "latentsync" };
 const SIGNED_URL_TTL = 60 * 60 * 24 * 365 * 10;
 
 function gatewayHeaders() {
@@ -142,7 +142,7 @@ export const startLipsync = createServerFn({ method: "POST" })
     ]);
 
     // Subir los bytes a Replicate Files y pasar esas URLs internas al modelo.
-    // sync/lipsync-2 espera URLs de archivo; los data URIs grandes fallan en el proveedor.
+    // LatentSync consume URLs de vídeo/audio y evita el bloqueo de Cloudflare observado en sync.so.
     const [videoFileUrl, audioFileUrl] = await Promise.all([
       uploadBytesToReplicate(videoAsset.buffer, videoAsset.contentType || "video/mp4", "input.mp4"),
       uploadBytesToReplicate(audioAsset.buffer, audioAsset.contentType || "audio/mpeg", "input.mp3"),
@@ -157,6 +157,8 @@ export const startLipsync = createServerFn({ method: "POST" })
           input: {
             video: videoFileUrl,
             audio: audioFileUrl,
+            guidance_scale: 1,
+            seed: 0,
           },
         }),
       },
