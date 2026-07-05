@@ -84,6 +84,26 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
   const pauseAtSec =
     !questionReady && trig.mode === "time" ? trig.seconds : undefined;
 
+  // Reset comment text when the prompt changes.
+  useEffect(() => {
+    setCommentText("");
+  }, [node?.id, activeClipId, q?.id]);
+
+  // Auto-advance for "goto" prompts as soon as they become ready.
+  useEffect(() => {
+    if (!node || node.isEnding || ended) return;
+    if (!q || (q.kind ?? "question") !== "goto") return;
+    if (!questionReady) return;
+    const c = q.choices[0];
+    if (!c) return;
+    const key = `${node.id}:${q.id ?? ""}:${c.id}`;
+    if (autoGotoRef.current === key) return;
+    autoGotoRef.current = key;
+    choose(c);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node?.id, q?.id, q?.kind, questionReady, ended]);
+
+
 
 
   const choose = (c: Choice, opts?: { commentText?: string }) => {
