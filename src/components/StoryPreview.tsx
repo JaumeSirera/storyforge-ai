@@ -54,6 +54,8 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
   const [ended, setEnded] = useState(false);
   const [activeClipId, setActiveClipId] = useState<string | undefined>(undefined);
   const [questionReady, setQuestionReady] = useState(true);
+  const [commentText, setCommentText] = useState("");
+  const autoGotoRef = useRef<string | null>(null);
 
 
   const errors = useMemo(() => validateStory(story), [story]);
