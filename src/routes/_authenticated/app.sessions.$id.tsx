@@ -351,29 +351,47 @@ function ScenePlayback({
   submitting: boolean;
   feedback: { feedback: string; points: number } | null;
   selected: string | null;
-  onPick: (id: string) => void;
+  onPick: (id: string, opts?: { commentText?: string }) => void;
   nextNodes: any[];
   immersive?: boolean;
 }) {
   const clips = nodeClips(node);
   const [activeClipId, setActiveClipId] = useState<string>(clips[0]?.id ?? "default");
+  const [commentText, setCommentText] = useState("");
   // Reset active clip when the scene changes.
   useEffect(() => {
     setActiveClipId(clips[0]?.id ?? "default");
+    setCommentText("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node.id]);
 
   const q = activeQuestion(node, activeClipId);
+  const kind: "question" | "comment" | "goto" = (q?.kind as any) ?? "question";
   const trig = q?.triggerAt ?? { mode: "immediate" as const };
   const [questionReady, setQuestionReady] = useState(trig.mode === "immediate");
 
   // Reset readiness whenever the active question/clip/scene changes.
   useEffect(() => {
     setQuestionReady((q?.triggerAt?.mode ?? "immediate") === "immediate");
+    setCommentText("");
   }, [node.id, activeClipId, q?.id, q?.triggerAt?.mode]);
 
   const pauseAtSec =
     !questionReady && trig.mode === "time" ? trig.seconds : undefined;
+
+  // Auto-submit for goto prompts when ready.
+  const autoFiredRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (kind !== "goto" || !questionReady || feedback || submitting) return;
+    const c = q?.choices?.[0];
+    if (!c) return;
+    const key = `${node.id}:${q?.id ?? ""}:${c.id}`;
+    if (autoFiredRef.current === key) return;
+    autoFiredRef.current = key;
+    onPick(c.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind, questionReady, q?.id, node.id]);
+
 
   if (immersive) {
     return (
