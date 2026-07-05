@@ -8,6 +8,7 @@ import { activeQuestion, nodeClips } from "@/lib/story-types";
 import { VideoPrefetch, nextCandidateNodes } from "@/components/VideoPrefetch";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Trophy, Star, Loader2, CheckCircle2, XCircle, Sparkles, Award, ArrowRight, Home, Maximize2, Minimize2, PanelTopOpen, Square } from "lucide-react";
