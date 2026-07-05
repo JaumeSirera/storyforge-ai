@@ -320,6 +320,8 @@ const PreviewAnswerSchema = z.object({
   points: z.number(),
   feedback: z.string().default(""),
   at: z.string().optional(),
+  kind: z.enum(["question", "comment", "goto"]).optional(),
+  commentText: z.string().max(4000).optional(),
 });
 
 const SavePreviewDraftInput = z.object({
