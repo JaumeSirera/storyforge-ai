@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { VideoPrefetch, nextCandidateNodes } from "@/components/VideoPrefetch";
-import { ArrowLeft, RotateCcw, Star, Trophy, Flag, AlertTriangle, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, RotateCcw, Star, Trophy, Flag, AlertTriangle, Save, Loader2, ArrowRight } from "lucide-react";
 import type { Story, StoryNode, Choice, EvaluationCriterion } from "@/lib/story-types";
 import { activeQuestion, nodeClips, nodeQuestions } from "@/lib/story-types";
 
