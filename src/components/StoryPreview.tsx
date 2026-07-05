@@ -83,14 +83,15 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
 
 
 
-  const choose = (c: Choice) => {
+  const choose = (c: Choice, opts?: { commentText?: string }) => {
     if (!node || !q) return;
+    const kind = q.kind ?? "question";
     setHistory((h) => [...h, {
       nodeId: node.id,
       nodeTitle: node.title,
       question: q.text,
       choiceId: c.id,
-      choiceLabel: c.label,
+      choiceLabel: kind === "comment" ? (opts?.commentText ?? "") : c.label,
       feedback: c.feedback,
       points: c.points,
       competencies: { ...(c.competencies ?? {}) },
