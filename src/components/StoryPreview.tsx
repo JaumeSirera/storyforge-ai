@@ -71,6 +71,8 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     setLastFeedback(null);
     setEnded(false);
     setActiveClipId(undefined);
+    setCommentText("");
+    autoGotoRef.current = null;
   };
 
   const q = node ? activeQuestion(node, activeClipId) : undefined;
