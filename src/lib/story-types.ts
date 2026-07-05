@@ -75,14 +75,28 @@ export type QuestionTrigger =
   | { mode: "time"; seconds: number }
   | { mode: "end" };
 
+/**
+ * Kind of interaction at this point of the scene:
+ *  - "question": user picks one of `choices` (default; legacy behaviour).
+ *  - "comment": user writes free text that is stored with the answer for evaluation.
+ *      Uses `choices[0]` as the outcome (points/feedback/next/competencies).
+ *  - "goto": no user interaction. When the trigger fires, jumps to `choices[0].next`.
+ */
+export type QuestionKind = "question" | "comment" | "goto";
+
 export interface Question {
   /** Stable id within the node. Optional for legacy single-question data. */
   id?: string;
+  /** Type of prompt. Defaults to "question". */
+  kind?: QuestionKind;
   /** Optional: bind the question to a specific clip of the scene. */
   clipId?: string;
   /** When to surface the question relative to the bound (or active) clip. */
   triggerAt?: QuestionTrigger;
+  /** For comments, this is the prompt shown to the user (e.g. "Justifica tu decisión"). */
   text: string;
+  /** For comments, optional hint about how the evaluator should score the response. */
+  evaluationHint?: string;
   choices: Choice[];
 }
 
@@ -127,6 +141,10 @@ export interface SessionAnswer {
   points: number;
   feedback: string;
   at: string;
+  /** Free text the user wrote when the prompt was a comment. */
+  commentText?: string;
+  /** Prompt kind at the moment of answering. */
+  kind?: QuestionKind;
 }
 
 export interface SessionReport {

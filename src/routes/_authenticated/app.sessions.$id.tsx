@@ -8,6 +8,7 @@ import { activeQuestion, nodeClips } from "@/lib/story-types";
 import { VideoPrefetch, nextCandidateNodes } from "@/components/VideoPrefetch";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Trophy, Star, Loader2, CheckCircle2, XCircle, Sparkles, Award, ArrowRight, Home, Maximize2, Minimize2, PanelTopOpen, Square } from "lucide-react";
@@ -163,11 +164,13 @@ function Player({
   }
 
 
-  async function pick(choiceId: string) {
+  async function pick(choiceId: string, opts?: { commentText?: string }) {
     setSelected(choiceId);
     setSubmitting(true);
     try {
-      const r = await submit({ data: { sessionId, nodeId: node.id, choiceId } });
+      const r = await submit({
+        data: { sessionId, nodeId: node.id, choiceId, ...(opts?.commentText ? { commentText: opts.commentText } : {}) },
+      });
       setFeedback({ feedback: r.feedback, points: r.pointsDelta });
       setTimeout(() => {
         qc.invalidateQueries({ queryKey: ["session", sessionId] });
@@ -349,29 +352,47 @@ function ScenePlayback({
   submitting: boolean;
   feedback: { feedback: string; points: number } | null;
   selected: string | null;
-  onPick: (id: string) => void;
+  onPick: (id: string, opts?: { commentText?: string }) => void;
   nextNodes: any[];
   immersive?: boolean;
 }) {
   const clips = nodeClips(node);
   const [activeClipId, setActiveClipId] = useState<string>(clips[0]?.id ?? "default");
+  const [commentText, setCommentText] = useState("");
   // Reset active clip when the scene changes.
   useEffect(() => {
     setActiveClipId(clips[0]?.id ?? "default");
+    setCommentText("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node.id]);
 
   const q = activeQuestion(node, activeClipId);
+  const kind: "question" | "comment" | "goto" = (q?.kind as any) ?? "question";
   const trig = q?.triggerAt ?? { mode: "immediate" as const };
   const [questionReady, setQuestionReady] = useState(trig.mode === "immediate");
 
   // Reset readiness whenever the active question/clip/scene changes.
   useEffect(() => {
     setQuestionReady((q?.triggerAt?.mode ?? "immediate") === "immediate");
+    setCommentText("");
   }, [node.id, activeClipId, q?.id, q?.triggerAt?.mode]);
 
   const pauseAtSec =
     !questionReady && trig.mode === "time" ? trig.seconds : undefined;
+
+  // Auto-submit for goto prompts when ready.
+  const autoFiredRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (kind !== "goto" || !questionReady || feedback || submitting) return;
+    const c = q?.choices?.[0];
+    if (!c) return;
+    const key = `${node.id}:${q?.id ?? ""}:${c.id}`;
+    if (autoFiredRef.current === key) return;
+    autoFiredRef.current = key;
+    onPick(c.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind, questionReady, q?.id, node.id]);
+
 
   if (immersive) {
     return (
@@ -403,7 +424,7 @@ function ScenePlayback({
 
 
 
-            {q && questionReady && !feedback && (
+            {q && questionReady && !feedback && kind === "question" && (
               <div className="space-y-3">
                 <h3 className="font-semibold text-base md:text-lg text-white drop-shadow">
                   {q.text}
@@ -426,6 +447,28 @@ function ScenePlayback({
                 </div>
               </div>
             )}
+
+            {q && questionReady && !feedback && kind === "comment" && q.choices[0] && (
+              <div className="space-y-3">
+                <h3 className="font-semibold text-base md:text-lg text-white drop-shadow">{q.text}</h3>
+                <Textarea
+                  rows={4}
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="Escribe tu respuesta..."
+                  className="bg-white/10 border-white/30 text-white placeholder:text-white/60 backdrop-blur-md"
+                />
+                <div className="flex justify-end">
+                  <Button
+                    disabled={submitting || !commentText.trim()}
+                    onClick={() => onPick(q.choices[0].id, { commentText: commentText.trim() })}
+                  >
+                    Enviar comentario
+                  </Button>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       </>
@@ -459,7 +502,7 @@ function ScenePlayback({
 
 
 
-      {q && questionReady && !feedback && (
+      {q && questionReady && !feedback && kind === "question" && (
         <div className="space-y-3">
           <h3 className="font-semibold text-lg">{q.text}</h3>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -475,6 +518,26 @@ function ScenePlayback({
                 <div className="font-medium">{c.label}</div>
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {q && questionReady && !feedback && kind === "comment" && q.choices[0] && (
+        <div className="space-y-3">
+          <h3 className="font-semibold text-lg">{q.text}</h3>
+          <Textarea
+            rows={4}
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            placeholder="Escribe tu respuesta..."
+          />
+          <div className="flex justify-end">
+            <Button
+              disabled={submitting || !commentText.trim()}
+              onClick={() => onPick(q.choices[0].id, { commentText: commentText.trim() })}
+            >
+              Enviar comentario
+            </Button>
           </div>
         </div>
       )}

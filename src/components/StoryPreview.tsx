@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { VideoPrefetch, nextCandidateNodes } from "@/components/VideoPrefetch";
-import { ArrowLeft, RotateCcw, Star, Trophy, Flag, AlertTriangle, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, RotateCcw, Star, Trophy, Flag, AlertTriangle, Save, Loader2, ArrowRight } from "lucide-react";
 import type { Story, StoryNode, Choice, EvaluationCriterion } from "@/lib/story-types";
 import { activeQuestion, nodeClips, nodeQuestions } from "@/lib/story-types";
 
@@ -53,6 +54,8 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
   const [ended, setEnded] = useState(false);
   const [activeClipId, setActiveClipId] = useState<string | undefined>(undefined);
   const [questionReady, setQuestionReady] = useState(true);
+  const [commentText, setCommentText] = useState("");
+  const autoGotoRef = useRef<string | null>(null);
 
 
   const errors = useMemo(() => validateStory(story), [story]);
@@ -68,6 +71,8 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     setLastFeedback(null);
     setEnded(false);
     setActiveClipId(undefined);
+    setCommentText("");
+    autoGotoRef.current = null;
   };
 
   const q = node ? activeQuestion(node, activeClipId) : undefined;
@@ -81,16 +86,37 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
   const pauseAtSec =
     !questionReady && trig.mode === "time" ? trig.seconds : undefined;
 
+  // Reset comment text when the prompt changes.
+  useEffect(() => {
+    setCommentText("");
+  }, [node?.id, activeClipId, q?.id]);
+
+  // Auto-advance for "goto" prompts as soon as they become ready.
+  useEffect(() => {
+    if (!node || node.isEnding || ended) return;
+    if (!q || (q.kind ?? "question") !== "goto") return;
+    if (!questionReady) return;
+    const c = q.choices[0];
+    if (!c) return;
+    const key = `${node.id}:${q.id ?? ""}:${c.id}`;
+    if (autoGotoRef.current === key) return;
+    autoGotoRef.current = key;
+    choose(c);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node?.id, q?.id, q?.kind, questionReady, ended]);
 
 
-  const choose = (c: Choice) => {
+
+
+  const choose = (c: Choice, opts?: { commentText?: string }) => {
     if (!node || !q) return;
+    const kind = q.kind ?? "question";
     setHistory((h) => [...h, {
       nodeId: node.id,
       nodeTitle: node.title,
       question: q.text,
       choiceId: c.id,
-      choiceLabel: c.label,
+      choiceLabel: kind === "comment" ? (opts?.commentText ?? "") : c.label,
       feedback: c.feedback,
       points: c.points,
       competencies: { ...(c.competencies ?? {}) },
@@ -207,7 +233,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
 
 
 
-              {!ended && !node.isEnding && q && questionReady && (
+              {!ended && !node.isEnding && q && questionReady && (q.kind ?? "question") === "question" && (
                 <div className="space-y-2">
                   <div className="font-semibold text-base text-white drop-shadow">{q.text}</div>
                   <div className="grid gap-2">
@@ -223,6 +249,35 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
                   </div>
                 </div>
               )}
+
+              {!ended && !node.isEnding && q && questionReady && (q.kind ?? "question") === "comment" && q.choices[0] && (
+                <div className="space-y-2">
+                  <div className="font-semibold text-base text-white drop-shadow">{q.text}</div>
+                  <Textarea
+                    rows={3}
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder="Escribe tu respuesta..."
+                    className="bg-white/10 border-white/30 text-white placeholder:text-white/60 backdrop-blur-md"
+                  />
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      disabled={!commentText.trim()}
+                      onClick={() => choose(q.choices[0], { commentText: commentText.trim() })}
+                    >
+                      Enviar comentario
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {!ended && !node.isEnding && q && (q.kind ?? "question") === "goto" && !questionReady && (
+                <div className="text-xs text-white/80 italic drop-shadow">
+                  <ArrowRight className="h-3 w-3 inline mr-1" /> Enlace automático a otra escena…
+                </div>
+              )}
+
 
             </div>
           </div>
