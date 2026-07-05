@@ -233,7 +233,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
 
 
 
-              {!ended && !node.isEnding && q && questionReady && (
+              {!ended && !node.isEnding && q && questionReady && (q.kind ?? "question") === "question" && (
                 <div className="space-y-2">
                   <div className="font-semibold text-base text-white drop-shadow">{q.text}</div>
                   <div className="grid gap-2">
@@ -249,6 +249,35 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
                   </div>
                 </div>
               )}
+
+              {!ended && !node.isEnding && q && questionReady && (q.kind ?? "question") === "comment" && q.choices[0] && (
+                <div className="space-y-2">
+                  <div className="font-semibold text-base text-white drop-shadow">{q.text}</div>
+                  <Textarea
+                    rows={3}
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder="Escribe tu respuesta..."
+                    className="bg-white/10 border-white/30 text-white placeholder:text-white/60 backdrop-blur-md"
+                  />
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      disabled={!commentText.trim()}
+                      onClick={() => choose(q.choices[0], { commentText: commentText.trim() })}
+                    >
+                      Enviar comentario
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {!ended && !node.isEnding && q && (q.kind ?? "question") === "goto" && !questionReady && (
+                <div className="text-xs text-white/80 italic drop-shadow">
+                  <ArrowRight className="h-3 w-3 inline mr-1" /> Enlace automático a otra escena…
+                </div>
+              )}
+
 
             </div>
           </div>
