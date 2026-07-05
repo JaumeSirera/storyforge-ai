@@ -178,21 +178,46 @@ function EditSimulation() {
       return { ...s, nodes };
     });
 
-  const addQuestion = (nIdx: number, clipId?: string) =>
+  const addQuestion = (nIdx: number, kind: "question" | "comment" | "goto" = "question", clipId?: string) =>
     setState((s) => {
       if (!s) return s;
       const nodes = s.nodes.map((n, i) => {
         if (i !== nIdx) return n;
         const existing = n.questions ?? [];
-        const newQ: Question = {
-          id: uid("q"),
-          clipId,
-          text: "¿Qué decides?",
-          choices: [
-            { id: uid("c"), label: "Opción A", feedback: "", points: 0, next: null, competencies: {} },
-            { id: uid("c"), label: "Opción B", feedback: "", points: 0, next: null, competencies: {} },
-          ],
-        };
+        let newQ: Question;
+        if (kind === "question") {
+          newQ = {
+            id: uid("q"),
+            kind: "question",
+            clipId,
+            text: "¿Qué decides?",
+            choices: [
+              { id: uid("c"), label: "Opción A", feedback: "", points: 0, next: null, competencies: {} },
+              { id: uid("c"), label: "Opción B", feedback: "", points: 0, next: null, competencies: {} },
+            ],
+          };
+        } else if (kind === "comment") {
+          newQ = {
+            id: uid("q"),
+            kind: "comment",
+            clipId,
+            text: "Justifica brevemente tu decisión",
+            evaluationHint: "",
+            choices: [
+              { id: uid("c"), label: "Respuesta libre", feedback: "", points: 0, next: null, competencies: {} },
+            ],
+          };
+        } else {
+          newQ = {
+            id: uid("q"),
+            kind: "goto",
+            clipId,
+            text: "Continuar",
+            choices: [
+              { id: uid("c"), label: "Ir a la siguiente escena", feedback: "", points: 0, next: null, competencies: {} },
+            ],
+          };
+        }
         return { ...n, questions: [...existing, newQ] };
       });
       return { ...s, nodes };
