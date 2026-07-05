@@ -502,7 +502,7 @@ function ScenePlayback({
 
 
 
-      {q && questionReady && !feedback && (
+      {q && questionReady && !feedback && kind === "question" && (
         <div className="space-y-3">
           <h3 className="font-semibold text-lg">{q.text}</h3>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -518,6 +518,26 @@ function ScenePlayback({
                 <div className="font-medium">{c.label}</div>
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {q && questionReady && !feedback && kind === "comment" && q.choices[0] && (
+        <div className="space-y-3">
+          <h3 className="font-semibold text-lg">{q.text}</h3>
+          <Textarea
+            rows={4}
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            placeholder="Escribe tu respuesta..."
+          />
+          <div className="flex justify-end">
+            <Button
+              disabled={submitting || !commentText.trim()}
+              onClick={() => onPick(q.choices[0].id, { commentText: commentText.trim() })}
+            >
+              Enviar comentario
+            </Button>
           </div>
         </div>
       )}
