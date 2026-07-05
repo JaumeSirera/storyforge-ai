@@ -60,6 +60,8 @@ const AnswerInput = z.object({
   sessionId: z.string().uuid(),
   nodeId: z.string(),
   choiceId: z.string(),
+  /** Free text when the prompt is a comment. */
+  commentText: z.string().max(4000).optional(),
 });
 
 export const submitAnswer = createServerFn({ method: "POST" })
@@ -95,16 +97,22 @@ export const submitAnswer = createServerFn({ method: "POST" })
     }
     if (!choice) throw new Error("Opción no válida");
 
+    const kind: "question" | "comment" | "goto" = chosenQuestion?.kind ?? "question";
     const answers = Array.isArray(sess.answers) ? [...(sess.answers as any[])] : [];
     answers.push({
       nodeId: node.id,
       nodeTitle: node.title,
       question: chosenQuestion?.text ?? "",
       choiceId: choice.id,
-      choiceLabel: choice.label,
+      choiceLabel:
+        kind === "comment"
+          ? (data.commentText ?? "").slice(0, 4000)
+          : choice.label,
       points: choice.points,
       feedback: choice.feedback,
       at: new Date().toISOString(),
+      kind,
+      ...(kind === "comment" && data.commentText ? { commentText: data.commentText.slice(0, 4000) } : {}),
     });
 
 
