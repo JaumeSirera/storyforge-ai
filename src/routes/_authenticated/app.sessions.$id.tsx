@@ -163,11 +163,13 @@ function Player({
   }
 
 
-  async function pick(choiceId: string) {
+  async function pick(choiceId: string, opts?: { commentText?: string }) {
     setSelected(choiceId);
     setSubmitting(true);
     try {
-      const r = await submit({ data: { sessionId, nodeId: node.id, choiceId } });
+      const r = await submit({
+        data: { sessionId, nodeId: node.id, choiceId, ...(opts?.commentText ? { commentText: opts.commentText } : {}) },
+      });
       setFeedback({ feedback: r.feedback, points: r.pointsDelta });
       setTimeout(() => {
         qc.invalidateQueries({ queryKey: ["session", sessionId] });
