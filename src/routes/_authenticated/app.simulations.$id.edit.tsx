@@ -348,6 +348,22 @@ function EditSimulation() {
     });
   };
 
+  const onQuestionDragEnd = (nIdx: number) => (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setState((s) => {
+      if (!s) return s;
+      const nodes = s.nodes.map((n, i) => {
+        if (i !== nIdx || !n.questions) return n;
+        const oldIdx = n.questions.findIndex((q) => (q.id ?? "") === active.id);
+        const newIdx = n.questions.findIndex((q) => (q.id ?? "") === over.id);
+        if (oldIdx < 0 || newIdx < 0) return n;
+        return { ...n, questions: arrayMove(n.questions, oldIdx, newIdx) };
+      });
+      return { ...s, nodes };
+    });
+  };
+
   const deleteNode = (idx: number) => {
     setState((s) => {
       if (!s) return s;
