@@ -1146,8 +1146,12 @@ function EditSimulation() {
                             </>
                           )}
                         </div>
+                          )}
+                        </SortableScene>
                         );
                       })}
+                        </SortableContext>
+                      </DndContext>
                     </div>
                   )}
 
