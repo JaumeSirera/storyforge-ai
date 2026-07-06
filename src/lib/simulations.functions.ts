@@ -676,7 +676,7 @@ const EditorQuestionSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.too_small,
         minimum: 2,
-        type: "array",
+        origin: "array",
         inclusive: true,
         message: "Una pregunta necesita al menos 2 opciones.",
         path: ["choices"],
