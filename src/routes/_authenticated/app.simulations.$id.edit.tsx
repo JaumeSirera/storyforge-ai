@@ -933,6 +933,11 @@ function EditSimulation() {
                         </p>
                       )}
 
+                      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onQuestionDragEnd(nIdx)}>
+                        <SortableContext
+                          items={(n.questions ?? []).map((q, qi) => q.id ?? `q-${qi}`)}
+                          strategy={verticalListSortingStrategy}
+                        >
                       {(n.questions ?? []).map((q, qIdx) => {
                         const kind: "question" | "comment" | "goto" = q.kind ?? "question";
                         const kindLabel =
@@ -943,9 +948,21 @@ function EditSimulation() {
                             : kind === "goto"
                             ? "Texto opcional (por ejemplo, subtítulo antes de saltar)"
                             : `Pregunta ${qIdx + 1}`;
+                        const qKey = q.id ?? `q-${qIdx}`;
                         return (
-                        <div key={q.id ?? qIdx} className="space-y-3 rounded-lg border p-3">
+                        <SortableScene key={qKey} id={qKey}>
+                          {({ handleProps }) => (
+                        <div className="space-y-3 rounded-lg border p-3">
                           <div className="flex items-start justify-between gap-2">
+                            <button
+                              type="button"
+                              {...handleProps}
+                              className="mt-1 p-1 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing touch-none"
+                              aria-label="Mover interacción"
+                              title="Arrastra para reordenar"
+                            >
+                              <GripVertical className="h-4 w-4" />
+                            </button>
                             <div className="flex-1 space-y-1.5">
                               <div className="flex items-center gap-2">
                                 <Badge variant="secondary" className="text-[10px]">{kindLabel} {qIdx + 1}</Badge>
