@@ -660,13 +660,29 @@ const QuestionTriggerSchema = z.union([
   z.object({ mode: z.literal("time"), seconds: z.number().min(0).max(36000) }),
 ]);
 
-const EditorQuestionSchema = z.object({
-  id: z.string().min(1).optional(),
-  clipId: z.string().optional(),
-  triggerAt: QuestionTriggerSchema.optional(),
-  text: z.string().min(1),
-  choices: z.array(EditorChoiceSchema).min(2).max(6),
-});
+const EditorQuestionSchema = z
+  .object({
+    id: z.string().min(1).optional(),
+    kind: z.enum(["question", "comment", "goto"]).optional(),
+    clipId: z.string().optional(),
+    triggerAt: QuestionTriggerSchema.optional(),
+    text: z.string().min(1),
+    evaluationHint: z.string().optional(),
+    choices: z.array(EditorChoiceSchema).min(1).max(6),
+  })
+  .superRefine((q, ctx) => {
+    const kind = q.kind ?? "question";
+    if (kind === "question" && q.choices.length < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.too_small,
+        minimum: 2,
+        origin: "array",
+        inclusive: true,
+        message: "Una pregunta necesita al menos 2 opciones.",
+        path: ["choices"],
+      });
+    }
+  });
 
 const EditorNodeSchema = z.object({
   id: z.string().min(1),
