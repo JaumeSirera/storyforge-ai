@@ -112,7 +112,23 @@ function SignInForm() {
         <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="password">Contraseña</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="password">Contraseña</Label>
+          <button
+            type="button"
+            className="text-xs text-primary hover:underline"
+            onClick={async () => {
+              if (!email) return toast.error("Escribe tu email para recuperar la contraseña");
+              const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + "/reset-password",
+              });
+              if (error) return toast.error(error.message);
+              toast.success("Te hemos enviado un email para restablecer la contraseña.");
+            }}
+          >
+            ¿Olvidaste tu contraseña?
+          </button>
+        </div>
         <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
       </div>
       <Button type="submit" className="w-full" disabled={loading}>
