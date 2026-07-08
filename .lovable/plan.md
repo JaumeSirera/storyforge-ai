@@ -1,62 +1,46 @@
 
-## Objetivo
+## Qué cambia
 
-1. **Numeración estable**: cada escena tiene un orden manual persistente (1..N). El badge "Escena N" usa ese orden en editor, preview, sesión y selectores.
-2. **Varios vídeos por escena**: cada escena puede tener una lista de clips con etiqueta; durante la reproducción el usuario elige cuál ver mediante pestañas.
+Hoy, tras enviar un comentario, el selector solo ofrece **FIN** o **saltar a otra escena**. Vamos a ampliarlo con dos destinos nuevos:
 
-## Cambios en el modelo (`src/lib/story-types.ts`)
+1. **FIN** — termina la simulación (siempre disponible).
+2. **Ir a otra escena** — como ahora (lista de escenas).
+3. **Continuar con el vídeo** — no salta de escena; se cierra el comentario y el vídeo sigue reproduciéndose. Las preguntas/comentarios posteriores de la misma escena podrán dispararse en su momento (por tiempo o al final del clip).
+4. **Ir a otra pregunta o comentario** — dentro de la misma escena, salta a la pregunta/comentario indicado y lo muestra de inmediato (ignorando su trigger).
 
-- `StoryNode.order?: number` — entero. Si falta, se calcula al cargar (índice de inserción).
-- `StoryNode.videos?: Array<{ id: string; label: string; source: VideoSource }>` — opcional, nuevo.
-- `StoryNode.video` se mantiene por compatibilidad (legacy). Al guardar: si hay `videos`, ese campo manda; si no, se serializa `video` como antes. Al cargar: si solo hay `video`, se proyecta a `videos = [{ id, label: "Clip 1", source: video }]` en memoria para la UI.
+Esto permite encadenar varios comentarios, pasar de un comentario a una pregunta, o simplemente dejar continuar el vídeo tras el comentario.
 
-No requiere migración SQL: el árbol vive en JSON dentro de `simulations.story`.
+## Cambios técnicos
 
-## Reordenación de escenas
+**Modelo (`src/lib/story-types.ts`)**
+- `Choice.nextKind?: "end" | "scene" | "continue" | "question"` (opcional; compat: si falta, se deduce de `next`: `null` → `end`, string → `scene`).
+- `Choice.nextQuestionId?: string` — id de la pregunta destino cuando `nextKind === "question"`.
 
-- Nueva utilidad `src/lib/scene-order.ts` reescrita: `computeSceneOrder(story)` devuelve `Map<id, number>` ordenando por `node.order` ascendente (fallback: orden de inserción en `Object.keys`). Se elimina el BFS para numeración.
-- BFS sigue disponible aparte (`computeReachability`) solo para validar ramas rotas, no para numerar.
+**Validador (`src/lib/simulations.functions.ts`)**
+- Ampliar el schema Zod de `Choice` para aceptar los dos nuevos campos opcionales.
 
-## Editor (`app.simulations.$id.edit.tsx`)
+**Editor (`app.simulations.$id.edit.tsx`)**
+- En el bloque `kind === "comment"`, reemplazar el selector actual por un selector de "Tipo de destino" con las 4 opciones + un segundo selector contextual:
+  - `end` → nada más.
+  - `scene` → lista de escenas.
+  - `continue` → nada más.
+  - `question` → lista de preguntas/comentarios de la **misma escena** (excluyendo la actual), mostrando "Comentario/Pregunta N — extracto del texto".
+- Guardar `nextKind`, `next` (nodeId cuando aplica) y `nextQuestionId`.
 
-- Instalar `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities` (vía `bun add`).
-- Lista de escenas envuelta en `<DndContext><SortableContext>`. Cada acordeón es `useSortable` con asa de arrastre (icono `GripVertical`) en la cabecera.
-- Al soltar, recalculo `order` 1..N y marco el formulario como sucio.
-- Dentro de cada escena, nueva sección "Vídeos de la escena":
-  - Lista de clips con: etiqueta (input corto), tipo (select youtube/vimeo/mp4/none), URL, inicio/fin opcionales, botón eliminar.
-  - Botón "Añadir vídeo".
-  - Si la escena venía con `video` legacy y sin `videos`, al primer cambio se migra a `videos[0]`.
+**Reproducción (`StoryPreview.tsx` y `app.sessions.$id.tsx`)**
+- Añadir estado `answeredQuestionIds: Set<string>` por escena (se resetea al cambiar de nodo).
+- `activeQuestion` local que además filtre las ya contestadas y respete un `forcedQuestionId` cuando venimos de `nextKind === "question"`.
+- Al elegir/enviar:
+  - `end` → mismo comportamiento que hoy con `next = null`.
+  - `scene` → salta a `next` (nodo).
+  - `continue` → marca la pregunta como contestada, cierra la UI y reanuda el vídeo (sin cambiar de nodo, sin marcar `ended`).
+  - `question` → marca la pregunta como contestada y activa la pregunta indicada con `questionReady = true`.
 
-## Reproductor (`src/components/VideoPlayer.tsx`)
-
-- Acepta `videos?: Array<{id,label,source}>` además de `video` (compat).
-- Si hay 2+ clips: muestra `<Tabs>` con la etiqueta de cada uno encima del iframe/video; el iframe se re-monta al cambiar.
-- Si hay 1 clip o ninguno: se comporta como hoy.
-
-## Preview y sesión
-
-- `StoryPreview.tsx` y `app.sessions.$id.tsx`: pasan `node.videos ?? [{...node.video}]` al VideoPlayer. El badge "Escena N" usa el nuevo `computeSceneOrder`.
-
-## Backend (`src/lib/simulations.functions.ts`)
-
-- El validador Zod del árbol acepta `order` y `videos` (ambos opcionales). El normalizador rellena `order` por índice si falta, y deja `videos` tal cual.
-- `createFallbackStory` y la generación de IA siguen escribiendo `video` único; eso queda compatible.
-
-## Detalles técnicos
-
-```text
-StoryNode {
-  id, title, narrative, order?,
-  video: VideoSource,            // legacy, mantenido
-  videos?: [{ id, label, source: VideoSource }],
-  question?, isEnding?, endingType?
-}
-```
-
-- El selector de "siguiente escena" y "escena de inicio" sigue mostrando "Escena N — título" pero ahora N viene del orden manual.
-- Drag & drop con teclado accesible (PointerSensor + KeyboardSensor de dnd-kit).
+**Backend (`src/lib/sessions.functions.ts`, `submitAnswer`)**
+- Reproducir la misma lógica de destino en el servidor: calcular `nextId` según `choice.nextKind`; en `continue` y `question` NO se cambia `current_node_id` ni se completa la sesión; se devuelve `stayInScene: true` y, en `question`, `forcedQuestionId`.
+- Mantener respuesta compatible (`nextNodeId`, `completed`) para el cliente actual.
 
 ## Fuera de alcance
 
-- No se cambia la generación con IA (la IA seguirá produciendo `video` único; el usuario añade clips extra desde el editor).
-- No se introduce reproducción secuencial automática de varios clips (queda como mejora futura).
+- Solo se toca el destino de los **comentarios**. Las preguntas normales y los enlaces `goto` no cambian su selector.
+- No se toca la generación con IA ni el modelo de escenas.
