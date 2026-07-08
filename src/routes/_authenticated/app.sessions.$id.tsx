@@ -365,14 +365,14 @@ function Player({
 
       <Progress value={progress} className="h-1.5" />
 
-      <ScenePlayback node={node} submitting={submitting} feedback={feedback} selected={selected} onPick={pick} nextNodes={nextNodes} />
+      <ScenePlayback node={node} submitting={submitting} feedback={feedback} selected={selected} onPick={pick} nextNodes={nextNodes} answeredIds={sceneAnsweredIds} forcedQId={forcedQId} />
     </div>
     </div>
   );
 }
 
 function ScenePlayback({
-  node, submitting, feedback, selected, onPick, nextNodes, immersive,
+  node, submitting, feedback, selected, onPick, nextNodes, immersive, answeredIds, forcedQId,
 }: {
   node: any;
   submitting: boolean;
@@ -381,6 +381,8 @@ function ScenePlayback({
   onPick: (id: string, opts?: { commentText?: string }) => void;
   nextNodes: any[];
   immersive?: boolean;
+  answeredIds?: Set<string>;
+  forcedQId?: string;
 }) {
   const clips = nodeClips(node);
   const [activeClipId, setActiveClipId] = useState<string>(clips[0]?.id ?? "default");
@@ -392,16 +394,33 @@ function ScenePlayback({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node.id]);
 
-  const q = activeQuestion(node, activeClipId);
+  // Local activeQuestion honouring answered/forced state.
+  const qs = (node.questions && node.questions.length > 0)
+    ? node.questions
+    : (node.question ? [node.question] : []);
+  const notAnswered = qs.filter((qq: any) => !(qq.id && answeredIds?.has(qq.id)));
+  let q: any = undefined;
+  if (forcedQId) {
+    const forced = qs.find((qq: any) => qq.id === forcedQId);
+    if (forced && !(forced.id && answeredIds?.has(forced.id))) q = forced;
+  }
+  if (!q) {
+    const tied = notAnswered.find((qq: any) => qq.clipId === activeClipId);
+    q = tied ?? notAnswered.find((qq: any) => !qq.clipId) ?? notAnswered[0];
+  }
   const kind: "question" | "comment" | "goto" = (q?.kind as any) ?? "question";
   const trig = q?.triggerAt ?? { mode: "immediate" as const };
   const [questionReady, setQuestionReady] = useState(trig.mode === "immediate");
 
   // Reset readiness whenever the active question/clip/scene changes.
   useEffect(() => {
-    setQuestionReady((q?.triggerAt?.mode ?? "immediate") === "immediate");
+    if (forcedQId && q?.id === forcedQId) {
+      setQuestionReady(true);
+    } else {
+      setQuestionReady((q?.triggerAt?.mode ?? "immediate") === "immediate");
+    }
     setCommentText("");
-  }, [node.id, activeClipId, q?.id, q?.triggerAt?.mode]);
+  }, [node.id, activeClipId, q?.id, q?.triggerAt?.mode, forcedQId]);
 
   const pauseAtSec =
     !questionReady && trig.mode === "time" ? trig.seconds : undefined;
