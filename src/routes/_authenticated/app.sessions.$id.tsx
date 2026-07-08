@@ -237,6 +237,8 @@ function Player({
           selected={selected}
           onPick={pick}
           nextNodes={nextNodes}
+          answeredIds={sceneAnsweredIds}
+          forcedQId={forcedQId}
         />
 
         {/* Top bar overlay */}
