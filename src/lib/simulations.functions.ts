@@ -652,6 +652,8 @@ const EditorChoiceSchema = z.object({
   points: z.number(),
   next: z.string().nullable(),
   competencies: z.record(z.string(), z.number()).default({}),
+  nextKind: z.enum(["end", "scene", "continue", "question"]).optional(),
+  nextQuestionId: z.string().optional(),
 });
 
 const QuestionTriggerSchema = z.union([
