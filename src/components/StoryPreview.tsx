@@ -55,6 +55,8 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
   const [activeClipId, setActiveClipId] = useState<string | undefined>(undefined);
   const [questionReady, setQuestionReady] = useState(true);
   const [commentText, setCommentText] = useState("");
+  const [answeredIds, setAnsweredIds] = useState<Set<string>>(new Set());
+  const [forcedQId, setForcedQId] = useState<string | undefined>(undefined);
   const autoGotoRef = useRef<string | null>(null);
 
 
@@ -72,16 +74,45 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     setEnded(false);
     setActiveClipId(undefined);
     setCommentText("");
+    setAnsweredIds(new Set());
+    setForcedQId(undefined);
     autoGotoRef.current = null;
   };
 
-  const q = node ? activeQuestion(node, activeClipId) : undefined;
+  // Local activeQuestion honouring answered/forced state.
+  const q: Question | undefined = useMemo(() => {
+    if (!node) return undefined;
+    const qs = nodeQuestions(node);
+    if (qs.length === 0) return undefined;
+    const notAnswered = qs.filter((qq) => !(qq.id && answeredIds.has(qq.id)));
+    if (forcedQId) {
+      const forced = qs.find((qq) => qq.id === forcedQId);
+      if (forced && !(forced.id && answeredIds.has(forced.id))) return forced;
+    }
+    if (activeClipId) {
+      const tied = notAnswered.find((qq) => qq.clipId === activeClipId);
+      if (tied) return tied;
+    }
+    return notAnswered.find((qq) => !qq.clipId) ?? notAnswered[0];
+  }, [node, activeClipId, answeredIds, forcedQId]);
+
   const trig = q?.triggerAt ?? { mode: "immediate" as const };
 
   // Reset readiness when the active question/clip/scene changes.
   useEffect(() => {
+    // A forced question ignores its trigger and shows immediately.
+    if (forcedQId && q?.id === forcedQId) {
+      setQuestionReady(true);
+      return;
+    }
     setQuestionReady((q?.triggerAt?.mode ?? "immediate") === "immediate");
-  }, [node?.id, activeClipId, q?.id, q?.triggerAt?.mode]);
+  }, [node?.id, activeClipId, q?.id, q?.triggerAt?.mode, forcedQId]);
+
+  // Reset per-scene state when the node changes.
+  useEffect(() => {
+    setAnsweredIds(new Set());
+    setForcedQId(undefined);
+  }, [node?.id]);
 
   const pauseAtSec =
     !questionReady && trig.mode === "time" ? trig.seconds : undefined;
@@ -131,6 +162,31 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     });
     setLastFeedback({ text: c.feedback, points: c.points });
 
+    const dest = resolveChoiceDestination(c);
+    if (dest.kind === "end") {
+      setEnded(true);
+      return;
+    }
+    if (dest.kind === "scene" && dest.nodeId && nodes[dest.nodeId]) {
+      setCurrentId(dest.nodeId);
+      setActiveClipId(undefined);
+      if (nodes[dest.nodeId].isEnding) setEnded(true);
+      return;
+    }
+    if (dest.kind === "continue") {
+      // Mark current question answered and resume playback in the same scene.
+      if (q.id) setAnsweredIds((s) => new Set(s).add(q.id!));
+      setForcedQId(undefined);
+      setQuestionReady(false);
+      return;
+    }
+    if (dest.kind === "question") {
+      if (q.id) setAnsweredIds((s) => new Set(s).add(q.id!));
+      setForcedQId(dest.questionId);
+      setQuestionReady(true);
+      return;
+    }
+    // Fallback: legacy behaviour.
     if (c.next && nodes[c.next]) {
       setCurrentId(c.next);
       setActiveClipId(undefined);
