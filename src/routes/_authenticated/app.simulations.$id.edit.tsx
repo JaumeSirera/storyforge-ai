@@ -1044,18 +1044,58 @@ function EditSimulation() {
                                   onChange={(e) => updateChoice(nIdx, qIdx, 0, { points: Number(e.target.value) })}
                                 />
                                 <Select
-                                  value={q.choices[0].next ?? "__end__"}
-                                  onValueChange={(v) => updateChoice(nIdx, qIdx, 0, { next: v === "__end__" ? null : v })}
+                                  value={q.choices[0].nextKind ?? (q.choices[0].next ? "scene" : "end")}
+                                  onValueChange={(v) => {
+                                    const nk = v as "end" | "scene" | "continue" | "question";
+                                    const patch: Partial<Choice> = { nextKind: nk };
+                                    if (nk !== "scene") patch.next = null;
+                                    if (nk !== "question") patch.nextQuestionId = undefined;
+                                    updateChoice(nIdx, qIdx, 0, patch);
+                                  }}
                                 >
                                   <SelectTrigger className="col-span-10"><SelectValue /></SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="__end__">FIN / continuar sin destino</SelectItem>
+                                    <SelectItem value="end">FIN de la simulación</SelectItem>
+                                    <SelectItem value="continue">Continuar con el vídeo</SelectItem>
+                                    <SelectItem value="scene">Ir a otra escena…</SelectItem>
+                                    <SelectItem value="question">Ir a otra pregunta/comentario…</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              {(q.choices[0].nextKind ?? (q.choices[0].next ? "scene" : "end")) === "scene" && (
+                                <Select
+                                  value={q.choices[0].next ?? ""}
+                                  onValueChange={(v) => updateChoice(nIdx, qIdx, 0, { next: v, nextKind: "scene" })}
+                                >
+                                  <SelectTrigger><SelectValue placeholder="Elige escena destino" /></SelectTrigger>
+                                  <SelectContent>
                                     {orderedNodes.filter((nn) => nn.id !== n.id).map((nn) => (
                                       <SelectItem key={nn.id} value={nn.id}>Escena {sceneOrder.get(nn.id) ?? "?"} — {nn.title}</SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
-                              </div>
+                              )}
+                              {(q.choices[0].nextKind === "question") && (
+                                <Select
+                                  value={q.choices[0].nextQuestionId ?? ""}
+                                  onValueChange={(v) => updateChoice(nIdx, qIdx, 0, { nextQuestionId: v, nextKind: "question" })}
+                                >
+                                  <SelectTrigger><SelectValue placeholder="Elige pregunta/comentario destino" /></SelectTrigger>
+                                  <SelectContent>
+                                    {(n.questions ?? []).map((qq, qqi) => {
+                                      const targetId = qq.id ?? `q-${qqi}`;
+                                      if (qqi === qIdx) return null;
+                                      const lab = (qq.kind ?? "question") === "comment"
+                                        ? `Comentario ${qqi + 1}`
+                                        : (qq.kind === "goto" ? `Enlace ${qqi + 1}` : `Pregunta ${qqi + 1}`);
+                                      const excerpt = (qq.text ?? "").slice(0, 40);
+                                      return (
+                                        <SelectItem key={targetId} value={targetId}>{lab} — {excerpt}</SelectItem>
+                                      );
+                                    })}
+                                  </SelectContent>
+                                </Select>
+                              )}
                               <Textarea
                                 rows={2}
                                 placeholder="Feedback mostrado al usuario tras enviar su comentario"

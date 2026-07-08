@@ -122,9 +122,21 @@ export const submitAnswer = createServerFn({ method: "POST" })
       comp[k] = (comp[k] ?? 0) + (v as number);
     }
 
-    const nextId: string | null = choice.next ?? null;
+    const nextKind: "end" | "scene" | "continue" | "question" =
+      choice.nextKind ?? (choice.next ? "scene" : "end");
+    const stayInScene = nextKind === "continue" || nextKind === "question";
+    const forcedQuestionId: string | null = nextKind === "question" ? (choice.nextQuestionId ?? null) : null;
+
+    let nextId: string | null;
+    if (stayInScene) {
+      nextId = node.id;
+    } else if (nextKind === "scene") {
+      nextId = choice.next ?? null;
+    } else {
+      nextId = null;
+    }
     const nextNode = nextId ? story.nodes[nextId] : null;
-    const completed = !nextNode || nextNode.isEnding;
+    const completed = !stayInScene && (!nextNode || nextNode.isEnding);
 
     const completedAt = completed && nextNode ? new Date().toISOString() : null;
 
@@ -148,6 +160,9 @@ export const submitAnswer = createServerFn({ method: "POST" })
       feedback: choice.feedback,
       competencyScores: comp,
       completed,
+      stayInScene,
+      forcedQuestionId,
+      answeredQuestionId: chosenQuestion?.id ?? null,
     };
   });
 

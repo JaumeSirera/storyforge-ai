@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getSession, submitAnswer, generateReport } from "@/lib/sessions.functions";
 import { VideoPlayer } from "@/components/VideoPlayer";
-import { activeQuestion, nodeClips } from "@/lib/story-types";
+import { nodeClips } from "@/lib/story-types";
 
 import { VideoPrefetch, nextCandidateNodes } from "@/components/VideoPrefetch";
 import { Card, CardContent } from "@/components/ui/card";
@@ -164,6 +164,17 @@ function Player({
   }
 
 
+  // Same-scene state: questions already answered here + a forced next question.
+  const [sceneAnsweredIds, setSceneAnsweredIds] = useState<Set<string>>(new Set());
+  const [forcedQId, setForcedQId] = useState<string | undefined>(undefined);
+
+  // Reset scene-local state whenever the active scene changes.
+  useEffect(() => {
+    setSceneAnsweredIds(new Set());
+    setForcedQId(undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node.id]);
+
   async function pick(choiceId: string, opts?: { commentText?: string }) {
     setSelected(choiceId);
     setSubmitting(true);
@@ -172,11 +183,24 @@ function Player({
         data: { sessionId, nodeId: node.id, choiceId, ...(opts?.commentText ? { commentText: opts.commentText } : {}) },
       });
       setFeedback({ feedback: r.feedback, points: r.pointsDelta });
-      setTimeout(() => {
-        qc.invalidateQueries({ queryKey: ["session", sessionId] });
-        setSelected(null);
-        setFeedback(null);
-      }, 2400);
+      const stay = (r as any).stayInScene === true;
+      const answeredQId = (r as any).answeredQuestionId as string | null | undefined;
+      const forced = (r as any).forcedQuestionId as string | null | undefined;
+      if (stay) {
+        if (answeredQId) setSceneAnsweredIds((s) => new Set(s).add(answeredQId));
+        setForcedQId(forced ?? undefined);
+        // Short feedback flash, then keep the same scene.
+        setTimeout(() => {
+          setSelected(null);
+          setFeedback(null);
+        }, 1200);
+      } else {
+        setTimeout(() => {
+          qc.invalidateQueries({ queryKey: ["session", sessionId] });
+          setSelected(null);
+          setFeedback(null);
+        }, 2400);
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Error");
       setSelected(null);
@@ -213,6 +237,8 @@ function Player({
           selected={selected}
           onPick={pick}
           nextNodes={nextNodes}
+          answeredIds={sceneAnsweredIds}
+          forcedQId={forcedQId}
         />
 
         {/* Top bar overlay */}
@@ -339,14 +365,14 @@ function Player({
 
       <Progress value={progress} className="h-1.5" />
 
-      <ScenePlayback node={node} submitting={submitting} feedback={feedback} selected={selected} onPick={pick} nextNodes={nextNodes} />
+      <ScenePlayback node={node} submitting={submitting} feedback={feedback} selected={selected} onPick={pick} nextNodes={nextNodes} answeredIds={sceneAnsweredIds} forcedQId={forcedQId} />
     </div>
     </div>
   );
 }
 
 function ScenePlayback({
-  node, submitting, feedback, selected, onPick, nextNodes, immersive,
+  node, submitting, feedback, selected, onPick, nextNodes, immersive, answeredIds, forcedQId,
 }: {
   node: any;
   submitting: boolean;
@@ -355,6 +381,8 @@ function ScenePlayback({
   onPick: (id: string, opts?: { commentText?: string }) => void;
   nextNodes: any[];
   immersive?: boolean;
+  answeredIds?: Set<string>;
+  forcedQId?: string;
 }) {
   const clips = nodeClips(node);
   const [activeClipId, setActiveClipId] = useState<string>(clips[0]?.id ?? "default");
@@ -366,16 +394,33 @@ function ScenePlayback({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node.id]);
 
-  const q = activeQuestion(node, activeClipId);
+  // Local activeQuestion honouring answered/forced state.
+  const qs = (node.questions && node.questions.length > 0)
+    ? node.questions
+    : (node.question ? [node.question] : []);
+  const notAnswered = qs.filter((qq: any) => !(qq.id && answeredIds?.has(qq.id)));
+  let q: any = undefined;
+  if (forcedQId) {
+    const forced = qs.find((qq: any) => qq.id === forcedQId);
+    if (forced && !(forced.id && answeredIds?.has(forced.id))) q = forced;
+  }
+  if (!q) {
+    const tied = notAnswered.find((qq: any) => qq.clipId === activeClipId);
+    q = tied ?? notAnswered.find((qq: any) => !qq.clipId) ?? notAnswered[0];
+  }
   const kind: "question" | "comment" | "goto" = (q?.kind as any) ?? "question";
   const trig = q?.triggerAt ?? { mode: "immediate" as const };
   const [questionReady, setQuestionReady] = useState(trig.mode === "immediate");
 
   // Reset readiness whenever the active question/clip/scene changes.
   useEffect(() => {
-    setQuestionReady((q?.triggerAt?.mode ?? "immediate") === "immediate");
+    if (forcedQId && q?.id === forcedQId) {
+      setQuestionReady(true);
+    } else {
+      setQuestionReady((q?.triggerAt?.mode ?? "immediate") === "immediate");
+    }
     setCommentText("");
-  }, [node.id, activeClipId, q?.id, q?.triggerAt?.mode]);
+  }, [node.id, activeClipId, q?.id, q?.triggerAt?.mode, forcedQId]);
 
   const pauseAtSec =
     !questionReady && trig.mode === "time" ? trig.seconds : undefined;
