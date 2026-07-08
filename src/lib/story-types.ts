@@ -55,13 +55,38 @@ export interface VideoClip {
   source: VideoSource;
 }
 
+/**
+ * Destination after picking a choice:
+ *  - "end": finish the simulation.
+ *  - "scene": jump to `next` (node id) — legacy behaviour when `nextKind` is missing.
+ *  - "continue": stay in the current scene, resume the video (later triggers can fire).
+ *  - "question": stay in the current scene and force another question/comment (same node).
+ */
+export type ChoiceNextKind = "end" | "scene" | "continue" | "question";
+
 export interface Choice {
   id: string;
   label: string;
   feedback: string;
   points: number; // can be negative
-  next: string | null; // next node id, null = ending
+  next: string | null; // next node id (used when nextKind === "scene"); null when "end"
   competencies: Record<string, number>; // competency -> delta
+  /** Explicit destination type. If missing, derived from `next` (null → end, else scene). */
+  nextKind?: ChoiceNextKind;
+  /** Target question id within the same node when nextKind === "question". */
+  nextQuestionId?: string;
+}
+
+/** Resolves the effective destination of a choice, handling legacy shape. */
+export function resolveChoiceDestination(choice: Pick<Choice, "next" | "nextKind" | "nextQuestionId">): {
+  kind: ChoiceNextKind;
+  nodeId?: string;
+  questionId?: string;
+} {
+  const kind = choice.nextKind ?? (choice.next ? "scene" : "end");
+  if (kind === "scene") return { kind: "scene", nodeId: choice.next ?? undefined };
+  if (kind === "question") return { kind: "question", questionId: choice.nextQuestionId };
+  return { kind };
 }
 
 /**
