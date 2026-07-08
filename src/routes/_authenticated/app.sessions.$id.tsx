@@ -164,6 +164,17 @@ function Player({
   }
 
 
+  // Same-scene state: questions already answered here + a forced next question.
+  const [sceneAnsweredIds, setSceneAnsweredIds] = useState<Set<string>>(new Set());
+  const [forcedQId, setForcedQId] = useState<string | undefined>(undefined);
+
+  // Reset scene-local state whenever the active scene changes.
+  useEffect(() => {
+    setSceneAnsweredIds(new Set());
+    setForcedQId(undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node.id]);
+
   async function pick(choiceId: string, opts?: { commentText?: string }) {
     setSelected(choiceId);
     setSubmitting(true);
@@ -172,11 +183,24 @@ function Player({
         data: { sessionId, nodeId: node.id, choiceId, ...(opts?.commentText ? { commentText: opts.commentText } : {}) },
       });
       setFeedback({ feedback: r.feedback, points: r.pointsDelta });
-      setTimeout(() => {
-        qc.invalidateQueries({ queryKey: ["session", sessionId] });
-        setSelected(null);
-        setFeedback(null);
-      }, 2400);
+      const stay = (r as any).stayInScene === true;
+      const answeredQId = (r as any).answeredQuestionId as string | null | undefined;
+      const forced = (r as any).forcedQuestionId as string | null | undefined;
+      if (stay) {
+        if (answeredQId) setSceneAnsweredIds((s) => new Set(s).add(answeredQId));
+        setForcedQId(forced ?? undefined);
+        // Short feedback flash, then keep the same scene.
+        setTimeout(() => {
+          setSelected(null);
+          setFeedback(null);
+        }, 1200);
+      } else {
+        setTimeout(() => {
+          qc.invalidateQueries({ queryKey: ["session", sessionId] });
+          setSelected(null);
+          setFeedback(null);
+        }, 2400);
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Error");
       setSelected(null);
