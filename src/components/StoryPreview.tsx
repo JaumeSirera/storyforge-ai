@@ -5,8 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { VideoPrefetch, nextCandidateNodes } from "@/components/VideoPrefetch";
 import { ArrowLeft, RotateCcw, Star, Trophy, Flag, AlertTriangle, Save, Loader2, ArrowRight } from "lucide-react";
-import type { Story, StoryNode, Choice, EvaluationCriterion } from "@/lib/story-types";
-import { activeQuestion, nodeClips, nodeQuestions } from "@/lib/story-types";
+import type { Story, StoryNode, Choice, EvaluationCriterion, Question } from "@/lib/story-types";
+import { activeQuestion, nodeClips, nodeQuestions, resolveChoiceDestination } from "@/lib/story-types";
 
 import { computeSceneOrder } from "@/lib/scene-order";
 
