@@ -736,13 +736,18 @@ export const updateSimulationStory = createServerFn({ method: "POST" })
         ...(node.question ? [node.question] : []),
         ...(node.questions ?? []),
       ];
+      const localQuestionIds = new Set(allQuestions.map((qq: any) => qq.id).filter(Boolean));
       for (const q of allQuestions) {
         if (q.clipId && !clipIds.has(q.clipId)) {
           throw new Error(`La pregunta "${q.text.slice(0, 30)}…" referencia un clip inexistente.`);
         }
         for (const ch of q.choices) {
-          if (ch.next !== null && !ids.has(ch.next)) {
+          const kind = ch.nextKind ?? (ch.next ? "scene" : "end");
+          if (kind === "scene" && ch.next !== null && !ids.has(ch.next)) {
             throw new Error(`La opción "${ch.label}" apunta a un nodo inexistente: ${ch.next}`);
+          }
+          if (kind === "question" && ch.nextQuestionId && !localQuestionIds.has(ch.nextQuestionId)) {
+            throw new Error(`La opción "${ch.label}" apunta a una pregunta/comentario inexistente en la escena.`);
           }
         }
       }
