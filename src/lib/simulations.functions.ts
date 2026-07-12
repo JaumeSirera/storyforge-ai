@@ -456,7 +456,7 @@ Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
     let output: GeneratedStory;
     let usageIn = 0;
     let usageOut = 0;
-    const { provider: aiProvider, nativeId } = resolveUserTextModel(userKeys, data.model);
+    // aiProvider & nativeId already destructured above.
     try {
       const result = await generateObject({
         model,
