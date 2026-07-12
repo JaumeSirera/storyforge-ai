@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { getMyAdminStatus } from "@/lib/admin.functions";
-import { Shield, Users, Library } from "lucide-react";
+import { Shield, Users, Library, DollarSign } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/app/admin")({
   component: AdminLayout,
