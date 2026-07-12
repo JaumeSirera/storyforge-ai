@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      pricing_config: {
+        Row: {
+          created_at: string
+          currency: string
+          elevenlabs_per_1k_chars: number
+          gemini_input_per_1k: number
+          gemini_output_per_1k: number
+          id: boolean
+          margin_platform_pays_pct: number
+          margin_user_pays_pct: number
+          openai_input_per_1k: number
+          openai_output_per_1k: number
+          replicate_image_per_unit: number
+          replicate_lipsync_per_second: number
+          replicate_video_per_second: number
+          subscription_included_cents: number
+          subscription_price_cents: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          elevenlabs_per_1k_chars?: number
+          gemini_input_per_1k?: number
+          gemini_output_per_1k?: number
+          id?: boolean
+          margin_platform_pays_pct?: number
+          margin_user_pays_pct?: number
+          openai_input_per_1k?: number
+          openai_output_per_1k?: number
+          replicate_image_per_unit?: number
+          replicate_lipsync_per_second?: number
+          replicate_video_per_second?: number
+          subscription_included_cents?: number
+          subscription_price_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          elevenlabs_per_1k_chars?: number
+          gemini_input_per_1k?: number
+          gemini_output_per_1k?: number
+          id?: boolean
+          margin_platform_pays_pct?: number
+          margin_user_pays_pct?: number
+          openai_input_per_1k?: number
+          openai_output_per_1k?: number
+          replicate_image_per_unit?: number
+          replicate_lipsync_per_second?: number
+          replicate_video_per_second?: number
+          subscription_included_cents?: number
+          subscription_price_cents?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -248,6 +305,77 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_events: {
+        Row: {
+          action: string
+          billed: boolean
+          characters: number | null
+          cost_raw_cents: number
+          created_at: string
+          id: string
+          input_tokens: number | null
+          margin_pct: number
+          metadata: Json | null
+          model: string | null
+          output_tokens: number | null
+          pays_platform: boolean
+          provider: string
+          seconds: number | null
+          simulation_id: string | null
+          total_cents: number
+          units: number | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          billed?: boolean
+          characters?: number | null
+          cost_raw_cents?: number
+          created_at?: string
+          id?: string
+          input_tokens?: number | null
+          margin_pct?: number
+          metadata?: Json | null
+          model?: string | null
+          output_tokens?: number | null
+          pays_platform?: boolean
+          provider: string
+          seconds?: number | null
+          simulation_id?: string | null
+          total_cents?: number
+          units?: number | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          billed?: boolean
+          characters?: number | null
+          cost_raw_cents?: number
+          created_at?: string
+          id?: string
+          input_tokens?: number | null
+          margin_pct?: number
+          metadata?: Json | null
+          model?: string | null
+          output_tokens?: number | null
+          pays_platform?: boolean
+          provider?: string
+          seconds?: number | null
+          simulation_id?: string | null
+          total_cents?: number
+          units?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_events_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "simulations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_api_keys: {
         Row: {
           created_at: string
@@ -276,6 +404,45 @@ export type Database = {
           openai_key?: string | null
           replicate_key?: string | null
           text_provider?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_billing: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          extra_pending_cents: number
+          included_used_cents: number
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          extra_pending_cents?: number
+          included_used_cents?: number
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          extra_pending_cents?: number
+          included_used_cents?: number
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
           updated_at?: string
           user_id?: string
         }

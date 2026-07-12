@@ -16,11 +16,13 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
 import { Route as AuthenticatedAppNewRouteImport } from './routes/_authenticated/app.new'
 import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
+import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authenticated/app.billing'
 import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app.admin'
 import { Route as AuthenticatedAppSimulationsIndexRouteImport } from './routes/_authenticated/app.simulations.index'
 import { Route as AuthenticatedAppSessionsIdRouteImport } from './routes/_authenticated/app.sessions.$id'
 import { Route as AuthenticatedAppAdminUsersRouteImport } from './routes/_authenticated/app.admin.users'
 import { Route as AuthenticatedAppAdminSimulationsRouteImport } from './routes/_authenticated/app.admin.simulations'
+import { Route as AuthenticatedAppAdminPricingRouteImport } from './routes/_authenticated/app.admin.pricing'
 import { Route as AuthenticatedAppSimulationsIdIndexRouteImport } from './routes/_authenticated/app.simulations.$id.index'
 import { Route as AuthenticatedAppSimulationsIdReviewRouteImport } from './routes/_authenticated/app.simulations.$id.review'
 import { Route as AuthenticatedAppSimulationsIdEditRouteImport } from './routes/_authenticated/app.simulations.$id.edit'
@@ -61,6 +63,11 @@ const AuthenticatedAppDashboardRoute =
     path: '/app/dashboard',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppBillingRoute = AuthenticatedAppBillingRouteImport.update({
+  id: '/app/billing',
+  path: '/app/billing',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAppAdminRoute = AuthenticatedAppAdminRouteImport.update({
   id: '/app/admin',
   path: '/app/admin',
@@ -90,6 +97,12 @@ const AuthenticatedAppAdminSimulationsRoute =
     path: '/simulations',
     getParentRoute: () => AuthenticatedAppAdminRoute,
   } as any)
+const AuthenticatedAppAdminPricingRoute =
+  AuthenticatedAppAdminPricingRouteImport.update({
+    id: '/pricing',
+    path: '/pricing',
+    getParentRoute: () => AuthenticatedAppAdminRoute,
+  } as any)
 const AuthenticatedAppSimulationsIdIndexRoute =
   AuthenticatedAppSimulationsIdIndexRouteImport.update({
     id: '/app/simulations/$id/',
@@ -114,9 +127,11 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
+  '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/new': typeof AuthenticatedAppNewRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
@@ -130,9 +145,11 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
+  '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/new': typeof AuthenticatedAppNewRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
@@ -148,9 +165,11 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
+  '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
   '/_authenticated/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/_authenticated/app/new': typeof AuthenticatedAppNewRoute
   '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/_authenticated/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/_authenticated/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/_authenticated/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
   '/_authenticated/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
@@ -166,9 +185,11 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/app/admin'
+    | '/app/billing'
     | '/app/dashboard'
     | '/app/new'
     | '/app/settings'
+    | '/app/admin/pricing'
     | '/app/admin/simulations'
     | '/app/admin/users'
     | '/app/sessions/$id'
@@ -182,9 +203,11 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/app/admin'
+    | '/app/billing'
     | '/app/dashboard'
     | '/app/new'
     | '/app/settings'
+    | '/app/admin/pricing'
     | '/app/admin/simulations'
     | '/app/admin/users'
     | '/app/sessions/$id'
@@ -199,9 +222,11 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/_authenticated/app/admin'
+    | '/_authenticated/app/billing'
     | '/_authenticated/app/dashboard'
     | '/_authenticated/app/new'
     | '/_authenticated/app/settings'
+    | '/_authenticated/app/admin/pricing'
     | '/_authenticated/app/admin/simulations'
     | '/_authenticated/app/admin/users'
     | '/_authenticated/app/sessions/$id'
@@ -269,6 +294,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/billing': {
+      id: '/_authenticated/app/billing'
+      path: '/app/billing'
+      fullPath: '/app/billing'
+      preLoaderRoute: typeof AuthenticatedAppBillingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/admin': {
       id: '/_authenticated/app/admin'
       path: '/app/admin'
@@ -304,6 +336,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdminSimulationsRouteImport
       parentRoute: typeof AuthenticatedAppAdminRoute
     }
+    '/_authenticated/app/admin/pricing': {
+      id: '/_authenticated/app/admin/pricing'
+      path: '/pricing'
+      fullPath: '/app/admin/pricing'
+      preLoaderRoute: typeof AuthenticatedAppAdminPricingRouteImport
+      parentRoute: typeof AuthenticatedAppAdminRoute
+    }
     '/_authenticated/app/simulations/$id/': {
       id: '/_authenticated/app/simulations/$id/'
       path: '/app/simulations/$id'
@@ -329,11 +368,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAppAdminRouteChildren {
+  AuthenticatedAppAdminPricingRoute: typeof AuthenticatedAppAdminPricingRoute
   AuthenticatedAppAdminSimulationsRoute: typeof AuthenticatedAppAdminSimulationsRoute
   AuthenticatedAppAdminUsersRoute: typeof AuthenticatedAppAdminUsersRoute
 }
 
 const AuthenticatedAppAdminRouteChildren: AuthenticatedAppAdminRouteChildren = {
+  AuthenticatedAppAdminPricingRoute: AuthenticatedAppAdminPricingRoute,
   AuthenticatedAppAdminSimulationsRoute: AuthenticatedAppAdminSimulationsRoute,
   AuthenticatedAppAdminUsersRoute: AuthenticatedAppAdminUsersRoute,
 }
@@ -345,6 +386,7 @@ const AuthenticatedAppAdminRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppAdminRoute: typeof AuthenticatedAppAdminRouteWithChildren
+  AuthenticatedAppBillingRoute: typeof AuthenticatedAppBillingRoute
   AuthenticatedAppDashboardRoute: typeof AuthenticatedAppDashboardRoute
   AuthenticatedAppNewRoute: typeof AuthenticatedAppNewRoute
   AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
@@ -357,6 +399,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppAdminRoute: AuthenticatedAppAdminRouteWithChildren,
+  AuthenticatedAppBillingRoute: AuthenticatedAppBillingRoute,
   AuthenticatedAppDashboardRoute: AuthenticatedAppDashboardRoute,
   AuthenticatedAppNewRoute: AuthenticatedAppNewRoute,
   AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
@@ -382,13 +425,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

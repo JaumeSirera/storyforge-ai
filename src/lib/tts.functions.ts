@@ -75,5 +75,19 @@ export const generateClipDialogue = createServerFn({ method: "POST" })
       .createSignedUrl(path, SIGNED_URL_TTL);
     if (signErr || !signed?.signedUrl) throw new Error("No se pudo firmar la URL del audio.");
 
+    // Meter usage
+    try {
+      const { recordUsage, userPaysPlatform } = await import("./usage.server");
+      await recordUsage({
+        userId: context.userId,
+        action: "tts",
+        provider: "elevenlabs",
+        model: "eleven_multilingual_v2",
+        simulationId: data.simulationId,
+        characters: data.text.length,
+        paysPlatform: await userPaysPlatform(context.userId),
+      });
+    } catch (e) { console.error("[tts] usage:", e); }
+
     return { audioUrl: signed.signedUrl, audioPath: path };
   });

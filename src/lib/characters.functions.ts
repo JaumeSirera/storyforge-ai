@@ -180,6 +180,19 @@ export const generateCharacterImage = createServerFn({ method: "POST" })
     const b64 = imgPart?.inlineData?.data;
     const mime = imgPart?.inlineData?.mimeType ?? "image/png";
     if (!b64) throw new Error("Gemini no devolvió imagen.");
+
+    try {
+      const { recordUsage, userPaysPlatform } = await import("./usage.server");
+      await recordUsage({
+        userId: context.userId,
+        action: "image",
+        provider: "gemini",
+        model: data.model,
+        units: 1,
+        paysPlatform: await userPaysPlatform(context.userId),
+      });
+    } catch (e) { console.error("[img] usage:", e); }
+
     return { imageDataUrl: `data:${mime};base64,${b64}`, model: data.model };
   });
 

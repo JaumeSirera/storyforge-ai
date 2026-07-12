@@ -207,5 +207,22 @@ export const pollAiVideoGeneration = createServerFn({ method: "POST" })
       .createSignedUrl(storagePath, SIGNED_URL_TTL);
     if (signErr || !signed) return { status: "failed", stage: "failed", progress: 0, error: signErr?.message ?? "sign failed", logsTail };
 
+    // Meter usage: compute wall-clock seconds between started and completed.
+    try {
+      const startedMs = startedAt ? new Date(startedAt).getTime() : 0;
+      const completedMs = json.completed_at ? new Date(json.completed_at).getTime() : Date.now();
+      const seconds = startedMs ? Math.max(1, Math.round((completedMs - startedMs) / 1000)) : elapsedSec;
+      const { recordUsage, userPaysPlatform } = await import("./usage.server");
+      await recordUsage({
+        userId: context.userId,
+        action: "video",
+        provider: "replicate",
+        model: "wan-2.2",
+        simulationId: data.simulationId,
+        seconds,
+        paysPlatform: await userPaysPlatform(context.userId),
+      });
+    } catch (e) { console.error("[video] usage:", e); }
+
     return { status: "ready", stage: "finished", progress: 100, url: signed.signedUrl, storagePath, elapsedSec };
   });

@@ -235,7 +235,7 @@ export const generateReport = createServerFn({ method: "POST" })
     if (sess.report) return sess.report;
 
     const userKeys = await loadUserKeys(context.supabase, context.userId);
-    const { model: aiModel } = resolveUserTextModel(userKeys);
+    const { model: aiModel, provider: aiProvider, nativeId } = resolveUserTextModel(userKeys);
 
     const sim = sess.simulation as {
       title: string;
@@ -254,8 +254,10 @@ export const generateReport = createServerFn({ method: "POST" })
 
     const score = sess.score ?? 0;
     let report: z.infer<typeof ReportSchema>;
+    let usageIn = 0;
+    let usageOut = 0;
     try {
-      const { experimental_output } = await generateText({
+      const result = await generateText({
         model: aiModel,
         experimental_output: Output.object({ schema: ReportSchema }),
         system:
@@ -271,11 +273,27 @@ ${transcript}
 
 Genera el veredicto (apto / apto_con_reservas / no_apto), un resumen ejecutivo (2-4 frases), fortalezas, áreas de mejora y logros desbloqueados.`,
       });
-      report = experimental_output;
+      report = result.experimental_output;
+      usageIn = (result.usage as { inputTokens?: number; promptTokens?: number } | undefined)?.inputTokens ?? (result.usage as { promptTokens?: number } | undefined)?.promptTokens ?? 0;
+      usageOut = (result.usage as { outputTokens?: number; completionTokens?: number } | undefined)?.outputTokens ?? (result.usage as { completionTokens?: number } | undefined)?.completionTokens ?? 0;
     } catch (e) {
       console.error("generateReport: AI schema failed, using fallback", e);
       report = buildFallbackReport(score, (sess.answers as any[]).length, !!sess.completed_at);
     }
+
+    try {
+      const { recordUsage, userPaysPlatform } = await import("./usage.server");
+      await recordUsage({
+        userId: context.userId,
+        action: "text",
+        provider: aiProvider,
+        model: nativeId,
+        inputTokens: usageIn,
+        outputTokens: usageOut,
+        simulationId: sess.simulation_id,
+        paysPlatform: await userPaysPlatform(context.userId),
+      });
+    } catch (e) { console.error("[text] usage:", e); }
 
     // Compute stars from score range (rough heuristic).
     let stars = 1;

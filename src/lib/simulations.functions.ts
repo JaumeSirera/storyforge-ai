@@ -415,7 +415,7 @@ export const generateSimulation = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => GenerateInput.parse(input))
   .handler(async ({ data, context }) => {
     const userKeys = await loadUserKeys(context.supabase, context.userId);
-    const { model } = resolveUserTextModel(userKeys, data.model);
+    const { model, provider: aiProvider, nativeId } = resolveUserTextModel(userKeys, data.model);
     const sanitizedPrompt = (sanitizeCreatorPrompt(data.prompt) || data.prompt).slice(0, 40000);
     const generationData = { ...data, prompt: sanitizedPrompt };
 
@@ -454,6 +454,9 @@ ${videoList}
 Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
 
     let output: GeneratedStory;
+    let usageIn = 0;
+    let usageOut = 0;
+    // aiProvider & nativeId already destructured above.
     try {
       const result = await generateObject({
         model,
@@ -471,6 +474,8 @@ Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
         },
       });
       output = normalizeStory(result.object, generationData);
+      usageIn = (result.usage as { inputTokens?: number; promptTokens?: number } | undefined)?.inputTokens ?? (result.usage as { promptTokens?: number } | undefined)?.promptTokens ?? 0;
+      usageOut = (result.usage as { outputTokens?: number; completionTokens?: number } | undefined)?.outputTokens ?? (result.usage as { completionTokens?: number } | undefined)?.completionTokens ?? 0;
     } catch (err) {
       if (!NoObjectGeneratedError.isInstance(err)) throw err;
       try {
@@ -481,6 +486,19 @@ Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
         output = createFallbackStory(generationData);
       }
     }
+
+    try {
+      const { recordUsage, userPaysPlatform } = await import("./usage.server");
+      await recordUsage({
+        userId: context.userId,
+        action: "text",
+        provider: aiProvider,
+        model: nativeId,
+        inputTokens: usageIn,
+        outputTokens: usageOut,
+        paysPlatform: await userPaysPlatform(context.userId),
+      });
+    } catch (e) { console.error("[text] usage:", e); }
 
     // Convert flat nodes array into the runtime Story shape with embedded video objects.
     const videoMap = new Map(
