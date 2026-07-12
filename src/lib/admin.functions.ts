@@ -124,7 +124,12 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const admin = await ensureAdmin(context);
 
-    const profilePatch: Record<string, unknown> = { id: data.userId };
+    const profilePatch: {
+      id: string;
+      full_name?: string | null;
+      is_active?: boolean;
+      use_platform_ai?: boolean;
+    } = { id: data.userId };
     if (data.fullName !== undefined) profilePatch.full_name = data.fullName;
     if (data.isActive !== undefined) profilePatch.is_active = data.isActive;
     if (data.usePlatformAi !== undefined) profilePatch.use_platform_ai = data.usePlatformAi;
@@ -132,6 +137,7 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
       const { error } = await admin.from("profiles").upsert(profilePatch);
       if (error) throw new Error(error.message);
     }
+
 
     // Ban/unban via auth admin (used to disable login)
     if (data.isActive !== undefined) {
