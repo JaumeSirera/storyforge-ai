@@ -46,9 +46,9 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
             case "customer.subscription.deleted": {
               const sub = event.data.object as any;
               const userId = sub.metadata?.user_id ?? null;
-              const patch: Record<string, unknown> = {
-                subscription_status: sub.status,
-                stripe_subscription_id: sub.id,
+              const patch = {
+                subscription_status: sub.status as string,
+                stripe_subscription_id: sub.id as string,
                 current_period_start: sub.current_period_start
                   ? new Date(sub.current_period_start * 1000).toISOString()
                   : null,

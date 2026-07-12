@@ -19,6 +19,7 @@ import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authent
 import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authenticated/app.billing'
 import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app.admin'
 import { Route as AuthenticatedAppSimulationsIndexRouteImport } from './routes/_authenticated/app.simulations.index'
+import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe/webhook'
 import { Route as AuthenticatedAppSessionsIdRouteImport } from './routes/_authenticated/app.sessions.$id'
 import { Route as AuthenticatedAppAdminUsersRouteImport } from './routes/_authenticated/app.admin.users'
 import { Route as AuthenticatedAppAdminSimulationsRouteImport } from './routes/_authenticated/app.admin.simulations'
@@ -79,6 +80,11 @@ const AuthenticatedAppSimulationsIndexRoute =
     path: '/app/simulations/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
+  id: '/api/public/stripe/webhook',
+  path: '/api/public/stripe/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAppSessionsIdRoute =
   AuthenticatedAppSessionsIdRouteImport.update({
     id: '/app/sessions/$id',
@@ -135,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
+  '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
   '/app/simulations/': typeof AuthenticatedAppSimulationsIndexRoute
   '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
@@ -153,6 +160,7 @@ export interface FileRoutesByTo {
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
+  '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
   '/app/simulations': typeof AuthenticatedAppSimulationsIndexRoute
   '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/_authenticated/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/_authenticated/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
   '/_authenticated/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
+  '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
   '/_authenticated/app/simulations/': typeof AuthenticatedAppSimulationsIndexRoute
   '/_authenticated/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/_authenticated/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
@@ -193,6 +202,7 @@ export interface FileRouteTypes {
     | '/app/admin/simulations'
     | '/app/admin/users'
     | '/app/sessions/$id'
+    | '/api/public/stripe/webhook'
     | '/app/simulations/'
     | '/app/simulations/$id/edit'
     | '/app/simulations/$id/review'
@@ -211,6 +221,7 @@ export interface FileRouteTypes {
     | '/app/admin/simulations'
     | '/app/admin/users'
     | '/app/sessions/$id'
+    | '/api/public/stripe/webhook'
     | '/app/simulations'
     | '/app/simulations/$id/edit'
     | '/app/simulations/$id/review'
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/admin/simulations'
     | '/_authenticated/app/admin/users'
     | '/_authenticated/app/sessions/$id'
+    | '/api/public/stripe/webhook'
     | '/_authenticated/app/simulations/'
     | '/_authenticated/app/simulations/$id/edit'
     | '/_authenticated/app/simulations/$id/review'
@@ -241,6 +253,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -314,6 +327,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/simulations/'
       preLoaderRoute: typeof AuthenticatedAppSimulationsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/stripe/webhook': {
+      id: '/api/public/stripe/webhook'
+      path: '/api/public/stripe/webhook'
+      fullPath: '/api/public/stripe/webhook'
+      preLoaderRoute: typeof ApiPublicStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/sessions/$id': {
       id: '/_authenticated/app/sessions/$id'
@@ -421,6 +441,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
