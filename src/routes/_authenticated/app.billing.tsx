@@ -1,11 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
-import { getMyBilling, listMyUsage } from "@/lib/billing.functions";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  getMyBilling,
+  listMyUsage,
+  createSubscriptionCheckout,
+  openBillingPortal,
+  payExtraNow,
+} from "@/lib/billing.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CreditCard, Sparkles } from "lucide-react";
+import { CreditCard, Sparkles, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/billing")({
   component: BillingPage,
@@ -18,10 +25,34 @@ function money(cents: number, currency = "EUR") {
 function BillingPage() {
   const getB = useServerFn(getMyBilling);
   const listU = useServerFn(listMyUsage);
+  const startCheckout = useServerFn(createSubscriptionCheckout);
+  const openPortal = useServerFn(openBillingPortal);
+  const payExtra = useServerFn(payExtraNow);
+  const qc = useQueryClient();
   const { data: b } = useQuery({ queryKey: ["my-billing"], queryFn: () => getB() });
   const { data: rows } = useQuery({ queryKey: ["my-usage"], queryFn: () => listU({ data: { limit: 50 } }) });
 
+  const subscribe = useMutation({
+    mutationFn: async () => startCheckout({ data: { origin: window.location.origin } }),
+    onSuccess: (r) => { window.location.href = r.url; },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const portal = useMutation({
+    mutationFn: async () => openPortal({ data: { origin: window.location.origin } }),
+    onSuccess: (r) => { window.location.href = r.url; },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const pay = useMutation({
+    mutationFn: async () => payExtra(),
+    onSuccess: (r) => {
+      toast.success(r.amount > 0 ? "Cobro emitido" : "No hay saldo pendiente");
+      qc.invalidateQueries({ queryKey: ["my-billing"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const status = b?.subscriptionStatus ?? "sin_suscripcion";
+  const isActive = status === "active" || status === "trialing";
   const includedPct = b && b.includedCapCents > 0 ? Math.min(100, (b.includedUsedCents / b.includedCapCents) * 100) : 0;
 
   return (
@@ -48,17 +79,34 @@ function BillingPage() {
               <div className="h-full bg-primary" style={{ width: `${includedPct}%` }} />
             </div>
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-border p-3">
             <div>
               <div className="text-sm text-muted-foreground">Extra pendiente de facturar</div>
               <div className="text-lg font-semibold">{money(b?.extraPendingCents ?? 0, b?.currency)}</div>
             </div>
-            <Button disabled title="Se activará al configurar Stripe">
-              <Sparkles className="h-4 w-4 mr-1" /> Suscribirme
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              {!isActive ? (
+                <Button onClick={() => subscribe.mutate()} disabled={subscribe.isPending}>
+                  <Sparkles className="h-4 w-4 mr-1" /> Suscribirme
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="secondary"
+                    onClick={() => pay.mutate()}
+                    disabled={pay.isPending || !b || b.extraPendingCents <= 0}
+                  >
+                    Pagar extra
+                  </Button>
+                  <Button variant="outline" onClick={() => portal.mutate()} disabled={portal.isPending}>
+                    <ExternalLink className="h-4 w-4 mr-1" /> Gestionar suscripción
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            El pago por Stripe se activará en cuanto el administrador conecte la cuenta.
+            Los pagos se procesan de forma segura mediante Stripe. El extra se factura al finalizar el periodo o manualmente.
           </p>
         </CardContent>
       </Card>
