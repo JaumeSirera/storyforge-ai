@@ -1,7 +1,11 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Sparkles, LayoutDashboard, Plus, LogOut, Library, Settings } from "lucide-react";
+import { Sparkles, LayoutDashboard, Plus, LogOut, Library, Settings, Shield } from "lucide-react";
+import { getMyAdminStatus } from "@/lib/admin.functions";
+
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -15,6 +19,12 @@ export const Route = createFileRoute("/_authenticated")({
 
 function AppLayout() {
   const navigate = useNavigate();
+  const check = useServerFn(getMyAdminStatus);
+  const { data: adminStatus } = useQuery({
+    queryKey: ["admin-status"],
+    queryFn: () => check(),
+    staleTime: 60_000,
+  });
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
@@ -30,7 +40,11 @@ function AppLayout() {
             <NavItem to="/app/simulations" icon={Library} label="Mis simulaciones" />
             <NavItem to="/app/new" icon={Plus} label="Nueva" />
             <NavItem to="/app/settings" icon={Settings} label="Ajustes" />
+            {adminStatus?.isAdmin && (
+              <NavItem to="/app/admin/users" icon={Shield} label="Admin" />
+            )}
           </nav>
+
           <Button
             size="sm"
             variant="ghost"

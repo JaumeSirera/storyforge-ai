@@ -97,14 +97,48 @@ export async function loadUserKeys(
   userId: string,
 ): Promise<UserApiKeys> {
   const client = supabase as {
-    from: (t: string) => {
-      select: (c: string) => {
-        eq: (c: string, v: string) => {
-          maybeSingle: () => Promise<{ data: Record<string, unknown> | null }>;
-        };
-      };
-    };
+    from: (t: string) => any;
   };
+
+  // 1) Check profile: is_active + use_platform_ai
+  const { data: profile } = await client
+    .from("profiles")
+    .select("is_active, use_platform_ai")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (profile && profile.is_active === false) {
+    throw new Error("Tu cuenta está desactivada. Contacta con el administrador.");
+  }
+
+  // 2) If user has platform-AI enabled, use admin's keys instead
+  if (profile?.use_platform_ai) {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: adminRow } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "admin")
+      .limit(1)
+      .maybeSingle();
+    if (adminRow?.user_id) {
+      const { data: adminKeys } = await supabaseAdmin
+        .from("user_api_keys")
+        .select("openai_key, gemini_key, replicate_key, elevenlabs_key, text_provider")
+        .eq("user_id", adminRow.user_id)
+        .maybeSingle();
+      if (adminKeys) {
+        return {
+          openaiKey: (adminKeys.openai_key as string | null) ?? null,
+          geminiKey: (adminKeys.gemini_key as string | null) ?? null,
+          replicateKey: (adminKeys.replicate_key as string | null) ?? null,
+          elevenlabsKey: (adminKeys.elevenlabs_key as string | null) ?? null,
+          textProvider: ((adminKeys.text_provider as TextProvider) ?? "gemini"),
+        };
+      }
+    }
+  }
+
+  // 3) Own keys
   const { data } = await client
     .from("user_api_keys")
     .select("openai_key, gemini_key, replicate_key, elevenlabs_key, text_provider")
@@ -119,3 +153,4 @@ export async function loadUserKeys(
     textProvider: ((data.text_provider as TextProvider) ?? "gemini"),
   };
 }
+
