@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { loadUserKeys } from "./user-keys.functions";
 
 const SIGNED_URL_TTL = 60 * 60 * 24 * 30; // 30 días
 
@@ -131,52 +132,55 @@ export const deleteCharacter = createServerFn({ method: "POST" })
 
 const GenerateInput = z.object({
   prompt: z.string().min(5).max(1000),
-  model: z.enum(["google/gemini-2.5-flash-image", "google/gemini-3-pro-image"]).default("google/gemini-2.5-flash-image"),
+  model: z
+    .enum(["gemini-2.5-flash-image-preview", "gemini-2.0-flash-preview-image-generation"])
+    .default("gemini-2.5-flash-image-preview"),
 });
 
 /**
- * Genera una imagen de personaje ficticio con IA (nano-banana o Gemini 3 Pro Image)
- * y devuelve un data URL. El cliente decide si guardarla luego como personaje reutilizable
- * llamando a createCharacter.
+ * Genera una imagen de personaje ficticio con la clave Gemini del propio usuario.
+ * Usa la API nativa de Google (generateContent) porque la salida es multimodal (image+text).
  */
 export const generateCharacterImage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => GenerateInput.parse(input))
-  .handler(async ({ data }): Promise<{ imageDataUrl: string; model: string }> => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY no configurada");
+  .handler(async ({ data, context }): Promise<{ imageDataUrl: string; model: string }> => {
+    const keys = await loadUserKeys(context.supabase, context.userId);
+    if (!keys.geminiKey) {
+      throw new Error("Configura tu clave de Google Gemini en Ajustes para generar imágenes.");
+    }
 
     const systemHint =
       "Genera una fotografía realista de una persona ficticia (que no existe), " +
       "encuadre plano medio, mirando ligeramente a cámara, fondo neutro suave, iluminación natural, " +
       "estilo casting profesional. Descripción:";
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${data.model}:generateContent?key=${encodeURIComponent(keys.geminiKey)}`;
+    const res = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: data.model,
-        messages: [{ role: "user", content: `${systemHint} ${data.prompt}` }],
-        modalities: ["image", "text"],
+        contents: [{ role: "user", parts: [{ text: `${systemHint} ${data.prompt}` }] }],
+        generationConfig: { responseModalities: ["IMAGE", "TEXT"] },
       }),
     });
 
     if (!res.ok) {
       const txt = await res.text();
-      if (res.status === 429) throw new Error("Límite de generación alcanzado, prueba en unos segundos.");
-      if (res.status === 402) throw new Error("Créditos de IA agotados. Recárgalos en Ajustes.");
+      if (res.status === 429) throw new Error("Límite de Gemini alcanzado, prueba en unos segundos.");
+      if (res.status === 401 || res.status === 403) throw new Error("Clave Gemini inválida o sin permisos para generar imagen.");
       throw new Error(`Fallo generando imagen (${res.status}): ${txt.slice(0, 200)}`);
     }
 
-    const json = await res.json();
-    const imageUrl: string | undefined =
-      json?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    if (!imageUrl || !imageUrl.startsWith("data:")) {
-      throw new Error("La IA no devolvió imagen.");
-    }
-    return { imageDataUrl: imageUrl, model: data.model };
+    const json = (await res.json()) as {
+      candidates?: Array<{ content?: { parts?: Array<{ inlineData?: { data?: string; mimeType?: string } }> } }>;
+    };
+    const parts = json.candidates?.[0]?.content?.parts ?? [];
+    const imgPart = parts.find((p) => p.inlineData?.data);
+    const b64 = imgPart?.inlineData?.data;
+    const mime = imgPart?.inlineData?.mimeType ?? "image/png";
+    if (!b64) throw new Error("Gemini no devolvió imagen.");
+    return { imageDataUrl: `data:${mime};base64,${b64}`, model: data.model };
   });
+
 

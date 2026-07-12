@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Sparkles, LayoutDashboard, Plus, LogOut, Library } from "lucide-react";
+import { Sparkles, LayoutDashboard, Plus, LogOut, Library, Settings } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -29,6 +29,7 @@ function AppLayout() {
             <NavItem to="/app/dashboard" icon={LayoutDashboard} label="Inicio" />
             <NavItem to="/app/simulations" icon={Library} label="Mis simulaciones" />
             <NavItem to="/app/new" icon={Plus} label="Nueva" />
+            <NavItem to="/app/settings" icon={Settings} label="Ajustes" />
           </nav>
           <Button
             size="sm"

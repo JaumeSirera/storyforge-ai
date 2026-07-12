@@ -242,6 +242,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_api_keys: {
+        Row: {
+          created_at: string
+          elevenlabs_key: string | null
+          gemini_key: string | null
+          openai_key: string | null
+          replicate_key: string | null
+          text_provider: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          elevenlabs_key?: string | null
+          gemini_key?: string | null
+          openai_key?: string | null
+          replicate_key?: string | null
+          text_provider?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          elevenlabs_key?: string | null
+          gemini_key?: string | null
+          openai_key?: string | null
+          replicate_key?: string | null
+          text_provider?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

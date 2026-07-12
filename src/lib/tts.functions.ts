@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { loadUserKeys } from "./user-keys.functions";
 
 const SIGNED_URL_TTL = 60 * 60 * 24 * 365 * 10;
 
@@ -27,8 +28,9 @@ export const generateClipDialogue = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => Input.parse(input))
   .handler(async ({ data, context }): Promise<{ audioUrl: string; audioPath: string }> => {
-    const apiKey = process.env.ELEVENLABS_API_KEY;
-    if (!apiKey) throw new Error("ElevenLabs no está conectado.");
+    const userKeys = await loadUserKeys(context.supabase, context.userId);
+    const apiKey = userKeys.elevenlabsKey;
+    if (!apiKey) throw new Error("Configura tu clave de ElevenLabs en Ajustes para generar voz.");
 
     const res = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${data.voiceId}?output_format=mp3_44100_128`,

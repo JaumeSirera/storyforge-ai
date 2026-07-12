@@ -1,22 +1,22 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { loadUserKeys } from "./user-keys.functions";
 
-const GATEWAY = "https://connector-gateway.lovable.dev/replicate/v1";
-// Avoid sync.so-backed models: their provider currently returns a Cloudflare block page.
-const LIPSYNC_MODEL = { owner: "bytedance", name: "latentsync" };
-// bytedance/latentsync es un community model → hay que usar /predictions con "version".
+const REPLICATE = "https://api.replicate.com/v1";
 const LIPSYNC_VERSION = "637ce1919f807ca20da3a448ddc2743535d2853649574cd52a933120e9b9e293";
 const SIGNED_URL_TTL = 60 * 60 * 24 * 365 * 10;
 
-function gatewayHeaders() {
-  const lovable = process.env.LOVABLE_API_KEY;
-  const rep = process.env.REPLICATE_API_KEY ?? process.env.LOVABLE_CONNECTOR_REPLICATE_API_KEY;
-  if (!lovable || !rep) throw new Error("Replicate no está conectado.");
-  return {
-    Authorization: `Bearer ${lovable}`,
-    "X-Connection-Api-Key": rep,
-  } as Record<string, string>;
+async function getReplicateToken(supabase: unknown, userId: string): Promise<string> {
+  const keys = await loadUserKeys(supabase, userId);
+  if (!keys.replicateKey) {
+    throw new Error("Configura tu token de Replicate en Ajustes para aplicar lip-sync.");
+  }
+  return keys.replicateKey;
+}
+
+function replicateHeaders(token: string): Record<string, string> {
+  return { Authorization: `Bearer ${token}` };
 }
 
 function summarizeProviderError(value: unknown): string {
@@ -97,6 +97,7 @@ const StartInput = z.object({
 );
 
 async function uploadBytesToReplicate(
+  token: string,
   buffer: Uint8Array,
   contentType: string,
   filename: string,
@@ -104,9 +105,9 @@ async function uploadBytesToReplicate(
   const form = new FormData();
   form.append("content", new Blob([buffer as BlobPart], { type: contentType }), filename);
 
-  const res = await fetch(`${GATEWAY}/files`, {
+  const res = await fetch(`${REPLICATE}/files`, {
     method: "POST",
-    headers: gatewayHeaders(),
+    headers: replicateHeaders(token),
     body: form,
   });
   const body = await res.text();
@@ -122,8 +123,8 @@ export const startLipsync = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => StartInput.parse(input))
   .handler(async ({ data, context }) => {
-    // Leer los ficheros desde Storage interno cuando esté disponible. Así no
-    // dependemos de URLs firmadas que un WAF pueda interceptar.
+    const token = await getReplicateToken(context.supabase, context.userId);
+
     const [videoAsset, audioAsset] = await Promise.all([
       readMediaAsset({
         storagePath: data.videoStoragePath,
@@ -143,18 +144,16 @@ export const startLipsync = createServerFn({ method: "POST" })
       }),
     ]);
 
-    // Subir los bytes a Replicate Files y pasar esas URLs internas al modelo.
-    // LatentSync consume URLs de vídeo/audio y evita el bloqueo de Cloudflare observado en sync.so.
     const [videoFileUrl, audioFileUrl] = await Promise.all([
-      uploadBytesToReplicate(videoAsset.buffer, videoAsset.contentType || "video/mp4", "input.mp4"),
-      uploadBytesToReplicate(audioAsset.buffer, audioAsset.contentType || "audio/mpeg", "input.mp3"),
+      uploadBytesToReplicate(token, videoAsset.buffer, videoAsset.contentType || "video/mp4", "input.mp4"),
+      uploadBytesToReplicate(token, audioAsset.buffer, audioAsset.contentType || "audio/mpeg", "input.mp3"),
     ]);
 
     const res = await fetch(
-      `${GATEWAY}/predictions`,
+      `${REPLICATE}/predictions`,
       {
         method: "POST",
-        headers: { ...gatewayHeaders(), "Content-Type": "application/json" },
+        headers: { ...replicateHeaders(token), "Content-Type": "application/json" },
         body: JSON.stringify({
           version: LIPSYNC_VERSION,
           input: {
@@ -196,12 +195,11 @@ function outputToUrl(output: unknown): string | null {
   return null;
 }
 
-async function fetchReplicateOutput(url: string): Promise<Response> {
+async function fetchReplicateOutput(url: string, token: string): Promise<Response> {
   try {
     const parsed = new URL(url);
     if (parsed.hostname === "api.replicate.com" && parsed.pathname.startsWith("/v1/")) {
-      const gatewayUrl = `${GATEWAY}${parsed.pathname.slice("/v1".length)}${parsed.search}`;
-      return fetch(gatewayUrl, { headers: gatewayHeaders() });
+      return fetch(url, { headers: replicateHeaders(token) });
     }
   } catch {
     // Fall through to regular fetch.
@@ -218,8 +216,9 @@ export const pollLipsync = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => PollInput.parse(input))
   .handler(async ({ data, context }): Promise<PollResult> => {
-    const res = await fetch(`${GATEWAY}/predictions/${data.predictionId}`, {
-      headers: gatewayHeaders(),
+    const token = await getReplicateToken(context.supabase, context.userId);
+    const res = await fetch(`${REPLICATE}/predictions/${data.predictionId}`, {
+      headers: replicateHeaders(token),
     });
     const body = await res.text();
     if (!res.ok) return { status: "failed", error: `Replicate ${res.status}: ${body}` };
@@ -248,7 +247,7 @@ export const pollLipsync = createServerFn({ method: "POST" })
 
     const outputUrl = outputToUrl(json.output);
     if (!outputUrl) return { status: "failed", error: "Replicate no devolvió un MP4 final.", logsTail };
-    const videoRes = await fetchReplicateOutput(outputUrl);
+    const videoRes = await fetchReplicateOutput(outputUrl, token);
     if (!videoRes.ok) return { status: "failed", error: `Descarga fallida (${videoRes.status})`, logsTail };
     const buf = new Uint8Array(await videoRes.arrayBuffer());
 

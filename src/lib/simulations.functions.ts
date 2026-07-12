@@ -2,8 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { generateObject, NoObjectGeneratedError } from "ai";
 import { z } from "zod";
-import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { resolveUserTextModel } from "./ai-gateway.server";
 import { AI_MODEL_IDS, DEFAULT_AI_MODEL } from "./ai-models";
+import { loadUserKeys } from "./user-keys.functions";
+
 
 // ---------- Generate a simulation with AI ----------
 
@@ -412,9 +414,8 @@ export const generateSimulation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => GenerateInput.parse(input))
   .handler(async ({ data, context }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("Missing LOVABLE_API_KEY");
-    const gateway = createLovableAiGatewayProvider(key);
+    const userKeys = await loadUserKeys(context.supabase, context.userId);
+    const { model } = resolveUserTextModel(userKeys, data.model);
     const sanitizedPrompt = (sanitizeCreatorPrompt(data.prompt) || data.prompt).slice(0, 40000);
     const generationData = { ...data, prompt: sanitizedPrompt };
 
@@ -455,7 +456,7 @@ Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
     let output: GeneratedStory;
     try {
       const result = await generateObject({
-        model: gateway(data.model),
+        model,
         schema: StorySchema,
         system: systemPrompt,
         prompt: userPrompt,
