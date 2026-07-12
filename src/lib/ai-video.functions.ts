@@ -1,37 +1,37 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { loadUserKeys } from "./user-keys.functions";
 
-const GATEWAY = "https://connector-gateway.lovable.dev/replicate/v1";
-// Text-to-video: ~1 min. Image-to-video (primer fotograma): ~1 min.
+const REPLICATE = "https://api.replicate.com/v1";
 const T2V_MODEL = { owner: "wan-video", name: "wan-2.2-t2v-fast" };
 const I2V_MODEL = { owner: "wan-video", name: "wan-2.2-i2v-fast" };
-// Signed URL TTL for private-bucket playback (~10 years).
 const SIGNED_URL_TTL = 60 * 60 * 24 * 365 * 10;
 
-function gatewayHeaders() {
-  const lovable = process.env.LOVABLE_API_KEY;
-  const rep = process.env.REPLICATE_API_KEY;
-  if (!lovable || !rep) {
-    throw new Error("Replicate no está conectado (faltan claves de conexión).");
+async function getReplicateToken(supabase: unknown, userId: string): Promise<string> {
+  const keys = await loadUserKeys(supabase, userId);
+  if (!keys.replicateKey) {
+    throw new Error("Configura tu token de Replicate en Ajustes para generar vídeo.");
   }
-  return {
-    Authorization: `Bearer ${lovable}`,
-    "X-Connection-Api-Key": rep,
-  } as Record<string, string>;
+  return keys.replicateKey;
 }
 
-/** Upload bytes to Replicate's Files API through the gateway and return the fetchable URL. */
+function replicateHeaders(token: string): Record<string, string> {
+  return { Authorization: `Bearer ${token}` };
+}
+
+/** Upload bytes to Replicate's Files API and return the fetchable URL. */
 async function uploadReferenceImage(
+  token: string,
   buffer: Uint8Array,
   contentType: string,
   filename: string,
 ): Promise<string> {
   const form = new FormData();
   form.append("content", new Blob([buffer as BlobPart], { type: contentType }), filename);
-  const res = await fetch(`${GATEWAY}/files`, {
+  const res = await fetch(`${REPLICATE}/files`, {
     method: "POST",
-    headers: gatewayHeaders(),
+    headers: replicateHeaders(token),
     body: form,
   });
   const body = await res.text();
@@ -54,6 +54,7 @@ export const startAiVideoGeneration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => StartInput.parse(input))
   .handler(async ({ data, context }) => {
+    const token = await getReplicateToken(context.supabase, context.userId);
     let imageUrl: string | null = null;
     let characterName: string | undefined;
 
@@ -74,7 +75,7 @@ export const startAiVideoGeneration = createServerFn({ method: "POST" })
       const buf = new Uint8Array(await file.arrayBuffer());
       const contentType = file.type || "image/png";
       const ext = row.image_path.split(".").pop() ?? "png";
-      imageUrl = await uploadReferenceImage(buf, contentType, `character.${ext}`);
+      imageUrl = await uploadReferenceImage(token, buf, contentType, `character.${ext}`);
     }
 
     const model = imageUrl ? I2V_MODEL : T2V_MODEL;
@@ -89,10 +90,10 @@ export const startAiVideoGeneration = createServerFn({ method: "POST" })
     }
 
     const res = await fetch(
-      `${GATEWAY}/models/${model.owner}/${model.name}/predictions`,
+      `${REPLICATE}/models/${model.owner}/${model.name}/predictions`,
       {
         method: "POST",
-        headers: { ...gatewayHeaders(), "Content-Type": "application/json" },
+        headers: { ...replicateHeaders(token), "Content-Type": "application/json" },
         body: JSON.stringify({ input }),
       },
     );
@@ -149,8 +150,9 @@ export const pollAiVideoGeneration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => PollInput.parse(input))
   .handler(async ({ data, context }): Promise<PollResult> => {
-    const res = await fetch(`${GATEWAY}/predictions/${data.predictionId}`, {
-      headers: gatewayHeaders(),
+    const token = await getReplicateToken(context.supabase, context.userId);
+    const res = await fetch(`${REPLICATE}/predictions/${data.predictionId}`, {
+      headers: replicateHeaders(token),
     });
     const body = await res.text();
     if (!res.ok) {

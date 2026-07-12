@@ -2,7 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { generateText, Output } from "ai";
 import { z } from "zod";
-import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { resolveUserTextModel } from "./ai-gateway.server";
+import { loadUserKeys } from "./user-keys.functions";
 
 // Start a new session for a simulation.
 export const startSession = createServerFn({ method: "POST" })
@@ -233,9 +234,8 @@ export const generateReport = createServerFn({ method: "POST" })
 
     if (sess.report) return sess.report;
 
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("Missing LOVABLE_API_KEY");
-    const gateway = createLovableAiGatewayProvider(key);
+    const userKeys = await loadUserKeys(context.supabase, context.userId);
+    const { model: aiModel } = resolveUserTextModel(userKeys);
 
     const sim = sess.simulation as {
       title: string;
@@ -256,7 +256,7 @@ export const generateReport = createServerFn({ method: "POST" })
     let report: z.infer<typeof ReportSchema>;
     try {
       const { experimental_output } = await generateText({
-        model: gateway("google/gemini-3-flash-preview"),
+        model: aiModel,
         experimental_output: Output.object({ schema: ReportSchema }),
         system:
           "Eres un evaluador profesional. Generas un informe final breve, claro y útil sobre el desempeño del participante. Idioma: español. Devuelve SIEMPRE el JSON con todos los campos requeridos.",

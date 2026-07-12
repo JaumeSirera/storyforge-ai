@@ -13,6 +13,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
 import { Route as AuthenticatedAppNewRouteImport } from './routes/_authenticated/app.new'
 import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
 import { Route as AuthenticatedAppSimulationsIndexRouteImport } from './routes/_authenticated/app.simulations.index'
@@ -40,6 +41,12 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAppSettingsRoute =
+  AuthenticatedAppSettingsRouteImport.update({
+    id: '/app/settings',
+    path: '/app/settings',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppNewRoute = AuthenticatedAppNewRouteImport.update({
   id: '/app/new',
   path: '/app/new',
@@ -88,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/new': typeof AuthenticatedAppNewRoute
+  '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/app/simulations/': typeof AuthenticatedAppSimulationsIndexRoute
   '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
@@ -100,6 +108,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/new': typeof AuthenticatedAppNewRoute
+  '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/app/simulations': typeof AuthenticatedAppSimulationsIndexRoute
   '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
@@ -114,6 +123,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/_authenticated/app/new': typeof AuthenticatedAppNewRoute
+  '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
   '/_authenticated/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/_authenticated/app/simulations/': typeof AuthenticatedAppSimulationsIndexRoute
   '/_authenticated/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/app/dashboard'
     | '/app/new'
+    | '/app/settings'
     | '/app/sessions/$id'
     | '/app/simulations/'
     | '/app/simulations/$id/edit'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/app/dashboard'
     | '/app/new'
+    | '/app/settings'
     | '/app/sessions/$id'
     | '/app/simulations'
     | '/app/simulations/$id/edit'
@@ -153,6 +165,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/app/dashboard'
     | '/_authenticated/app/new'
+    | '/_authenticated/app/settings'
     | '/_authenticated/app/sessions/$id'
     | '/_authenticated/app/simulations/'
     | '/_authenticated/app/simulations/$id/edit'
@@ -196,6 +209,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/app/settings': {
+      id: '/_authenticated/app/settings'
+      path: '/app/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AuthenticatedAppSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/new': {
       id: '/_authenticated/app/new'
@@ -252,6 +272,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppDashboardRoute: typeof AuthenticatedAppDashboardRoute
   AuthenticatedAppNewRoute: typeof AuthenticatedAppNewRoute
+  AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
   AuthenticatedAppSessionsIdRoute: typeof AuthenticatedAppSessionsIdRoute
   AuthenticatedAppSimulationsIndexRoute: typeof AuthenticatedAppSimulationsIndexRoute
   AuthenticatedAppSimulationsIdEditRoute: typeof AuthenticatedAppSimulationsIdEditRoute
@@ -262,6 +283,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppDashboardRoute: AuthenticatedAppDashboardRoute,
   AuthenticatedAppNewRoute: AuthenticatedAppNewRoute,
+  AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
   AuthenticatedAppSessionsIdRoute: AuthenticatedAppSessionsIdRoute,
   AuthenticatedAppSimulationsIndexRoute: AuthenticatedAppSimulationsIndexRoute,
   AuthenticatedAppSimulationsIdEditRoute:
@@ -284,13 +306,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
