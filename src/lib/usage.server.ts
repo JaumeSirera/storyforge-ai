@@ -111,7 +111,7 @@ export async function recordUsage(input: RecordUsageInput): Promise<void> {
       margin_pct: marginPct,
       total_cents: totalCents,
       pays_platform: input.paysPlatform,
-      metadata: input.metadata ?? null,
+      metadata: (input.metadata ?? null) as never,
     });
     if (insertErr) {
       console.error("[usage] insert failed:", insertErr.message);
