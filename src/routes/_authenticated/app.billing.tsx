@@ -79,17 +79,34 @@ function BillingPage() {
               <div className="h-full bg-primary" style={{ width: `${includedPct}%` }} />
             </div>
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-border p-3">
             <div>
               <div className="text-sm text-muted-foreground">Extra pendiente de facturar</div>
               <div className="text-lg font-semibold">{money(b?.extraPendingCents ?? 0, b?.currency)}</div>
             </div>
-            <Button disabled title="Se activará al configurar Stripe">
-              <Sparkles className="h-4 w-4 mr-1" /> Suscribirme
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              {!isActive ? (
+                <Button onClick={() => subscribe.mutate()} disabled={subscribe.isPending}>
+                  <Sparkles className="h-4 w-4 mr-1" /> Suscribirme
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="secondary"
+                    onClick={() => pay.mutate()}
+                    disabled={pay.isPending || !b || b.extraPendingCents <= 0}
+                  >
+                    Pagar extra
+                  </Button>
+                  <Button variant="outline" onClick={() => portal.mutate()} disabled={portal.isPending}>
+                    <ExternalLink className="h-4 w-4 mr-1" /> Gestionar suscripción
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            El pago por Stripe se activará en cuanto el administrador conecte la cuenta.
+            Los pagos se procesan de forma segura mediante Stripe. El extra se factura al finalizar el periodo o manualmente.
           </p>
         </CardContent>
       </Card>
