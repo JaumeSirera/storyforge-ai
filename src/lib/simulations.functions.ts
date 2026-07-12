@@ -415,7 +415,7 @@ export const generateSimulation = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => GenerateInput.parse(input))
   .handler(async ({ data, context }) => {
     const userKeys = await loadUserKeys(context.supabase, context.userId);
-    const { model } = resolveUserTextModel(userKeys, data.model);
+    const { model, provider: aiProvider, nativeId } = resolveUserTextModel(userKeys, data.model);
     const sanitizedPrompt = (sanitizeCreatorPrompt(data.prompt) || data.prompt).slice(0, 40000);
     const generationData = { ...data, prompt: sanitizedPrompt };
 
