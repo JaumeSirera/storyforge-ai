@@ -263,5 +263,18 @@ export const pollLipsync = createServerFn({ method: "POST" })
       .createSignedUrl(storagePath, SIGNED_URL_TTL);
     if (signErr || !signed) return { status: "failed", error: signErr?.message ?? "sign failed", logsTail };
 
+    try {
+      const { recordUsage, userPaysPlatform } = await import("./usage.server");
+      await recordUsage({
+        userId: context.userId,
+        action: "lipsync",
+        provider: "replicate",
+        model: "bytedance/latentsync",
+        simulationId: data.simulationId,
+        seconds: Math.max(1, elapsedSec),
+        paysPlatform: await userPaysPlatform(context.userId),
+      });
+    } catch (e) { console.error("[lipsync] usage:", e); }
+
     return { status: "ready", progress: 100, url: signed.signedUrl, storagePath, elapsedSec };
   });
