@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Sparkles, LayoutDashboard, Plus, LogOut, Library, Settings, Shield } from "lucide-react";
+import { Sparkles, LayoutDashboard, Plus, LogOut, Library, Settings, Shield, CreditCard } from "lucide-react";
 import { getMyAdminStatus } from "@/lib/admin.functions";
 
 
