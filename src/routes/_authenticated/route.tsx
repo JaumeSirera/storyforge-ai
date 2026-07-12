@@ -40,6 +40,7 @@ function AppLayout() {
             <NavItem to="/app/simulations" icon={Library} label="Mis simulaciones" />
             <NavItem to="/app/new" icon={Plus} label="Nueva" />
             <NavItem to="/app/settings" icon={Settings} label="Ajustes" />
+            <NavItem to="/app/billing" icon={CreditCard} label="Facturación" />
             {adminStatus?.isAdmin && (
               <NavItem to="/app/admin/users" icon={Shield} label="Admin" />
             )}
