@@ -1,7 +1,11 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Sparkles, LayoutDashboard, Plus, LogOut, Library, Settings } from "lucide-react";
+import { Sparkles, LayoutDashboard, Plus, LogOut, Library, Settings, Shield } from "lucide-react";
+import { getMyAdminStatus } from "@/lib/admin.functions";
+
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
