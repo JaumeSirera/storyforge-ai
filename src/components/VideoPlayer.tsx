@@ -155,11 +155,11 @@ function MediaWithDialogue({
 
 
 
-function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, fill }: SingleVideoProps) {
-  const cbsRef = useRef({ onPauseAtTime, onEnded, pauseAtSec });
+function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, onTimeUpdate, startAt, fill }: SingleVideoProps) {
+  const cbsRef = useRef({ onPauseAtTime, onEnded, onTimeUpdate, pauseAtSec });
   useEffect(() => {
-    cbsRef.current = { onPauseAtTime, onEnded, pauseAtSec };
-  }, [onPauseAtTime, onEnded, pauseAtSec]);
+    cbsRef.current = { onPauseAtTime, onEnded, onTimeUpdate, pauseAtSec };
+  }, [onPauseAtTime, onEnded, onTimeUpdate, pauseAtSec]);
 
   const firedRef = useRef(false);
   useEffect(() => {
@@ -194,9 +194,11 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, fill }: Single
         fill={fill}
         cbsRef={cbsRef}
         firedRef={firedRef}
+        startAt={startAt}
       />
     );
   }
+
 
 
   if (video.type === "ai") {
