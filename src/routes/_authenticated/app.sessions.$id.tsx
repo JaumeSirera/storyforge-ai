@@ -391,7 +391,7 @@ function Player({
 }
 
 function ScenePlayback({
-  node, submitting, feedback, selected, onPick, nextNodes, immersive, answeredIds, forcedQId,
+  node, submitting, feedback, selected, onPick, nextNodes, immersive, answeredIds, forcedQId, initialClipId,
 }: {
   node: any;
   submitting: boolean;
@@ -402,9 +402,13 @@ function ScenePlayback({
   immersive?: boolean;
   answeredIds?: Set<string>;
   forcedQId?: string;
+  initialClipId?: string;
 }) {
   const clips = nodeClips(node);
-  const [activeClipId, setActiveClipId] = useState<string>(clips[0]?.id ?? "default");
+  const [activeClipId, setActiveClipId] = useState<string>(() => {
+    if (initialClipId && clips.some((c) => c.id === initialClipId)) return initialClipId;
+    return clips[0]?.id ?? "default";
+  });
   const [commentText, setCommentText] = useState("");
   // Reset active clip when the scene changes.
   useEffect(() => {
