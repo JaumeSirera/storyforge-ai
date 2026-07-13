@@ -167,17 +167,6 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
       return next;
     });
     setLastFeedback({ text: c.feedback, points: c.points });
-
-    // Interlude: play a clip of the CURRENT scene before applying destination.
-    if (c.interludeClipId && node.videos?.some((v) => v.id === c.interludeClipId)) {
-      if (q.id) setAnsweredIds((s) => new Set(s).add(q.id!));
-      setForcedQId(undefined);
-      setActiveClipId(c.interludeClipId);
-      setQuestionReady(false);
-      setInterlude({ pending: c });
-      return;
-    }
-
     applyDestination(c);
   };
 
@@ -214,12 +203,6 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     }
   };
 
-  const commitInterlude = () => {
-    if (!interlude) return;
-    const pending = interlude.pending;
-    setInterlude(null);
-    applyDestination(pending);
-  };
 
 
 
