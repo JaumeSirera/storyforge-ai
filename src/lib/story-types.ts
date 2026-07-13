@@ -77,11 +77,6 @@ export interface Choice {
   nextQuestionId?: string;
   /** Optional: when nextKind === "scene", start playback on this specific clip of the target scene. */
   nextClipId?: string;
-  /**
-   * Optional: reproduce this clip of the CURRENT scene before applying the destination.
-   * The player shows a "Continuar" button and auto-advances when the clip ends.
-   */
-  interludeClipId?: string;
 }
 
 /** Resolves the effective destination of a choice, handling legacy shape. */

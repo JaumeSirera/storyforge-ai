@@ -674,7 +674,7 @@ const EditorChoiceSchema = z.object({
   nextKind: z.enum(["end", "scene", "continue", "question"]).optional(),
   nextQuestionId: z.string().optional(),
   nextClipId: z.string().optional(),
-  interludeClipId: z.string().optional(),
+  
 });
 
 const QuestionTriggerSchema = z.union([
@@ -780,9 +780,6 @@ export const updateSimulationStory = createServerFn({ method: "POST" })
             if (!targetClipIds.has(ch.nextClipId)) {
               throw new Error(`La opción "${ch.label}" apunta a un clip inexistente en la escena destino.`);
             }
-          }
-          if (ch.interludeClipId && !currentClipIds.has(ch.interludeClipId)) {
-            throw new Error(`La opción "${ch.label}" usa un clip intermedio que ya no existe en esta escena.`);
           }
           if (kind === "question" && ch.nextQuestionId && !localQuestionIds.has(ch.nextQuestionId)) {
             throw new Error(`La opción "${ch.label}" apunta a una pregunta/comentario inexistente en la escena.`);
