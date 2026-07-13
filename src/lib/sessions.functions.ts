@@ -127,6 +127,7 @@ export const submitAnswer = createServerFn({ method: "POST" })
       choice.nextKind ?? (choice.next ? "scene" : "end");
     const stayInScene = nextKind === "continue" || nextKind === "question";
     const forcedQuestionId: string | null = nextKind === "question" ? (choice.nextQuestionId ?? null) : null;
+    const nextClipId: string | null = nextKind === "scene" ? (choice.nextClipId ?? null) : null;
 
     let nextId: string | null;
     if (stayInScene) {
@@ -156,6 +157,7 @@ export const submitAnswer = createServerFn({ method: "POST" })
 
     return {
       nextNodeId: nextId,
+      nextClipId,
       score: newScore,
       pointsDelta: choice.points,
       feedback: choice.feedback,
