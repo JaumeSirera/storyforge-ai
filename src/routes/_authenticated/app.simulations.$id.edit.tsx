@@ -1082,17 +1082,38 @@ function EditSimulation() {
                                 </Select>
                               </div>
                               {(q.choices[0].nextKind ?? (q.choices[0].next ? "scene" : "end")) === "scene" && (
-                                <Select
-                                  value={q.choices[0].next ?? ""}
-                                  onValueChange={(v) => updateChoice(nIdx, qIdx, 0, { next: v, nextKind: "scene" })}
-                                >
-                                  <SelectTrigger><SelectValue placeholder="Elige escena destino" /></SelectTrigger>
-                                  <SelectContent>
-                                    {orderedNodes.filter((nn) => nn.id !== n.id).map((nn) => (
-                                      <SelectItem key={nn.id} value={nn.id}>Escena {sceneOrder.get(nn.id) ?? "?"} — {nn.title}</SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                <div className="space-y-1.5">
+                                  <Select
+                                    value={q.choices[0].next ?? ""}
+                                    onValueChange={(v) => updateChoice(nIdx, qIdx, 0, { next: v, nextKind: "scene", nextClipId: undefined })}
+                                  >
+                                    <SelectTrigger><SelectValue placeholder="Elige escena destino" /></SelectTrigger>
+                                    <SelectContent>
+                                      {orderedNodes.map((nn) => (
+                                        <SelectItem key={nn.id} value={nn.id}>Escena {sceneOrder.get(nn.id) ?? "?"} — {nn.title}{nn.id === n.id ? " (esta escena)" : ""}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  {q.choices[0].next && (() => {
+                                    const target = state.nodes.find((nn) => nn.id === q.choices[0].next);
+                                    const clips = target ? nodeClips(target) : [];
+                                    if (clips.length <= 1) return null;
+                                    return (
+                                      <Select
+                                        value={q.choices[0].nextClipId ?? "__start__"}
+                                        onValueChange={(v) => updateChoice(nIdx, qIdx, 0, { nextClipId: v === "__start__" ? undefined : v })}
+                                      >
+                                        <SelectTrigger><SelectValue placeholder="Clip destino (opcional)" /></SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="__start__">Desde el primer clip</SelectItem>
+                                          {clips.map((cl, ci) => (
+                                            <SelectItem key={cl.id} value={cl.id}>{cl.label || `Clip ${ci + 1}`}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    );
+                                  })()}
+                                </div>
                               )}
                               {(q.choices[0].nextKind === "question") && (
                                 <Select
