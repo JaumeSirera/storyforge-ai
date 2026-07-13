@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getSession, submitAnswer, generateReport } from "@/lib/sessions.functions";
+import { getSession, submitAnswer, generateReport, advanceSession } from "@/lib/sessions.functions";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { nodeClips } from "@/lib/story-types";
 
@@ -68,6 +68,7 @@ function Player({
   sessionId: string; node: any; score: number; answered: number; totalNodes: number; simTitle: string; sceneNumber?: number; nextNodes: any[];
 }) {
   const submit = useServerFn(submitAnswer);
+  const advance = useServerFn(advanceSession);
   const qc = useQueryClient();
   const [selected, setSelected] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ feedback: string; points: number } | null>(null);
@@ -170,12 +171,23 @@ function Player({
   // Target clip id when a choice jumps to a specific clip (may be same scene).
   const [pendingClipId, setPendingClipId] = useState<string | undefined>(undefined);
   const [clipJumpNonce, setClipJumpNonce] = useState(0);
+  // Interlude playback: play a clip of the current scene, then commit the deferred transition.
+  const [interlude, setInterlude] = useState<
+    | null
+    | {
+        clipId: string;
+        nextNodeId: string | null;
+        nextClipId: string | null;
+        completed: boolean;
+      }
+  >(null);
 
   // Reset scene-local state whenever the active scene changes.
   useEffect(() => {
     setSceneAnsweredIds(new Set());
     setForcedQId(undefined);
     setPendingClipId(undefined);
+    setInterlude(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node.id]);
 
@@ -192,7 +204,28 @@ function Player({
       const forced = (r as any).forcedQuestionId as string | null | undefined;
       const nextClipId = (r as any).nextClipId as string | null | undefined;
       const nextNodeId = (r as any).nextNodeId as string | null | undefined;
-      if (stay) {
+      const interludeClipId = (r as any).interludeClipId as string | null | undefined;
+      const pendingNextNodeId = (r as any).pendingNextNodeId as string | null | undefined;
+      const pendingNextClipId = (r as any).pendingNextClipId as string | null | undefined;
+      const pendingCompleted = (r as any).pendingCompleted === true;
+
+      if (interludeClipId && pendingNextNodeId !== undefined) {
+        // Play the interlude clip in the current scene, then commit the transition.
+        setInterlude({
+          clipId: interludeClipId,
+          nextNodeId: pendingNextNodeId ?? null,
+          nextClipId: pendingNextClipId ?? null,
+          completed: pendingCompleted,
+        });
+        setPendingClipId(interludeClipId);
+        setClipJumpNonce((n) => n + 1);
+        setSceneAnsweredIds(new Set());
+        setForcedQId(undefined);
+        setTimeout(() => {
+          setSelected(null);
+          setFeedback(null);
+        }, 1200);
+      } else if (stay) {
         if (answeredQId) setSceneAnsweredIds((s) => new Set(s).add(answeredQId));
         setForcedQId(forced ?? undefined);
         // Short feedback flash, then keep the same scene.
@@ -223,6 +256,23 @@ function Player({
       setSelected(null);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function commitInterlude() {
+    if (!interlude) return;
+    try {
+      await advance({
+        data: {
+          sessionId,
+          nextNodeId: interlude.nextNodeId,
+          completed: interlude.completed,
+        },
+      });
+      setInterlude(null);
+      qc.invalidateQueries({ queryKey: ["session", sessionId] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo continuar");
     }
   }
 
@@ -258,6 +308,8 @@ function Player({
           answeredIds={sceneAnsweredIds}
           forcedQId={forcedQId}
           initialClipId={pendingClipId}
+          interludeActive={!!interlude}
+          onInterludeContinue={commitInterlude}
         />
 
         {/* Top bar overlay */}
@@ -384,14 +436,14 @@ function Player({
 
       <Progress value={progress} className="h-1.5" />
 
-      <ScenePlayback key={`${node.id}:${clipJumpNonce}`} node={node} submitting={submitting} feedback={feedback} selected={selected} onPick={pick} nextNodes={nextNodes} answeredIds={sceneAnsweredIds} forcedQId={forcedQId} initialClipId={pendingClipId} />
+      <ScenePlayback key={`${node.id}:${clipJumpNonce}`} node={node} submitting={submitting} feedback={feedback} selected={selected} onPick={pick} nextNodes={nextNodes} answeredIds={sceneAnsweredIds} forcedQId={forcedQId} initialClipId={pendingClipId} interludeActive={!!interlude} onInterludeContinue={commitInterlude} />
     </div>
     </div>
   );
 }
 
 function ScenePlayback({
-  node, submitting, feedback, selected, onPick, nextNodes, immersive, answeredIds, forcedQId, initialClipId,
+  node, submitting, feedback, selected, onPick, nextNodes, immersive, answeredIds, forcedQId, initialClipId, interludeActive, onInterludeContinue,
 }: {
   node: any;
   submitting: boolean;
@@ -403,6 +455,8 @@ function ScenePlayback({
   answeredIds?: Set<string>;
   forcedQId?: string;
   initialClipId?: string;
+  interludeActive?: boolean;
+  onInterludeContinue?: () => void;
 }) {
   const clips = nodeClips(node);
   const [activeClipId, setActiveClipId] = useState<string>(() => {
@@ -462,6 +516,15 @@ function ScenePlayback({
   }, [kind, questionReady, q?.id, node.id]);
 
 
+  // Fire the interlude commit only once per activation.
+  const interludeFiredRef = useRef(false);
+  useEffect(() => { interludeFiredRef.current = false; }, [interludeActive]);
+  function fireInterludeContinue() {
+    if (!interludeActive || interludeFiredRef.current) return;
+    interludeFiredRef.current = true;
+    onInterludeContinue?.();
+  }
+
   if (immersive) {
     return (
       <>
@@ -473,7 +536,10 @@ function ScenePlayback({
           onActiveClipChange={setActiveClipId}
           pauseAtSec={pauseAtSec}
           onPauseAtTime={() => setQuestionReady(true)}
-          onEnded={() => { if (trig.mode === "end") setQuestionReady(true); }}
+          onEnded={() => {
+            if (interludeActive) { fireInterludeContinue(); return; }
+            if (trig.mode === "end") setQuestionReady(true);
+          }}
         />
         <VideoPrefetch nodes={nextNodes} />
 
@@ -486,13 +552,15 @@ function ScenePlayback({
               </p>
             )}
 
+            {interludeActive && (
+              <div className="flex justify-end">
+                <Button size="lg" onClick={fireInterludeContinue}>
+                  Continuar <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
 
-
-
-
-
-
-            {q && questionReady && !feedback && kind === "question" && (
+            {!interludeActive && q && questionReady && !feedback && kind === "question" && (
               <div className="space-y-3">
                 <h3 className="font-semibold text-base md:text-lg text-white drop-shadow">
                   {q.text}
@@ -516,7 +584,7 @@ function ScenePlayback({
               </div>
             )}
 
-            {q && questionReady && !feedback && kind === "comment" && q.choices[0] && (
+            {!interludeActive && q && questionReady && !feedback && kind === "comment" && q.choices[0] && (
               <div className="space-y-3">
                 <h3 className="font-semibold text-base md:text-lg text-white drop-shadow">{q.text}</h3>
                 <Textarea
@@ -553,6 +621,7 @@ function ScenePlayback({
         pauseAtSec={pauseAtSec}
         onPauseAtTime={() => setQuestionReady(true)}
         onEnded={() => {
+          if (interludeActive) { fireInterludeContinue(); return; }
           if (trig.mode === "end") setQuestionReady(true);
         }}
       />
@@ -565,12 +634,15 @@ function ScenePlayback({
       </Card>
 
 
+      {interludeActive && (
+        <div className="flex justify-end">
+          <Button size="lg" onClick={fireInterludeContinue}>
+            Continuar <ArrowRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+      )}
 
-
-
-
-
-      {q && questionReady && !feedback && kind === "question" && (
+      {!interludeActive && q && questionReady && !feedback && kind === "question" && (
         <div className="space-y-3">
           <h3 className="font-semibold text-lg">{q.text}</h3>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -590,7 +662,7 @@ function ScenePlayback({
         </div>
       )}
 
-      {q && questionReady && !feedback && kind === "comment" && q.choices[0] && (
+      {!interludeActive && q && questionReady && !feedback && kind === "comment" && q.choices[0] && (
         <div className="space-y-3">
           <h3 className="font-semibold text-lg">{q.text}</h3>
           <Textarea

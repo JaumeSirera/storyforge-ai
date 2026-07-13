@@ -128,19 +128,28 @@ export const submitAnswer = createServerFn({ method: "POST" })
     const stayInScene = nextKind === "continue" || nextKind === "question";
     const forcedQuestionId: string | null = nextKind === "question" ? (choice.nextQuestionId ?? null) : null;
     const nextClipId: string | null = nextKind === "scene" ? (choice.nextClipId ?? null) : null;
+    const interludeClipId: string | null = choice.interludeClipId ?? null;
 
-    let nextId: string | null;
+    // Resolve the "real" destination (what should happen once the interlude, if any, finishes).
+    let realNextId: string | null;
     if (stayInScene) {
-      nextId = node.id;
+      realNextId = node.id;
     } else if (nextKind === "scene") {
-      nextId = choice.next ?? null;
+      realNextId = choice.next ?? null;
     } else {
-      nextId = null;
+      realNextId = null;
     }
-    const nextNode = nextId ? story.nodes[nextId] : null;
-    const completed = !stayInScene && (!nextNode || nextNode.isEnding);
+    const realNextNode = realNextId ? story.nodes[realNextId] : null;
+    const realCompleted = !stayInScene && (!realNextNode || realNextNode.isEnding);
 
-    const completedAt = completed && nextNode ? new Date().toISOString() : null;
+    // If an interlude clip is requested, defer the transition: keep session on
+    // the current scene and let the client commit the transition once the
+    // interlude finishes (via advanceSession).
+    const deferInterlude = !!interludeClipId && !stayInScene;
+    const nextId = deferInterlude ? node.id : realNextId;
+    const completedAt = !deferInterlude && realCompleted && realNextNode
+      ? new Date().toISOString()
+      : null;
 
     const { error: updErr } = await context.supabase
       .from("sessions")
@@ -158,15 +167,42 @@ export const submitAnswer = createServerFn({ method: "POST" })
     return {
       nextNodeId: nextId,
       nextClipId,
+      interludeClipId,
+      pendingNextNodeId: deferInterlude ? realNextId : null,
+      pendingNextClipId: deferInterlude ? nextClipId : null,
+      pendingCompleted: deferInterlude ? realCompleted : false,
       score: newScore,
       pointsDelta: choice.points,
       feedback: choice.feedback,
       competencyScores: comp,
-      completed,
-      stayInScene,
+      completed: !deferInterlude && realCompleted,
+      stayInScene: stayInScene || deferInterlude,
       forcedQuestionId,
       answeredQuestionId: chosenQuestion?.id ?? null,
     };
+  });
+
+const AdvanceInput = z.object({
+  sessionId: z.string().uuid(),
+  nextNodeId: z.string().nullable(),
+  completed: z.boolean().default(false),
+});
+
+// Commit a deferred transition after an interlude clip finishes.
+export const advanceSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => AdvanceInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const patch = data.completed
+      ? { current_node_id: data.nextNodeId, completed_at: new Date().toISOString() }
+      : { current_node_id: data.nextNodeId };
+    const { error } = await context.supabase
+      .from("sessions")
+      .update(patch)
+      .eq("id", data.sessionId)
+      .eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 // Generate the final AI report for a finished session.
