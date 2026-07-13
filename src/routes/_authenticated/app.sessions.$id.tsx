@@ -466,14 +466,6 @@ function ScenePlayback({
   }, [kind, questionReady, q?.id, node.id]);
 
 
-  // Fire the interlude commit only once per activation.
-  const interludeFiredRef = useRef(false);
-  useEffect(() => { interludeFiredRef.current = false; }, [interludeActive]);
-  function fireInterludeContinue() {
-    if (!interludeActive || interludeFiredRef.current) return;
-    interludeFiredRef.current = true;
-    onInterludeContinue?.();
-  }
 
   if (immersive) {
     return (
@@ -487,7 +479,6 @@ function ScenePlayback({
           pauseAtSec={pauseAtSec}
           onPauseAtTime={() => setQuestionReady(true)}
           onEnded={() => {
-            if (interludeActive) { fireInterludeContinue(); return; }
             if (trig.mode === "end") setQuestionReady(true);
           }}
         />
@@ -502,15 +493,8 @@ function ScenePlayback({
               </p>
             )}
 
-            {interludeActive && (
-              <div className="flex justify-end">
-                <Button size="lg" onClick={fireInterludeContinue}>
-                  Continuar <ArrowRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-            )}
 
-            {!interludeActive && q && questionReady && !feedback && kind === "question" && (
+            {q && questionReady && !feedback && kind === "question" && (
               <div className="space-y-3">
                 <h3 className="font-semibold text-base md:text-lg text-white drop-shadow">
                   {q.text}
@@ -534,7 +518,7 @@ function ScenePlayback({
               </div>
             )}
 
-            {!interludeActive && q && questionReady && !feedback && kind === "comment" && q.choices[0] && (
+            {q && questionReady && !feedback && kind === "comment" && q.choices[0] && (
               <div className="space-y-3">
                 <h3 className="font-semibold text-base md:text-lg text-white drop-shadow">{q.text}</h3>
                 <Textarea
@@ -571,7 +555,6 @@ function ScenePlayback({
         pauseAtSec={pauseAtSec}
         onPauseAtTime={() => setQuestionReady(true)}
         onEnded={() => {
-          if (interludeActive) { fireInterludeContinue(); return; }
           if (trig.mode === "end") setQuestionReady(true);
         }}
       />
@@ -584,15 +567,8 @@ function ScenePlayback({
       </Card>
 
 
-      {interludeActive && (
-        <div className="flex justify-end">
-          <Button size="lg" onClick={fireInterludeContinue}>
-            Continuar <ArrowRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
-      )}
 
-      {!interludeActive && q && questionReady && !feedback && kind === "question" && (
+      {q && questionReady && !feedback && kind === "question" && (
         <div className="space-y-3">
           <h3 className="font-semibold text-lg">{q.text}</h3>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -612,7 +588,7 @@ function ScenePlayback({
         </div>
       )}
 
-      {!interludeActive && q && questionReady && !feedback && kind === "comment" && q.choices[0] && (
+      {q && questionReady && !feedback && kind === "comment" && q.choices[0] && (
         <div className="space-y-3">
           <h3 className="font-semibold text-lg">{q.text}</h3>
           <Textarea
