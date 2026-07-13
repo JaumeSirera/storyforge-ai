@@ -76,6 +76,7 @@ function MediaWithDialogue({
   fill,
   cbsRef,
   firedRef,
+  startAt,
 }: {
   src: string;
   dialogueUrl: string | null;
@@ -83,9 +84,11 @@ function MediaWithDialogue({
   fill?: boolean;
   cbsRef: CbsRef;
   firedRef: React.MutableRefObject<boolean>;
+  startAt?: number;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const seekedRef = useRef(false);
 
   // Keep audio in sync with video events.
   useEffect(() => {
@@ -123,14 +126,32 @@ function MediaWithDialogue({
         autoPlay
         playsInline
         className={`${sizeCls} bg-black ${fill ? "object-contain" : ""}`}
+        onLoadedMetadata={(e) => {
+          if (!seekedRef.current && typeof startAt === "number" && startAt > 0) {
+            seekedRef.current = true;
+            try { e.currentTarget.currentTime = startAt; } catch {}
+          }
+        }}
         onTimeUpdate={(e) => {
           const cur = e.currentTarget.currentTime;
+          cbsRef.current.onTimeUpdate?.(cur);
           const tgt = cbsRef.current.pauseAtSec;
           if (tgt && !firedRef.current && cur >= tgt) {
             firedRef.current = true;
             e.currentTarget.pause();
             cbsRef.current.onPauseAtTime?.();
           }
+        }}
+        onEnded={() => {
+          audioRef.current?.pause();
+          cbsRef.current.onEnded?.();
+        }}
+      />
+      {dialogueUrl && <audio ref={audioRef} src={dialogueUrl} preload="auto" />}
+    </>
+  );
+}
+
         }}
         onEnded={() => {
           audioRef.current?.pause();
