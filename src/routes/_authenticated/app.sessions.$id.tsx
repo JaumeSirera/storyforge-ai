@@ -308,6 +308,8 @@ function Player({
           answeredIds={sceneAnsweredIds}
           forcedQId={forcedQId}
           initialClipId={pendingClipId}
+          interludeActive={!!interlude}
+          onInterludeContinue={commitInterlude}
         />
 
         {/* Top bar overlay */}
