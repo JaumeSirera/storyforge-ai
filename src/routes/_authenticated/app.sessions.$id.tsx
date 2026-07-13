@@ -662,7 +662,7 @@ function ScenePlayback({
         </div>
       )}
 
-      {q && questionReady && !feedback && kind === "comment" && q.choices[0] && (
+      {!interludeActive && q && questionReady && !feedback && kind === "comment" && q.choices[0] && (
         <div className="space-y-3">
           <h3 className="font-semibold text-lg">{q.text}</h3>
           <Textarea
