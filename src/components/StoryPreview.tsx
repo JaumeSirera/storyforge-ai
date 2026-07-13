@@ -363,7 +363,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
                 </div>
               )}
 
-              {!ended && !node.isEnding && q && (q.kind ?? "question") === "goto" && !questionReady && (
+              {!interlude && !ended && !node.isEnding && q && (q.kind ?? "question") === "goto" && !questionReady && (
                 <div className="text-xs text-white/80 italic drop-shadow">
                   <ArrowRight className="h-3 w-3 inline mr-1" /> Enlace automático a otra escena…
                 </div>
