@@ -3,35 +3,55 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { loadUserKeys } from "./user-keys.functions";
 
-const REPLICATE = "https://api.replicate.com/v1";
+const REPLICATE_DIRECT = "https://api.replicate.com/v1";
+const REPLICATE_GATEWAY = "https://connector-gateway.lovable.dev/replicate/v1";
 const T2V_MODEL = { owner: "wan-video", name: "wan-2.2-t2v-fast" };
 const I2V_MODEL = { owner: "wan-video", name: "wan-2.2-i2v-fast" };
 const SIGNED_URL_TTL = 60 * 60 * 24 * 365 * 10;
 
-async function getReplicateToken(supabase: unknown, userId: string): Promise<string> {
+interface ReplicateAuth {
+  base: string;
+  headers: Record<string, string>;
+}
+
+async function getReplicateAuth(supabase: unknown, userId: string): Promise<ReplicateAuth> {
   const keys = await loadUserKeys(supabase, userId);
   if (!keys.replicateKey) {
     throw new Error("Configura tu token de Replicate en Ajustes para generar vídeo.");
   }
-  return keys.replicateKey;
-}
-
-function replicateHeaders(token: string): Record<string, string> {
-  return { Authorization: `Bearer ${token}` };
+  // If the key came from the platform env (Replicate connector), it is a
+  // connection key for the Lovable gateway, not a raw Replicate token.
+  const envReplicate = process.env.REPLICATE_API_KEY ?? null;
+  const isPlatform = envReplicate !== null && keys.replicateKey === envReplicate;
+  if (isPlatform) {
+    const lovableKey = process.env.LOVABLE_API_KEY;
+    if (!lovableKey) throw new Error("LOVABLE_API_KEY no configurado");
+    return {
+      base: REPLICATE_GATEWAY,
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        "X-Connection-Api-Key": keys.replicateKey,
+      },
+    };
+  }
+  return {
+    base: REPLICATE_DIRECT,
+    headers: { Authorization: `Bearer ${keys.replicateKey}` },
+  };
 }
 
 /** Upload bytes to Replicate's Files API and return the fetchable URL. */
 async function uploadReferenceImage(
-  token: string,
+  auth: ReplicateAuth,
   buffer: Uint8Array,
   contentType: string,
   filename: string,
 ): Promise<string> {
   const form = new FormData();
   form.append("content", new Blob([buffer as BlobPart], { type: contentType }), filename);
-  const res = await fetch(`${REPLICATE}/files`, {
+  const res = await fetch(`${auth.base}/files`, {
     method: "POST",
-    headers: replicateHeaders(token),
+    headers: auth.headers,
     body: form,
   });
   const body = await res.text();
@@ -54,7 +74,7 @@ export const startAiVideoGeneration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => StartInput.parse(input))
   .handler(async ({ data, context }) => {
-    const token = await getReplicateToken(context.supabase, context.userId);
+    const auth = await getReplicateAuth(context.supabase, context.userId);
     let imageUrl: string | null = null;
     let characterName: string | undefined;
 
@@ -75,7 +95,7 @@ export const startAiVideoGeneration = createServerFn({ method: "POST" })
       const buf = new Uint8Array(await file.arrayBuffer());
       const contentType = file.type || "image/png";
       const ext = row.image_path.split(".").pop() ?? "png";
-      imageUrl = await uploadReferenceImage(token, buf, contentType, `character.${ext}`);
+      imageUrl = await uploadReferenceImage(auth, buf, contentType, `character.${ext}`);
     }
 
     const model = imageUrl ? I2V_MODEL : T2V_MODEL;
@@ -90,10 +110,10 @@ export const startAiVideoGeneration = createServerFn({ method: "POST" })
     }
 
     const res = await fetch(
-      `${REPLICATE}/models/${model.owner}/${model.name}/predictions`,
+      `${auth.base}/models/${model.owner}/${model.name}/predictions`,
       {
         method: "POST",
-        headers: { ...replicateHeaders(token), "Content-Type": "application/json" },
+        headers: { ...auth.headers, "Content-Type": "application/json" },
         body: JSON.stringify({ input }),
       },
     );
@@ -150,9 +170,9 @@ export const pollAiVideoGeneration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => PollInput.parse(input))
   .handler(async ({ data, context }): Promise<PollResult> => {
-    const token = await getReplicateToken(context.supabase, context.userId);
-    const res = await fetch(`${REPLICATE}/predictions/${data.predictionId}`, {
-      headers: replicateHeaders(token),
+    const auth = await getReplicateAuth(context.supabase, context.userId);
+    const res = await fetch(`${auth.base}/predictions/${data.predictionId}`, {
+      headers: auth.headers,
     });
     const body = await res.text();
     if (!res.ok) {
