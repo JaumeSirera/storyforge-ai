@@ -28,7 +28,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StoryPreview } from "@/components/StoryPreview";
 import type { Story, StoryNode, Choice, EvaluationCriterion, VideoSource, VideoClip, Question, QuestionTrigger } from "@/lib/story-types";
-import { nodeQuestions, nodeClips } from "@/lib/story-types";
+import { nodeClips } from "@/lib/story-types";
 import { AiClipPanel } from "@/components/AiClipPanel";
 
 import { computeSceneOrder, sortNodesByOrder } from "@/lib/scene-order";
@@ -60,6 +60,63 @@ type EditorState = {
   nodes: StoryNode[]; // array form for stable ordering in UI
   criteria: EvaluationCriterion[];
 };
+
+function destinationValue(choice: Pick<Choice, "next" | "nextClipId">): string {
+  if (!choice.next) return "__end__";
+  return choice.nextClipId ? `clip:${choice.next}:${choice.nextClipId}` : `scene:${choice.next}`;
+}
+
+function sceneDestinationValue(choice: Pick<Choice, "next" | "nextClipId">): string {
+  if (!choice.next) return "__none__";
+  return destinationValue(choice);
+}
+
+function destinationPatch(value: string, nextKind: "scene" | undefined = undefined): Partial<Choice> {
+  if (value === "__end__") {
+    return { next: null, nextClipId: undefined, ...(nextKind ? { nextKind: "end" as const } : {}) };
+  }
+  if (value.startsWith("clip:")) {
+    const [, nodeId, clipId] = value.split(":");
+    return { next: nodeId, nextClipId: clipId, ...(nextKind ? { nextKind } : {}) };
+  }
+  if (value.startsWith("scene:")) {
+    return { next: value.slice("scene:".length), nextClipId: undefined, ...(nextKind ? { nextKind } : {}) };
+  }
+  return {};
+}
+
+function DestinationSelectItems({
+  nodes,
+  sceneOrder,
+  currentNodeId,
+  includeEnd = true,
+}: {
+  nodes: StoryNode[];
+  sceneOrder: Map<string, number>;
+  currentNodeId: string;
+  includeEnd?: boolean;
+}) {
+  return (
+    <>
+      {includeEnd && <SelectItem value="__end__">FIN</SelectItem>}
+      {nodes.map((node) => {
+        const clips = nodeClips(node);
+        return (
+          <div key={node.id}>
+            <SelectItem value={`scene:${node.id}`}>
+              Escena {sceneOrder.get(node.id) ?? "?"} — {node.title}{node.id === currentNodeId ? " (esta escena)" : ""}
+            </SelectItem>
+            {clips.map((clip, ci) => (
+              <SelectItem key={`${node.id}:${clip.id}`} value={`clip:${node.id}:${clip.id}`}>
+                Escena {sceneOrder.get(node.id) ?? "?"} · {clip.label || `Clip ${ci + 1}`}{node.id === currentNodeId ? " (esta escena)" : ""}
+              </SelectItem>
+            ))}
+          </div>
+        );
+      })}
+    </>
+  );
+}
 
 function uid(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
