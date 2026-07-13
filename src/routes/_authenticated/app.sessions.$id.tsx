@@ -436,14 +436,14 @@ function Player({
 
       <Progress value={progress} className="h-1.5" />
 
-      <ScenePlayback key={`${node.id}:${clipJumpNonce}`} node={node} submitting={submitting} feedback={feedback} selected={selected} onPick={pick} nextNodes={nextNodes} answeredIds={sceneAnsweredIds} forcedQId={forcedQId} initialClipId={pendingClipId} />
+      <ScenePlayback key={`${node.id}:${clipJumpNonce}`} node={node} submitting={submitting} feedback={feedback} selected={selected} onPick={pick} nextNodes={nextNodes} answeredIds={sceneAnsweredIds} forcedQId={forcedQId} initialClipId={pendingClipId} interludeActive={!!interlude} onInterludeContinue={commitInterlude} />
     </div>
     </div>
   );
 }
 
 function ScenePlayback({
-  node, submitting, feedback, selected, onPick, nextNodes, immersive, answeredIds, forcedQId, initialClipId,
+  node, submitting, feedback, selected, onPick, nextNodes, immersive, answeredIds, forcedQId, initialClipId, interludeActive, onInterludeContinue,
 }: {
   node: any;
   submitting: boolean;
@@ -455,6 +455,8 @@ function ScenePlayback({
   answeredIds?: Set<string>;
   forcedQId?: string;
   initialClipId?: string;
+  interludeActive?: boolean;
+  onInterludeContinue?: () => void;
 }) {
   const clips = nodeClips(node);
   const [activeClipId, setActiveClipId] = useState<string>(() => {
