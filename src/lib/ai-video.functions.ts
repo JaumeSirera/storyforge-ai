@@ -74,7 +74,7 @@ export const startAiVideoGeneration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => StartInput.parse(input))
   .handler(async ({ data, context }) => {
-    const token = await getReplicateToken(context.supabase, context.userId);
+    const auth = await getReplicateAuth(context.supabase, context.userId);
     let imageUrl: string | null = null;
     let characterName: string | undefined;
 
@@ -95,7 +95,7 @@ export const startAiVideoGeneration = createServerFn({ method: "POST" })
       const buf = new Uint8Array(await file.arrayBuffer());
       const contentType = file.type || "image/png";
       const ext = row.image_path.split(".").pop() ?? "png";
-      imageUrl = await uploadReferenceImage(token, buf, contentType, `character.${ext}`);
+      imageUrl = await uploadReferenceImage(auth, buf, contentType, `character.${ext}`);
     }
 
     const model = imageUrl ? I2V_MODEL : T2V_MODEL;
@@ -110,10 +110,10 @@ export const startAiVideoGeneration = createServerFn({ method: "POST" })
     }
 
     const res = await fetch(
-      `${REPLICATE}/models/${model.owner}/${model.name}/predictions`,
+      `${auth.base}/models/${model.owner}/${model.name}/predictions`,
       {
         method: "POST",
-        headers: { ...replicateHeaders(token), "Content-Type": "application/json" },
+        headers: { ...auth.headers, "Content-Type": "application/json" },
         body: JSON.stringify({ input }),
       },
     );
@@ -170,9 +170,9 @@ export const pollAiVideoGeneration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => PollInput.parse(input))
   .handler(async ({ data, context }): Promise<PollResult> => {
-    const token = await getReplicateToken(context.supabase, context.userId);
-    const res = await fetch(`${REPLICATE}/predictions/${data.predictionId}`, {
-      headers: replicateHeaders(token),
+    const auth = await getReplicateAuth(context.supabase, context.userId);
+    const res = await fetch(`${auth.base}/predictions/${data.predictionId}`, {
+      headers: auth.headers,
     });
     const body = await res.text();
     if (!res.ok) {
