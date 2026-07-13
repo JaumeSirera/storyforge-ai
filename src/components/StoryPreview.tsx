@@ -78,8 +78,10 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     setCommentText("");
     setAnsweredIds(new Set());
     setForcedQId(undefined);
+    setInterlude(null);
     autoGotoRef.current = null;
   };
+
 
   // Local activeQuestion honouring answered/forced state.
   const q: Question | undefined = useMemo(() => {
