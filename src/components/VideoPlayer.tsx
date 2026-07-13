@@ -54,14 +54,20 @@ interface SingleVideoProps {
   pauseAtSec?: number;
   onPauseAtTime?: () => void;
   onEnded?: () => void;
+  /** Reported current playback time (seconds). */
+  onTimeUpdate?: (t: number) => void;
+  /** Seek to this time (seconds) once when the player becomes ready. */
+  startAt?: number;
   fill?: boolean;
 }
 
 type CbsRef = React.MutableRefObject<{
   onPauseAtTime?: () => void;
   onEnded?: () => void;
+  onTimeUpdate?: (t: number) => void;
   pauseAtSec?: number;
 }>;
+
 
 function MediaWithDialogue({
   src,
