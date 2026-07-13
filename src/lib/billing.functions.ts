@@ -64,6 +64,64 @@ export const listMyUsage = createServerFn({ method: "GET" })
     return rows ?? [];
   });
 
+export interface PaymentRow {
+  id: string;
+  order_code: string;
+  amount_cents: number;
+  currency: string;
+  kind: string;
+  status: string;
+  response_code: string | null;
+  auth_code: string | null;
+  created_at: string;
+}
+
+/** List current user's Redsys payment attempts (subscription, renewals, extras). */
+export const listMyPayments = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ limit: z.number().int().min(1).max(500).default(100) }).parse(input ?? {}),
+  )
+  .handler(async ({ data, context }): Promise<PaymentRow[]> => {
+    const { data: rows, error } = await context.supabase
+      .from("redsys_payments")
+      .select("id, order_code, amount_cents, currency, kind, status, response_code, auth_code, created_at")
+      .eq("user_id", context.userId)
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+/** Fetch data required to render a receipt PDF for a specific payment. */
+export const getMyPaymentReceipt = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ paymentId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: pay, error } = await context.supabase
+      .from("redsys_payments")
+      .select("id, order_code, amount_cents, currency, kind, status, auth_code, response_code, created_at")
+      .eq("id", data.paymentId)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!pay) throw new Error("Pago no encontrado");
+    const { data: profile } = await context.supabase
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", context.userId)
+      .maybeSingle();
+    return {
+      payment: pay,
+      buyer: { name: profile?.full_name ?? null, email: profile?.email ?? null },
+      merchant: {
+        name: "VITA Training",
+        merchantCode: "356698696",
+        product: "PlayGame — Simulaciones profesionales",
+      },
+    };
+  });
+
 /** Build the Redsys hosted-checkout form params for the FIRST subscription payment.
  *  Returns URL + form fields; the client auto-submits the form. */
 export const createSubscriptionCheckout = createServerFn({ method: "POST" })
