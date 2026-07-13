@@ -69,11 +69,11 @@ function destinationValue(choice: Pick<Choice, "next" | "nextClipId">): string {
 }
 
 function sceneDestinationValue(choice: Pick<Choice, "next" | "nextClipId">): string {
-  if (!choice.next) return "__none__";
+  if (!choice.next) return "";
   return destinationValue(choice);
 }
 
-function destinationPatch(value: string, nextKind: "scene" | undefined = undefined): Partial<Choice> {
+function destinationPatch(value: string, nextKind: "scene" | undefined = "scene"): Partial<Choice> {
   if (value === "__end__") {
     return { next: null, nextClipId: undefined, ...(nextKind ? { nextKind: "end" as const } : {}) };
   }
