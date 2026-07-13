@@ -337,9 +337,34 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
           onActiveClipChange={setActiveClipId}
           pauseAtSec={pauseAtSec}
           onPauseAtTime={() => setQuestionReady(true)}
-          onEnded={() => { if (trig.mode === "end") setQuestionReady(true); }}
+          onEnded={() => {
+            if (trig.mode === "end") setQuestionReady(true);
+            // If we branched to a specific clip, detect its natural end to
+            // trigger the "return" overlay + auto-return.
+            if (
+              branchReturn &&
+              node?.id === branchReturn.branchNodeId &&
+              (activeClipId ?? nodeClips(node)[0]?.id) === branchReturn.branchClipId
+            ) {
+              setBranchClipEnded(true);
+            }
+          }}
           fill
         />
+
+        {branchReturn && branchClipEnded && (
+          <div className="pointer-events-auto absolute inset-x-0 top-1/2 -translate-y-1/2 z-20 flex justify-center px-4">
+            <div className="flex items-center gap-3 rounded-full bg-black/80 backdrop-blur-md border border-white/20 px-4 py-2 text-white shadow-2xl">
+              <span className="text-sm">
+                Volviendo a la escena en <span className="font-bold">{branchCountdown}s</span>…
+              </span>
+              <Button size="sm" onClick={resolveBranchReturn} className="gap-1">
+                <ArrowRight className="h-3 w-3" /> Continuar
+              </Button>
+            </div>
+          </div>
+        )}
+
 
         {/* Bottom overlay: narrative + feedback + question/choices */}
         {(node.narrative || (!ended && !node.isEnding && q)) && (
