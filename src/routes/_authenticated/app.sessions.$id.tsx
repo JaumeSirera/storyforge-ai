@@ -634,12 +634,15 @@ function ScenePlayback({
       </Card>
 
 
+      {interludeActive && (
+        <div className="flex justify-end">
+          <Button size="lg" onClick={fireInterludeContinue}>
+            Continuar <ArrowRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+      )}
 
-
-
-
-
-      {q && questionReady && !feedback && kind === "question" && (
+      {!interludeActive && q && questionReady && !feedback && kind === "question" && (
         <div className="space-y-3">
           <h3 className="font-semibold text-lg">{q.text}</h3>
           <div className="grid gap-2 sm:grid-cols-2">
