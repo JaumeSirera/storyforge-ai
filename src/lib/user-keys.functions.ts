@@ -2,13 +2,14 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-export type TextProvider = "openai" | "gemini";
+export type TextProvider = "openai" | "gemini" | "lovable";
 
 export interface UserApiKeys {
   openaiKey: string | null;
   geminiKey: string | null;
   replicateKey: string | null;
   elevenlabsKey: string | null;
+  lovableKey: string | null;
   textProvider: TextProvider;
 }
 
@@ -17,8 +18,30 @@ const EMPTY: UserApiKeys = {
   geminiKey: null,
   replicateKey: null,
   elevenlabsKey: null,
+  lovableKey: null,
   textProvider: "gemini",
 };
+
+/** Fill missing keys with platform env secrets so IA works when the user
+ *  has nothing configured. This is what "la plataforma paga" means in
+ *  practice: use the project-level REPLICATE / ELEVENLABS / LOVABLE keys. */
+function applyPlatformFallback(keys: UserApiKeys): UserApiKeys {
+  const envReplicate = process.env.REPLICATE_API_KEY ?? null;
+  const envEleven = process.env.ELEVENLABS_API_KEY ?? null;
+  const envLovable = process.env.LOVABLE_API_KEY ?? null;
+  const merged: UserApiKeys = {
+    ...keys,
+    replicateKey: keys.replicateKey || envReplicate,
+    elevenlabsKey: keys.elevenlabsKey || envEleven,
+    lovableKey: keys.lovableKey || envLovable,
+  };
+  // Text: if user has neither openai nor gemini, but the Lovable AI Gateway
+  // is available, route text via the gateway.
+  if (!merged.openaiKey && !merged.geminiKey && merged.lovableKey) {
+    merged.textProvider = "lovable";
+  }
+  return merged;
+}
 
 /** Devuelve una máscara "sk-…xxxx" para no exponer la clave completa al cliente. */
 function maskKey(k: string | null): string | null {
