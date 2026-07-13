@@ -767,7 +767,7 @@ export const updateSimulationStory = createServerFn({ method: "POST" })
             throw new Error(`La opción "${ch.label}" apunta a un nodo inexistente: ${ch.next}`);
           }
           if (kind === "scene" && ch.nextClipId) {
-            const target = data.story.nodes.find((nn: any) => nn.id === ch.next);
+            const target = ch.next ? (data.story.nodes as Record<string, any>)[ch.next] : null;
             const targetClipIds = new Set<string>();
             if (target) {
               for (const c of (target.clips ?? [])) if (c?.id) targetClipIds.add(c.id);
