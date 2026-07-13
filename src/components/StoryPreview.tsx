@@ -57,7 +57,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
   const [commentText, setCommentText] = useState("");
   const [answeredIds, setAnsweredIds] = useState<Set<string>>(new Set());
   const [forcedQId, setForcedQId] = useState<string | undefined>(undefined);
-  const [interlude, setInterlude] = useState<null | { pending: Choice }>(null);
+  const autoGotoRef2 = null as null;
   const autoGotoRef = useRef<string | null>(null);
 
 
