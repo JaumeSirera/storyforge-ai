@@ -169,6 +169,35 @@ export const submitAnswer = createServerFn({ method: "POST" })
   });
 
 
+// Return current_node_id to a previous scene (used after a branched clip finishes).
+export const returnToNode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ sessionId: z.string().uuid(), nodeId: z.string() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: sess, error } = await context.supabase
+      .from("sessions")
+      .select("simulation:simulations(story)")
+      .eq("id", data.sessionId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!sess) throw new Error("Sesión no encontrada");
+    const story = (sess.simulation as { story: { nodes: Record<string, any> } }).story;
+    if (!story?.nodes?.[data.nodeId]) throw new Error("Nodo no encontrado");
+
+    const { error: updErr } = await context.supabase
+      .from("sessions")
+      .update({ current_node_id: data.nodeId })
+      .eq("id", data.sessionId)
+      .eq("user_id", context.userId);
+    if (updErr) throw new Error(updErr.message);
+    return { ok: true };
+  });
+
+
+
+
 
 // Generate the final AI report for a finished session.
 const ReportSchema = z.object({
