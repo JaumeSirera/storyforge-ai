@@ -68,6 +68,7 @@ function Player({
   sessionId: string; node: any; score: number; answered: number; totalNodes: number; simTitle: string; sceneNumber?: number; nextNodes: any[];
 }) {
   const submit = useServerFn(submitAnswer);
+  const advance = useServerFn(advanceSession);
   const qc = useQueryClient();
   const [selected, setSelected] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ feedback: string; points: number } | null>(null);
