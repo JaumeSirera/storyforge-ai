@@ -1,17 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import {
   getMyBilling,
   listMyUsage,
   createSubscriptionCheckout,
-  openBillingPortal,
   payExtraNow,
+  cancelSubscription,
 } from "@/lib/billing.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CreditCard, Sparkles, ExternalLink } from "lucide-react";
+import { CreditCard, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/billing")({
@@ -22,30 +23,86 @@ function money(cents: number, currency = "EUR") {
   return new Intl.NumberFormat("es-ES", { style: "currency", currency }).format((cents ?? 0) / 100);
 }
 
+/** Auto-submit a hidden form POST to Redsys checkout. */
+function redsysRedirect(params: {
+  url: string;
+  merchantParameters: string;
+  signature: string;
+  signatureVersion: string;
+}) {
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = params.url;
+  form.style.display = "none";
+  const fields: Record<string, string> = {
+    Ds_SignatureVersion: params.signatureVersion,
+    Ds_MerchantParameters: params.merchantParameters,
+    Ds_Signature: params.signature,
+  };
+  for (const [name, value] of Object.entries(fields)) {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    input.value = value;
+    form.appendChild(input);
+  }
+  document.body.appendChild(form);
+  form.submit();
+}
+
 function BillingPage() {
   const getB = useServerFn(getMyBilling);
   const listU = useServerFn(listMyUsage);
   const startCheckout = useServerFn(createSubscriptionCheckout);
-  const openPortal = useServerFn(openBillingPortal);
   const payExtra = useServerFn(payExtraNow);
+  const cancel = useServerFn(cancelSubscription);
   const qc = useQueryClient();
   const { data: b } = useQuery({ queryKey: ["my-billing"], queryFn: () => getB() });
   const { data: rows } = useQuery({ queryKey: ["my-usage"], queryFn: () => listU({ data: { limit: 50 } }) });
+  const toastedRef = useRef(false);
+
+  useEffect(() => {
+    if (toastedRef.current) return;
+    const url = new URL(window.location.href);
+    const r = url.searchParams.get("redsys");
+    if (r === "ok") {
+      toast.success("Pago recibido. Actualizamos tu suscripción en unos segundos.");
+      toastedRef.current = true;
+      url.searchParams.delete("redsys");
+      window.history.replaceState({}, "", url.toString());
+      setTimeout(() => qc.invalidateQueries({ queryKey: ["my-billing"] }), 2500);
+    } else if (r === "ko") {
+      toast.error("Pago cancelado o rechazado.");
+      toastedRef.current = true;
+      url.searchParams.delete("redsys");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [qc]);
 
   const subscribe = useMutation({
     mutationFn: async () => startCheckout({ data: { origin: window.location.origin } }),
-    onSuccess: (r) => { window.location.href = r.url; },
-    onError: (e: Error) => toast.error(e.message),
-  });
-  const portal = useMutation({
-    mutationFn: async () => openPortal({ data: { origin: window.location.origin } }),
-    onSuccess: (r) => { window.location.href = r.url; },
+    onSuccess: (r) => redsysRedirect(r),
     onError: (e: Error) => toast.error(e.message),
   });
   const pay = useMutation({
-    mutationFn: async () => payExtra(),
+    mutationFn: async () => payExtra({ data: { origin: window.location.origin } }),
     onSuccess: (r) => {
-      toast.success(r.amount > 0 ? "Cobro emitido" : "No hay saldo pendiente");
+      if (r.mode === "redirect") {
+        redsysRedirect(r);
+      } else if (r.mode === "charged") {
+        if (r.ok) toast.success("Cobro realizado correctamente.");
+        else toast.error(`El cobro fue rechazado (código ${r.responseCode}).`);
+        qc.invalidateQueries({ queryKey: ["my-billing"] });
+      } else {
+        toast.info("No hay saldo pendiente.");
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const doCancel = useMutation({
+    mutationFn: async () => cancel(),
+    onSuccess: () => {
+      toast.success("Suscripción cancelada. No se realizarán más cobros automáticos.");
       qc.invalidateQueries({ queryKey: ["my-billing"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -59,7 +116,7 @@ function BillingPage() {
     <div className="space-y-6 max-w-4xl">
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2"><CreditCard className="h-6 w-6" /> Facturación</h1>
-        <p className="text-muted-foreground text-sm">Suscripción y consumo por uso.</p>
+        <p className="text-muted-foreground text-sm">Suscripción y consumo por uso. Pagos procesados por Redsys.</p>
       </div>
 
       <Card>
@@ -79,6 +136,16 @@ function BillingPage() {
               <div className="h-full bg-primary" style={{ width: `${includedPct}%` }} />
             </div>
           </div>
+
+          {b?.hasSavedCard && (
+            <div className="text-sm text-muted-foreground">
+              Tarjeta guardada: <span className="font-medium">{b.cardBrand ?? "•••"} — caduca {b.cardExpiry ?? "—"}</span>
+              {b.nextChargeAt && (
+                <> · próximo cobro: <span className="font-medium">{new Date(b.nextChargeAt).toLocaleDateString("es-ES")}</span></>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-border p-3">
             <div>
               <div className="text-sm text-muted-foreground">Extra pendiente de facturar</div>
@@ -98,15 +165,23 @@ function BillingPage() {
                   >
                     Pagar extra
                   </Button>
-                  <Button variant="outline" onClick={() => portal.mutate()} disabled={portal.isPending}>
-                    <ExternalLink className="h-4 w-4 mr-1" /> Gestionar suscripción
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (confirm("¿Cancelar la renovación automática? Podrás seguir usando el servicio hasta el fin del periodo.")) {
+                        doCancel.mutate();
+                      }
+                    }}
+                    disabled={doCancel.isPending}
+                  >
+                    Cancelar suscripción
                   </Button>
                 </>
               )}
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            Los pagos se procesan de forma segura mediante Stripe. El extra se factura al finalizar el periodo o manualmente.
+            Los pagos se procesan de forma segura mediante Redsys (VITA Training). Al suscribirte guardamos una referencia de la tarjeta para renovar automáticamente cada mes.
           </p>
         </CardContent>
       </Card>
