@@ -13,7 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -28,7 +30,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StoryPreview } from "@/components/StoryPreview";
 import type { Story, StoryNode, Choice, EvaluationCriterion, VideoSource, VideoClip, Question, QuestionTrigger } from "@/lib/story-types";
-import { nodeQuestions, nodeClips } from "@/lib/story-types";
+import { nodeClips } from "@/lib/story-types";
 import { AiClipPanel } from "@/components/AiClipPanel";
 
 import { computeSceneOrder, sortNodesByOrder } from "@/lib/scene-order";
@@ -60,6 +62,66 @@ type EditorState = {
   nodes: StoryNode[]; // array form for stable ordering in UI
   criteria: EvaluationCriterion[];
 };
+
+function destinationValue(choice: Pick<Choice, "next" | "nextClipId">): string {
+  if (!choice.next) return "__end__";
+  return choice.nextClipId ? `clip:${choice.next}:${choice.nextClipId}` : `scene:${choice.next}`;
+}
+
+function sceneDestinationValue(choice: Pick<Choice, "next" | "nextClipId">): string {
+  if (!choice.next) return "";
+  return destinationValue(choice);
+}
+
+function destinationPatch(value: string, nextKind: "scene" | undefined = "scene"): Partial<Choice> {
+  if (value === "__end__") {
+    return { next: null, nextClipId: undefined, ...(nextKind ? { nextKind: "end" as const } : {}) };
+  }
+  if (value.startsWith("clip:")) {
+    const [, nodeId, clipId] = value.split(":");
+    return { next: nodeId, nextClipId: clipId, ...(nextKind ? { nextKind } : {}) };
+  }
+  if (value.startsWith("scene:")) {
+    return { next: value.slice("scene:".length), nextClipId: undefined, ...(nextKind ? { nextKind } : {}) };
+  }
+  return {};
+}
+
+function DestinationSelectItems({
+  nodes,
+  sceneOrder,
+  currentNodeId,
+  includeEnd = true,
+}: {
+  nodes: StoryNode[];
+  sceneOrder: Map<string, number>;
+  currentNodeId: string;
+  includeEnd?: boolean;
+}) {
+  return (
+    <>
+      {includeEnd && <SelectItem value="__end__">FIN</SelectItem>}
+      {nodes.map((node) => {
+        const clips = nodeClips(node);
+        return (
+          <SelectGroup key={node.id}>
+            <SelectLabel>
+              Escena {sceneOrder.get(node.id) ?? "?"} — {node.title}{node.id === currentNodeId ? " (esta escena)" : ""}
+            </SelectLabel>
+            <SelectItem value={`scene:${node.id}`}>
+              Desde el primer clip
+            </SelectItem>
+            {clips.map((clip, ci) => (
+              <SelectItem key={`${node.id}:${clip.id}`} value={`clip:${node.id}:${clip.id}`}>
+                {clip.label || `Clip ${ci + 1}`}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        );
+      })}
+    </>
+  );
+}
 
 function uid(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
@@ -1013,40 +1075,18 @@ function EditSimulation() {
 
                           {kind === "goto" && (
                             <div className="space-y-1.5">
-                              <Label className="text-sm">Ir a escena</Label>
+                              <Label className="text-sm">Destino</Label>
                               <Select
-                                value={q.choices[0]?.next ?? "__end__"}
-                                onValueChange={(v) => updateChoice(nIdx, qIdx, 0, { next: v === "__end__" ? null : v, nextClipId: undefined })}
+                                value={destinationValue(q.choices[0] ?? { next: null })}
+                                onValueChange={(v) => updateChoice(nIdx, qIdx, 0, destinationPatch(v))}
                               >
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="__end__">FIN</SelectItem>
-                                  {orderedNodes.map((nn) => (
-                                    <SelectItem key={nn.id} value={nn.id}>Escena {sceneOrder.get(nn.id) ?? "?"} — {nn.title}{nn.id === n.id ? " (esta escena)" : ""}</SelectItem>
-                                  ))}
+                                  <DestinationSelectItems nodes={orderedNodes} sceneOrder={sceneOrder} currentNodeId={n.id} />
                                 </SelectContent>
                               </Select>
-                              {q.choices[0]?.next && (() => {
-                                const target = state.nodes.find((nn) => nn.id === q.choices[0].next);
-                                const clips = target ? nodeClips(target) : [];
-                                if (clips.length === 0) return null;
-                                return (
-                                  <Select
-                                    value={q.choices[0].nextClipId ?? "__start__"}
-                                    onValueChange={(v) => updateChoice(nIdx, qIdx, 0, { nextClipId: v === "__start__" ? undefined : v })}
-                                  >
-                                    <SelectTrigger><SelectValue placeholder="Clip destino (opcional)" /></SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="__start__">Desde el primer clip</SelectItem>
-                                      {clips.map((cl, ci) => (
-                                        <SelectItem key={cl.id} value={cl.id}>{cl.label || `Clip ${ci + 1}`}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                );
-                              })()}
                               <p className="text-[11px] text-muted-foreground">
-                                Al llegar al momento indicado arriba, la simulación saltará automáticamente a esa escena (y clip, si eliges uno) sin pedir interacción.
+                                Al llegar al momento indicado arriba, la simulación saltará automáticamente a la escena o clip elegido sin pedir interacción.
                               </p>
                             </div>
                           )}
@@ -1068,6 +1108,7 @@ function EditSimulation() {
                                     const nk = v as "end" | "scene" | "continue" | "question";
                                     const patch: Partial<Choice> = { nextKind: nk };
                                     if (nk !== "scene") patch.next = null;
+                                    if (nk !== "scene") patch.nextClipId = undefined;
                                     if (nk !== "question") patch.nextQuestionId = undefined;
                                     updateChoice(nIdx, qIdx, 0, patch);
                                   }}
@@ -1084,35 +1125,14 @@ function EditSimulation() {
                               {(q.choices[0].nextKind ?? (q.choices[0].next ? "scene" : "end")) === "scene" && (
                                 <div className="space-y-1.5">
                                   <Select
-                                    value={q.choices[0].next ?? ""}
-                                    onValueChange={(v) => updateChoice(nIdx, qIdx, 0, { next: v, nextKind: "scene", nextClipId: undefined })}
+                                    value={sceneDestinationValue(q.choices[0])}
+                                    onValueChange={(v) => updateChoice(nIdx, qIdx, 0, destinationPatch(v, "scene"))}
                                   >
-                                    <SelectTrigger><SelectValue placeholder="Elige escena destino" /></SelectTrigger>
+                                    <SelectTrigger><SelectValue placeholder="Elige escena o clip destino" /></SelectTrigger>
                                     <SelectContent>
-                                      {orderedNodes.map((nn) => (
-                                        <SelectItem key={nn.id} value={nn.id}>Escena {sceneOrder.get(nn.id) ?? "?"} — {nn.title}{nn.id === n.id ? " (esta escena)" : ""}</SelectItem>
-                                      ))}
+                                      <DestinationSelectItems nodes={orderedNodes} sceneOrder={sceneOrder} currentNodeId={n.id} includeEnd={false} />
                                     </SelectContent>
                                   </Select>
-                                  {q.choices[0].next && (() => {
-                                    const target = state.nodes.find((nn) => nn.id === q.choices[0].next);
-                                    const clips = target ? nodeClips(target) : [];
-                                    if (clips.length === 0) return null;
-                                    return (
-                                      <Select
-                                        value={q.choices[0].nextClipId ?? "__start__"}
-                                        onValueChange={(v) => updateChoice(nIdx, qIdx, 0, { nextClipId: v === "__start__" ? undefined : v })}
-                                      >
-                                        <SelectTrigger><SelectValue placeholder="Clip destino (opcional)" /></SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="__start__">Desde el primer clip</SelectItem>
-                                          {clips.map((cl, ci) => (
-                                            <SelectItem key={cl.id} value={cl.id}>{cl.label || `Clip ${ci + 1}`}</SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    );
-                                  })()}
                                 </div>
                               )}
                               {(q.choices[0].nextKind === "question") && (
@@ -1177,46 +1197,21 @@ function EditSimulation() {
                               {q.choices.map((c, cIdx) => (
                                 <div key={c.id} className="rounded-md border p-3 space-y-2 bg-muted/30">
                                   <div className="grid grid-cols-12 gap-2">
-                                    <Input className="col-span-7" placeholder="Texto de la opción" value={c.label} onChange={(e) => updateChoice(nIdx, qIdx, cIdx, { label: e.target.value })} />
+                                    <Input className="col-span-6" placeholder="Texto de la opción" value={c.label} onChange={(e) => updateChoice(nIdx, qIdx, cIdx, { label: e.target.value })} />
                                     <Input className="col-span-2" type="number" placeholder="Puntos" value={c.points} onChange={(e) => updateChoice(nIdx, qIdx, cIdx, { points: Number(e.target.value) })} />
                                     <Select
-                                      value={c.next ?? "__end__"}
-                                      onValueChange={(v) => updateChoice(nIdx, qIdx, cIdx, { next: v === "__end__" ? null : v, nextClipId: undefined })}
+                                      value={destinationValue(c)}
+                                      onValueChange={(v) => updateChoice(nIdx, qIdx, cIdx, destinationPatch(v))}
                                     >
-                                      <SelectTrigger className="col-span-2"><SelectValue /></SelectTrigger>
+                                      <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="__end__">FIN</SelectItem>
-                                        {orderedNodes.map((nn) => (
-                                          <SelectItem key={nn.id} value={nn.id}>Escena {sceneOrder.get(nn.id) ?? "?"} — {nn.title}{nn.id === n.id ? " (esta escena)" : ""}</SelectItem>
-                                        ))}
+                                        <DestinationSelectItems nodes={orderedNodes} sceneOrder={sceneOrder} currentNodeId={n.id} />
                                       </SelectContent>
                                     </Select>
                                     <Button type="button" variant="ghost" size="icon" className="col-span-1" onClick={() => deleteChoice(nIdx, qIdx, cIdx)} disabled={q.choices.length <= 2}>
                                       <Trash2 className="h-4 w-4 text-destructive" />
                                     </Button>
                                   </div>
-                                  {c.next && (() => {
-                                    const target = state.nodes.find((nn) => nn.id === c.next);
-                                    const clips = target ? nodeClips(target) : [];
-                                    if (clips.length === 0) return null;
-                                    return (
-                                      <div className="space-y-1">
-                                        <Label className="text-xs">Clip destino en la escena elegida</Label>
-                                        <Select
-                                          value={c.nextClipId ?? "__start__"}
-                                          onValueChange={(v) => updateChoice(nIdx, qIdx, cIdx, { nextClipId: v === "__start__" ? undefined : v })}
-                                        >
-                                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="__start__">Desde el primer clip</SelectItem>
-                                            {clips.map((cl, ci) => (
-                                              <SelectItem key={cl.id} value={cl.id}>{cl.label || `Clip ${ci + 1}`}</SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                    );
-                                  })()}
                                   <Textarea
                                     rows={2}
                                     placeholder="Feedback al usuario tras elegir esta opción"
