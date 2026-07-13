@@ -167,11 +167,15 @@ function Player({
   // Same-scene state: questions already answered here + a forced next question.
   const [sceneAnsweredIds, setSceneAnsweredIds] = useState<Set<string>>(new Set());
   const [forcedQId, setForcedQId] = useState<string | undefined>(undefined);
+  // Target clip id when a choice jumps to a specific clip (may be same scene).
+  const [pendingClipId, setPendingClipId] = useState<string | undefined>(undefined);
+  const [clipJumpNonce, setClipJumpNonce] = useState(0);
 
   // Reset scene-local state whenever the active scene changes.
   useEffect(() => {
     setSceneAnsweredIds(new Set());
     setForcedQId(undefined);
+    setPendingClipId(undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node.id]);
 
@@ -186,6 +190,8 @@ function Player({
       const stay = (r as any).stayInScene === true;
       const answeredQId = (r as any).answeredQuestionId as string | null | undefined;
       const forced = (r as any).forcedQuestionId as string | null | undefined;
+      const nextClipId = (r as any).nextClipId as string | null | undefined;
+      const nextNodeId = (r as any).nextNodeId as string | null | undefined;
       if (stay) {
         if (answeredQId) setSceneAnsweredIds((s) => new Set(s).add(answeredQId));
         setForcedQId(forced ?? undefined);
@@ -194,7 +200,18 @@ function Player({
           setSelected(null);
           setFeedback(null);
         }, 1200);
+      } else if (nextNodeId && nextNodeId === node.id) {
+        // Same scene, jump to a specific clip.
+        setPendingClipId(nextClipId ?? undefined);
+        setClipJumpNonce((n) => n + 1);
+        setSceneAnsweredIds(new Set());
+        setForcedQId(undefined);
+        setTimeout(() => {
+          setSelected(null);
+          setFeedback(null);
+        }, 1200);
       } else {
+        setPendingClipId(nextClipId ?? undefined);
         setTimeout(() => {
           qc.invalidateQueries({ queryKey: ["session", sessionId] });
           setSelected(null);
