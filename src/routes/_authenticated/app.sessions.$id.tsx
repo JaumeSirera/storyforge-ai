@@ -446,7 +446,12 @@ function Player({
 
       <Progress value={progress} className="h-1.5" />
 
-      <ScenePlayback key={`${node.id}:${clipJumpNonce}`} node={node} submitting={submitting} feedback={feedback} selected={selected} onPick={pick} nextNodes={nextNodes} answeredIds={sceneAnsweredIds} forcedQId={forcedQId} initialClipId={pendingClipId} />
+      <div className="relative">
+        <ScenePlayback key={`${node.id}:${clipJumpNonce}`} node={node} submitting={submitting} feedback={feedback} selected={selected} onPick={pick} nextNodes={nextNodes} answeredIds={sceneAnsweredIds} forcedQId={forcedQId} initialClipId={pendingClipId} branchClipId={branchReturn?.branchClipId} onBranchClipEnded={() => setBranchClipEnded(true)} />
+        {branchReturn && branchClipEnded && (
+          <BranchReturnOverlay countdown={branchCountdown} onContinue={() => void resolveBranchReturn()} />
+        )}
+      </div>
     </div>
     </div>
   );
