@@ -1,0 +1,1 @@
+ALTER TABLE public.pricing_config ADD COLUMN IF NOT EXISTS vat_pct numeric NOT NULL DEFAULT 21;
