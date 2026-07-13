@@ -219,11 +219,24 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
       return;
     }
     if (dest.kind === "scene" && dest.nodeId && nodes[dest.nodeId]) {
+      // If the destination pins a specific clip AND we aren't already ending,
+      // remember origin so we can return after the branch clip ends.
+      if (dest.clipId && !nodes[dest.nodeId].isEnding && node) {
+        const originClipId = activeClipId ?? nodeClips(node)[0]?.id;
+        setBranchReturn({
+          nodeId: node.id,
+          clipId: originClipId,
+          branchNodeId: dest.nodeId,
+          branchClipId: dest.clipId,
+        });
+        setBranchClipEnded(false);
+      }
       setCurrentId(dest.nodeId);
       setActiveClipId(dest.clipId);
       if (nodes[dest.nodeId].isEnding) setEnded(true);
       return;
     }
+
     if (dest.kind === "continue") {
       if (q?.id) setAnsweredIds((s) => new Set(s).add(q.id!));
       setForcedQId(undefined);
