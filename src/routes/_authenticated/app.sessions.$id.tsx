@@ -685,6 +685,21 @@ function formatMmSs(total: number): string {
   return `${m}:${r.toString().padStart(2, "0")}`;
 }
 
+function BranchReturnOverlay({ countdown, onContinue }: { countdown: number; onContinue: () => void }) {
+  return (
+    <div className="absolute inset-x-0 bottom-0 z-40 flex items-center justify-center p-6 pointer-events-none">
+      <div className="pointer-events-auto flex items-center gap-3 rounded-full bg-black/80 border border-white/20 px-4 py-2 backdrop-blur-md shadow-xl text-white">
+        <span className="text-sm">Volviendo a la escena{countdown > 0 ? ` en ${countdown}s` : "..."}</span>
+        <Button size="sm" onClick={onContinue} className="gap-1">
+          <ArrowRight className="h-3 w-3" /> Continuar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+
+
 
 function FinalReport({ sessionId, sess, sim }: { sessionId: string; sess: any; sim: any }) {
   const gen = useServerFn(generateReport);
