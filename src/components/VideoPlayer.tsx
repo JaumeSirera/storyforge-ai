@@ -152,16 +152,7 @@ function MediaWithDialogue({
   );
 }
 
-        }}
-        onEnded={() => {
-          audioRef.current?.pause();
-          cbsRef.current.onEnded?.();
-        }}
-      />
-      {dialogueUrl && <audio ref={audioRef} src={dialogueUrl} preload="auto" />}
-    </>
-  );
-}
+
 
 
 function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, fill }: SingleVideoProps) {
