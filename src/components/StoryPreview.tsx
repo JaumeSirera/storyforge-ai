@@ -249,8 +249,10 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
           branchClipId: dest.clipId,
           originTime: currentTimeRef.current,
         });
-
         setBranchClipEnded(false);
+        // Mark this question as answered so it doesn't fire again when we
+        // return to the origin clip and resume playback.
+        if (q?.id) setAnsweredIds((s) => new Set(s).add(q.id!));
       }
       setCurrentId(dest.nodeId);
       setActiveClipId(dest.clipId);
