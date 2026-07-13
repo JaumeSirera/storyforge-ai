@@ -378,6 +378,28 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
               (activeClipId ?? nodeClips(node)[0]?.id) === branchReturn.branchClipId
             ) {
               setBranchClipEnded(true);
+              return;
+            }
+            // Auto-advance to the next scene (by chronological order) when the
+            // current scene's video ends and there is no pending question and
+            // we are not inside a branch return flow.
+            if (ended || node?.isEnding) return;
+            const remainingQs = nodeQuestions(node).filter(
+              (qq) => !(qq.id && answeredIds.has(qq.id))
+            );
+            if (remainingQs.length > 0) return;
+            const currentOrder = sceneOrder.get(node.id);
+            if (currentOrder === undefined) return;
+            let nextId: string | undefined;
+            for (const [id, ord] of sceneOrder.entries()) {
+              if (ord === currentOrder + 1) { nextId = id; break; }
+            }
+            if (nextId && nodes[nextId]) {
+              setCurrentId(nextId);
+              setActiveClipId(undefined);
+              setResumeAt(undefined);
+              currentTimeRef.current = 0;
+              if (nodes[nextId].isEnding) setEnded(true);
             }
           }}
           fill
