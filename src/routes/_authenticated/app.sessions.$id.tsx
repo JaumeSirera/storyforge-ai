@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getSession, submitAnswer, generateReport } from "@/lib/sessions.functions";
+import { getSession, submitAnswer, generateReport, advanceSession } from "@/lib/sessions.functions";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { nodeClips } from "@/lib/story-types";
 
