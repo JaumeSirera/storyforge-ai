@@ -247,6 +247,7 @@ function Player({
         className="fixed inset-0 z-40 bg-black text-white overflow-hidden"
       >
         <ScenePlayback
+          key={`${node.id}:${clipJumpNonce}`}
           immersive
           node={node}
           submitting={submitting}
@@ -256,6 +257,7 @@ function Player({
           nextNodes={nextNodes}
           answeredIds={sceneAnsweredIds}
           forcedQId={forcedQId}
+          initialClipId={pendingClipId}
         />
 
         {/* Top bar overlay */}
