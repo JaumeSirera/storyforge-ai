@@ -19,7 +19,8 @@ import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authent
 import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authenticated/app.billing'
 import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app.admin'
 import { Route as AuthenticatedAppSimulationsIndexRouteImport } from './routes/_authenticated/app.simulations.index'
-import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe/webhook'
+import { Route as ApiPublicRedsysNotificationRouteImport } from './routes/api/public/redsys/notification'
+import { Route as ApiPublicRedsysChargeRecurringRouteImport } from './routes/api/public/redsys/charge-recurring'
 import { Route as AuthenticatedAppSessionsIdRouteImport } from './routes/_authenticated/app.sessions.$id'
 import { Route as AuthenticatedAppAdminUsersRouteImport } from './routes/_authenticated/app.admin.users'
 import { Route as AuthenticatedAppAdminSimulationsRouteImport } from './routes/_authenticated/app.admin.simulations'
@@ -80,11 +81,18 @@ const AuthenticatedAppSimulationsIndexRoute =
     path: '/app/simulations/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
-  id: '/api/public/stripe/webhook',
-  path: '/api/public/stripe/webhook',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const ApiPublicRedsysNotificationRoute =
+  ApiPublicRedsysNotificationRouteImport.update({
+    id: '/api/public/redsys/notification',
+    path: '/api/public/redsys/notification',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicRedsysChargeRecurringRoute =
+  ApiPublicRedsysChargeRecurringRouteImport.update({
+    id: '/api/public/redsys/charge-recurring',
+    path: '/api/public/redsys/charge-recurring',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAppSessionsIdRoute =
   AuthenticatedAppSessionsIdRouteImport.update({
     id: '/app/sessions/$id',
@@ -141,7 +149,8 @@ export interface FileRoutesByFullPath {
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
-  '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
+  '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
+  '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
   '/app/simulations/': typeof AuthenticatedAppSimulationsIndexRoute
   '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
@@ -160,7 +169,8 @@ export interface FileRoutesByTo {
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
-  '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
+  '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
+  '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
   '/app/simulations': typeof AuthenticatedAppSimulationsIndexRoute
   '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
@@ -181,7 +191,8 @@ export interface FileRoutesById {
   '/_authenticated/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/_authenticated/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
   '/_authenticated/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
-  '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
+  '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
+  '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
   '/_authenticated/app/simulations/': typeof AuthenticatedAppSimulationsIndexRoute
   '/_authenticated/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/_authenticated/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
@@ -202,7 +213,8 @@ export interface FileRouteTypes {
     | '/app/admin/simulations'
     | '/app/admin/users'
     | '/app/sessions/$id'
-    | '/api/public/stripe/webhook'
+    | '/api/public/redsys/charge-recurring'
+    | '/api/public/redsys/notification'
     | '/app/simulations/'
     | '/app/simulations/$id/edit'
     | '/app/simulations/$id/review'
@@ -221,7 +233,8 @@ export interface FileRouteTypes {
     | '/app/admin/simulations'
     | '/app/admin/users'
     | '/app/sessions/$id'
-    | '/api/public/stripe/webhook'
+    | '/api/public/redsys/charge-recurring'
+    | '/api/public/redsys/notification'
     | '/app/simulations'
     | '/app/simulations/$id/edit'
     | '/app/simulations/$id/review'
@@ -241,7 +254,8 @@ export interface FileRouteTypes {
     | '/_authenticated/app/admin/simulations'
     | '/_authenticated/app/admin/users'
     | '/_authenticated/app/sessions/$id'
-    | '/api/public/stripe/webhook'
+    | '/api/public/redsys/charge-recurring'
+    | '/api/public/redsys/notification'
     | '/_authenticated/app/simulations/'
     | '/_authenticated/app/simulations/$id/edit'
     | '/_authenticated/app/simulations/$id/review'
@@ -253,7 +267,8 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
+  ApiPublicRedsysChargeRecurringRoute: typeof ApiPublicRedsysChargeRecurringRoute
+  ApiPublicRedsysNotificationRoute: typeof ApiPublicRedsysNotificationRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -328,11 +343,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppSimulationsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/stripe/webhook': {
-      id: '/api/public/stripe/webhook'
-      path: '/api/public/stripe/webhook'
-      fullPath: '/api/public/stripe/webhook'
-      preLoaderRoute: typeof ApiPublicStripeWebhookRouteImport
+    '/api/public/redsys/notification': {
+      id: '/api/public/redsys/notification'
+      path: '/api/public/redsys/notification'
+      fullPath: '/api/public/redsys/notification'
+      preLoaderRoute: typeof ApiPublicRedsysNotificationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/redsys/charge-recurring': {
+      id: '/api/public/redsys/charge-recurring'
+      path: '/api/public/redsys/charge-recurring'
+      fullPath: '/api/public/redsys/charge-recurring'
+      preLoaderRoute: typeof ApiPublicRedsysChargeRecurringRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/sessions/$id': {
@@ -441,18 +463,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
+  ApiPublicRedsysChargeRecurringRoute: ApiPublicRedsysChargeRecurringRoute,
+  ApiPublicRedsysNotificationRoute: ApiPublicRedsysNotificationRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
