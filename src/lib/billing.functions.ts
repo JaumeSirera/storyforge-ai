@@ -20,8 +20,9 @@ export interface BillingSummary {
 export const getMyBilling = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<BillingSummary> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [{ data: pricing }, { data: billing }] = await Promise.all([
-      context.supabase
+      supabaseAdmin
         .from("pricing_config")
         .select("subscription_included_cents, currency")
         .eq("id", true)
@@ -106,9 +107,10 @@ export const getMyPaymentReceipt = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!pay) throw new Error("Pago no encontrado");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [{ data: profile }, { data: pricing }] = await Promise.all([
       context.supabase.from("profiles").select("full_name, email").eq("id", context.userId).maybeSingle(),
-      context.supabase.from("pricing_config").select("vat_pct").eq("id", true).maybeSingle(),
+      supabaseAdmin.from("pricing_config").select("vat_pct").eq("id", true).maybeSingle(),
     ]);
     return {
       payment: pay,
