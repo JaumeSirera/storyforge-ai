@@ -268,13 +268,18 @@ function YouTubePlayer({
         playerVars: { autoplay: 1, playsinline: 1, rel: 0 },
         events: {
           onReady: (e: any) => {
-            try { e.target.playVideo(); } catch {}
+            try {
+              if (typeof startAt === "number" && startAt > 0) {
+                e.target.seekTo(startAt, true);
+              }
+              e.target.playVideo();
+            } catch {}
             interval = setInterval(() => {
-              const tgt = cbsRef.current.pauseAtSec;
-              if (!tgt || firedRef.current) return;
               try {
                 const t = player.getCurrentTime();
-                if (typeof t === "number" && t >= tgt) {
+                if (typeof t === "number") cbsRef.current.onTimeUpdate?.(t);
+                const tgt = cbsRef.current.pauseAtSec;
+                if (tgt && !firedRef.current && typeof t === "number" && t >= tgt) {
                   firedRef.current = true;
                   player.pauseVideo();
                   cbsRef.current.onPauseAtTime?.();
@@ -282,6 +287,7 @@ function YouTubePlayer({
               } catch {}
             }, 250);
           },
+
           onStateChange: (e: any) => {
             // 0 = ended
             if (e.data === 0) cbsRef.current.onEnded?.();
