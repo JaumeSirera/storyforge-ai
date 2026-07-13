@@ -171,23 +171,12 @@ function Player({
   // Target clip id when a choice jumps to a specific clip (may be same scene).
   const [pendingClipId, setPendingClipId] = useState<string | undefined>(undefined);
   const [clipJumpNonce, setClipJumpNonce] = useState(0);
-  // Interlude playback: play a clip of the current scene, then commit the deferred transition.
-  const [interlude, setInterlude] = useState<
-    | null
-    | {
-        clipId: string;
-        nextNodeId: string | null;
-        nextClipId: string | null;
-        completed: boolean;
-      }
-  >(null);
 
   // Reset scene-local state whenever the active scene changes.
   useEffect(() => {
     setSceneAnsweredIds(new Set());
     setForcedQId(undefined);
     setPendingClipId(undefined);
-    setInterlude(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node.id]);
 
@@ -204,31 +193,10 @@ function Player({
       const forced = (r as any).forcedQuestionId as string | null | undefined;
       const nextClipId = (r as any).nextClipId as string | null | undefined;
       const nextNodeId = (r as any).nextNodeId as string | null | undefined;
-      const interludeClipId = (r as any).interludeClipId as string | null | undefined;
-      const pendingNextNodeId = (r as any).pendingNextNodeId as string | null | undefined;
-      const pendingNextClipId = (r as any).pendingNextClipId as string | null | undefined;
-      const pendingCompleted = (r as any).pendingCompleted === true;
 
-      if (interludeClipId && pendingNextNodeId !== undefined) {
-        // Play the interlude clip in the current scene, then commit the transition.
-        setInterlude({
-          clipId: interludeClipId,
-          nextNodeId: pendingNextNodeId ?? null,
-          nextClipId: pendingNextClipId ?? null,
-          completed: pendingCompleted,
-        });
-        setPendingClipId(interludeClipId);
-        setClipJumpNonce((n) => n + 1);
-        setSceneAnsweredIds(new Set());
-        setForcedQId(undefined);
-        setTimeout(() => {
-          setSelected(null);
-          setFeedback(null);
-        }, 1200);
-      } else if (stay) {
+      if (stay) {
         if (answeredQId) setSceneAnsweredIds((s) => new Set(s).add(answeredQId));
         setForcedQId(forced ?? undefined);
-        // Short feedback flash, then keep the same scene.
         setTimeout(() => {
           setSelected(null);
           setFeedback(null);
@@ -259,22 +227,6 @@ function Player({
     }
   }
 
-  async function commitInterlude() {
-    if (!interlude) return;
-    try {
-      await advance({
-        data: {
-          sessionId,
-          nextNodeId: interlude.nextNodeId,
-          completed: interlude.completed,
-        },
-      });
-      setInterlude(null);
-      qc.invalidateQueries({ queryKey: ["session", sessionId] });
-    } catch (e: any) {
-      toast.error(e?.message ?? "No se pudo continuar");
-    }
-  }
 
   const progress = totalNodes > 0 ? Math.min(100, Math.round((answered / Math.max(1, totalNodes - 1)) * 100)) : 0;
 
