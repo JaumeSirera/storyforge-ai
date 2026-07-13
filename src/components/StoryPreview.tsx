@@ -129,8 +129,10 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
   // Auto-advance for "goto" prompts as soon as they become ready.
   useEffect(() => {
     if (!node || node.isEnding || ended) return;
+    if (interlude) return;
     if (!q || (q.kind ?? "question") !== "goto") return;
     if (!questionReady) return;
+
     const c = q.choices[0];
     if (!c) return;
     const key = `${node.id}:${q.id ?? ""}:${c.id}`;
