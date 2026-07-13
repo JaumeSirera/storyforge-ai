@@ -20,8 +20,9 @@ export interface BillingSummary {
 export const getMyBilling = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<BillingSummary> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [{ data: pricing }, { data: billing }] = await Promise.all([
-      context.supabase
+      supabaseAdmin
         .from("pricing_config")
         .select("subscription_included_cents, currency")
         .eq("id", true)
