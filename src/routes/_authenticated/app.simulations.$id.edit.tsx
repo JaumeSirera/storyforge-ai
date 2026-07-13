@@ -1217,30 +1217,6 @@ function EditSimulation() {
                                       </div>
                                     );
                                   })()}
-                                  {(() => {
-                                    const localClips = nodeClips(n);
-                                    if (localClips.length < 2) return null;
-                                    return (
-                                      <div className="space-y-1">
-                                        <Label className="text-xs">Reproducir antes un clip de esta escena (opcional)</Label>
-                                        <Select
-                                          value={c.interludeClipId ?? "__none__"}
-                                          onValueChange={(v) => updateChoice(nIdx, qIdx, cIdx, { interludeClipId: v === "__none__" ? undefined : v })}
-                                        >
-                                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="__none__">Ninguno (ir directo al destino)</SelectItem>
-                                            {localClips.map((cl, ci) => (
-                                              <SelectItem key={cl.id} value={cl.id}>{cl.label || `Clip ${ci + 1}`}</SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                        <p className="text-[11px] text-muted-foreground">
-                                          Se reproducirá ese clip; al terminarlo (o al pulsar «Continuar») aplicará el destino elegido arriba.
-                                        </p>
-                                      </div>
-                                    );
-                                  })()}
                                   <Textarea
                                     rows={2}
                                     placeholder="Feedback al usuario tras elegir esta opción"
