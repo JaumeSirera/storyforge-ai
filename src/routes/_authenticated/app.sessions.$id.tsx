@@ -622,6 +622,7 @@ function ScenePlayback({
         onPauseAtTime={() => setQuestionReady(true)}
         onEnded={() => {
           if (trig.mode === "end") setQuestionReady(true);
+          if (branchClipId && activeClipId === branchClipId) onBranchClipEnded?.();
         }}
       />
       <VideoPrefetch nodes={nextNodes} />
