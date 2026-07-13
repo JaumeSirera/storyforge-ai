@@ -172,14 +172,53 @@ function Player({
   // Target clip id when a choice jumps to a specific clip (may be same scene).
   const [pendingClipId, setPendingClipId] = useState<string | undefined>(undefined);
   const [clipJumpNonce, setClipJumpNonce] = useState(0);
+  // When set, we branched to a clip and must return to the calling scene when it ends.
+  const [branchReturn, setBranchReturn] = useState<{
+    returnNodeId: string;
+    branchClipId: string;
+  } | null>(null);
+  const [branchClipEnded, setBranchClipEnded] = useState(false);
+  const [branchCountdown, setBranchCountdown] = useState(0);
 
   // Reset scene-local state whenever the active scene changes.
   useEffect(() => {
     setSceneAnsweredIds(new Set());
     setForcedQId(undefined);
     setPendingClipId(undefined);
+    setBranchClipEnded(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node.id]);
+
+  // Countdown + auto-return when the branched clip ends.
+  useEffect(() => {
+    if (!branchReturn || !branchClipEnded) return;
+    setBranchCountdown(4);
+    const iv = window.setInterval(() => {
+      setBranchCountdown((n) => (n > 0 ? n - 1 : 0));
+    }, 1000);
+    const to = window.setTimeout(() => {
+      void resolveBranchReturn();
+    }, 4000);
+    return () => {
+      window.clearInterval(iv);
+      window.clearTimeout(to);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchReturn?.returnNodeId, branchClipEnded]);
+
+  async function resolveBranchReturn() {
+    if (!branchReturn) return;
+    const target = branchReturn.returnNodeId;
+    setBranchReturn(null);
+    setBranchClipEnded(false);
+    setPendingClipId(undefined);
+    try {
+      await returnFn({ data: { sessionId, nodeId: target } });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error");
+    }
+    await qc.invalidateQueries({ queryKey: ["session", sessionId] });
+  }
 
   async function pick(choiceId: string, opts?: { commentText?: string }) {
     setSelected(choiceId);
@@ -203,17 +242,26 @@ function Player({
           setFeedback(null);
         }, 1200);
       } else if (nextNodeId && nextNodeId === node.id) {
-        // Same scene, jump to a specific clip.
+        // Same scene, jump to a specific clip. Remember origin to return afterwards.
         setPendingClipId(nextClipId ?? undefined);
         setClipJumpNonce((n) => n + 1);
         setSceneAnsweredIds(new Set());
         setForcedQId(undefined);
+        if (nextClipId) {
+          setBranchReturn({ returnNodeId: node.id, branchClipId: nextClipId });
+          setBranchClipEnded(false);
+        }
         setTimeout(() => {
           setSelected(null);
           setFeedback(null);
         }, 1200);
       } else {
         setPendingClipId(nextClipId ?? undefined);
+        if (nextClipId && nextNodeId) {
+          // Branched to a clip in another scene: remember the calling scene to return to.
+          setBranchReturn({ returnNodeId: node.id, branchClipId: nextClipId });
+          setBranchClipEnded(false);
+        }
         setTimeout(() => {
           qc.invalidateQueries({ queryKey: ["session", sessionId] });
           setSelected(null);
@@ -227,6 +275,7 @@ function Player({
       setSubmitting(false);
     }
   }
+
 
 
   const progress = totalNodes > 0 ? Math.min(100, Math.round((answered / Math.max(1, totalNodes - 1)) * 100)) : 0;
