@@ -42,20 +42,23 @@ export function resolveUserTextModel(userKeys: UserApiKeys, requestedId?: AiMode
 
   const canOpenAI = !!userKeys.openaiKey;
   const canGemini = !!userKeys.geminiKey;
+  const canLovable = !!userKeys.lovableKey;
 
-  let provider: "openai" | "gemini";
+  let provider: "openai" | "gemini" | "lovable";
   if (requested) {
-    // Respeta el modelo pedido si el usuario tiene su clave; si no, intenta el otro.
     if (requested.provider === "openai" && canOpenAI) provider = "openai";
     else if (requested.provider === "gemini" && canGemini) provider = "gemini";
     else if (canOpenAI) provider = "openai";
     else if (canGemini) provider = "gemini";
+    else if (canLovable) provider = "lovable";
     else throw missingKeysError();
   } else {
     if (userKeys.textProvider === "openai" && canOpenAI) provider = "openai";
     else if (userKeys.textProvider === "gemini" && canGemini) provider = "gemini";
+    else if (userKeys.textProvider === "lovable" && canLovable) provider = "lovable";
     else if (canOpenAI) provider = "openai";
     else if (canGemini) provider = "gemini";
+    else if (canLovable) provider = "lovable";
     else throw missingKeysError();
   }
 
@@ -66,9 +69,16 @@ export function resolveUserTextModel(userKeys: UserApiKeys, requestedId?: AiMode
     return { model: p(nativeId), provider, nativeId };
   }
 
-  const p = createGeminiProvider(userKeys.geminiKey!);
-  const nativeId =
-    requested && requested.provider === "gemini" ? requested.nativeId : "gemini-2.5-flash";
+  if (provider === "gemini") {
+    const p = createGeminiProvider(userKeys.geminiKey!);
+    const nativeId =
+      requested && requested.provider === "gemini" ? requested.nativeId : "gemini-2.5-flash";
+    return { model: p(nativeId), provider, nativeId };
+  }
+
+  // Lovable AI Gateway (platform pays via LOVABLE_API_KEY)
+  const p = createLovableAiGatewayProvider(userKeys.lovableKey!);
+  const nativeId = "google/gemini-2.5-flash";
   return { model: p(nativeId), provider, nativeId };
 }
 
