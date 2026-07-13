@@ -621,6 +621,7 @@ function ScenePlayback({
         pauseAtSec={pauseAtSec}
         onPauseAtTime={() => setQuestionReady(true)}
         onEnded={() => {
+          if (interludeActive) { fireInterludeContinue(); return; }
           if (trig.mode === "end") setQuestionReady(true);
         }}
       />
