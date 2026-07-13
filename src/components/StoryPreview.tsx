@@ -57,8 +57,19 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
   const [commentText, setCommentText] = useState("");
   const [answeredIds, setAnsweredIds] = useState<Set<string>>(new Set());
   const [forcedQId, setForcedQId] = useState<string | undefined>(undefined);
-  
+  // Branch return: when a choice jumps to a specific clip, remember the origin
+  // so we can return once the branched clip finishes.
+  const [branchReturn, setBranchReturn] = useState<{
+    nodeId: string;
+    clipId?: string;
+    branchNodeId: string;
+    branchClipId: string;
+  } | null>(null);
+  const [branchClipEnded, setBranchClipEnded] = useState(false);
+  const [branchCountdown, setBranchCountdown] = useState(0);
+
   const autoGotoRef = useRef<string | null>(null);
+
 
 
 
