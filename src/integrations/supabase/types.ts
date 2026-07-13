@@ -104,6 +104,60 @@ export type Database = {
         }
         Relationships: []
       }
+      redsys_payments: {
+        Row: {
+          amount_cents: number
+          auth_code: string | null
+          card_brand: string | null
+          card_expiry: string | null
+          card_token: string | null
+          created_at: string
+          currency: string
+          id: string
+          kind: string
+          order_code: string
+          raw_response: Json | null
+          response_code: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          auth_code?: string | null
+          card_brand?: string | null
+          card_expiry?: string | null
+          card_token?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          kind: string
+          order_code: string
+          raw_response?: Json | null
+          response_code?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          auth_code?: string | null
+          card_brand?: string | null
+          card_expiry?: string | null
+          card_token?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          kind?: string
+          order_code?: string
+          raw_response?: Json | null
+          response_code?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sessions: {
         Row: {
           achievements: Json
@@ -416,8 +470,12 @@ export type Database = {
           current_period_start: string | null
           extra_pending_cents: number
           included_used_cents: number
-          stripe_customer_id: string | null
-          stripe_subscription_id: string | null
+          next_charge_at: string | null
+          redsys_card_brand: string | null
+          redsys_card_expiry: string | null
+          redsys_card_token: string | null
+          redsys_original_auth_code: string | null
+          redsys_original_order: string | null
           subscription_status: string | null
           updated_at: string
           user_id: string
@@ -428,8 +486,12 @@ export type Database = {
           current_period_start?: string | null
           extra_pending_cents?: number
           included_used_cents?: number
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
+          next_charge_at?: string | null
+          redsys_card_brand?: string | null
+          redsys_card_expiry?: string | null
+          redsys_card_token?: string | null
+          redsys_original_auth_code?: string | null
+          redsys_original_order?: string | null
           subscription_status?: string | null
           updated_at?: string
           user_id: string
@@ -440,8 +502,12 @@ export type Database = {
           current_period_start?: string | null
           extra_pending_cents?: number
           included_used_cents?: number
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
+          next_charge_at?: string | null
+          redsys_card_brand?: string | null
+          redsys_card_expiry?: string | null
+          redsys_card_token?: string | null
+          redsys_original_auth_code?: string | null
+          redsys_original_order?: string | null
           subscription_status?: string | null
           updated_at?: string
           user_id?: string
