@@ -339,7 +339,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
                 </div>
               )}
 
-              {!ended && !node.isEnding && q && questionReady && (q.kind ?? "question") === "comment" && q.choices[0] && (
+              {!interlude && !ended && !node.isEnding && q && questionReady && (q.kind ?? "question") === "comment" && q.choices[0] && (
                 <div className="space-y-2">
                   <div className="font-semibold text-base text-white drop-shadow">{q.text}</div>
                   <Textarea
