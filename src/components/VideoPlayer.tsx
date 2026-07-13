@@ -405,6 +405,8 @@ export function VideoPlayer({
   pauseAtSec,
   onPauseAtTime,
   onEnded,
+  onTimeUpdate,
+  startAt,
   fill,
 }: {
   video?: VideoSource;
@@ -415,6 +417,9 @@ export function VideoPlayer({
   pauseAtSec?: number;
   onPauseAtTime?: () => void;
   onEnded?: () => void;
+  onTimeUpdate?: (t: number) => void;
+  /** Seek the active clip to this time (seconds) once when it mounts. */
+  startAt?: number;
   /** Make the player fill its (positioned) container instead of using aspect-video. */
   fill?: boolean;
 }) {
@@ -440,6 +445,8 @@ export function VideoPlayer({
         pauseAtSec={pauseAtSec}
         onPauseAtTime={onPauseAtTime}
         onEnded={onEnded}
+        onTimeUpdate={onTimeUpdate}
+        startAt={startAt}
         fill={fill}
       />
     );
@@ -454,6 +461,8 @@ export function VideoPlayer({
           pauseAtSec={pauseAtSec}
           onPauseAtTime={onPauseAtTime}
           onEnded={onEnded}
+          onTimeUpdate={onTimeUpdate}
+          startAt={startAt}
           fill
         />
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex flex-wrap gap-1.5 pointer-events-auto">
@@ -500,7 +509,10 @@ export function VideoPlayer({
         pauseAtSec={pauseAtSec}
         onPauseAtTime={onPauseAtTime}
         onEnded={onEnded}
+        onTimeUpdate={onTimeUpdate}
+        startAt={startAt}
       />
     </div>
   );
 }
+
