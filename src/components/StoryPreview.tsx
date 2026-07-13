@@ -103,7 +103,10 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
 
   const resolveBranchReturn = () => {
     if (!branchReturn) return;
-    setResumeAt(branchReturn.originTime > 0 ? branchReturn.originTime : undefined);
+    // Resume 1s AFTER the branching point so the same question does not
+    // re-trigger (its time-based trigger is at originTime).
+    const resume = branchReturn.originTime > 0 ? branchReturn.originTime + 1 : undefined;
+    setResumeAt(resume);
     setCurrentId(branchReturn.nodeId);
     setActiveClipId(branchReturn.clipId);
     setBranchReturn(null);
