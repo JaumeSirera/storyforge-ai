@@ -1027,7 +1027,7 @@ function EditSimulation() {
                                 </SelectContent>
                               </Select>
                               {q.choices[0]?.next && (() => {
-                                const target = state.story.nodes[q.choices[0].next!];
+                                const target = state.nodes.find((nn) => nn.id === q.choices[0].next);
                                 const clips = target ? nodeClips(target) : [];
                                 if (clips.length <= 1) return null;
                                 return (
