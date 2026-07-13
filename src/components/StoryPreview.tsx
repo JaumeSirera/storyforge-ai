@@ -57,8 +57,19 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
   const [commentText, setCommentText] = useState("");
   const [answeredIds, setAnsweredIds] = useState<Set<string>>(new Set());
   const [forcedQId, setForcedQId] = useState<string | undefined>(undefined);
-  
+  // Branch return: when a choice jumps to a specific clip, remember the origin
+  // so we can return once the branched clip finishes.
+  const [branchReturn, setBranchReturn] = useState<{
+    nodeId: string;
+    clipId?: string;
+    branchNodeId: string;
+    branchClipId: string;
+  } | null>(null);
+  const [branchClipEnded, setBranchClipEnded] = useState(false);
+  const [branchCountdown, setBranchCountdown] = useState(0);
+
   const autoGotoRef = useRef<string | null>(null);
+
 
 
 
@@ -78,9 +89,40 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     setCommentText("");
     setAnsweredIds(new Set());
     setForcedQId(undefined);
-    
+    setBranchReturn(null);
+    setBranchClipEnded(false);
+    setBranchCountdown(0);
+
     autoGotoRef.current = null;
   };
+
+  const resolveBranchReturn = () => {
+    if (!branchReturn) return;
+    setCurrentId(branchReturn.nodeId);
+    setActiveClipId(branchReturn.clipId);
+    setBranchReturn(null);
+    setBranchClipEnded(false);
+    setBranchCountdown(0);
+    setLastFeedback(null);
+  };
+
+  // Countdown + auto-return when the branched clip finishes.
+  useEffect(() => {
+    if (!branchReturn || !branchClipEnded) return;
+    setBranchCountdown(4);
+    const iv = window.setInterval(() => {
+      setBranchCountdown((n) => (n > 0 ? n - 1 : 0));
+    }, 1000);
+    const to = window.setTimeout(() => {
+      resolveBranchReturn();
+    }, 4000);
+    return () => {
+      window.clearInterval(iv);
+      window.clearTimeout(to);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchReturn?.branchNodeId, branchReturn?.branchClipId, branchClipEnded]);
+
 
 
   // Local activeQuestion honouring answered/forced state.
@@ -177,11 +219,24 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
       return;
     }
     if (dest.kind === "scene" && dest.nodeId && nodes[dest.nodeId]) {
+      // If the destination pins a specific clip AND we aren't already ending,
+      // remember origin so we can return after the branch clip ends.
+      if (dest.clipId && !nodes[dest.nodeId].isEnding && node) {
+        const originClipId = activeClipId ?? nodeClips(node)[0]?.id;
+        setBranchReturn({
+          nodeId: node.id,
+          clipId: originClipId,
+          branchNodeId: dest.nodeId,
+          branchClipId: dest.clipId,
+        });
+        setBranchClipEnded(false);
+      }
       setCurrentId(dest.nodeId);
       setActiveClipId(dest.clipId);
       if (nodes[dest.nodeId].isEnding) setEnded(true);
       return;
     }
+
     if (dest.kind === "continue") {
       if (q?.id) setAnsweredIds((s) => new Set(s).add(q.id!));
       setForcedQId(undefined);
@@ -282,9 +337,34 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
           onActiveClipChange={setActiveClipId}
           pauseAtSec={pauseAtSec}
           onPauseAtTime={() => setQuestionReady(true)}
-          onEnded={() => { if (trig.mode === "end") setQuestionReady(true); }}
+          onEnded={() => {
+            if (trig.mode === "end") setQuestionReady(true);
+            // If we branched to a specific clip, detect its natural end to
+            // trigger the "return" overlay + auto-return.
+            if (
+              branchReturn &&
+              node?.id === branchReturn.branchNodeId &&
+              (activeClipId ?? nodeClips(node)[0]?.id) === branchReturn.branchClipId
+            ) {
+              setBranchClipEnded(true);
+            }
+          }}
           fill
         />
+
+        {branchReturn && branchClipEnded && (
+          <div className="pointer-events-auto absolute inset-x-0 top-1/2 -translate-y-1/2 z-20 flex justify-center px-4">
+            <div className="flex items-center gap-3 rounded-full bg-black/80 backdrop-blur-md border border-white/20 px-4 py-2 text-white shadow-2xl">
+              <span className="text-sm">
+                Volviendo a la escena en <span className="font-bold">{branchCountdown}s</span>…
+              </span>
+              <Button size="sm" onClick={resolveBranchReturn} className="gap-1">
+                <ArrowRight className="h-3 w-3" /> Continuar
+              </Button>
+            </div>
+          </div>
+        )}
+
 
         {/* Bottom overlay: narrative + feedback + question/choices */}
         {(node.narrative || (!ended && !node.isEnding && q)) && (
