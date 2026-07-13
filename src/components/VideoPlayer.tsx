@@ -223,13 +223,14 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, onTimeUpdate, 
 
   /* ---------- YouTube ---------- */
   if (video.type === "youtube") {
-    return <YouTubePlayer video={video} cbsRef={cbsRef} firedRef={firedRef} fill={fill} />;
+    return <YouTubePlayer video={video} cbsRef={cbsRef} firedRef={firedRef} fill={fill} startAt={startAt} />;
   }
 
   /* ---------- Vimeo ---------- */
   if (video.type === "vimeo") {
-    return <VimeoPlayer video={video} cbsRef={cbsRef} firedRef={firedRef} fill={fill} />;
+    return <VimeoPlayer video={video} cbsRef={cbsRef} firedRef={firedRef} fill={fill} startAt={startAt} />;
   }
+
 
   return null;
 }
