@@ -171,12 +171,23 @@ function Player({
   // Target clip id when a choice jumps to a specific clip (may be same scene).
   const [pendingClipId, setPendingClipId] = useState<string | undefined>(undefined);
   const [clipJumpNonce, setClipJumpNonce] = useState(0);
+  // Interlude playback: play a clip of the current scene, then commit the deferred transition.
+  const [interlude, setInterlude] = useState<
+    | null
+    | {
+        clipId: string;
+        nextNodeId: string | null;
+        nextClipId: string | null;
+        completed: boolean;
+      }
+  >(null);
 
   // Reset scene-local state whenever the active scene changes.
   useEffect(() => {
     setSceneAnsweredIds(new Set());
     setForcedQId(undefined);
     setPendingClipId(undefined);
+    setInterlude(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node.id]);
 
