@@ -674,6 +674,7 @@ const EditorChoiceSchema = z.object({
   nextKind: z.enum(["end", "scene", "continue", "question"]).optional(),
   nextQuestionId: z.string().optional(),
   nextClipId: z.string().optional(),
+  interludeClipId: z.string().optional(),
 });
 
 const QuestionTriggerSchema = z.union([
