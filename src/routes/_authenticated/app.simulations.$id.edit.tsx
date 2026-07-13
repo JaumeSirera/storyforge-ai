@@ -1016,18 +1016,37 @@ function EditSimulation() {
                               <Label className="text-sm">Ir a escena</Label>
                               <Select
                                 value={q.choices[0]?.next ?? "__end__"}
-                                onValueChange={(v) => updateChoice(nIdx, qIdx, 0, { next: v === "__end__" ? null : v })}
+                                onValueChange={(v) => updateChoice(nIdx, qIdx, 0, { next: v === "__end__" ? null : v, nextClipId: undefined })}
                               >
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="__end__">FIN</SelectItem>
-                                  {orderedNodes.filter((nn) => nn.id !== n.id).map((nn) => (
-                                    <SelectItem key={nn.id} value={nn.id}>Escena {sceneOrder.get(nn.id) ?? "?"} — {nn.title}</SelectItem>
+                                  {orderedNodes.map((nn) => (
+                                    <SelectItem key={nn.id} value={nn.id}>Escena {sceneOrder.get(nn.id) ?? "?"} — {nn.title}{nn.id === n.id ? " (esta escena)" : ""}</SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
+                              {q.choices[0]?.next && (() => {
+                                const target = state.story.nodes[q.choices[0].next!];
+                                const clips = target ? nodeClips(target) : [];
+                                if (clips.length <= 1) return null;
+                                return (
+                                  <Select
+                                    value={q.choices[0].nextClipId ?? "__start__"}
+                                    onValueChange={(v) => updateChoice(nIdx, qIdx, 0, { nextClipId: v === "__start__" ? undefined : v })}
+                                  >
+                                    <SelectTrigger><SelectValue placeholder="Clip destino (opcional)" /></SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="__start__">Desde el primer clip</SelectItem>
+                                      {clips.map((cl, ci) => (
+                                        <SelectItem key={cl.id} value={cl.id}>{cl.label || `Clip ${ci + 1}`}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                );
+                              })()}
                               <p className="text-[11px] text-muted-foreground">
-                                Al llegar al momento indicado arriba, la simulación saltará automáticamente a esta escena sin pedir interacción.
+                                Al llegar al momento indicado arriba, la simulación saltará automáticamente a esa escena (y clip, si eliges uno) sin pedir interacción.
                               </p>
                             </div>
                           )}
