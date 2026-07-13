@@ -673,6 +673,7 @@ const EditorChoiceSchema = z.object({
   competencies: z.record(z.string(), z.number()).default({}),
   nextKind: z.enum(["end", "scene", "continue", "question"]).optional(),
   nextQuestionId: z.string().optional(),
+  nextClipId: z.string().optional(),
 });
 
 const QuestionTriggerSchema = z.union([
@@ -764,6 +765,17 @@ export const updateSimulationStory = createServerFn({ method: "POST" })
           const kind = ch.nextKind ?? (ch.next ? "scene" : "end");
           if (kind === "scene" && ch.next !== null && !ids.has(ch.next)) {
             throw new Error(`La opción "${ch.label}" apunta a un nodo inexistente: ${ch.next}`);
+          }
+          if (kind === "scene" && ch.nextClipId) {
+            const target = ch.next ? (data.story.nodes as Record<string, any>)[ch.next] : null;
+            const targetClipIds = new Set<string>();
+            if (target) {
+              for (const c of (target.clips ?? [])) if (c?.id) targetClipIds.add(c.id);
+              if (target.videoUrl && !targetClipIds.size) targetClipIds.add("default");
+            }
+            if (!targetClipIds.has(ch.nextClipId)) {
+              throw new Error(`La opción "${ch.label}" apunta a un clip inexistente en la escena destino.`);
+            }
           }
           if (kind === "question" && ch.nextQuestionId && !localQuestionIds.has(ch.nextQuestionId)) {
             throw new Error(`La opción "${ch.label}" apunta a una pregunta/comentario inexistente en la escena.`);
