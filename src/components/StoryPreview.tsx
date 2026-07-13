@@ -169,7 +169,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     }
     if (dest.kind === "scene" && dest.nodeId && nodes[dest.nodeId]) {
       setCurrentId(dest.nodeId);
-      setActiveClipId(undefined);
+      setActiveClipId(dest.clipId);
       if (nodes[dest.nodeId].isEnding) setEnded(true);
       return;
     }
