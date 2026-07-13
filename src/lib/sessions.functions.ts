@@ -193,8 +193,9 @@ export const advanceSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => AdvanceInput.parse(input))
   .handler(async ({ data, context }) => {
-    const patch: Record<string, any> = { current_node_id: data.nextNodeId };
-    if (data.completed) patch.completed_at = new Date().toISOString();
+    const patch = data.completed
+      ? { current_node_id: data.nextNodeId, completed_at: new Date().toISOString() }
+      : { current_node_id: data.nextNodeId };
     const { error } = await context.supabase
       .from("sessions")
       .update(patch)
