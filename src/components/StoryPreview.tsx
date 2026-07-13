@@ -57,7 +57,9 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
   const [commentText, setCommentText] = useState("");
   const [answeredIds, setAnsweredIds] = useState<Set<string>>(new Set());
   const [forcedQId, setForcedQId] = useState<string | undefined>(undefined);
+  const [interlude, setInterlude] = useState<null | { pending: Choice }>(null);
   const autoGotoRef = useRef<string | null>(null);
+
 
 
   const errors = useMemo(() => validateStory(story), [story]);
@@ -76,8 +78,10 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     setCommentText("");
     setAnsweredIds(new Set());
     setForcedQId(undefined);
+    setInterlude(null);
     autoGotoRef.current = null;
   };
+
 
   // Local activeQuestion honouring answered/forced state.
   const q: Question | undefined = useMemo(() => {
@@ -125,8 +129,10 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
   // Auto-advance for "goto" prompts as soon as they become ready.
   useEffect(() => {
     if (!node || node.isEnding || ended) return;
+    if (interlude) return;
     if (!q || (q.kind ?? "question") !== "goto") return;
     if (!questionReady) return;
+
     const c = q.choices[0];
     if (!c) return;
     const key = `${node.id}:${q.id ?? ""}:${c.id}`;
@@ -162,6 +168,20 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     });
     setLastFeedback({ text: c.feedback, points: c.points });
 
+    // Interlude: play a clip of the CURRENT scene before applying destination.
+    if (c.interludeClipId && node.videos?.some((v) => v.id === c.interludeClipId)) {
+      if (q.id) setAnsweredIds((s) => new Set(s).add(q.id!));
+      setForcedQId(undefined);
+      setActiveClipId(c.interludeClipId);
+      setQuestionReady(false);
+      setInterlude({ pending: c });
+      return;
+    }
+
+    applyDestination(c);
+  };
+
+  const applyDestination = (c: Choice) => {
     const dest = resolveChoiceDestination(c);
     if (dest.kind === "end") {
       setEnded(true);
@@ -174,19 +194,17 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
       return;
     }
     if (dest.kind === "continue") {
-      // Mark current question answered and resume playback in the same scene.
-      if (q.id) setAnsweredIds((s) => new Set(s).add(q.id!));
+      if (q?.id) setAnsweredIds((s) => new Set(s).add(q.id!));
       setForcedQId(undefined);
       setQuestionReady(false);
       return;
     }
     if (dest.kind === "question") {
-      if (q.id) setAnsweredIds((s) => new Set(s).add(q.id!));
+      if (q?.id) setAnsweredIds((s) => new Set(s).add(q.id!));
       setForcedQId(dest.questionId);
       setQuestionReady(true);
       return;
     }
-    // Fallback: legacy behaviour.
     if (c.next && nodes[c.next]) {
       setCurrentId(c.next);
       setActiveClipId(undefined);
@@ -195,6 +213,14 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
       setEnded(true);
     }
   };
+
+  const commitInterlude = () => {
+    if (!interlude) return;
+    const pending = interlude.pending;
+    setInterlude(null);
+    applyDestination(pending);
+  };
+
 
 
   const goBack = () => {
@@ -273,7 +299,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
           onActiveClipChange={setActiveClipId}
           pauseAtSec={pauseAtSec}
           onPauseAtTime={() => setQuestionReady(true)}
-          onEnded={() => { if (trig.mode === "end") setQuestionReady(true); }}
+          onEnded={() => { if (interlude) { commitInterlude(); return; } if (trig.mode === "end") setQuestionReady(true); }}
           fill
         />
 
@@ -289,7 +315,16 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
 
 
 
-              {!ended && !node.isEnding && q && questionReady && (q.kind ?? "question") === "question" && (
+              {interlude && (
+                <div className="flex justify-end">
+                  <Button size="sm" onClick={commitInterlude} className="gap-1">
+                    Continuar <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+
+              {!interlude && !ended && !node.isEnding && q && questionReady && (q.kind ?? "question") === "question" && (
+
                 <div className="space-y-2">
                   <div className="font-semibold text-base text-white drop-shadow">{q.text}</div>
                   <div className="grid gap-2">
@@ -306,7 +341,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
                 </div>
               )}
 
-              {!ended && !node.isEnding && q && questionReady && (q.kind ?? "question") === "comment" && q.choices[0] && (
+              {!interlude && !ended && !node.isEnding && q && questionReady && (q.kind ?? "question") === "comment" && q.choices[0] && (
                 <div className="space-y-2">
                   <div className="font-semibold text-base text-white drop-shadow">{q.text}</div>
                   <Textarea
@@ -328,7 +363,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
                 </div>
               )}
 
-              {!ended && !node.isEnding && q && (q.kind ?? "question") === "goto" && !questionReady && (
+              {!interlude && !ended && !node.isEnding && q && (q.kind ?? "question") === "goto" && !questionReady && (
                 <div className="text-xs text-white/80 italic drop-shadow">
                   <ArrowRight className="h-3 w-3 inline mr-1" /> Enlace automático a otra escena…
                 </div>
