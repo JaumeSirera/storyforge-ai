@@ -1029,7 +1029,7 @@ function EditSimulation() {
                               {q.choices[0]?.next && (() => {
                                 const target = state.nodes.find((nn) => nn.id === q.choices[0].next);
                                 const clips = target ? nodeClips(target) : [];
-                                if (clips.length <= 1) return null;
+                                if (clips.length === 0) return null;
                                 return (
                                   <Select
                                     value={q.choices[0].nextClipId ?? "__start__"}
@@ -1097,7 +1097,7 @@ function EditSimulation() {
                                   {q.choices[0].next && (() => {
                                     const target = state.nodes.find((nn) => nn.id === q.choices[0].next);
                                     const clips = target ? nodeClips(target) : [];
-                                    if (clips.length <= 1) return null;
+                                    if (clips.length === 0) return null;
                                     return (
                                       <Select
                                         value={q.choices[0].nextClipId ?? "__start__"}
@@ -1198,7 +1198,7 @@ function EditSimulation() {
                                   {c.next && (() => {
                                     const target = state.nodes.find((nn) => nn.id === c.next);
                                     const clips = target ? nodeClips(target) : [];
-                                    if (clips.length <= 1) return null;
+                                    if (clips.length === 0) return null;
                                     return (
                                       <div className="space-y-1">
                                         <Label className="text-xs">Clip destino en la escena elegida</Label>
