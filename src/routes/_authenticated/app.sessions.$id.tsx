@@ -395,7 +395,7 @@ function Player({
 }
 
 function ScenePlayback({
-  node, submitting, feedback, selected, onPick, nextNodes, immersive, answeredIds, forcedQId, initialClipId, interludeActive, onInterludeContinue,
+  node, submitting, feedback, selected, onPick, nextNodes, immersive, answeredIds, forcedQId, initialClipId,
 }: {
   node: any;
   submitting: boolean;
@@ -407,8 +407,6 @@ function ScenePlayback({
   answeredIds?: Set<string>;
   forcedQId?: string;
   initialClipId?: string;
-  interludeActive?: boolean;
-  onInterludeContinue?: () => void;
 }) {
   const clips = nodeClips(node);
   const [activeClipId, setActiveClipId] = useState<string>(() => {
