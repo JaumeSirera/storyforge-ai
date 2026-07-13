@@ -240,12 +240,15 @@ function YouTubePlayer({
   cbsRef,
   firedRef,
   fill,
+  startAt,
 }: {
   video: Extract<VideoSource, { type: "youtube" }>;
-  cbsRef: React.MutableRefObject<{ onPauseAtTime?: () => void; onEnded?: () => void; pauseAtSec?: number }>;
+  cbsRef: CbsRef;
   firedRef: React.MutableRefObject<boolean>;
   fill?: boolean;
+  startAt?: number;
 }) {
+
   const hostRef = useRef<HTMLDivElement | null>(null);
   const id = getYouTubeId(video.url);
 
