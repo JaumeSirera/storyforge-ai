@@ -8,7 +8,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export type UsageAction = "text" | "image" | "video" | "lipsync" | "tts";
-export type UsageProvider = "openai" | "gemini" | "replicate" | "elevenlabs";
+export type UsageProvider = "openai" | "gemini" | "replicate" | "elevenlabs" | "lovable";
 
 export interface RecordUsageInput {
   userId: string;
