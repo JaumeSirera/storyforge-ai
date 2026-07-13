@@ -235,7 +235,9 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
           clipId: originClipId,
           branchNodeId: dest.nodeId,
           branchClipId: dest.clipId,
+          originTime: currentTimeRef.current,
         });
+
         setBranchClipEnded(false);
       }
       setCurrentId(dest.nodeId);
