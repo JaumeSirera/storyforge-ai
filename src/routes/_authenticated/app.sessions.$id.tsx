@@ -167,11 +167,15 @@ function Player({
   // Same-scene state: questions already answered here + a forced next question.
   const [sceneAnsweredIds, setSceneAnsweredIds] = useState<Set<string>>(new Set());
   const [forcedQId, setForcedQId] = useState<string | undefined>(undefined);
+  // Target clip id when a choice jumps to a specific clip (may be same scene).
+  const [pendingClipId, setPendingClipId] = useState<string | undefined>(undefined);
+  const [clipJumpNonce, setClipJumpNonce] = useState(0);
 
   // Reset scene-local state whenever the active scene changes.
   useEffect(() => {
     setSceneAnsweredIds(new Set());
     setForcedQId(undefined);
+    setPendingClipId(undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node.id]);
 
@@ -186,6 +190,8 @@ function Player({
       const stay = (r as any).stayInScene === true;
       const answeredQId = (r as any).answeredQuestionId as string | null | undefined;
       const forced = (r as any).forcedQuestionId as string | null | undefined;
+      const nextClipId = (r as any).nextClipId as string | null | undefined;
+      const nextNodeId = (r as any).nextNodeId as string | null | undefined;
       if (stay) {
         if (answeredQId) setSceneAnsweredIds((s) => new Set(s).add(answeredQId));
         setForcedQId(forced ?? undefined);
@@ -194,7 +200,18 @@ function Player({
           setSelected(null);
           setFeedback(null);
         }, 1200);
+      } else if (nextNodeId && nextNodeId === node.id) {
+        // Same scene, jump to a specific clip.
+        setPendingClipId(nextClipId ?? undefined);
+        setClipJumpNonce((n) => n + 1);
+        setSceneAnsweredIds(new Set());
+        setForcedQId(undefined);
+        setTimeout(() => {
+          setSelected(null);
+          setFeedback(null);
+        }, 1200);
       } else {
+        setPendingClipId(nextClipId ?? undefined);
         setTimeout(() => {
           qc.invalidateQueries({ queryKey: ["session", sessionId] });
           setSelected(null);
@@ -230,6 +247,7 @@ function Player({
         className="fixed inset-0 z-40 bg-black text-white overflow-hidden"
       >
         <ScenePlayback
+          key={`${node.id}:${clipJumpNonce}`}
           immersive
           node={node}
           submitting={submitting}
@@ -239,6 +257,7 @@ function Player({
           nextNodes={nextNodes}
           answeredIds={sceneAnsweredIds}
           forcedQId={forcedQId}
+          initialClipId={pendingClipId}
         />
 
         {/* Top bar overlay */}
@@ -365,14 +384,14 @@ function Player({
 
       <Progress value={progress} className="h-1.5" />
 
-      <ScenePlayback node={node} submitting={submitting} feedback={feedback} selected={selected} onPick={pick} nextNodes={nextNodes} answeredIds={sceneAnsweredIds} forcedQId={forcedQId} />
+      <ScenePlayback key={`${node.id}:${clipJumpNonce}`} node={node} submitting={submitting} feedback={feedback} selected={selected} onPick={pick} nextNodes={nextNodes} answeredIds={sceneAnsweredIds} forcedQId={forcedQId} initialClipId={pendingClipId} />
     </div>
     </div>
   );
 }
 
 function ScenePlayback({
-  node, submitting, feedback, selected, onPick, nextNodes, immersive, answeredIds, forcedQId,
+  node, submitting, feedback, selected, onPick, nextNodes, immersive, answeredIds, forcedQId, initialClipId,
 }: {
   node: any;
   submitting: boolean;
@@ -383,9 +402,13 @@ function ScenePlayback({
   immersive?: boolean;
   answeredIds?: Set<string>;
   forcedQId?: string;
+  initialClipId?: string;
 }) {
   const clips = nodeClips(node);
-  const [activeClipId, setActiveClipId] = useState<string>(clips[0]?.id ?? "default");
+  const [activeClipId, setActiveClipId] = useState<string>(() => {
+    if (initialClipId && clips.some((c) => c.id === initialClipId)) return initialClipId;
+    return clips[0]?.id ?? "default";
+  });
   const [commentText, setCommentText] = useState("");
   // Reset active clip when the scene changes.
   useEffect(() => {

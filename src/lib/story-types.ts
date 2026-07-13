@@ -75,16 +75,19 @@ export interface Choice {
   nextKind?: ChoiceNextKind;
   /** Target question id within the same node when nextKind === "question". */
   nextQuestionId?: string;
+  /** Optional: when nextKind === "scene", start playback on this specific clip of the target scene. */
+  nextClipId?: string;
 }
 
 /** Resolves the effective destination of a choice, handling legacy shape. */
-export function resolveChoiceDestination(choice: Pick<Choice, "next" | "nextKind" | "nextQuestionId">): {
+export function resolveChoiceDestination(choice: Pick<Choice, "next" | "nextKind" | "nextQuestionId" | "nextClipId">): {
   kind: ChoiceNextKind;
   nodeId?: string;
   questionId?: string;
+  clipId?: string;
 } {
   const kind = choice.nextKind ?? (choice.next ? "scene" : "end");
-  if (kind === "scene") return { kind: "scene", nodeId: choice.next ?? undefined };
+  if (kind === "scene") return { kind: "scene", nodeId: choice.next ?? undefined, clipId: choice.nextClipId };
   if (kind === "question") return { kind: "question", questionId: choice.nextQuestionId };
   return { kind };
 }

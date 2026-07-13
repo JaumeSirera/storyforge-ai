@@ -28,7 +28,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StoryPreview } from "@/components/StoryPreview";
 import type { Story, StoryNode, Choice, EvaluationCriterion, VideoSource, VideoClip, Question, QuestionTrigger } from "@/lib/story-types";
-import { nodeQuestions } from "@/lib/story-types";
+import { nodeQuestions, nodeClips } from "@/lib/story-types";
 import { AiClipPanel } from "@/components/AiClipPanel";
 
 import { computeSceneOrder, sortNodesByOrder } from "@/lib/scene-order";
@@ -1016,18 +1016,37 @@ function EditSimulation() {
                               <Label className="text-sm">Ir a escena</Label>
                               <Select
                                 value={q.choices[0]?.next ?? "__end__"}
-                                onValueChange={(v) => updateChoice(nIdx, qIdx, 0, { next: v === "__end__" ? null : v })}
+                                onValueChange={(v) => updateChoice(nIdx, qIdx, 0, { next: v === "__end__" ? null : v, nextClipId: undefined })}
                               >
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="__end__">FIN</SelectItem>
-                                  {orderedNodes.filter((nn) => nn.id !== n.id).map((nn) => (
-                                    <SelectItem key={nn.id} value={nn.id}>Escena {sceneOrder.get(nn.id) ?? "?"} — {nn.title}</SelectItem>
+                                  {orderedNodes.map((nn) => (
+                                    <SelectItem key={nn.id} value={nn.id}>Escena {sceneOrder.get(nn.id) ?? "?"} — {nn.title}{nn.id === n.id ? " (esta escena)" : ""}</SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
+                              {q.choices[0]?.next && (() => {
+                                const target = state.nodes.find((nn) => nn.id === q.choices[0].next);
+                                const clips = target ? nodeClips(target) : [];
+                                if (clips.length <= 1) return null;
+                                return (
+                                  <Select
+                                    value={q.choices[0].nextClipId ?? "__start__"}
+                                    onValueChange={(v) => updateChoice(nIdx, qIdx, 0, { nextClipId: v === "__start__" ? undefined : v })}
+                                  >
+                                    <SelectTrigger><SelectValue placeholder="Clip destino (opcional)" /></SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="__start__">Desde el primer clip</SelectItem>
+                                      {clips.map((cl, ci) => (
+                                        <SelectItem key={cl.id} value={cl.id}>{cl.label || `Clip ${ci + 1}`}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                );
+                              })()}
                               <p className="text-[11px] text-muted-foreground">
-                                Al llegar al momento indicado arriba, la simulación saltará automáticamente a esta escena sin pedir interacción.
+                                Al llegar al momento indicado arriba, la simulación saltará automáticamente a esa escena (y clip, si eliges uno) sin pedir interacción.
                               </p>
                             </div>
                           )}
@@ -1063,17 +1082,38 @@ function EditSimulation() {
                                 </Select>
                               </div>
                               {(q.choices[0].nextKind ?? (q.choices[0].next ? "scene" : "end")) === "scene" && (
-                                <Select
-                                  value={q.choices[0].next ?? ""}
-                                  onValueChange={(v) => updateChoice(nIdx, qIdx, 0, { next: v, nextKind: "scene" })}
-                                >
-                                  <SelectTrigger><SelectValue placeholder="Elige escena destino" /></SelectTrigger>
-                                  <SelectContent>
-                                    {orderedNodes.filter((nn) => nn.id !== n.id).map((nn) => (
-                                      <SelectItem key={nn.id} value={nn.id}>Escena {sceneOrder.get(nn.id) ?? "?"} — {nn.title}</SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                <div className="space-y-1.5">
+                                  <Select
+                                    value={q.choices[0].next ?? ""}
+                                    onValueChange={(v) => updateChoice(nIdx, qIdx, 0, { next: v, nextKind: "scene", nextClipId: undefined })}
+                                  >
+                                    <SelectTrigger><SelectValue placeholder="Elige escena destino" /></SelectTrigger>
+                                    <SelectContent>
+                                      {orderedNodes.map((nn) => (
+                                        <SelectItem key={nn.id} value={nn.id}>Escena {sceneOrder.get(nn.id) ?? "?"} — {nn.title}{nn.id === n.id ? " (esta escena)" : ""}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  {q.choices[0].next && (() => {
+                                    const target = state.nodes.find((nn) => nn.id === q.choices[0].next);
+                                    const clips = target ? nodeClips(target) : [];
+                                    if (clips.length <= 1) return null;
+                                    return (
+                                      <Select
+                                        value={q.choices[0].nextClipId ?? "__start__"}
+                                        onValueChange={(v) => updateChoice(nIdx, qIdx, 0, { nextClipId: v === "__start__" ? undefined : v })}
+                                      >
+                                        <SelectTrigger><SelectValue placeholder="Clip destino (opcional)" /></SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="__start__">Desde el primer clip</SelectItem>
+                                          {clips.map((cl, ci) => (
+                                            <SelectItem key={cl.id} value={cl.id}>{cl.label || `Clip ${ci + 1}`}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    );
+                                  })()}
+                                </div>
                               )}
                               {(q.choices[0].nextKind === "question") && (
                                 <Select
@@ -1141,13 +1181,13 @@ function EditSimulation() {
                                     <Input className="col-span-2" type="number" placeholder="Puntos" value={c.points} onChange={(e) => updateChoice(nIdx, qIdx, cIdx, { points: Number(e.target.value) })} />
                                     <Select
                                       value={c.next ?? "__end__"}
-                                      onValueChange={(v) => updateChoice(nIdx, qIdx, cIdx, { next: v === "__end__" ? null : v })}
+                                      onValueChange={(v) => updateChoice(nIdx, qIdx, cIdx, { next: v === "__end__" ? null : v, nextClipId: undefined })}
                                     >
                                       <SelectTrigger className="col-span-2"><SelectValue /></SelectTrigger>
                                       <SelectContent>
                                         <SelectItem value="__end__">FIN</SelectItem>
-                                        {orderedNodes.filter((nn) => nn.id !== n.id).map((nn) => (
-                                          <SelectItem key={nn.id} value={nn.id}>Escena {sceneOrder.get(nn.id) ?? "?"} — {nn.title}</SelectItem>
+                                        {orderedNodes.map((nn) => (
+                                          <SelectItem key={nn.id} value={nn.id}>Escena {sceneOrder.get(nn.id) ?? "?"} — {nn.title}{nn.id === n.id ? " (esta escena)" : ""}</SelectItem>
                                         ))}
                                       </SelectContent>
                                     </Select>
@@ -1155,6 +1195,28 @@ function EditSimulation() {
                                       <Trash2 className="h-4 w-4 text-destructive" />
                                     </Button>
                                   </div>
+                                  {c.next && (() => {
+                                    const target = state.nodes.find((nn) => nn.id === c.next);
+                                    const clips = target ? nodeClips(target) : [];
+                                    if (clips.length <= 1) return null;
+                                    return (
+                                      <div className="space-y-1">
+                                        <Label className="text-xs">Clip destino en la escena elegida</Label>
+                                        <Select
+                                          value={c.nextClipId ?? "__start__"}
+                                          onValueChange={(v) => updateChoice(nIdx, qIdx, cIdx, { nextClipId: v === "__start__" ? undefined : v })}
+                                        >
+                                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="__start__">Desde el primer clip</SelectItem>
+                                            {clips.map((cl, ci) => (
+                                              <SelectItem key={cl.id} value={cl.id}>{cl.label || `Clip ${ci + 1}`}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    );
+                                  })()}
                                   <Textarea
                                     rows={2}
                                     placeholder="Feedback al usuario tras elegir esta opción"
