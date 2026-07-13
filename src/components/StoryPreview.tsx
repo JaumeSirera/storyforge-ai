@@ -64,11 +64,16 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     clipId?: string;
     branchNodeId: string;
     branchClipId: string;
+    originTime: number;
   } | null>(null);
   const [branchClipEnded, setBranchClipEnded] = useState(false);
   const [branchCountdown, setBranchCountdown] = useState(0);
+  const [resumeAt, setResumeAt] = useState<number | undefined>(undefined);
 
+  // Latest reported currentTime of the active clip (for branch-return resume).
+  const currentTimeRef = useRef(0);
   const autoGotoRef = useRef<string | null>(null);
+
 
 
 
@@ -98,6 +103,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
 
   const resolveBranchReturn = () => {
     if (!branchReturn) return;
+    setResumeAt(branchReturn.originTime > 0 ? branchReturn.originTime : undefined);
     setCurrentId(branchReturn.nodeId);
     setActiveClipId(branchReturn.clipId);
     setBranchReturn(null);
@@ -105,6 +111,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     setBranchCountdown(0);
     setLastFeedback(null);
   };
+
 
   // Countdown + auto-return when the branched clip finishes.
   useEffect(() => {
@@ -122,6 +129,15 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [branchReturn?.branchNodeId, branchReturn?.branchClipId, branchClipEnded]);
+
+  // Consume resumeAt after it has been passed to the player once, so future
+  // navigations don't re-seek back to the branch-return time.
+  useEffect(() => {
+    if (resumeAt === undefined) return;
+    const t = window.setTimeout(() => setResumeAt(undefined), 1500);
+    return () => window.clearTimeout(t);
+  }, [resumeAt]);
+
 
 
 
@@ -228,7 +244,9 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
           clipId: originClipId,
           branchNodeId: dest.nodeId,
           branchClipId: dest.clipId,
+          originTime: currentTimeRef.current,
         });
+
         setBranchClipEnded(false);
       }
       setCurrentId(dest.nodeId);
@@ -334,9 +352,17 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
           video={node.video}
           videos={node.videos}
           activeClipId={activeClipId ?? nodeClips(node)[0]?.id}
-          onActiveClipChange={setActiveClipId}
+          onActiveClipChange={(id) => {
+            setActiveClipId(id);
+            currentTimeRef.current = 0;
+            setResumeAt(undefined);
+          }}
           pauseAtSec={pauseAtSec}
           onPauseAtTime={() => setQuestionReady(true)}
+          onTimeUpdate={(t) => {
+            currentTimeRef.current = t;
+          }}
+          startAt={resumeAt}
           onEnded={() => {
             if (trig.mode === "end") setQuestionReady(true);
             // If we branched to a specific clip, detect its natural end to
@@ -351,6 +377,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
           }}
           fill
         />
+
 
         {branchReturn && branchClipEnded && (
           <div className="pointer-events-auto absolute inset-x-0 top-1/2 -translate-y-1/2 z-20 flex justify-center px-4">

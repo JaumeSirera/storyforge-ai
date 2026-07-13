@@ -54,14 +54,20 @@ interface SingleVideoProps {
   pauseAtSec?: number;
   onPauseAtTime?: () => void;
   onEnded?: () => void;
+  /** Reported current playback time (seconds). */
+  onTimeUpdate?: (t: number) => void;
+  /** Seek to this time (seconds) once when the player becomes ready. */
+  startAt?: number;
   fill?: boolean;
 }
 
 type CbsRef = React.MutableRefObject<{
   onPauseAtTime?: () => void;
   onEnded?: () => void;
+  onTimeUpdate?: (t: number) => void;
   pauseAtSec?: number;
 }>;
+
 
 function MediaWithDialogue({
   src,
@@ -70,6 +76,7 @@ function MediaWithDialogue({
   fill,
   cbsRef,
   firedRef,
+  startAt,
 }: {
   src: string;
   dialogueUrl: string | null;
@@ -77,9 +84,11 @@ function MediaWithDialogue({
   fill?: boolean;
   cbsRef: CbsRef;
   firedRef: React.MutableRefObject<boolean>;
+  startAt?: number;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const seekedRef = useRef(false);
 
   // Keep audio in sync with video events.
   useEffect(() => {
@@ -117,8 +126,15 @@ function MediaWithDialogue({
         autoPlay
         playsInline
         className={`${sizeCls} bg-black ${fill ? "object-contain" : ""}`}
+        onLoadedMetadata={(e) => {
+          if (!seekedRef.current && typeof startAt === "number" && startAt > 0) {
+            seekedRef.current = true;
+            try { e.currentTarget.currentTime = startAt; } catch {}
+          }
+        }}
         onTimeUpdate={(e) => {
           const cur = e.currentTarget.currentTime;
+          cbsRef.current.onTimeUpdate?.(cur);
           const tgt = cbsRef.current.pauseAtSec;
           if (tgt && !firedRef.current && cur >= tgt) {
             firedRef.current = true;
@@ -137,11 +153,13 @@ function MediaWithDialogue({
 }
 
 
-function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, fill }: SingleVideoProps) {
-  const cbsRef = useRef({ onPauseAtTime, onEnded, pauseAtSec });
+
+
+function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, onTimeUpdate, startAt, fill }: SingleVideoProps) {
+  const cbsRef = useRef({ onPauseAtTime, onEnded, onTimeUpdate, pauseAtSec });
   useEffect(() => {
-    cbsRef.current = { onPauseAtTime, onEnded, pauseAtSec };
-  }, [onPauseAtTime, onEnded, pauseAtSec]);
+    cbsRef.current = { onPauseAtTime, onEnded, onTimeUpdate, pauseAtSec };
+  }, [onPauseAtTime, onEnded, onTimeUpdate, pauseAtSec]);
 
   const firedRef = useRef(false);
   useEffect(() => {
@@ -176,9 +194,11 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, fill }: Single
         fill={fill}
         cbsRef={cbsRef}
         firedRef={firedRef}
+        startAt={startAt}
       />
     );
   }
+
 
 
   if (video.type === "ai") {
@@ -203,13 +223,14 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, fill }: Single
 
   /* ---------- YouTube ---------- */
   if (video.type === "youtube") {
-    return <YouTubePlayer video={video} cbsRef={cbsRef} firedRef={firedRef} fill={fill} />;
+    return <YouTubePlayer video={video} cbsRef={cbsRef} firedRef={firedRef} fill={fill} startAt={startAt} />;
   }
 
   /* ---------- Vimeo ---------- */
   if (video.type === "vimeo") {
-    return <VimeoPlayer video={video} cbsRef={cbsRef} firedRef={firedRef} fill={fill} />;
+    return <VimeoPlayer video={video} cbsRef={cbsRef} firedRef={firedRef} fill={fill} startAt={startAt} />;
   }
+
 
   return null;
 }
@@ -219,12 +240,15 @@ function YouTubePlayer({
   cbsRef,
   firedRef,
   fill,
+  startAt,
 }: {
   video: Extract<VideoSource, { type: "youtube" }>;
-  cbsRef: React.MutableRefObject<{ onPauseAtTime?: () => void; onEnded?: () => void; pauseAtSec?: number }>;
+  cbsRef: CbsRef;
   firedRef: React.MutableRefObject<boolean>;
   fill?: boolean;
+  startAt?: number;
 }) {
+
   const hostRef = useRef<HTMLDivElement | null>(null);
   const id = getYouTubeId(video.url);
 
@@ -244,13 +268,18 @@ function YouTubePlayer({
         playerVars: { autoplay: 1, playsinline: 1, rel: 0 },
         events: {
           onReady: (e: any) => {
-            try { e.target.playVideo(); } catch {}
+            try {
+              if (typeof startAt === "number" && startAt > 0) {
+                e.target.seekTo(startAt, true);
+              }
+              e.target.playVideo();
+            } catch {}
             interval = setInterval(() => {
-              const tgt = cbsRef.current.pauseAtSec;
-              if (!tgt || firedRef.current) return;
               try {
                 const t = player.getCurrentTime();
-                if (typeof t === "number" && t >= tgt) {
+                if (typeof t === "number") cbsRef.current.onTimeUpdate?.(t);
+                const tgt = cbsRef.current.pauseAtSec;
+                if (tgt && !firedRef.current && typeof t === "number" && t >= tgt) {
                   firedRef.current = true;
                   player.pauseVideo();
                   cbsRef.current.onPauseAtTime?.();
@@ -258,6 +287,7 @@ function YouTubePlayer({
               } catch {}
             }, 250);
           },
+
           onStateChange: (e: any) => {
             // 0 = ended
             if (e.data === 0) cbsRef.current.onEnded?.();
@@ -297,11 +327,13 @@ function VimeoPlayer({
   cbsRef,
   firedRef,
   fill,
+  startAt,
 }: {
   video: Extract<VideoSource, { type: "vimeo" }>;
-  cbsRef: React.MutableRefObject<{ onPauseAtTime?: () => void; onEnded?: () => void; pauseAtSec?: number }>;
+  cbsRef: CbsRef;
   firedRef: React.MutableRefObject<boolean>;
   fill?: boolean;
+  startAt?: number;
 }) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const id = getVimeoId(video.url);
@@ -316,8 +348,12 @@ function VimeoPlayer({
     loadVimeoAPI().then((Vimeo) => {
       if (cancelled || !iframeRef.current) return;
       player = new Vimeo.Player(iframeRef.current);
+      if (typeof startAt === "number" && startAt > 0) {
+        player.setCurrentTime(startAt).catch(() => {});
+      }
       player.play().catch(() => {});
       player.on("timeupdate", (data: { seconds: number }) => {
+        cbsRef.current.onTimeUpdate?.(data.seconds);
         const tgt = cbsRef.current.pauseAtSec;
         if (!tgt || firedRef.current) return;
         if (data.seconds >= tgt) {
@@ -333,6 +369,8 @@ function VimeoPlayer({
       try { player?.destroy?.(); } catch {}
     };
   }, [src]);
+
+
 
   const wrapCls = fill
     ? "absolute inset-0 h-full w-full overflow-hidden bg-black"
@@ -367,6 +405,8 @@ export function VideoPlayer({
   pauseAtSec,
   onPauseAtTime,
   onEnded,
+  onTimeUpdate,
+  startAt,
   fill,
 }: {
   video?: VideoSource;
@@ -377,6 +417,9 @@ export function VideoPlayer({
   pauseAtSec?: number;
   onPauseAtTime?: () => void;
   onEnded?: () => void;
+  onTimeUpdate?: (t: number) => void;
+  /** Seek the active clip to this time (seconds) once when it mounts. */
+  startAt?: number;
   /** Make the player fill its (positioned) container instead of using aspect-video. */
   fill?: boolean;
 }) {
@@ -402,6 +445,8 @@ export function VideoPlayer({
         pauseAtSec={pauseAtSec}
         onPauseAtTime={onPauseAtTime}
         onEnded={onEnded}
+        onTimeUpdate={onTimeUpdate}
+        startAt={startAt}
         fill={fill}
       />
     );
@@ -416,6 +461,8 @@ export function VideoPlayer({
           pauseAtSec={pauseAtSec}
           onPauseAtTime={onPauseAtTime}
           onEnded={onEnded}
+          onTimeUpdate={onTimeUpdate}
+          startAt={startAt}
           fill
         />
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex flex-wrap gap-1.5 pointer-events-auto">
@@ -462,7 +509,10 @@ export function VideoPlayer({
         pauseAtSec={pauseAtSec}
         onPauseAtTime={onPauseAtTime}
         onEnded={onEnded}
+        onTimeUpdate={onTimeUpdate}
+        startAt={startAt}
       />
     </div>
   );
 }
+
