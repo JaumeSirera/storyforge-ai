@@ -297,7 +297,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
           onActiveClipChange={setActiveClipId}
           pauseAtSec={pauseAtSec}
           onPauseAtTime={() => setQuestionReady(true)}
-          onEnded={() => { if (trig.mode === "end") setQuestionReady(true); }}
+          onEnded={() => { if (interlude) { commitInterlude(); return; } if (trig.mode === "end") setQuestionReady(true); }}
           fill
         />
 
