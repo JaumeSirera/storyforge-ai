@@ -166,6 +166,20 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     });
     setLastFeedback({ text: c.feedback, points: c.points });
 
+    // Interlude: play a clip of the CURRENT scene before applying destination.
+    if (c.interludeClipId && node.videos?.some((v) => v.id === c.interludeClipId)) {
+      if (q.id) setAnsweredIds((s) => new Set(s).add(q.id!));
+      setForcedQId(undefined);
+      setActiveClipId(c.interludeClipId);
+      setQuestionReady(false);
+      setInterlude({ pending: c });
+      return;
+    }
+
+    applyDestination(c);
+  };
+
+  const applyDestination = (c: Choice) => {
     const dest = resolveChoiceDestination(c);
     if (dest.kind === "end") {
       setEnded(true);
@@ -178,19 +192,17 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
       return;
     }
     if (dest.kind === "continue") {
-      // Mark current question answered and resume playback in the same scene.
-      if (q.id) setAnsweredIds((s) => new Set(s).add(q.id!));
+      if (q?.id) setAnsweredIds((s) => new Set(s).add(q.id!));
       setForcedQId(undefined);
       setQuestionReady(false);
       return;
     }
     if (dest.kind === "question") {
-      if (q.id) setAnsweredIds((s) => new Set(s).add(q.id!));
+      if (q?.id) setAnsweredIds((s) => new Set(s).add(q.id!));
       setForcedQId(dest.questionId);
       setQuestionReady(true);
       return;
     }
-    // Fallback: legacy behaviour.
     if (c.next && nodes[c.next]) {
       setCurrentId(c.next);
       setActiveClipId(undefined);
@@ -199,6 +211,14 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
       setEnded(true);
     }
   };
+
+  const commitInterlude = () => {
+    if (!interlude) return;
+    const pending = interlude.pending;
+    setInterlude(null);
+    applyDestination(pending);
+  };
+
 
 
   const goBack = () => {
