@@ -103,6 +103,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
 
   const resolveBranchReturn = () => {
     if (!branchReturn) return;
+    setResumeAt(branchReturn.originTime > 0 ? branchReturn.originTime : undefined);
     setCurrentId(branchReturn.nodeId);
     setActiveClipId(branchReturn.clipId);
     setBranchReturn(null);
@@ -110,6 +111,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     setBranchCountdown(0);
     setLastFeedback(null);
   };
+
 
   // Countdown + auto-return when the branched clip finishes.
   useEffect(() => {
