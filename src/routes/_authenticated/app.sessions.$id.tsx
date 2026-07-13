@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getSession, submitAnswer, generateReport } from "@/lib/sessions.functions";
+import { getSession, submitAnswer, generateReport, returnToNode } from "@/lib/sessions.functions";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { nodeClips } from "@/lib/story-types";
 
@@ -68,7 +68,8 @@ function Player({
   sessionId: string; node: any; score: number; answered: number; totalNodes: number; simTitle: string; sceneNumber?: number; nextNodes: any[];
 }) {
   const submit = useServerFn(submitAnswer);
-  
+  const returnFn = useServerFn(returnToNode);
+
   const qc = useQueryClient();
   const [selected, setSelected] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ feedback: string; points: number } | null>(null);
@@ -171,14 +172,53 @@ function Player({
   // Target clip id when a choice jumps to a specific clip (may be same scene).
   const [pendingClipId, setPendingClipId] = useState<string | undefined>(undefined);
   const [clipJumpNonce, setClipJumpNonce] = useState(0);
+  // When set, we branched to a clip and must return to the calling scene when it ends.
+  const [branchReturn, setBranchReturn] = useState<{
+    returnNodeId: string;
+    branchClipId: string;
+  } | null>(null);
+  const [branchClipEnded, setBranchClipEnded] = useState(false);
+  const [branchCountdown, setBranchCountdown] = useState(0);
 
   // Reset scene-local state whenever the active scene changes.
   useEffect(() => {
     setSceneAnsweredIds(new Set());
     setForcedQId(undefined);
     setPendingClipId(undefined);
+    setBranchClipEnded(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node.id]);
+
+  // Countdown + auto-return when the branched clip ends.
+  useEffect(() => {
+    if (!branchReturn || !branchClipEnded) return;
+    setBranchCountdown(4);
+    const iv = window.setInterval(() => {
+      setBranchCountdown((n) => (n > 0 ? n - 1 : 0));
+    }, 1000);
+    const to = window.setTimeout(() => {
+      void resolveBranchReturn();
+    }, 4000);
+    return () => {
+      window.clearInterval(iv);
+      window.clearTimeout(to);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchReturn?.returnNodeId, branchClipEnded]);
+
+  async function resolveBranchReturn() {
+    if (!branchReturn) return;
+    const target = branchReturn.returnNodeId;
+    setBranchReturn(null);
+    setBranchClipEnded(false);
+    setPendingClipId(undefined);
+    try {
+      await returnFn({ data: { sessionId, nodeId: target } });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error");
+    }
+    await qc.invalidateQueries({ queryKey: ["session", sessionId] });
+  }
 
   async function pick(choiceId: string, opts?: { commentText?: string }) {
     setSelected(choiceId);
@@ -202,17 +242,26 @@ function Player({
           setFeedback(null);
         }, 1200);
       } else if (nextNodeId && nextNodeId === node.id) {
-        // Same scene, jump to a specific clip.
+        // Same scene, jump to a specific clip. Remember origin to return afterwards.
         setPendingClipId(nextClipId ?? undefined);
         setClipJumpNonce((n) => n + 1);
         setSceneAnsweredIds(new Set());
         setForcedQId(undefined);
+        if (nextClipId) {
+          setBranchReturn({ returnNodeId: node.id, branchClipId: nextClipId });
+          setBranchClipEnded(false);
+        }
         setTimeout(() => {
           setSelected(null);
           setFeedback(null);
         }, 1200);
       } else {
         setPendingClipId(nextClipId ?? undefined);
+        if (nextClipId && nextNodeId) {
+          // Branched to a clip in another scene: remember the calling scene to return to.
+          setBranchReturn({ returnNodeId: node.id, branchClipId: nextClipId });
+          setBranchClipEnded(false);
+        }
         setTimeout(() => {
           qc.invalidateQueries({ queryKey: ["session", sessionId] });
           setSelected(null);
@@ -226,6 +275,7 @@ function Player({
       setSubmitting(false);
     }
   }
+
 
 
   const progress = totalNodes > 0 ? Math.min(100, Math.round((answered / Math.max(1, totalNodes - 1)) * 100)) : 0;
@@ -260,9 +310,17 @@ function Player({
           answeredIds={sceneAnsweredIds}
           forcedQId={forcedQId}
           initialClipId={pendingClipId}
-         
-         
+          branchClipId={branchReturn?.branchClipId}
+          onBranchClipEnded={() => setBranchClipEnded(true)}
         />
+
+        {branchReturn && branchClipEnded && (
+          <BranchReturnOverlay
+            countdown={branchCountdown}
+            onContinue={() => void resolveBranchReturn()}
+          />
+        )}
+
 
         {/* Top bar overlay */}
         <div className="absolute top-0 inset-x-0 z-30 flex items-start justify-between gap-3 px-4 pt-4 pb-8 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
@@ -388,14 +446,19 @@ function Player({
 
       <Progress value={progress} className="h-1.5" />
 
-      <ScenePlayback key={`${node.id}:${clipJumpNonce}`} node={node} submitting={submitting} feedback={feedback} selected={selected} onPick={pick} nextNodes={nextNodes} answeredIds={sceneAnsweredIds} forcedQId={forcedQId} initialClipId={pendingClipId} />
+      <div className="relative">
+        <ScenePlayback key={`${node.id}:${clipJumpNonce}`} node={node} submitting={submitting} feedback={feedback} selected={selected} onPick={pick} nextNodes={nextNodes} answeredIds={sceneAnsweredIds} forcedQId={forcedQId} initialClipId={pendingClipId} branchClipId={branchReturn?.branchClipId} onBranchClipEnded={() => setBranchClipEnded(true)} />
+        {branchReturn && branchClipEnded && (
+          <BranchReturnOverlay countdown={branchCountdown} onContinue={() => void resolveBranchReturn()} />
+        )}
+      </div>
     </div>
     </div>
   );
 }
 
 function ScenePlayback({
-  node, submitting, feedback, selected, onPick, nextNodes, immersive, answeredIds, forcedQId, initialClipId,
+  node, submitting, feedback, selected, onPick, nextNodes, immersive, answeredIds, forcedQId, initialClipId, branchClipId, onBranchClipEnded,
 }: {
   node: any;
   submitting: boolean;
@@ -407,6 +470,8 @@ function ScenePlayback({
   answeredIds?: Set<string>;
   forcedQId?: string;
   initialClipId?: string;
+  branchClipId?: string;
+  onBranchClipEnded?: () => void;
 }) {
   const clips = nodeClips(node);
   const [activeClipId, setActiveClipId] = useState<string>(() => {
@@ -480,6 +545,7 @@ function ScenePlayback({
           onPauseAtTime={() => setQuestionReady(true)}
           onEnded={() => {
             if (trig.mode === "end") setQuestionReady(true);
+            if (branchClipId && activeClipId === branchClipId) onBranchClipEnded?.();
           }}
         />
         <VideoPrefetch nodes={nextNodes} />
@@ -556,6 +622,7 @@ function ScenePlayback({
         onPauseAtTime={() => setQuestionReady(true)}
         onEnded={() => {
           if (trig.mode === "end") setQuestionReady(true);
+          if (branchClipId && activeClipId === branchClipId) onBranchClipEnded?.();
         }}
       />
       <VideoPrefetch nodes={nextNodes} />
@@ -617,6 +684,21 @@ function formatMmSs(total: number): string {
   const r = s % 60;
   return `${m}:${r.toString().padStart(2, "0")}`;
 }
+
+function BranchReturnOverlay({ countdown, onContinue }: { countdown: number; onContinue: () => void }) {
+  return (
+    <div className="absolute inset-x-0 bottom-0 z-40 flex items-center justify-center p-6 pointer-events-none">
+      <div className="pointer-events-auto flex items-center gap-3 rounded-full bg-black/80 border border-white/20 px-4 py-2 backdrop-blur-md shadow-xl text-white">
+        <span className="text-sm">Volviendo a la escena{countdown > 0 ? ` en ${countdown}s` : "..."}</span>
+        <Button size="sm" onClick={onContinue} className="gap-1">
+          <ArrowRight className="h-3 w-3" /> Continuar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+
 
 
 function FinalReport({ sessionId, sess, sim }: { sessionId: string; sess: any; sim: any }) {
