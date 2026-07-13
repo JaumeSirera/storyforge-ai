@@ -89,9 +89,40 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     setCommentText("");
     setAnsweredIds(new Set());
     setForcedQId(undefined);
-    
+    setBranchReturn(null);
+    setBranchClipEnded(false);
+    setBranchCountdown(0);
+
     autoGotoRef.current = null;
   };
+
+  const resolveBranchReturn = () => {
+    if (!branchReturn) return;
+    setCurrentId(branchReturn.nodeId);
+    setActiveClipId(branchReturn.clipId);
+    setBranchReturn(null);
+    setBranchClipEnded(false);
+    setBranchCountdown(0);
+    setLastFeedback(null);
+  };
+
+  // Countdown + auto-return when the branched clip finishes.
+  useEffect(() => {
+    if (!branchReturn || !branchClipEnded) return;
+    setBranchCountdown(4);
+    const iv = window.setInterval(() => {
+      setBranchCountdown((n) => (n > 0 ? n - 1 : 0));
+    }, 1000);
+    const to = window.setTimeout(() => {
+      resolveBranchReturn();
+    }, 4000);
+    return () => {
+      window.clearInterval(iv);
+      window.clearTimeout(to);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchReturn?.branchNodeId, branchReturn?.branchClipId, branchClipEnded]);
+
 
 
   // Local activeQuestion honouring answered/forced state.
