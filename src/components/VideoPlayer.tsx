@@ -327,11 +327,13 @@ function VimeoPlayer({
   cbsRef,
   firedRef,
   fill,
+  startAt,
 }: {
   video: Extract<VideoSource, { type: "vimeo" }>;
-  cbsRef: React.MutableRefObject<{ onPauseAtTime?: () => void; onEnded?: () => void; pauseAtSec?: number }>;
+  cbsRef: CbsRef;
   firedRef: React.MutableRefObject<boolean>;
   fill?: boolean;
+  startAt?: number;
 }) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const id = getVimeoId(video.url);
@@ -346,8 +348,12 @@ function VimeoPlayer({
     loadVimeoAPI().then((Vimeo) => {
       if (cancelled || !iframeRef.current) return;
       player = new Vimeo.Player(iframeRef.current);
+      if (typeof startAt === "number" && startAt > 0) {
+        player.setCurrentTime(startAt).catch(() => {});
+      }
       player.play().catch(() => {});
       player.on("timeupdate", (data: { seconds: number }) => {
+        cbsRef.current.onTimeUpdate?.(data.seconds);
         const tgt = cbsRef.current.pauseAtSec;
         if (!tgt || firedRef.current) return;
         if (data.seconds >= tgt) {
@@ -363,6 +369,8 @@ function VimeoPlayer({
       try { player?.destroy?.(); } catch {}
     };
   }, [src]);
+
+
 
   const wrapCls = fill
     ? "absolute inset-0 h-full w-full overflow-hidden bg-black"
