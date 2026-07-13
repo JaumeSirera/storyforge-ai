@@ -13,7 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -102,16 +104,19 @@ function DestinationSelectItems({
       {nodes.map((node) => {
         const clips = nodeClips(node);
         return (
-          <div key={node.id}>
-            <SelectItem value={`scene:${node.id}`}>
+          <SelectGroup key={node.id}>
+            <SelectLabel>
               Escena {sceneOrder.get(node.id) ?? "?"} — {node.title}{node.id === currentNodeId ? " (esta escena)" : ""}
+            </SelectLabel>
+            <SelectItem value={`scene:${node.id}`}>
+              Desde el primer clip
             </SelectItem>
             {clips.map((clip, ci) => (
               <SelectItem key={`${node.id}:${clip.id}`} value={`clip:${node.id}:${clip.id}`}>
-                Escena {sceneOrder.get(node.id) ?? "?"} · {clip.label || `Clip ${ci + 1}`}{node.id === currentNodeId ? " (esta escena)" : ""}
+                {clip.label || `Clip ${ci + 1}`}
               </SelectItem>
             ))}
-          </div>
+          </SelectGroup>
         );
       })}
     </>
