@@ -204,7 +204,28 @@ function Player({
       const forced = (r as any).forcedQuestionId as string | null | undefined;
       const nextClipId = (r as any).nextClipId as string | null | undefined;
       const nextNodeId = (r as any).nextNodeId as string | null | undefined;
-      if (stay) {
+      const interludeClipId = (r as any).interludeClipId as string | null | undefined;
+      const pendingNextNodeId = (r as any).pendingNextNodeId as string | null | undefined;
+      const pendingNextClipId = (r as any).pendingNextClipId as string | null | undefined;
+      const pendingCompleted = (r as any).pendingCompleted === true;
+
+      if (interludeClipId && pendingNextNodeId !== undefined) {
+        // Play the interlude clip in the current scene, then commit the transition.
+        setInterlude({
+          clipId: interludeClipId,
+          nextNodeId: pendingNextNodeId ?? null,
+          nextClipId: pendingNextClipId ?? null,
+          completed: pendingCompleted,
+        });
+        setPendingClipId(interludeClipId);
+        setClipJumpNonce((n) => n + 1);
+        setSceneAnsweredIds(new Set());
+        setForcedQId(undefined);
+        setTimeout(() => {
+          setSelected(null);
+          setFeedback(null);
+        }, 1200);
+      } else if (stay) {
         if (answeredQId) setSceneAnsweredIds((s) => new Set(s).add(answeredQId));
         setForcedQId(forced ?? undefined);
         // Short feedback flash, then keep the same scene.
