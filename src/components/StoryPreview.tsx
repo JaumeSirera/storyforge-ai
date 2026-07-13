@@ -313,7 +313,16 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
 
 
 
-              {!ended && !node.isEnding && q && questionReady && (q.kind ?? "question") === "question" && (
+              {interlude && (
+                <div className="flex justify-end">
+                  <Button size="sm" onClick={commitInterlude} className="gap-1">
+                    Continuar <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+
+              {!interlude && !ended && !node.isEnding && q && questionReady && (q.kind ?? "question") === "question" && (
+
                 <div className="space-y-2">
                   <div className="font-semibold text-base text-white drop-shadow">{q.text}</div>
                   <div className="grid gap-2">
