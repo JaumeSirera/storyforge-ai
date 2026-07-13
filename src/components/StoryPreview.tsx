@@ -64,11 +64,16 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     clipId?: string;
     branchNodeId: string;
     branchClipId: string;
+    originTime: number;
   } | null>(null);
   const [branchClipEnded, setBranchClipEnded] = useState(false);
   const [branchCountdown, setBranchCountdown] = useState(0);
+  const [resumeAt, setResumeAt] = useState<number | undefined>(undefined);
 
+  // Latest reported currentTime of the active clip (for branch-return resume).
+  const currentTimeRef = useRef(0);
   const autoGotoRef = useRef<string | null>(null);
+
 
 
 
