@@ -758,6 +758,9 @@ export const updateSimulationStory = createServerFn({ method: "POST" })
         ...(node.questions ?? []),
       ];
       const localQuestionIds = new Set(allQuestions.map((qq: any) => qq.id).filter(Boolean));
+      const currentClipIds = new Set<string>();
+      for (const c of (node.videos ?? [])) if (c?.id) currentClipIds.add(c.id);
+      if (currentClipIds.size === 0) currentClipIds.add("default");
       for (const q of allQuestions) {
         if (q.clipId && !clipIds.has(q.clipId)) {
           throw new Error(`La pregunta "${q.text.slice(0, 30)}…" referencia un clip inexistente.`);
@@ -771,12 +774,15 @@ export const updateSimulationStory = createServerFn({ method: "POST" })
             const target = ch.next ? (data.story.nodes as Record<string, any>)[ch.next] : null;
             const targetClipIds = new Set<string>();
             if (target) {
-              for (const c of (target.clips ?? [])) if (c?.id) targetClipIds.add(c.id);
-              if (target.videoUrl && !targetClipIds.size) targetClipIds.add("default");
+              for (const c of (target.videos ?? [])) if (c?.id) targetClipIds.add(c.id);
+              if (targetClipIds.size === 0) targetClipIds.add("default");
             }
             if (!targetClipIds.has(ch.nextClipId)) {
               throw new Error(`La opción "${ch.label}" apunta a un clip inexistente en la escena destino.`);
             }
+          }
+          if (ch.interludeClipId && !currentClipIds.has(ch.interludeClipId)) {
+            throw new Error(`La opción "${ch.label}" usa un clip intermedio que ya no existe en esta escena.`);
           }
           if (kind === "question" && ch.nextQuestionId && !localQuestionIds.has(ch.nextQuestionId)) {
             throw new Error(`La opción "${ch.label}" apunta a una pregunta/comentario inexistente en la escena.`);
