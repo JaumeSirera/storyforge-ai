@@ -103,7 +103,10 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
 
   const resolveBranchReturn = () => {
     if (!branchReturn) return;
-    setResumeAt(branchReturn.originTime > 0 ? branchReturn.originTime : undefined);
+    // Resume 1s AFTER the branching point so the same question does not
+    // re-trigger (its time-based trigger is at originTime).
+    const resume = branchReturn.originTime > 0 ? branchReturn.originTime + 1 : undefined;
+    setResumeAt(resume);
     setCurrentId(branchReturn.nodeId);
     setActiveClipId(branchReturn.clipId);
     setBranchReturn(null);
@@ -246,8 +249,10 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
           branchClipId: dest.clipId,
           originTime: currentTimeRef.current,
         });
-
         setBranchClipEnded(false);
+        // Mark this question as answered so it doesn't fire again when we
+        // return to the origin clip and resume playback.
+        if (q?.id) setAnsweredIds((s) => new Set(s).add(q.id!));
       }
       setCurrentId(dest.nodeId);
       setActiveClipId(dest.clipId);
@@ -373,6 +378,28 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
               (activeClipId ?? nodeClips(node)[0]?.id) === branchReturn.branchClipId
             ) {
               setBranchClipEnded(true);
+              return;
+            }
+            // Auto-advance to the next scene (by chronological order) when the
+            // current scene's video ends and there is no pending question and
+            // we are not inside a branch return flow.
+            if (ended || node?.isEnding) return;
+            const remainingQs = nodeQuestions(node).filter(
+              (qq) => !(qq.id && answeredIds.has(qq.id))
+            );
+            if (remainingQs.length > 0) return;
+            const currentOrder = sceneOrder.get(node.id);
+            if (currentOrder === undefined) return;
+            let nextId: string | undefined;
+            for (const [id, ord] of sceneOrder.entries()) {
+              if (ord === currentOrder + 1) { nextId = id; break; }
+            }
+            if (nextId && nodes[nextId]) {
+              setCurrentId(nextId);
+              setActiveClipId(undefined);
+              setResumeAt(undefined);
+              currentTimeRef.current = 0;
+              if (nodes[nextId].isEnding) setEnded(true);
             }
           }}
           fill
