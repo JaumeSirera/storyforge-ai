@@ -3,20 +3,38 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { loadUserKeys } from "./user-keys.functions";
 
-const REPLICATE = "https://api.replicate.com/v1";
+const REPLICATE_DIRECT = "https://api.replicate.com/v1";
+const REPLICATE_GATEWAY = "https://connector-gateway.lovable.dev/replicate/v1";
 const LIPSYNC_VERSION = "637ce1919f807ca20da3a448ddc2743535d2853649574cd52a933120e9b9e293";
 const SIGNED_URL_TTL = 60 * 60 * 24 * 365 * 10;
 
-async function getReplicateToken(supabase: unknown, userId: string): Promise<string> {
+interface ReplicateAuth {
+  base: string;
+  headers: Record<string, string>;
+}
+
+async function getReplicateAuth(supabase: unknown, userId: string): Promise<ReplicateAuth> {
   const keys = await loadUserKeys(supabase, userId);
   if (!keys.replicateKey) {
     throw new Error("Configura tu token de Replicate en Ajustes para aplicar lip-sync.");
   }
-  return keys.replicateKey;
-}
-
-function replicateHeaders(token: string): Record<string, string> {
-  return { Authorization: `Bearer ${token}` };
+  const envReplicate = process.env.REPLICATE_API_KEY ?? null;
+  const isPlatform = envReplicate !== null && keys.replicateKey === envReplicate;
+  if (isPlatform) {
+    const lovableKey = process.env.LOVABLE_API_KEY;
+    if (!lovableKey) throw new Error("LOVABLE_API_KEY no configurado");
+    return {
+      base: REPLICATE_GATEWAY,
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        "X-Connection-Api-Key": keys.replicateKey,
+      },
+    };
+  }
+  return {
+    base: REPLICATE_DIRECT,
+    headers: { Authorization: `Bearer ${keys.replicateKey}` },
+  };
 }
 
 function summarizeProviderError(value: unknown): string {
@@ -97,7 +115,7 @@ const StartInput = z.object({
 );
 
 async function uploadBytesToReplicate(
-  token: string,
+  auth: ReplicateAuth,
   buffer: Uint8Array,
   contentType: string,
   filename: string,
@@ -105,9 +123,9 @@ async function uploadBytesToReplicate(
   const form = new FormData();
   form.append("content", new Blob([buffer as BlobPart], { type: contentType }), filename);
 
-  const res = await fetch(`${REPLICATE}/files`, {
+  const res = await fetch(`${auth.base}/files`, {
     method: "POST",
-    headers: replicateHeaders(token),
+    headers: auth.headers,
     body: form,
   });
   const body = await res.text();
@@ -123,7 +141,7 @@ export const startLipsync = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => StartInput.parse(input))
   .handler(async ({ data, context }) => {
-    const token = await getReplicateToken(context.supabase, context.userId);
+    const auth = await getReplicateAuth(context.supabase, context.userId);
 
     const [videoAsset, audioAsset] = await Promise.all([
       readMediaAsset({
@@ -145,15 +163,15 @@ export const startLipsync = createServerFn({ method: "POST" })
     ]);
 
     const [videoFileUrl, audioFileUrl] = await Promise.all([
-      uploadBytesToReplicate(token, videoAsset.buffer, videoAsset.contentType || "video/mp4", "input.mp4"),
-      uploadBytesToReplicate(token, audioAsset.buffer, audioAsset.contentType || "audio/mpeg", "input.mp3"),
+      uploadBytesToReplicate(auth, videoAsset.buffer, videoAsset.contentType || "video/mp4", "input.mp4"),
+      uploadBytesToReplicate(auth, audioAsset.buffer, audioAsset.contentType || "audio/mpeg", "input.mp3"),
     ]);
 
     const res = await fetch(
-      `${REPLICATE}/predictions`,
+      `${auth.base}/predictions`,
       {
         method: "POST",
-        headers: { ...replicateHeaders(token), "Content-Type": "application/json" },
+        headers: { ...auth.headers, "Content-Type": "application/json" },
         body: JSON.stringify({
           version: LIPSYNC_VERSION,
           input: {
@@ -195,11 +213,11 @@ function outputToUrl(output: unknown): string | null {
   return null;
 }
 
-async function fetchReplicateOutput(url: string, token: string): Promise<Response> {
+async function fetchReplicateOutput(url: string, auth: ReplicateAuth): Promise<Response> {
   try {
     const parsed = new URL(url);
     if (parsed.hostname === "api.replicate.com" && parsed.pathname.startsWith("/v1/")) {
-      return fetch(url, { headers: replicateHeaders(token) });
+      return fetch(`${auth.base}${parsed.pathname.replace(/^\/v1/, "")}${parsed.search}`, { headers: auth.headers });
     }
   } catch {
     // Fall through to regular fetch.
@@ -216,9 +234,9 @@ export const pollLipsync = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => PollInput.parse(input))
   .handler(async ({ data, context }): Promise<PollResult> => {
-    const token = await getReplicateToken(context.supabase, context.userId);
-    const res = await fetch(`${REPLICATE}/predictions/${data.predictionId}`, {
-      headers: replicateHeaders(token),
+    const auth = await getReplicateAuth(context.supabase, context.userId);
+    const res = await fetch(`${auth.base}/predictions/${data.predictionId}`, {
+      headers: auth.headers,
     });
     const body = await res.text();
     if (!res.ok) return { status: "failed", error: `Replicate ${res.status}: ${body}` };
@@ -247,7 +265,7 @@ export const pollLipsync = createServerFn({ method: "POST" })
 
     const outputUrl = outputToUrl(json.output);
     if (!outputUrl) return { status: "failed", error: "Replicate no devolvió un MP4 final.", logsTail };
-    const videoRes = await fetchReplicateOutput(outputUrl, token);
+    const videoRes = await fetchReplicateOutput(outputUrl, auth);
     if (!videoRes.ok) return { status: "failed", error: `Descarga fallida (${videoRes.status})`, logsTail };
     const buf = new Uint8Array(await videoRes.arrayBuffer());
 
