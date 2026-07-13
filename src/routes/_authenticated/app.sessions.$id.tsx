@@ -259,6 +259,23 @@ function Player({
     }
   }
 
+  async function commitInterlude() {
+    if (!interlude) return;
+    try {
+      await advance({
+        data: {
+          sessionId,
+          nextNodeId: interlude.nextNodeId,
+          completed: interlude.completed,
+        },
+      });
+      setInterlude(null);
+      qc.invalidateQueries({ queryKey: ["session", sessionId] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo continuar");
+    }
+  }
+
   const progress = totalNodes > 0 ? Math.min(100, Math.round((answered / Math.max(1, totalNodes - 1)) * 100)) : 0;
 
   function toggleWindowed() {
