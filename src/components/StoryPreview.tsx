@@ -343,9 +343,17 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
           video={node.video}
           videos={node.videos}
           activeClipId={activeClipId ?? nodeClips(node)[0]?.id}
-          onActiveClipChange={setActiveClipId}
+          onActiveClipChange={(id) => {
+            setActiveClipId(id);
+            currentTimeRef.current = 0;
+            setResumeAt(undefined);
+          }}
           pauseAtSec={pauseAtSec}
           onPauseAtTime={() => setQuestionReady(true)}
+          onTimeUpdate={(t) => {
+            currentTimeRef.current = t;
+          }}
+          startAt={resumeAt}
           onEnded={() => {
             if (trig.mode === "end") setQuestionReady(true);
             // If we branched to a specific clip, detect its natural end to
@@ -360,6 +368,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
           }}
           fill
         />
+
 
         {branchReturn && branchClipEnded && (
           <div className="pointer-events-auto absolute inset-x-0 top-1/2 -translate-y-1/2 z-20 flex justify-center px-4">
