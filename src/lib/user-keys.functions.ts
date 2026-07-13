@@ -150,30 +150,34 @@ export async function loadUserKeys(
         .eq("user_id", adminRow.user_id)
         .maybeSingle();
       if (adminKeys) {
-        return {
+        return applyPlatformFallback({
           openaiKey: (adminKeys.openai_key as string | null) ?? null,
           geminiKey: (adminKeys.gemini_key as string | null) ?? null,
           replicateKey: (adminKeys.replicate_key as string | null) ?? null,
           elevenlabsKey: (adminKeys.elevenlabs_key as string | null) ?? null,
+          lovableKey: null,
           textProvider: ((adminKeys.text_provider as TextProvider) ?? "gemini"),
-        };
+        });
       }
     }
+    // Admin has no row either: still fall back to platform env secrets.
+    return applyPlatformFallback(EMPTY);
   }
 
-  // 3) Own keys
+  // 3) Own keys (+ platform env fallback so it always works)
   const { data } = await client
     .from("user_api_keys")
     .select("openai_key, gemini_key, replicate_key, elevenlabs_key, text_provider")
     .eq("user_id", userId)
     .maybeSingle();
-  if (!data) return EMPTY;
-  return {
+  if (!data) return applyPlatformFallback(EMPTY);
+  return applyPlatformFallback({
     openaiKey: (data.openai_key as string | null) ?? null,
     geminiKey: (data.gemini_key as string | null) ?? null,
     replicateKey: (data.replicate_key as string | null) ?? null,
     elevenlabsKey: (data.elevenlabs_key as string | null) ?? null,
+    lovableKey: null,
     textProvider: ((data.text_provider as TextProvider) ?? "gemini"),
-  };
+  });
 }
 
