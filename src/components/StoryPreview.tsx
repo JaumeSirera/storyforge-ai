@@ -130,6 +130,15 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [branchReturn?.branchNodeId, branchReturn?.branchClipId, branchClipEnded]);
 
+  // Consume resumeAt after it has been passed to the player once, so future
+  // navigations don't re-seek back to the branch-return time.
+  useEffect(() => {
+    if (resumeAt === undefined) return;
+    const t = window.setTimeout(() => setResumeAt(undefined), 1500);
+    return () => window.clearTimeout(t);
+  }, [resumeAt]);
+
+
 
 
   // Local activeQuestion honouring answered/forced state.
