@@ -34,6 +34,7 @@ const UpdateInput = z.object({
   subscription_price_cents: z.number().int().nonnegative().optional(),
   subscription_included_cents: z.number().int().nonnegative().optional(),
   currency: z.string().length(3).optional(),
+  vat_pct: NumberField.optional(),
 });
 
 /** Admin only: update pricing knobs. */

@@ -45,6 +45,7 @@ function AdminPricingPage() {
     f.subscription_price_cents = String((data as any).subscription_price_cents ?? 0);
     f.subscription_included_cents = String((data as any).subscription_included_cents ?? 0);
     f.currency = String((data as any).currency ?? "EUR");
+    f.vat_pct = String((data as any).vat_pct ?? 21);
     setForm(f);
   }, [data]);
 
@@ -62,6 +63,7 @@ function AdminPricingPage() {
     payload.subscription_price_cents = Math.round(Number(form.subscription_price_cents));
     payload.subscription_included_cents = Math.round(Number(form.subscription_included_cents));
     payload.currency = form.currency || "EUR";
+    payload.vat_pct = Number(form.vat_pct);
     save.mutate(payload);
   };
 
@@ -100,7 +102,7 @@ function AdminPricingPage() {
 
       <Card>
         <CardHeader><CardTitle>Suscripción</CardTitle></CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
+        <CardContent className="grid gap-4 md:grid-cols-4">
           <div>
             <Label>Precio suscripción (cents / mes)</Label>
             <Input type="number" step="1" {...bind("subscription_price_cents")} />
@@ -112,6 +114,11 @@ function AdminPricingPage() {
           <div>
             <Label>Moneda</Label>
             <Input {...bind("currency")} maxLength={3} />
+          </div>
+          <div>
+            <Label>IVA (%)</Label>
+            <Input type="number" step="0.01" {...bind("vat_pct")} />
+            <p className="text-xs text-muted-foreground mt-1">Aplicado en los recibos PDF</p>
           </div>
         </CardContent>
       </Card>

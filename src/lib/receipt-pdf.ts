@@ -14,6 +14,7 @@ export interface ReceiptData {
   };
   buyer: { name: string | null; email: string | null };
   merchant: { name: string; merchantCode: string; product: string };
+  vatPct: number;
 }
 
 const KIND_LABEL: Record<string, string> = {
@@ -94,16 +95,17 @@ export function generateReceiptPdf(data: ReceiptData): jsPDF {
 
   doc.line(M, lineY + 30, W - M, lineY + 30);
 
-  // Totals (IVA-included prices — desglose informativo 21%)
+  // Totals — precios con IVA incluido, desglose informativo configurable
   const total = data.payment.amount_cents;
-  const base = Math.round(total / 1.21);
+  const vatRate = Number.isFinite(data.vatPct) && data.vatPct >= 0 ? data.vatPct : 21;
+  const base = Math.round(total / (1 + vatRate / 100));
   const iva = total - base;
 
   const totalsY = lineY + 54;
   doc.setFontSize(10);
   doc.text("Base imponible", W - M - 140, totalsY);
   doc.text(money(base, data.payment.currency), W - M - 12, totalsY, { align: "right" });
-  doc.text("IVA (21%)", W - M - 140, totalsY + 16);
+  doc.text(`IVA (${vatRate}%)`, W - M - 140, totalsY + 16);
   doc.text(money(iva, data.payment.currency), W - M - 12, totalsY + 16, { align: "right" });
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);

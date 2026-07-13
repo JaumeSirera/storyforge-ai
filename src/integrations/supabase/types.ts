@@ -32,6 +32,7 @@ export type Database = {
           subscription_included_cents: number
           subscription_price_cents: number
           updated_at: string
+          vat_pct: number
         }
         Insert: {
           created_at?: string
@@ -50,6 +51,7 @@ export type Database = {
           subscription_included_cents?: number
           subscription_price_cents?: number
           updated_at?: string
+          vat_pct?: number
         }
         Update: {
           created_at?: string
@@ -68,6 +70,7 @@ export type Database = {
           subscription_included_cents?: number
           subscription_price_cents?: number
           updated_at?: string
+          vat_pct?: number
         }
         Relationships: []
       }
