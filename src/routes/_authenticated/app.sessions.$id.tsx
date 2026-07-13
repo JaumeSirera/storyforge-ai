@@ -516,6 +516,15 @@ function ScenePlayback({
   }, [kind, questionReady, q?.id, node.id]);
 
 
+  // Fire the interlude commit only once per activation.
+  const interludeFiredRef = useRef(false);
+  useEffect(() => { interludeFiredRef.current = false; }, [interludeActive]);
+  function fireInterludeContinue() {
+    if (!interludeActive || interludeFiredRef.current) return;
+    interludeFiredRef.current = true;
+    onInterludeContinue?.();
+  }
+
   if (immersive) {
     return (
       <>
@@ -527,7 +536,10 @@ function ScenePlayback({
           onActiveClipChange={setActiveClipId}
           pauseAtSec={pauseAtSec}
           onPauseAtTime={() => setQuestionReady(true)}
-          onEnded={() => { if (trig.mode === "end") setQuestionReady(true); }}
+          onEnded={() => {
+            if (interludeActive) { fireInterludeContinue(); return; }
+            if (trig.mode === "end") setQuestionReady(true);
+          }}
         />
         <VideoPrefetch nodes={nextNodes} />
 
@@ -540,13 +552,15 @@ function ScenePlayback({
               </p>
             )}
 
+            {interludeActive && (
+              <div className="flex justify-end">
+                <Button size="lg" onClick={fireInterludeContinue}>
+                  Continuar <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
 
-
-
-
-
-
-            {q && questionReady && !feedback && kind === "question" && (
+            {!interludeActive && q && questionReady && !feedback && kind === "question" && (
               <div className="space-y-3">
                 <h3 className="font-semibold text-base md:text-lg text-white drop-shadow">
                   {q.text}
@@ -570,7 +584,7 @@ function ScenePlayback({
               </div>
             )}
 
-            {q && questionReady && !feedback && kind === "comment" && q.choices[0] && (
+            {!interludeActive && q && questionReady && !feedback && kind === "comment" && q.choices[0] && (
               <div className="space-y-3">
                 <h3 className="font-semibold text-base md:text-lg text-white drop-shadow">{q.text}</h3>
                 <Textarea
