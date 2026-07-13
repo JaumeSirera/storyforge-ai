@@ -310,9 +310,17 @@ function Player({
           answeredIds={sceneAnsweredIds}
           forcedQId={forcedQId}
           initialClipId={pendingClipId}
-         
-         
+          branchClipId={branchReturn?.branchClipId}
+          onBranchClipEnded={() => setBranchClipEnded(true)}
         />
+
+        {branchReturn && branchClipEnded && (
+          <BranchReturnOverlay
+            countdown={branchCountdown}
+            onContinue={() => void resolveBranchReturn()}
+          />
+        )}
+
 
         {/* Top bar overlay */}
         <div className="absolute top-0 inset-x-0 z-30 flex items-start justify-between gap-3 px-4 pt-4 pb-8 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
