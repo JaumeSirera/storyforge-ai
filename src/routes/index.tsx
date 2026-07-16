@@ -43,11 +43,15 @@ function Header() {
           PlayGame
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
+          <Link to="/explore" className="hover:text-foreground">Galería</Link>
           <a href="#features" className="hover:text-foreground">Funciones</a>
           <a href="#how" className="hover:text-foreground">Cómo funciona</a>
           <a href="#use-cases" className="hover:text-foreground">Casos de uso</a>
         </nav>
         <div className="flex items-center gap-2">
+          <Link to="/explore">
+            <Button variant="ghost" size="sm">Explorar</Button>
+          </Link>
           <Link to="/auth">
             <Button variant="ghost" size="sm">Entrar</Button>
           </Link>
@@ -55,6 +59,7 @@ function Header() {
             <Button size="sm">Empezar gratis</Button>
           </Link>
         </div>
+
       </div>
     </header>
   );
