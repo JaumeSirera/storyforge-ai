@@ -72,6 +72,19 @@ function SimulationDetail() {
                 <ClipboardCheck className="h-4 w-4" /> Revisión
               </Link>
             </Button>
+            <Button asChild size="lg" variant="outline" className="gap-2">
+              <Link to="/app/simulations/$id/sessions" params={{ id }}>
+                <Users className="h-4 w-4" /> Candidatos
+              </Link>
+            </Button>
+            {sim.data.is_public && sim.data.status === "published" && (
+              <Button asChild size="lg" variant="outline" className="gap-2">
+                <Link to="/explore/$id" params={{ id }}>
+                  <Share2 className="h-4 w-4" /> Página pública
+                </Link>
+              </Button>
+            )}
+
             <Button
               size="lg"
               disabled={starting}
