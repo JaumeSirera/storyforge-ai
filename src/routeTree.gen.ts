@@ -13,6 +13,8 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ExploreIndexRouteImport } from './routes/explore.index'
+import { Route as ExploreIdRouteImport } from './routes/explore.$id'
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
 import { Route as AuthenticatedAppNewRouteImport } from './routes/_authenticated/app.new'
 import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
@@ -22,10 +24,12 @@ import { Route as AuthenticatedAppSimulationsIndexRouteImport } from './routes/_
 import { Route as ApiPublicRedsysNotificationRouteImport } from './routes/api/public/redsys/notification'
 import { Route as ApiPublicRedsysChargeRecurringRouteImport } from './routes/api/public/redsys/charge-recurring'
 import { Route as AuthenticatedAppSessionsIdRouteImport } from './routes/_authenticated/app.sessions.$id'
+import { Route as AuthenticatedAppPlayIdRouteImport } from './routes/_authenticated/app.play.$id'
 import { Route as AuthenticatedAppAdminUsersRouteImport } from './routes/_authenticated/app.admin.users'
 import { Route as AuthenticatedAppAdminSimulationsRouteImport } from './routes/_authenticated/app.admin.simulations'
 import { Route as AuthenticatedAppAdminPricingRouteImport } from './routes/_authenticated/app.admin.pricing'
 import { Route as AuthenticatedAppSimulationsIdIndexRouteImport } from './routes/_authenticated/app.simulations.$id.index'
+import { Route as AuthenticatedAppSimulationsIdSessionsRouteImport } from './routes/_authenticated/app.simulations.$id.sessions'
 import { Route as AuthenticatedAppSimulationsIdReviewRouteImport } from './routes/_authenticated/app.simulations.$id.review'
 import { Route as AuthenticatedAppSimulationsIdEditRouteImport } from './routes/_authenticated/app.simulations.$id.edit'
 
@@ -46,6 +50,16 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExploreIndexRoute = ExploreIndexRouteImport.update({
+  id: '/explore/',
+  path: '/explore/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExploreIdRoute = ExploreIdRouteImport.update({
+  id: '/explore/$id',
+  path: '/explore/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAppSettingsRoute =
@@ -99,6 +113,11 @@ const AuthenticatedAppSessionsIdRoute =
     path: '/app/sessions/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppPlayIdRoute = AuthenticatedAppPlayIdRouteImport.update({
+  id: '/app/play/$id',
+  path: '/app/play/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAppAdminUsersRoute =
   AuthenticatedAppAdminUsersRouteImport.update({
     id: '/users',
@@ -123,6 +142,12 @@ const AuthenticatedAppSimulationsIdIndexRoute =
     path: '/app/simulations/$id/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppSimulationsIdSessionsRoute =
+  AuthenticatedAppSimulationsIdSessionsRouteImport.update({
+    id: '/app/simulations/$id/sessions',
+    path: '/app/simulations/$id/sessions',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppSimulationsIdReviewRoute =
   AuthenticatedAppSimulationsIdReviewRouteImport.update({
     id: '/app/simulations/$id/review',
@@ -140,6 +165,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/explore/$id': typeof ExploreIdRoute
+  '/explore/': typeof ExploreIndexRoute
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
@@ -148,18 +175,22 @@ export interface FileRoutesByFullPath {
   '/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
+  '/app/play/$id': typeof AuthenticatedAppPlayIdRoute
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
   '/app/simulations/': typeof AuthenticatedAppSimulationsIndexRoute
   '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
+  '/app/simulations/$id/sessions': typeof AuthenticatedAppSimulationsIdSessionsRoute
   '/app/simulations/$id/': typeof AuthenticatedAppSimulationsIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/explore/$id': typeof ExploreIdRoute
+  '/explore': typeof ExploreIndexRoute
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
@@ -168,12 +199,14 @@ export interface FileRoutesByTo {
   '/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
+  '/app/play/$id': typeof AuthenticatedAppPlayIdRoute
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
   '/app/simulations': typeof AuthenticatedAppSimulationsIndexRoute
   '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
+  '/app/simulations/$id/sessions': typeof AuthenticatedAppSimulationsIdSessionsRoute
   '/app/simulations/$id': typeof AuthenticatedAppSimulationsIdIndexRoute
 }
 export interface FileRoutesById {
@@ -182,6 +215,8 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/explore/$id': typeof ExploreIdRoute
+  '/explore/': typeof ExploreIndexRoute
   '/_authenticated/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
   '/_authenticated/app/dashboard': typeof AuthenticatedAppDashboardRoute
@@ -190,12 +225,14 @@ export interface FileRoutesById {
   '/_authenticated/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/_authenticated/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/_authenticated/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
+  '/_authenticated/app/play/$id': typeof AuthenticatedAppPlayIdRoute
   '/_authenticated/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
   '/_authenticated/app/simulations/': typeof AuthenticatedAppSimulationsIndexRoute
   '/_authenticated/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/_authenticated/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
+  '/_authenticated/app/simulations/$id/sessions': typeof AuthenticatedAppSimulationsIdSessionsRoute
   '/_authenticated/app/simulations/$id/': typeof AuthenticatedAppSimulationsIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -204,6 +241,8 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/explore/$id'
+    | '/explore/'
     | '/app/admin'
     | '/app/billing'
     | '/app/dashboard'
@@ -212,18 +251,22 @@ export interface FileRouteTypes {
     | '/app/admin/pricing'
     | '/app/admin/simulations'
     | '/app/admin/users'
+    | '/app/play/$id'
     | '/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
     | '/api/public/redsys/notification'
     | '/app/simulations/'
     | '/app/simulations/$id/edit'
     | '/app/simulations/$id/review'
+    | '/app/simulations/$id/sessions'
     | '/app/simulations/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/explore/$id'
+    | '/explore'
     | '/app/admin'
     | '/app/billing'
     | '/app/dashboard'
@@ -232,12 +275,14 @@ export interface FileRouteTypes {
     | '/app/admin/pricing'
     | '/app/admin/simulations'
     | '/app/admin/users'
+    | '/app/play/$id'
     | '/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
     | '/api/public/redsys/notification'
     | '/app/simulations'
     | '/app/simulations/$id/edit'
     | '/app/simulations/$id/review'
+    | '/app/simulations/$id/sessions'
     | '/app/simulations/$id'
   id:
     | '__root__'
@@ -245,6 +290,8 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/reset-password'
+    | '/explore/$id'
+    | '/explore/'
     | '/_authenticated/app/admin'
     | '/_authenticated/app/billing'
     | '/_authenticated/app/dashboard'
@@ -253,12 +300,14 @@ export interface FileRouteTypes {
     | '/_authenticated/app/admin/pricing'
     | '/_authenticated/app/admin/simulations'
     | '/_authenticated/app/admin/users'
+    | '/_authenticated/app/play/$id'
     | '/_authenticated/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
     | '/api/public/redsys/notification'
     | '/_authenticated/app/simulations/'
     | '/_authenticated/app/simulations/$id/edit'
     | '/_authenticated/app/simulations/$id/review'
+    | '/_authenticated/app/simulations/$id/sessions'
     | '/_authenticated/app/simulations/$id/'
   fileRoutesById: FileRoutesById
 }
@@ -267,6 +316,8 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ExploreIdRoute: typeof ExploreIdRoute
+  ExploreIndexRoute: typeof ExploreIndexRoute
   ApiPublicRedsysChargeRecurringRoute: typeof ApiPublicRedsysChargeRecurringRoute
   ApiPublicRedsysNotificationRoute: typeof ApiPublicRedsysNotificationRoute
 }
@@ -299,6 +350,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explore/': {
+      id: '/explore/'
+      path: '/explore'
+      fullPath: '/explore/'
+      preLoaderRoute: typeof ExploreIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explore/$id': {
+      id: '/explore/$id'
+      path: '/explore/$id'
+      fullPath: '/explore/$id'
+      preLoaderRoute: typeof ExploreIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/settings': {
@@ -364,6 +429,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppSessionsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/play/$id': {
+      id: '/_authenticated/app/play/$id'
+      path: '/app/play/$id'
+      fullPath: '/app/play/$id'
+      preLoaderRoute: typeof AuthenticatedAppPlayIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/admin/users': {
       id: '/_authenticated/app/admin/users'
       path: '/users'
@@ -390,6 +462,13 @@ declare module '@tanstack/react-router' {
       path: '/app/simulations/$id'
       fullPath: '/app/simulations/$id/'
       preLoaderRoute: typeof AuthenticatedAppSimulationsIdIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/simulations/$id/sessions': {
+      id: '/_authenticated/app/simulations/$id/sessions'
+      path: '/app/simulations/$id/sessions'
+      fullPath: '/app/simulations/$id/sessions'
+      preLoaderRoute: typeof AuthenticatedAppSimulationsIdSessionsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/simulations/$id/review': {
@@ -432,10 +511,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppDashboardRoute: typeof AuthenticatedAppDashboardRoute
   AuthenticatedAppNewRoute: typeof AuthenticatedAppNewRoute
   AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
+  AuthenticatedAppPlayIdRoute: typeof AuthenticatedAppPlayIdRoute
   AuthenticatedAppSessionsIdRoute: typeof AuthenticatedAppSessionsIdRoute
   AuthenticatedAppSimulationsIndexRoute: typeof AuthenticatedAppSimulationsIndexRoute
   AuthenticatedAppSimulationsIdEditRoute: typeof AuthenticatedAppSimulationsIdEditRoute
   AuthenticatedAppSimulationsIdReviewRoute: typeof AuthenticatedAppSimulationsIdReviewRoute
+  AuthenticatedAppSimulationsIdSessionsRoute: typeof AuthenticatedAppSimulationsIdSessionsRoute
   AuthenticatedAppSimulationsIdIndexRoute: typeof AuthenticatedAppSimulationsIdIndexRoute
 }
 
@@ -445,12 +526,15 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppDashboardRoute: AuthenticatedAppDashboardRoute,
   AuthenticatedAppNewRoute: AuthenticatedAppNewRoute,
   AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
+  AuthenticatedAppPlayIdRoute: AuthenticatedAppPlayIdRoute,
   AuthenticatedAppSessionsIdRoute: AuthenticatedAppSessionsIdRoute,
   AuthenticatedAppSimulationsIndexRoute: AuthenticatedAppSimulationsIndexRoute,
   AuthenticatedAppSimulationsIdEditRoute:
     AuthenticatedAppSimulationsIdEditRoute,
   AuthenticatedAppSimulationsIdReviewRoute:
     AuthenticatedAppSimulationsIdReviewRoute,
+  AuthenticatedAppSimulationsIdSessionsRoute:
+    AuthenticatedAppSimulationsIdSessionsRoute,
   AuthenticatedAppSimulationsIdIndexRoute:
     AuthenticatedAppSimulationsIdIndexRoute,
 }
@@ -463,19 +547,11 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ExploreIdRoute: ExploreIdRoute,
+  ExploreIndexRoute: ExploreIndexRoute,
   ApiPublicRedsysChargeRecurringRoute: ApiPublicRedsysChargeRecurringRoute,
   ApiPublicRedsysNotificationRoute: ApiPublicRedsysNotificationRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

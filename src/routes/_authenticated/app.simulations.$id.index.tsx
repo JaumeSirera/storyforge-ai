@@ -7,7 +7,7 @@ import { computeSceneOrder, sortNodesByOrder } from "@/lib/scene-order";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, ArrowLeft, GitBranch, HelpCircle, Loader2, Pencil, CheckCircle2, Lock, ClipboardCheck } from "lucide-react";
+import { Play, ArrowLeft, GitBranch, HelpCircle, Loader2, Pencil, CheckCircle2, Lock, ClipboardCheck, Users, Share2 } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/app/simulations/$id/")({
@@ -72,6 +72,19 @@ function SimulationDetail() {
                 <ClipboardCheck className="h-4 w-4" /> Revisión
               </Link>
             </Button>
+            <Button asChild size="lg" variant="outline" className="gap-2">
+              <Link to="/app/simulations/$id/sessions" params={{ id }}>
+                <Users className="h-4 w-4" /> Candidatos
+              </Link>
+            </Button>
+            {sim.data.is_public && sim.data.status === "published" && (
+              <Button asChild size="lg" variant="outline" className="gap-2">
+                <Link to="/explore/$id" params={{ id }}>
+                  <Share2 className="h-4 w-4" /> Página pública
+                </Link>
+              </Button>
+            )}
+
             <Button
               size="lg"
               disabled={starting}
