@@ -764,6 +764,26 @@ function FinalReport({ sessionId, sess, sim }: { sessionId: string; sess: any; s
         </CardContent>
       </Card>
 
+      {sess.admin_feedback && (
+        <Card className="border-primary/40">
+          <CardContent className="pt-6">
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" /> Feedback del creador de la simulación
+            </h3>
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+              {sess.admin_feedback}
+            </p>
+            {sess.admin_feedback_at && (
+              <p className="text-xs text-muted-foreground mt-2 opacity-70">
+                Enviado el {new Date(sess.admin_feedback_at).toLocaleString()}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+
+
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
           <CardContent className="pt-6">
