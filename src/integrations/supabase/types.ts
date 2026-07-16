@@ -164,7 +164,12 @@ export type Database = {
       sessions: {
         Row: {
           achievements: Json
+          admin_feedback: string | null
+          admin_feedback_at: string | null
           answers: Json
+          candidate_email: string | null
+          candidate_fields_data: Json
+          candidate_name: string | null
           competency_scores: Json
           completed_at: string | null
           current_node_id: string | null
@@ -179,7 +184,12 @@ export type Database = {
         }
         Insert: {
           achievements?: Json
+          admin_feedback?: string | null
+          admin_feedback_at?: string | null
           answers?: Json
+          candidate_email?: string | null
+          candidate_fields_data?: Json
+          candidate_name?: string | null
           competency_scores?: Json
           completed_at?: string | null
           current_node_id?: string | null
@@ -194,7 +204,12 @@ export type Database = {
         }
         Update: {
           achievements?: Json
+          admin_feedback?: string | null
+          admin_feedback_at?: string | null
           answers?: Json
+          candidate_email?: string | null
+          candidate_fields_data?: Json
+          candidate_name?: string | null
           competency_scores?: Json
           completed_at?: string | null
           current_node_id?: string | null
@@ -310,6 +325,7 @@ export type Database = {
       }
       simulations: {
         Row: {
+          candidate_fields: Json
           cover_image_url: string | null
           created_at: string
           duration_min: number | null
@@ -327,6 +343,7 @@ export type Database = {
           videos: Json
         }
         Insert: {
+          candidate_fields?: Json
           cover_image_url?: string | null
           created_at?: string
           duration_min?: number | null
@@ -344,6 +361,7 @@ export type Database = {
           videos?: Json
         }
         Update: {
+          candidate_fields?: Json
           cover_image_url?: string | null
           created_at?: string
           duration_min?: number | null
