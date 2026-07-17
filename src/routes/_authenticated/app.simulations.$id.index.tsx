@@ -172,3 +172,153 @@ function SimulationDetail() {
     </div>
   );
 }
+
+function InvitationsCard({ simulationId, published }: { simulationId: string; published: boolean }) {
+  const qc = useQueryClient();
+  const list = useServerFn(listInvitations);
+  const create = useServerFn(createInvitation);
+  const revoke = useServerFn(revokeInvitation);
+  const remove = useServerFn(deleteInvitation);
+
+  const q = useQuery({
+    queryKey: ["invitations", simulationId],
+    queryFn: () => list({ data: { simulationId } }),
+  });
+
+  const [note, setNote] = useState("");
+  const [days, setDays] = useState<string>("14");
+  const [maxUses, setMaxUses] = useState<string>("");
+  const [busy, setBusy] = useState(false);
+
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+
+  async function onCreate() {
+    setBusy(true);
+    try {
+      await create({
+        data: {
+          simulationId,
+          note: note.trim() || undefined,
+          expiresInDays: days ? Number(days) : undefined,
+          maxUses: maxUses ? Number(maxUses) : undefined,
+        },
+      });
+      setNote("");
+      qc.invalidateQueries({ queryKey: ["invitations", simulationId] });
+      toast.success("Invitación creada");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><Link2 className="h-4 w-4" /> Invitaciones privadas</CardTitle>
+        <CardDescription>
+          Comparte enlaces privados con expiración para que candidatos jueguen sin publicar la simulación en la galería pública.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {!published && (
+          <p className="text-sm text-muted-foreground">
+            Debes publicar la simulación para poder generar invitaciones válidas.
+          </p>
+        )}
+        <div className="grid gap-3 sm:grid-cols-4">
+          <div className="sm:col-span-2">
+            <Label>Nota (opcional)</Label>
+            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ej. Candidatos ronda 1" />
+          </div>
+          <div>
+            <Label>Caduca en (días)</Label>
+            <Input type="number" min={1} max={365} value={days} onChange={(e) => setDays(e.target.value)} />
+          </div>
+          <div>
+            <Label>Máx. usos</Label>
+            <Input type="number" min={1} value={maxUses} onChange={(e) => setMaxUses(e.target.value)} placeholder="ilimitado" />
+          </div>
+        </div>
+        <Button onClick={onCreate} disabled={busy || !published} className="gap-2">
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
+          Generar enlace
+        </Button>
+
+        <div className="divide-y divide-border rounded-lg border border-border">
+          {q.isLoading ? (
+            <p className="p-4 text-sm text-muted-foreground">Cargando…</p>
+          ) : (q.data?.length ?? 0) === 0 ? (
+            <p className="p-4 text-sm text-muted-foreground">Aún no hay invitaciones.</p>
+          ) : (
+            q.data!.map((inv: any) => {
+              const url = `${origin}/invite/${inv.token}`;
+              const expired = inv.expires_at && new Date(inv.expires_at).getTime() < Date.now();
+              const exhausted = inv.max_uses != null && inv.uses_count >= inv.max_uses;
+              const active = !inv.revoked_at && !expired && !exhausted;
+              return (
+                <div key={inv.id} className="p-3 flex flex-wrap items-center gap-3">
+                  <div className="flex-1 min-w-[240px]">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <code className="text-xs bg-muted px-2 py-1 rounded truncate max-w-[420px]">{url}</code>
+                      {active ? (
+                        <Badge className="gap-1"><CheckCircle2 className="h-3 w-3" /> Activo</Badge>
+                      ) : (
+                        <Badge variant="secondary">
+                          {inv.revoked_at ? "Revocado" : expired ? "Caducado" : "Agotado"}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {inv.note ? <>· {inv.note} </> : null}
+                      · Usos: {inv.uses_count}{inv.max_uses ? ` / ${inv.max_uses}` : ""}
+                      {inv.expires_at ? <> · Caduca {new Date(inv.expires_at).toLocaleDateString()}</> : null}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1"
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(url);
+                        toast.success("Enlace copiado");
+                      }}
+                    >
+                      <Copy className="h-3 w-3" /> Copiar
+                    </Button>
+                    {active && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1"
+                        onClick={async () => {
+                          await revoke({ data: { id: inv.id } });
+                          qc.invalidateQueries({ queryKey: ["invitations", simulationId] });
+                        }}
+                      >
+                        <Ban className="h-3 w-3" /> Revocar
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="gap-1 text-destructive"
+                      onClick={async () => {
+                        await remove({ data: { id: inv.id } });
+                        qc.invalidateQueries({ queryKey: ["invitations", simulationId] });
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
