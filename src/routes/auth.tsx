@@ -97,7 +97,7 @@ function GoogleButton() {
           return;
         }
         if (result.redirected) return;
-        goAfterAuth(useNavigate());
+        window.location.href = consumePostAuthRedirect() ?? "/app/dashboard";
       }}
     >
       Continuar con Google
