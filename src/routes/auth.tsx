@@ -20,12 +20,28 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+function consumePostAuthRedirect(): string | null {
+  try {
+    const v = sessionStorage.getItem("postAuthRedirect");
+    if (v) sessionStorage.removeItem("postAuthRedirect");
+    return v;
+  } catch {
+    return null;
+  }
+}
+
+function goAfterAuth(navigate: ReturnType<typeof useNavigate>) {
+  const to = consumePostAuthRedirect();
+  if (to) window.location.href = to;
+  else navigate({ to: "/app/dashboard" });
+}
+
 function AuthPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/app/dashboard" });
+      if (data.session) goAfterAuth(navigate);
     });
   }, [navigate]);
 
