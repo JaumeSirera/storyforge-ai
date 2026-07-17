@@ -26,7 +26,7 @@ export const getPublicSimulation = createServerFn({ method: "POST" })
     const { data: sim, error } = await supabaseAdmin
       .from("simulations")
       .select(
-        "id, title, objective, topic, duration_min, cover_image_url, candidate_fields, status, is_public",
+        "id, title, objective, topic, duration_min, cover_image_url, evaluation_criteria, candidate_fields, status, is_public",
       )
       .eq("id", data.id)
       .eq("is_public", true)
