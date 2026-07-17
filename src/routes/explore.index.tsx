@@ -94,7 +94,7 @@ function ExploreIndex() {
                   </div>
                   <Button asChild size="sm" className="gap-1">
                     <Link to="/explore/$id" params={{ id: s.id }}>
-                      <Play className="h-3.5 w-3.5" /> Ver
+                      <Play className="h-3.5 w-3.5" /> Jugar
                     </Link>
                   </Button>
                 </CardContent>
