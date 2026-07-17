@@ -10,16 +10,16 @@ import { Play, Sparkles, Home } from "lucide-react";
 export const Route = createFileRoute("/explore/")({
   head: () => ({
     meta: [
-      { title: "Galería de simulaciones — PlayGame" },
+      { title: "Galería de juegos gamificados — PlayGame" },
       {
         name: "description",
         content:
-          "Explora simulaciones profesionales gamificadas creadas por la comunidad. Juega en unos minutos y recibe tu informe de competencias.",
+          "Descubre vídeos convertidos en juegos interactivos: preguntas, decisiones, puntuación y informe de competencias. Creados con IA en minutos.",
       },
-      { property: "og:title", content: "Galería de simulaciones — PlayGame" },
+      { property: "og:title", content: "Galería de juegos gamificados — PlayGame" },
       {
         property: "og:description",
-        content: "Explora y juega simulaciones profesionales generadas con IA.",
+        content: "Juega vídeos interactivos profesionales generados con IA.",
       },
     ],
   }),
