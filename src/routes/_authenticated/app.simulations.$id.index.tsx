@@ -113,6 +113,10 @@ function SimulationDetail() {
         </CardContent>
       </Card>
 
+      <InvitationsCard simulationId={id} published={sim.data.status === "published"} />
+
+
+
       <Card>
         <CardHeader>
           <CardTitle>Criterios de evaluación</CardTitle>
