@@ -1,30 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
 import { z } from "zod";
 
-function serverPublicClient() {
-  const url = process.env.SUPABASE_URL!;
-  const key = process.env.SUPABASE_PUBLISHABLE_KEY!;
-  return createClient<Database>(url, key, {
-    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
-    global: {
-      fetch: (input, init) => {
-        const h = new Headers(init?.headers);
-        if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`) {
-          h.delete("Authorization");
-        }
-        h.set("apikey", key);
-        return fetch(input as any, { ...init, headers: h });
-      },
-    },
-  });
-}
-
-/** Public gallery — anyone (no login) can view published + public simulations. */
+/** Public gallery — anyone (no login) can view published + public simulations.
+ * Uses supabaseAdmin (bypasses RLS) but ONLY projects safe, non-sensitive columns.
+ * Sensitive fields (prompt, story, evaluation_criteria) are NEVER exposed here. */
 export const listPublicSimulations = createServerFn({ method: "GET" }).handler(async () => {
-  const supa = serverPublicClient();
-  const { data, error } = await supa
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
     .from("simulations")
     .select("id, title, objective, topic, duration_min, cover_image_url, updated_at")
     .eq("is_public", true)
@@ -35,12 +17,13 @@ export const listPublicSimulations = createServerFn({ method: "GET" }).handler(a
   return data ?? [];
 });
 
-/** Public detail — safe subset for the gallery landing. */
+/** Public detail — safe subset for the gallery landing.
+ * Excludes prompt, story, and other internal business-logic fields. */
 export const getPublicSimulation = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => z.object({ id: z.string().uuid() }).parse(v))
   .handler(async ({ data }) => {
-    const supa = serverPublicClient();
-    const { data: sim, error } = await supa
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: sim, error } = await supabaseAdmin
       .from("simulations")
       .select(
         "id, title, objective, topic, duration_min, cover_image_url, evaluation_criteria, candidate_fields, status, is_public",
