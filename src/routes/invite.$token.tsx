@@ -126,12 +126,10 @@ function InvitePage() {
                 Necesitas una cuenta para jugar y que se guarde tu progreso.
               </p>
               <Button
-                onClick={() =>
-                  navigate({
-                    to: "/auth",
-                    search: { redirect: `/invite/${token}` } as any,
-                  })
-                }
+                onClick={() => {
+                  try { sessionStorage.setItem("postAuthRedirect", `/invite/${token}`); } catch {}
+                  navigate({ to: "/auth" });
+                }}
                 className="gap-2"
               >
                 <LogIn className="h-4 w-4" /> Iniciar sesión / Crear cuenta
