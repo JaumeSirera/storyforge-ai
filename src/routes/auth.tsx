@@ -97,7 +97,7 @@ function GoogleButton() {
           return;
         }
         if (result.redirected) return;
-        window.location.href = "/app/dashboard";
+        goAfterAuth(useNavigate());
       }}
     >
       Continuar con Google
