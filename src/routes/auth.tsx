@@ -178,7 +178,7 @@ function SignUpForm() {
         setLoading(false);
         if (error) return toast.error(error.message);
         toast.success("Cuenta creada. Comprueba tu email si es necesario.");
-        navigate({ to: "/app/dashboard" });
+        goAfterAuth(navigate);
       }}
     >
       <div className="space-y-1.5">
