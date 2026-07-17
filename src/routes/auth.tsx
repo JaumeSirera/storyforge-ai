@@ -120,7 +120,7 @@ function SignInForm() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         setLoading(false);
         if (error) return toast.error(error.message);
-        navigate({ to: "/app/dashboard" });
+        goAfterAuth(navigate);
       }}
     >
       <div className="space-y-1.5">
