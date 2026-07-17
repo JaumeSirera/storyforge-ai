@@ -5,7 +5,7 @@ import { listPublicSimulations } from "@/lib/public.functions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Play, Sparkles, Home } from "lucide-react";
+import { Play, Sparkles, Home, Gamepad2 } from "lucide-react";
 
 export const Route = createFileRoute("/explore/")({
   head: () => ({
