@@ -1,14 +1,23 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getSimulation } from "@/lib/simulations.functions";
 import { startSession } from "@/lib/sessions.functions";
+import {
+  listInvitations,
+  createInvitation,
+  revokeInvitation,
+  deleteInvitation,
+} from "@/lib/invitations.functions";
 import { computeSceneOrder, sortNodesByOrder } from "@/lib/scene-order";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Play, ArrowLeft, GitBranch, HelpCircle, Loader2, Pencil, CheckCircle2, Lock, ClipboardCheck, Users, Share2 } from "lucide-react";
+import { Play, ArrowLeft, GitBranch, HelpCircle, Loader2, Pencil, CheckCircle2, Lock, ClipboardCheck, Users, Share2, Link2, Copy, Trash2, Ban } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/simulations/$id/")({
   component: SimulationDetail,
