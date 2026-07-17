@@ -20,12 +20,28 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+function consumePostAuthRedirect(): string | null {
+  try {
+    const v = sessionStorage.getItem("postAuthRedirect");
+    if (v) sessionStorage.removeItem("postAuthRedirect");
+    return v;
+  } catch {
+    return null;
+  }
+}
+
+function goAfterAuth(navigate: ReturnType<typeof useNavigate>) {
+  const to = consumePostAuthRedirect();
+  if (to) window.location.href = to;
+  else navigate({ to: "/app/dashboard" });
+}
+
 function AuthPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/app/dashboard" });
+      if (data.session) goAfterAuth(navigate);
     });
   }, [navigate]);
 
@@ -81,7 +97,7 @@ function GoogleButton() {
           return;
         }
         if (result.redirected) return;
-        window.location.href = "/app/dashboard";
+        window.location.href = consumePostAuthRedirect() ?? "/app/dashboard";
       }}
     >
       Continuar con Google
@@ -104,7 +120,7 @@ function SignInForm() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         setLoading(false);
         if (error) return toast.error(error.message);
-        navigate({ to: "/app/dashboard" });
+        goAfterAuth(navigate);
       }}
     >
       <div className="space-y-1.5">
@@ -162,7 +178,7 @@ function SignUpForm() {
         setLoading(false);
         if (error) return toast.error(error.message);
         toast.success("Cuenta creada. Comprueba tu email si es necesario.");
-        navigate({ to: "/app/dashboard" });
+        goAfterAuth(navigate);
       }}
     >
       <div className="space-y-1.5">

@@ -276,6 +276,53 @@ export type Database = {
           },
         ]
       }
+      simulation_invitations: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          max_uses: number | null
+          note: string | null
+          revoked_at: string | null
+          simulation_id: string
+          token: string
+          uses_count: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          note?: string | null
+          revoked_at?: string | null
+          simulation_id: string
+          token: string
+          uses_count?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          note?: string | null
+          revoked_at?: string | null
+          simulation_id?: string
+          token?: string
+          uses_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_invitations_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "simulations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       simulation_revisions: {
         Row: {
           action: string
