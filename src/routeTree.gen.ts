@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ExploreIndexRouteImport } from './routes/explore.index'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as ExploreIdRouteImport } from './routes/explore.$id'
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
 import { Route as AuthenticatedAppNewRouteImport } from './routes/_authenticated/app.new'
@@ -55,6 +56,11 @@ const IndexRoute = IndexRouteImport.update({
 const ExploreIndexRoute = ExploreIndexRouteImport.update({
   id: '/explore/',
   path: '/explore/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExploreIdRoute = ExploreIdRouteImport.update({
@@ -166,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/explore/$id': typeof ExploreIdRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/explore/': typeof ExploreIndexRoute
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/app/billing': typeof AuthenticatedAppBillingRoute
@@ -190,6 +197,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/explore/$id': typeof ExploreIdRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/explore': typeof ExploreIndexRoute
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/app/billing': typeof AuthenticatedAppBillingRoute
@@ -216,6 +224,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/explore/$id': typeof ExploreIdRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/explore/': typeof ExploreIndexRoute
   '/_authenticated/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
@@ -242,6 +251,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/explore/$id'
+    | '/invite/$token'
     | '/explore/'
     | '/app/admin'
     | '/app/billing'
@@ -266,6 +276,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/explore/$id'
+    | '/invite/$token'
     | '/explore'
     | '/app/admin'
     | '/app/billing'
@@ -291,6 +302,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/explore/$id'
+    | '/invite/$token'
     | '/explore/'
     | '/_authenticated/app/admin'
     | '/_authenticated/app/billing'
@@ -317,6 +329,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ExploreIdRoute: typeof ExploreIdRoute
+  InviteTokenRoute: typeof InviteTokenRoute
   ExploreIndexRoute: typeof ExploreIndexRoute
   ApiPublicRedsysChargeRecurringRoute: typeof ApiPublicRedsysChargeRecurringRoute
   ApiPublicRedsysNotificationRoute: typeof ApiPublicRedsysNotificationRoute
@@ -357,6 +370,13 @@ declare module '@tanstack/react-router' {
       path: '/explore'
       fullPath: '/explore/'
       preLoaderRoute: typeof ExploreIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/explore/$id': {
@@ -548,6 +568,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ExploreIdRoute: ExploreIdRoute,
+  InviteTokenRoute: InviteTokenRoute,
   ExploreIndexRoute: ExploreIndexRoute,
   ApiPublicRedsysChargeRecurringRoute: ApiPublicRedsysChargeRecurringRoute,
   ApiPublicRedsysNotificationRoute: ApiPublicRedsysNotificationRoute,
