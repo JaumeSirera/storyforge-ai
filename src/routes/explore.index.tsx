@@ -5,21 +5,21 @@ import { listPublicSimulations } from "@/lib/public.functions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Play, Sparkles, Home } from "lucide-react";
+import { Play, Sparkles, Home, Gamepad2 } from "lucide-react";
 
 export const Route = createFileRoute("/explore/")({
   head: () => ({
     meta: [
-      { title: "Galería de simulaciones — PlayGame" },
+      { title: "Galería de juegos gamificados — PlayGame" },
       {
         name: "description",
         content:
-          "Explora simulaciones profesionales gamificadas creadas por la comunidad. Juega en unos minutos y recibe tu informe de competencias.",
+          "Descubre vídeos convertidos en juegos interactivos: preguntas, decisiones, puntuación y informe de competencias. Creados con IA en minutos.",
       },
-      { property: "og:title", content: "Galería de simulaciones — PlayGame" },
+      { property: "og:title", content: "Galería de juegos gamificados — PlayGame" },
       {
         property: "og:description",
-        content: "Explora y juega simulaciones profesionales generadas con IA.",
+        content: "Juega vídeos interactivos profesionales generados con IA.",
       },
     ],
   }),
@@ -49,10 +49,16 @@ function ExploreIndex() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-10 space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Galería pública</h1>
-          <p className="text-muted-foreground mt-2">
-            Simulaciones profesionales publicadas por creadores de PlayGame. Para jugar necesitas una cuenta gratuita.
+        <div className="text-center sm:text-left">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+            <Gamepad2 className="h-3.5 w-3.5" />
+            Vídeos convertidos en juegos
+          </div>
+          <h1 className="mt-4 text-4xl font-extrabold tracking-tight">
+            Galería de juegos gamificados
+          </h1>
+          <p className="mt-3 text-lg text-muted-foreground max-w-2xl">
+            Explora simulaciones interactivas creadas por profesionales. Responde, decide y recibe un informe de competencias al finalizar.
           </p>
         </div>
 
@@ -88,7 +94,7 @@ function ExploreIndex() {
                   </div>
                   <Button asChild size="sm" className="gap-1">
                     <Link to="/explore/$id" params={{ id: s.id }}>
-                      <Play className="h-3.5 w-3.5" /> Ver
+                      <Play className="h-3.5 w-3.5" /> Jugar
                     </Link>
                   </Button>
                 </CardContent>
