@@ -108,8 +108,8 @@ function BottomNavItem({ to, icon: Icon, label }: { to: string; icon: any; label
   return (
     <Link
       to={to}
-      className="flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] text-muted-foreground hover:text-foreground"
-      activeProps={{ className: "text-primary font-medium" }}
+      className="flex flex-col items-center justify-center gap-0.5 py-2 px-3 mx-1 rounded-lg text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+      activeProps={{ className: "bg-primary/10 text-primary font-medium" }}
     >
       <Icon className="h-5 w-5" />
       <span>{label}</span>
