@@ -90,12 +90,33 @@ function AppLayout() {
           </div>
         )}
       </header>
-      <main className="mx-auto max-w-7xl px-4 py-8">
+      <main className="mx-auto max-w-7xl px-4 py-8 pb-24 md:pb-8">
         <Outlet />
       </main>
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-background/95 backdrop-blur">
+        <div className="mx-auto grid max-w-7xl grid-cols-3">
+          <BottomNavItem to="/app/dashboard" icon={LayoutDashboard} label="Inicio" />
+          <BottomNavItem to="/app/simulations" icon={Library} label="Simulaciones" />
+          <BottomNavItem to="/app/settings" icon={Settings} label="Perfil" />
+        </div>
+      </nav>
     </div>
   );
 }
+
+function BottomNavItem({ to, icon: Icon, label }: { to: string; icon: any; label: string }) {
+  return (
+    <Link
+      to={to}
+      className="flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] text-muted-foreground hover:text-foreground"
+      activeProps={{ className: "text-primary font-medium" }}
+    >
+      <Icon className="h-5 w-5" />
+      <span>{label}</span>
+    </Link>
+  );
+}
+
 
 function NavItem({ to, icon: Icon, label }: { to: string; icon: any; label: string }) {
   return (
