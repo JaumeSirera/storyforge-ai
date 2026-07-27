@@ -9,34 +9,38 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ExploreIndexRouteImport } from './routes/explore.index'
-import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as ExploreIdRouteImport } from './routes/explore.$id'
-import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
-import { Route as AuthenticatedAppNewRouteImport } from './routes/_authenticated/app.new'
-import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
-import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authenticated/app.billing'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app.admin'
-import { Route as AuthenticatedAppSimulationsIndexRouteImport } from './routes/_authenticated/app.simulations.index'
-import { Route as ApiPublicRedsysNotificationRouteImport } from './routes/api/public/redsys/notification'
-import { Route as ApiPublicRedsysChargeRecurringRouteImport } from './routes/api/public/redsys/charge-recurring'
-import { Route as AuthenticatedAppSessionsIdRouteImport } from './routes/_authenticated/app.sessions.$id'
-import { Route as AuthenticatedAppPlayIdRouteImport } from './routes/_authenticated/app.play.$id'
-import { Route as AuthenticatedAppAdminUsersRouteImport } from './routes/_authenticated/app.admin.users'
-import { Route as AuthenticatedAppAdminSimulationsRouteImport } from './routes/_authenticated/app.admin.simulations'
+import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authenticated/app.billing'
+import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
+import { Route as AuthenticatedAppNewRouteImport } from './routes/_authenticated/app.new'
+import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
 import { Route as AuthenticatedAppAdminPricingRouteImport } from './routes/_authenticated/app.admin.pricing'
+import { Route as AuthenticatedAppAdminSimulationsRouteImport } from './routes/_authenticated/app.admin.simulations'
+import { Route as AuthenticatedAppAdminUsersRouteImport } from './routes/_authenticated/app.admin.users'
+import { Route as AuthenticatedAppPlayIdRouteImport } from './routes/_authenticated/app.play.$id'
+import { Route as AuthenticatedAppSessionsIdRouteImport } from './routes/_authenticated/app.sessions.$id'
+import { Route as AuthenticatedAppSimulationsIndexRouteImport } from './routes/_authenticated/app.simulations.index'
+import { Route as ApiPublicRedsysChargeRecurringRouteImport } from './routes/api/public/redsys/charge-recurring'
+import { Route as ApiPublicRedsysNotificationRouteImport } from './routes/api/public/redsys/notification'
 import { Route as AuthenticatedAppSimulationsIdIndexRouteImport } from './routes/_authenticated/app.simulations.$id.index'
-import { Route as AuthenticatedAppSimulationsIdSessionsRouteImport } from './routes/_authenticated/app.simulations.$id.sessions'
-import { Route as AuthenticatedAppSimulationsIdReviewRouteImport } from './routes/_authenticated/app.simulations.$id.review'
 import { Route as AuthenticatedAppSimulationsIdEditRouteImport } from './routes/_authenticated/app.simulations.$id.edit'
+import { Route as AuthenticatedAppSimulationsIdReviewRouteImport } from './routes/_authenticated/app.simulations.$id.review'
+import { Route as AuthenticatedAppSimulationsIdSessionsRouteImport } from './routes/_authenticated/app.simulations.$id.sessions'
 
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -44,13 +48,9 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExploreIndexRoute = ExploreIndexRouteImport.update({
@@ -58,25 +58,24 @@ const ExploreIndexRoute = ExploreIndexRouteImport.update({
   path: '/explore/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const InviteTokenRoute = InviteTokenRouteImport.update({
-  id: '/invite/$token',
-  path: '/invite/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ExploreIdRoute = ExploreIdRouteImport.update({
   id: '/explore/$id',
   path: '/explore/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAppSettingsRoute =
-  AuthenticatedAppSettingsRouteImport.update({
-    id: '/app/settings',
-    path: '/app/settings',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAppNewRoute = AuthenticatedAppNewRouteImport.update({
-  id: '/app/new',
-  path: '/app/new',
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAppAdminRoute = AuthenticatedAppAdminRouteImport.update({
+  id: '/app/admin',
+  path: '/app/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAppBillingRoute = AuthenticatedAppBillingRouteImport.update({
+  id: '/app/billing',
+  path: '/app/billing',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAppDashboardRoute =
@@ -85,49 +84,21 @@ const AuthenticatedAppDashboardRoute =
     path: '/app/dashboard',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAppBillingRoute = AuthenticatedAppBillingRouteImport.update({
-  id: '/app/billing',
-  path: '/app/billing',
+const AuthenticatedAppNewRoute = AuthenticatedAppNewRouteImport.update({
+  id: '/app/new',
+  path: '/app/new',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAppAdminRoute = AuthenticatedAppAdminRouteImport.update({
-  id: '/app/admin',
-  path: '/app/admin',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedAppSimulationsIndexRoute =
-  AuthenticatedAppSimulationsIndexRouteImport.update({
-    id: '/app/simulations/',
-    path: '/app/simulations/',
+const AuthenticatedAppSettingsRoute =
+  AuthenticatedAppSettingsRouteImport.update({
+    id: '/app/settings',
+    path: '/app/settings',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const ApiPublicRedsysNotificationRoute =
-  ApiPublicRedsysNotificationRouteImport.update({
-    id: '/api/public/redsys/notification',
-    path: '/api/public/redsys/notification',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicRedsysChargeRecurringRoute =
-  ApiPublicRedsysChargeRecurringRouteImport.update({
-    id: '/api/public/redsys/charge-recurring',
-    path: '/api/public/redsys/charge-recurring',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const AuthenticatedAppSessionsIdRoute =
-  AuthenticatedAppSessionsIdRouteImport.update({
-    id: '/app/sessions/$id',
-    path: '/app/sessions/$id',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAppPlayIdRoute = AuthenticatedAppPlayIdRouteImport.update({
-  id: '/app/play/$id',
-  path: '/app/play/$id',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedAppAdminUsersRoute =
-  AuthenticatedAppAdminUsersRouteImport.update({
-    id: '/users',
-    path: '/users',
+const AuthenticatedAppAdminPricingRoute =
+  AuthenticatedAppAdminPricingRouteImport.update({
+    id: '/pricing',
+    path: '/pricing',
     getParentRoute: () => AuthenticatedAppAdminRoute,
   } as any)
 const AuthenticatedAppAdminSimulationsRoute =
@@ -136,11 +107,40 @@ const AuthenticatedAppAdminSimulationsRoute =
     path: '/simulations',
     getParentRoute: () => AuthenticatedAppAdminRoute,
   } as any)
-const AuthenticatedAppAdminPricingRoute =
-  AuthenticatedAppAdminPricingRouteImport.update({
-    id: '/pricing',
-    path: '/pricing',
+const AuthenticatedAppAdminUsersRoute =
+  AuthenticatedAppAdminUsersRouteImport.update({
+    id: '/users',
+    path: '/users',
     getParentRoute: () => AuthenticatedAppAdminRoute,
+  } as any)
+const AuthenticatedAppPlayIdRoute = AuthenticatedAppPlayIdRouteImport.update({
+  id: '/app/play/$id',
+  path: '/app/play/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAppSessionsIdRoute =
+  AuthenticatedAppSessionsIdRouteImport.update({
+    id: '/app/sessions/$id',
+    path: '/app/sessions/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppSimulationsIndexRoute =
+  AuthenticatedAppSimulationsIndexRouteImport.update({
+    id: '/app/simulations/',
+    path: '/app/simulations/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const ApiPublicRedsysChargeRecurringRoute =
+  ApiPublicRedsysChargeRecurringRouteImport.update({
+    id: '/api/public/redsys/charge-recurring',
+    path: '/api/public/redsys/charge-recurring',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicRedsysNotificationRoute =
+  ApiPublicRedsysNotificationRouteImport.update({
+    id: '/api/public/redsys/notification',
+    path: '/api/public/redsys/notification',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const AuthenticatedAppSimulationsIdIndexRoute =
   AuthenticatedAppSimulationsIdIndexRouteImport.update({
@@ -148,10 +148,10 @@ const AuthenticatedAppSimulationsIdIndexRoute =
     path: '/app/simulations/$id/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAppSimulationsIdSessionsRoute =
-  AuthenticatedAppSimulationsIdSessionsRouteImport.update({
-    id: '/app/simulations/$id/sessions',
-    path: '/app/simulations/$id/sessions',
+const AuthenticatedAppSimulationsIdEditRoute =
+  AuthenticatedAppSimulationsIdEditRouteImport.update({
+    id: '/app/simulations/$id/edit',
+    path: '/app/simulations/$id/edit',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppSimulationsIdReviewRoute =
@@ -160,10 +160,10 @@ const AuthenticatedAppSimulationsIdReviewRoute =
     path: '/app/simulations/$id/review',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAppSimulationsIdEditRoute =
-  AuthenticatedAppSimulationsIdEditRouteImport.update({
-    id: '/app/simulations/$id/edit',
-    path: '/app/simulations/$id/edit',
+const AuthenticatedAppSimulationsIdSessionsRoute =
+  AuthenticatedAppSimulationsIdSessionsRouteImport.update({
+    id: '/app/simulations/$id/sessions',
+    path: '/app/simulations/$id/sessions',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 
@@ -337,18 +337,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -358,11 +351,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/explore/': {
@@ -372,13 +372,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExploreIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/invite/$token': {
-      id: '/invite/$token'
-      path: '/invite/$token'
-      fullPath: '/invite/$token'
-      preLoaderRoute: typeof InviteTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/explore/$id': {
       id: '/explore/$id'
       path: '/explore/$id'
@@ -386,25 +379,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExploreIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/app/settings': {
-      id: '/_authenticated/app/settings'
-      path: '/app/settings'
-      fullPath: '/app/settings'
-      preLoaderRoute: typeof AuthenticatedAppSettingsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/app/new': {
-      id: '/_authenticated/app/new'
-      path: '/app/new'
-      fullPath: '/app/new'
-      preLoaderRoute: typeof AuthenticatedAppNewRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/app/dashboard': {
-      id: '/_authenticated/app/dashboard'
-      path: '/app/dashboard'
-      fullPath: '/app/dashboard'
-      preLoaderRoute: typeof AuthenticatedAppDashboardRouteImport
+    '/_authenticated/app/admin': {
+      id: '/_authenticated/app/admin'
+      path: '/app/admin'
+      fullPath: '/app/admin'
+      preLoaderRoute: typeof AuthenticatedAppAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/billing': {
@@ -414,53 +400,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppBillingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/admin': {
-      id: '/_authenticated/app/admin'
-      path: '/app/admin'
-      fullPath: '/app/admin'
-      preLoaderRoute: typeof AuthenticatedAppAdminRouteImport
+    '/_authenticated/app/dashboard': {
+      id: '/_authenticated/app/dashboard'
+      path: '/app/dashboard'
+      fullPath: '/app/dashboard'
+      preLoaderRoute: typeof AuthenticatedAppDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/simulations/': {
-      id: '/_authenticated/app/simulations/'
-      path: '/app/simulations'
-      fullPath: '/app/simulations/'
-      preLoaderRoute: typeof AuthenticatedAppSimulationsIndexRouteImport
+    '/_authenticated/app/new': {
+      id: '/_authenticated/app/new'
+      path: '/app/new'
+      fullPath: '/app/new'
+      preLoaderRoute: typeof AuthenticatedAppNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/redsys/notification': {
-      id: '/api/public/redsys/notification'
-      path: '/api/public/redsys/notification'
-      fullPath: '/api/public/redsys/notification'
-      preLoaderRoute: typeof ApiPublicRedsysNotificationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/redsys/charge-recurring': {
-      id: '/api/public/redsys/charge-recurring'
-      path: '/api/public/redsys/charge-recurring'
-      fullPath: '/api/public/redsys/charge-recurring'
-      preLoaderRoute: typeof ApiPublicRedsysChargeRecurringRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/app/sessions/$id': {
-      id: '/_authenticated/app/sessions/$id'
-      path: '/app/sessions/$id'
-      fullPath: '/app/sessions/$id'
-      preLoaderRoute: typeof AuthenticatedAppSessionsIdRouteImport
+    '/_authenticated/app/settings': {
+      id: '/_authenticated/app/settings'
+      path: '/app/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AuthenticatedAppSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/play/$id': {
-      id: '/_authenticated/app/play/$id'
-      path: '/app/play/$id'
-      fullPath: '/app/play/$id'
-      preLoaderRoute: typeof AuthenticatedAppPlayIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/app/admin/users': {
-      id: '/_authenticated/app/admin/users'
-      path: '/users'
-      fullPath: '/app/admin/users'
-      preLoaderRoute: typeof AuthenticatedAppAdminUsersRouteImport
+    '/_authenticated/app/admin/pricing': {
+      id: '/_authenticated/app/admin/pricing'
+      path: '/pricing'
+      fullPath: '/app/admin/pricing'
+      preLoaderRoute: typeof AuthenticatedAppAdminPricingRouteImport
       parentRoute: typeof AuthenticatedAppAdminRoute
     }
     '/_authenticated/app/admin/simulations': {
@@ -470,12 +435,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdminSimulationsRouteImport
       parentRoute: typeof AuthenticatedAppAdminRoute
     }
-    '/_authenticated/app/admin/pricing': {
-      id: '/_authenticated/app/admin/pricing'
-      path: '/pricing'
-      fullPath: '/app/admin/pricing'
-      preLoaderRoute: typeof AuthenticatedAppAdminPricingRouteImport
+    '/_authenticated/app/admin/users': {
+      id: '/_authenticated/app/admin/users'
+      path: '/users'
+      fullPath: '/app/admin/users'
+      preLoaderRoute: typeof AuthenticatedAppAdminUsersRouteImport
       parentRoute: typeof AuthenticatedAppAdminRoute
+    }
+    '/_authenticated/app/play/$id': {
+      id: '/_authenticated/app/play/$id'
+      path: '/app/play/$id'
+      fullPath: '/app/play/$id'
+      preLoaderRoute: typeof AuthenticatedAppPlayIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/sessions/$id': {
+      id: '/_authenticated/app/sessions/$id'
+      path: '/app/sessions/$id'
+      fullPath: '/app/sessions/$id'
+      preLoaderRoute: typeof AuthenticatedAppSessionsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/simulations/': {
+      id: '/_authenticated/app/simulations/'
+      path: '/app/simulations'
+      fullPath: '/app/simulations/'
+      preLoaderRoute: typeof AuthenticatedAppSimulationsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/redsys/charge-recurring': {
+      id: '/api/public/redsys/charge-recurring'
+      path: '/api/public/redsys/charge-recurring'
+      fullPath: '/api/public/redsys/charge-recurring'
+      preLoaderRoute: typeof ApiPublicRedsysChargeRecurringRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/redsys/notification': {
+      id: '/api/public/redsys/notification'
+      path: '/api/public/redsys/notification'
+      fullPath: '/api/public/redsys/notification'
+      preLoaderRoute: typeof ApiPublicRedsysNotificationRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/simulations/$id/': {
       id: '/_authenticated/app/simulations/$id/'
@@ -484,11 +484,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppSimulationsIdIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/simulations/$id/sessions': {
-      id: '/_authenticated/app/simulations/$id/sessions'
-      path: '/app/simulations/$id/sessions'
-      fullPath: '/app/simulations/$id/sessions'
-      preLoaderRoute: typeof AuthenticatedAppSimulationsIdSessionsRouteImport
+    '/_authenticated/app/simulations/$id/edit': {
+      id: '/_authenticated/app/simulations/$id/edit'
+      path: '/app/simulations/$id/edit'
+      fullPath: '/app/simulations/$id/edit'
+      preLoaderRoute: typeof AuthenticatedAppSimulationsIdEditRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/simulations/$id/review': {
@@ -498,11 +498,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppSimulationsIdReviewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/simulations/$id/edit': {
-      id: '/_authenticated/app/simulations/$id/edit'
-      path: '/app/simulations/$id/edit'
-      fullPath: '/app/simulations/$id/edit'
-      preLoaderRoute: typeof AuthenticatedAppSimulationsIdEditRouteImport
+    '/_authenticated/app/simulations/$id/sessions': {
+      id: '/_authenticated/app/simulations/$id/sessions'
+      path: '/app/simulations/$id/sessions'
+      fullPath: '/app/simulations/$id/sessions'
+      preLoaderRoute: typeof AuthenticatedAppSimulationsIdSessionsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
   }
