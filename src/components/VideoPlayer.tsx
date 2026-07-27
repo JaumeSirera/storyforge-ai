@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Pause, Play, RotateCcw, RotateCw } from "lucide-react";
 import type { VideoClip, VideoSource } from "@/lib/story-types";
 
 function getYouTubeId(url: string): string | null {
@@ -10,6 +11,17 @@ function getVimeoId(url: string): string | null {
   const m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
   return m ? m[1] : null;
 }
+
+/* ---------- Shared imperative controller for keyboard/ARIA controls ---------- */
+export type PlayerController = {
+  play: () => void;
+  pause: () => void;
+  toggle: () => void;
+  seekBy: (deltaSec: number) => void;
+  isPaused: () => boolean;
+};
+
+type ControllerRef = React.MutableRefObject<PlayerController | null>;
 
 /* ---------- YouTube IFrame API loader ---------- */
 let ytReady: Promise<any> | null = null;
@@ -50,15 +62,13 @@ function loadVimeoAPI(): Promise<any> {
 
 interface SingleVideoProps {
   video: VideoSource;
-  /** When set (>0), pause playback at this many seconds and call onPauseAtTime. */
   pauseAtSec?: number;
   onPauseAtTime?: () => void;
   onEnded?: () => void;
-  /** Reported current playback time (seconds). */
   onTimeUpdate?: (t: number) => void;
-  /** Seek to this time (seconds) once when the player becomes ready. */
   startAt?: number;
   fill?: boolean;
+  controllerRef?: ControllerRef;
 }
 
 type CbsRef = React.MutableRefObject<{
@@ -77,6 +87,7 @@ function MediaWithDialogue({
   cbsRef,
   firedRef,
   startAt,
+  controllerRef,
 }: {
   src: string;
   dialogueUrl: string | null;
@@ -85,10 +96,33 @@ function MediaWithDialogue({
   cbsRef: CbsRef;
   firedRef: React.MutableRefObject<boolean>;
   startAt?: number;
+  controllerRef?: ControllerRef;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const seekedRef = useRef(false);
+
+  // Publish imperative controls for the accessible toolbar / keyboard shortcuts.
+  useEffect(() => {
+    if (!controllerRef) return;
+    controllerRef.current = {
+      play: () => { videoRef.current?.play().catch(() => {}); },
+      pause: () => { videoRef.current?.pause(); },
+      toggle: () => {
+        const v = videoRef.current;
+        if (!v) return;
+        if (v.paused) v.play().catch(() => {}); else v.pause();
+      },
+      seekBy: (delta) => {
+        const v = videoRef.current;
+        if (!v) return;
+        const dur = isFinite(v.duration) ? v.duration : Number.MAX_SAFE_INTEGER;
+        v.currentTime = Math.max(0, Math.min(dur, v.currentTime + delta));
+      },
+      isPaused: () => !!videoRef.current?.paused,
+    };
+    return () => { if (controllerRef.current) controllerRef.current = null; };
+  }, [controllerRef, src]);
 
   // Keep audio in sync with video events.
   useEffect(() => {
@@ -125,6 +159,7 @@ function MediaWithDialogue({
         controls
         autoPlay
         playsInline
+        aria-label="Reproductor de vídeo de la escena"
         className={`${sizeCls} bg-black ${fill ? "object-contain" : ""}`}
         onLoadedMetadata={(e) => {
           if (!seekedRef.current && typeof startAt === "number" && startAt > 0) {
@@ -155,7 +190,7 @@ function MediaWithDialogue({
 
 
 
-function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, onTimeUpdate, startAt, fill }: SingleVideoProps) {
+function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, onTimeUpdate, startAt, fill, controllerRef }: SingleVideoProps) {
   const cbsRef = useRef({ onPauseAtTime, onEnded, onTimeUpdate, pauseAtSec });
   useEffect(() => {
     cbsRef.current = { onPauseAtTime, onEnded, onTimeUpdate, pauseAtSec };
@@ -177,7 +212,6 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, onTimeUpdate, 
 
   /* ---------- MP4 (also used for ready AI clips) ---------- */
   if (video.type === "mp4" || (video.type === "ai" && video.status === "ready" && video.url)) {
-    // Prefer the lip-synced MP4 (video + audio baked in) when available.
     const lipsyncReady =
       video.type === "ai" && video.lipsync?.status === "ready" && video.lipsync.url;
     const url = (lipsyncReady ? (video as any).lipsync.url : video.url) as string;
@@ -195,6 +229,7 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, onTimeUpdate, 
         cbsRef={cbsRef}
         firedRef={firedRef}
         startAt={startAt}
+        controllerRef={controllerRef}
       />
     );
   }
@@ -223,12 +258,12 @@ function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, onTimeUpdate, 
 
   /* ---------- YouTube ---------- */
   if (video.type === "youtube") {
-    return <YouTubePlayer video={video} cbsRef={cbsRef} firedRef={firedRef} fill={fill} startAt={startAt} />;
+    return <YouTubePlayer video={video} cbsRef={cbsRef} firedRef={firedRef} fill={fill} startAt={startAt} controllerRef={controllerRef} />;
   }
 
   /* ---------- Vimeo ---------- */
   if (video.type === "vimeo") {
-    return <VimeoPlayer video={video} cbsRef={cbsRef} firedRef={firedRef} fill={fill} startAt={startAt} />;
+    return <VimeoPlayer video={video} cbsRef={cbsRef} firedRef={firedRef} fill={fill} startAt={startAt} controllerRef={controllerRef} />;
   }
 
 
@@ -241,12 +276,14 @@ function YouTubePlayer({
   firedRef,
   fill,
   startAt,
+  controllerRef,
 }: {
   video: Extract<VideoSource, { type: "youtube" }>;
   cbsRef: CbsRef;
   firedRef: React.MutableRefObject<boolean>;
   fill?: boolean;
   startAt?: number;
+  controllerRef?: ControllerRef;
 }) {
 
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -274,6 +311,29 @@ function YouTubePlayer({
               }
               e.target.playVideo();
             } catch {}
+            if (controllerRef) {
+              controllerRef.current = {
+                play: () => { try { player.playVideo(); } catch {} },
+                pause: () => { try { player.pauseVideo(); } catch {} },
+                toggle: () => {
+                  try {
+                    const state = player.getPlayerState?.();
+                    // 1 = playing
+                    if (state === 1) player.pauseVideo(); else player.playVideo();
+                  } catch {}
+                },
+                seekBy: (delta) => {
+                  try {
+                    const t = player.getCurrentTime?.() ?? 0;
+                    const dur = player.getDuration?.() ?? Number.MAX_SAFE_INTEGER;
+                    player.seekTo(Math.max(0, Math.min(dur, t + delta)), true);
+                  } catch {}
+                },
+                isPaused: () => {
+                  try { return player.getPlayerState?.() !== 1; } catch { return true; }
+                },
+              };
+            }
             interval = setInterval(() => {
               try {
                 const t = player.getCurrentTime();
@@ -299,6 +359,7 @@ function YouTubePlayer({
     return () => {
       cancelled = true;
       if (interval) clearInterval(interval);
+      if (controllerRef?.current) controllerRef.current = null;
       try { player?.destroy?.(); } catch {}
     };
   }, [id, video.url]);
@@ -328,12 +389,14 @@ function VimeoPlayer({
   firedRef,
   fill,
   startAt,
+  controllerRef,
 }: {
   video: Extract<VideoSource, { type: "vimeo" }>;
   cbsRef: CbsRef;
   firedRef: React.MutableRefObject<boolean>;
   fill?: boolean;
   startAt?: number;
+  controllerRef?: ControllerRef;
 }) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const id = getVimeoId(video.url);
@@ -345,6 +408,7 @@ function VimeoPlayer({
     if (!iframeRef.current || !src) return;
     let player: any = null;
     let cancelled = false;
+    let pausedState = false;
     loadVimeoAPI().then((Vimeo) => {
       if (cancelled || !iframeRef.current) return;
       player = new Vimeo.Player(iframeRef.current);
@@ -352,6 +416,29 @@ function VimeoPlayer({
         player.setCurrentTime(startAt).catch(() => {});
       }
       player.play().catch(() => {});
+      player.on("play", () => { pausedState = false; });
+      player.on("pause", () => { pausedState = true; });
+      if (controllerRef) {
+        controllerRef.current = {
+          play: () => { player?.play?.().catch(() => {}); },
+          pause: () => { player?.pause?.().catch(() => {}); },
+          toggle: () => {
+            if (pausedState) player?.play?.().catch(() => {});
+            else player?.pause?.().catch(() => {});
+          },
+          seekBy: (delta) => {
+            player?.getCurrentTime?.().then((t: number) => {
+              player?.getDuration?.().then((dur: number) => {
+                const target = Math.max(0, Math.min(dur || Number.MAX_SAFE_INTEGER, t + delta));
+                player?.setCurrentTime?.(target).catch(() => {});
+              }).catch(() => {
+                player?.setCurrentTime?.(Math.max(0, t + delta)).catch(() => {});
+              });
+            }).catch(() => {});
+          },
+          isPaused: () => pausedState,
+        };
+      }
       player.on("timeupdate", (data: { seconds: number }) => {
         cbsRef.current.onTimeUpdate?.(data.seconds);
         const tgt = cbsRef.current.pauseAtSec;
@@ -366,6 +453,7 @@ function VimeoPlayer({
     });
     return () => {
       cancelled = true;
+      if (controllerRef?.current) controllerRef.current = null;
       try { player?.destroy?.(); } catch {}
     };
   }, [src]);
@@ -389,10 +477,73 @@ function VimeoPlayer({
       <iframe
         ref={iframeRef}
         src={src}
+        title="Reproductor de vídeo (Vimeo)"
         className="w-full h-full"
         allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
       />
+    </div>
+  );
+}
+
+/* ---------- Accessible playback controls (ARIA + keyboard) ---------- */
+function AccessibleControls({
+  controllerRef,
+  overlay,
+  liveRef,
+}: {
+  controllerRef: ControllerRef;
+  overlay?: boolean;
+  liveRef: React.MutableRefObject<HTMLDivElement | null>;
+}) {
+  const [isPaused, setIsPaused] = useState(false);
+
+  // Poll state so button label stays in sync across player types.
+  useEffect(() => {
+    const t = setInterval(() => {
+      const p = controllerRef.current?.isPaused?.();
+      if (typeof p === "boolean") setIsPaused(p);
+    }, 300);
+    return () => clearInterval(t);
+  }, [controllerRef]);
+
+  const announce = (msg: string) => {
+    if (liveRef.current) liveRef.current.textContent = msg;
+  };
+  const doRewind = () => { controllerRef.current?.seekBy(-10); announce("Retrocedido 10 segundos"); };
+  const doForward = () => { controllerRef.current?.seekBy(10); announce("Adelantado 10 segundos"); };
+  const doToggle = () => {
+    controllerRef.current?.toggle();
+    const nowPaused = !!controllerRef.current?.isPaused?.();
+    setIsPaused(nowPaused);
+    announce(nowPaused ? "Vídeo pausado" : "Vídeo reproduciéndose");
+  };
+
+  const wrapCls = overlay
+    ? "absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 backdrop-blur-md pointer-events-auto"
+    : "mt-2 flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 w-fit";
+
+  const btnBase = overlay
+    ? "inline-flex items-center justify-center min-h-11 min-w-11 rounded-full text-white hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black transition"
+    : "inline-flex items-center justify-center min-h-11 min-w-11 rounded-full text-foreground hover:bg-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background transition";
+
+  return (
+    <div className={wrapCls} role="toolbar" aria-label="Controles de reproducción">
+      <button type="button" onClick={doRewind} aria-label="Retroceder 10 segundos" className={btnBase}>
+        <RotateCcw className="h-5 w-5" aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        onClick={doToggle}
+        aria-label={isPaused ? "Reproducir" : "Pausar"}
+        aria-pressed={!isPaused}
+        className={btnBase}
+      >
+        {isPaused ? <Play className="h-5 w-5" aria-hidden="true" /> : <Pause className="h-5 w-5" aria-hidden="true" />}
+      </button>
+      <button type="button" onClick={doForward} aria-label="Avanzar 10 segundos" className={btnBase}>
+        <RotateCw className="h-5 w-5" aria-hidden="true" />
+      </button>
     </div>
   );
 }
@@ -413,14 +564,11 @@ export function VideoPlayer({
   videos?: VideoClip[];
   activeClipId?: string;
   onActiveClipChange?: (clipId: string) => void;
-  /** Pause active clip at this many seconds and notify. */
   pauseAtSec?: number;
   onPauseAtTime?: () => void;
   onEnded?: () => void;
   onTimeUpdate?: (t: number) => void;
-  /** Seek the active clip to this time (seconds) once when it mounts. */
   startAt?: number;
-  /** Make the player fill its (positioned) container instead of using aspect-video. */
   fill?: boolean;
 }) {
   const clips: VideoClip[] = useMemo(() => {
@@ -438,23 +586,92 @@ export function VideoPlayer({
     else setInternalActiveId(id);
   };
 
+  const controllerRef = useRef<PlayerController | null>(null);
+  const liveRef = useRef<HTMLDivElement | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+
+  // Keyboard shortcuts scoped to the player container.
+  const onKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    // Ignore keys typed inside inputs/textareas.
+    const target = e.target as HTMLElement | null;
+    const tag = target?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || (target as any)?.isContentEditable) return;
+
+    if (e.key === " " || e.key === "k" || e.key === "K") {
+      e.preventDefault();
+      controllerRef.current?.toggle();
+    } else if (e.key === "ArrowLeft" || e.key === "j" || e.key === "J") {
+      e.preventDefault();
+      controllerRef.current?.seekBy(-10);
+      if (liveRef.current) liveRef.current.textContent = "Retrocedido 10 segundos";
+    } else if (e.key === "ArrowRight" || e.key === "l" || e.key === "L") {
+      e.preventDefault();
+      controllerRef.current?.seekBy(10);
+      if (liveRef.current) liveRef.current.textContent = "Adelantado 10 segundos";
+    }
+  }, []);
+
+  const single = (
+    <SingleVideo
+      video={active.source}
+      pauseAtSec={pauseAtSec}
+      onPauseAtTime={onPauseAtTime}
+      onEnded={onEnded}
+      onTimeUpdate={onTimeUpdate}
+      startAt={startAt}
+      fill={fill}
+      controllerRef={controllerRef}
+    />
+  );
+
+  const liveRegion = (
+    <div ref={liveRef} role="status" aria-live="polite" className="sr-only" />
+  );
+
   if (clips.length <= 1) {
+    if (fill) {
+      // In fill mode the container is positioned by the parent; we overlay controls.
+      return (
+        <div
+          ref={wrapRef}
+          tabIndex={0}
+          role="region"
+          aria-label="Reproductor de vídeo interactivo"
+          onKeyDown={onKeyDown}
+          className="contents focus:outline-none"
+        >
+          {single}
+          <AccessibleControls controllerRef={controllerRef} overlay liveRef={liveRef} />
+          {liveRegion}
+        </div>
+      );
+    }
     return (
-      <SingleVideo
-        video={active.source}
-        pauseAtSec={pauseAtSec}
-        onPauseAtTime={onPauseAtTime}
-        onEnded={onEnded}
-        onTimeUpdate={onTimeUpdate}
-        startAt={startAt}
-        fill={fill}
-      />
+      <div
+        ref={wrapRef}
+        tabIndex={0}
+        role="region"
+        aria-label="Reproductor de vídeo interactivo"
+        onKeyDown={onKeyDown}
+        className="focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-xl"
+      >
+        {single}
+        <AccessibleControls controllerRef={controllerRef} liveRef={liveRef} />
+        {liveRegion}
+      </div>
     );
   }
 
   if (fill) {
     return (
-      <>
+      <div
+        ref={wrapRef}
+        tabIndex={0}
+        role="region"
+        aria-label="Reproductor de vídeo interactivo"
+        onKeyDown={onKeyDown}
+        className="contents focus:outline-none"
+      >
         <SingleVideo
           key={active.id}
           video={active.source}
@@ -464,14 +681,21 @@ export function VideoPlayer({
           onTimeUpdate={onTimeUpdate}
           startAt={startAt}
           fill
+          controllerRef={controllerRef}
         />
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex flex-wrap gap-1.5 pointer-events-auto">
+        <div
+          className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex flex-wrap gap-1.5 pointer-events-auto"
+          role="tablist"
+          aria-label="Clips de la escena"
+        >
           {clips.map((c, i) => (
             <button
               key={c.id}
               type="button"
+              role="tab"
+              aria-selected={c.id === active.id}
               onClick={() => select(c.id)}
-              className={`text-xs rounded-full border px-3 py-1 backdrop-blur-md transition ${
+              className={`text-xs rounded-full border px-3 py-1 backdrop-blur-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
                 c.id === active.id
                   ? "border-primary bg-primary/80 text-primary-foreground"
                   : "border-white/30 bg-black/40 text-white hover:bg-black/60"
@@ -481,19 +705,30 @@ export function VideoPlayer({
             </button>
           ))}
         </div>
-      </>
+        <AccessibleControls controllerRef={controllerRef} overlay liveRef={liveRef} />
+        {liveRegion}
+      </div>
     );
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5">
+    <div
+      ref={wrapRef}
+      tabIndex={0}
+      role="region"
+      aria-label="Reproductor de vídeo interactivo"
+      onKeyDown={onKeyDown}
+      className="space-y-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-xl"
+    >
+      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Clips de la escena">
         {clips.map((c, i) => (
           <button
             key={c.id}
             type="button"
+            role="tab"
+            aria-selected={c.id === active.id}
             onClick={() => select(c.id)}
-            className={`text-xs rounded-full border px-3 py-1 transition ${
+            className={`text-xs rounded-full border px-3 py-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
               c.id === active.id
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-border bg-background hover:bg-accent"
@@ -511,8 +746,10 @@ export function VideoPlayer({
         onEnded={onEnded}
         onTimeUpdate={onTimeUpdate}
         startAt={startAt}
+        controllerRef={controllerRef}
       />
+      <AccessibleControls controllerRef={controllerRef} liveRef={liveRef} />
+      {liveRegion}
     </div>
   );
 }
-
