@@ -93,12 +93,15 @@ function AppLayout() {
       <main className="mx-auto max-w-7xl px-4 py-8 pb-24 md:pb-8">
         <Outlet />
       </main>
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto grid max-w-7xl grid-cols-3">
-          <BottomNavItem to="/app/dashboard" icon={LayoutDashboard} label="Inicio" />
-          <BottomNavItem to="/app/simulations" icon={Library} label="Simulaciones" />
-          <BottomNavItem to="/app/settings" icon={Settings} label="Perfil" />
-        </div>
+      <nav
+        className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-background/95 backdrop-blur"
+        aria-label="Navegación principal móvil"
+      >
+        <ul className="mx-auto grid max-w-7xl grid-cols-3">
+          <li><BottomNavItem to="/app/dashboard" icon={LayoutDashboard} label="Inicio" /></li>
+          <li><BottomNavItem to="/app/simulations" icon={Library} label="Simulaciones" /></li>
+          <li><BottomNavItem to="/app/settings" icon={Settings} label="Perfil" /></li>
+        </ul>
       </nav>
     </div>
   );
@@ -108,10 +111,11 @@ function BottomNavItem({ to, icon: Icon, label }: { to: string; icon: any; label
   return (
     <Link
       to={to}
-      className="flex flex-col items-center justify-center gap-0.5 py-2 px-3 mx-1 rounded-lg text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-      activeProps={{ className: "bg-primary/10 text-primary font-medium" }}
+      aria-label={label}
+      className="flex flex-col items-center justify-center gap-0.5 py-2 px-3 mx-1 min-h-11 rounded-lg text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      activeProps={{ className: "bg-primary/10 text-primary font-medium", "aria-current": "page" }}
     >
-      <Icon className="h-5 w-5" />
+      <Icon className="h-5 w-5" aria-hidden="true" />
       <span>{label}</span>
     </Link>
   );
