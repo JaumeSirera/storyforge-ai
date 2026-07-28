@@ -242,15 +242,13 @@ function Player({
           setFeedback(null);
         }, 1200);
       } else if (nextNodeId && nextNodeId === node.id) {
-        // Same scene, jump to a specific clip. Remember origin to return afterwards.
+        // Same scene, jump to a specific clip. Plain switch — no return-to-origin.
         setPendingClipId(nextClipId ?? undefined);
         setClipJumpNonce((n) => n + 1);
         setSceneAnsweredIds(new Set());
         setForcedQId(undefined);
-        if (nextClipId) {
-          setBranchReturn({ returnNodeId: node.id, branchClipId: nextClipId });
-          setBranchClipEnded(false);
-        }
+        setBranchReturn(null);
+        setBranchClipEnded(false);
         setTimeout(() => {
           setSelected(null);
           setFeedback(null);
