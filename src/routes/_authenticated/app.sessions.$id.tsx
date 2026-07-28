@@ -245,7 +245,7 @@ function Player({
         // Same scene, jump to a specific clip. Plain switch — no return-to-origin.
         setPendingClipId(nextClipId ?? undefined);
         setClipJumpNonce((n) => n + 1);
-        setSceneAnsweredIds(new Set());
+        setSceneAnsweredIds(answeredQId ? new Set([answeredQId]) : new Set());
         setForcedQId(undefined);
         setBranchReturn(null);
         setBranchClipEnded(false);
@@ -472,17 +472,20 @@ function ScenePlayback({
   onBranchClipEnded?: () => void;
 }) {
   const clips = nodeClips(node);
+  const initialActiveClipId =
+    initialClipId && clips.some((c) => c.id === initialClipId)
+      ? initialClipId
+      : clips[0]?.id ?? "default";
   const [activeClipId, setActiveClipId] = useState<string>(() => {
-    if (initialClipId && clips.some((c) => c.id === initialClipId)) return initialClipId;
-    return clips[0]?.id ?? "default";
+    return initialActiveClipId;
   });
   const [commentText, setCommentText] = useState("");
-  // Reset active clip when the scene changes.
+  // Reset active clip when the scene changes, preserving explicit branch targets.
   useEffect(() => {
-    setActiveClipId(clips[0]?.id ?? "default");
+    setActiveClipId(initialActiveClipId);
     setCommentText("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [node.id]);
+  }, [node.id, initialActiveClipId]);
 
   // Local activeQuestion honouring answered/forced state.
   const qs = (node.questions && node.questions.length > 0)
