@@ -238,9 +238,10 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
       return;
     }
     if (dest.kind === "scene" && dest.nodeId && nodes[dest.nodeId]) {
-      // If the destination pins a specific clip AND we aren't already ending,
-      // remember origin so we can return after the branch clip ends.
-      if (dest.clipId && !nodes[dest.nodeId].isEnding && node) {
+      const crossScene = !!node && dest.nodeId !== node.id;
+      // Return-to-origin only makes sense for CROSS-scene clip branches
+      // (flashback pattern). Same-scene clip jumps are a plain switch.
+      if (dest.clipId && crossScene && !nodes[dest.nodeId].isEnding && node) {
         const originClipId = activeClipId ?? nodeClips(node)[0]?.id;
         setBranchReturn({
           nodeId: node.id,
@@ -250,12 +251,15 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
           originTime: currentTimeRef.current,
         });
         setBranchClipEnded(false);
-        // Mark this question as answered so it doesn't fire again when we
-        // return to the origin clip and resume playback.
         if (q?.id) setAnsweredIds((s) => new Set(s).add(q.id!));
+      } else if (dest.clipId && !crossScene && q?.id) {
+        // Same-scene clip jump: mark question answered so it doesn't refire.
+        setAnsweredIds((s) => new Set(s).add(q.id!));
       }
       setCurrentId(dest.nodeId);
       setActiveClipId(dest.clipId);
+      setResumeAt(undefined);
+      currentTimeRef.current = 0;
       if (nodes[dest.nodeId].isEnding) setEnded(true);
       return;
     }
