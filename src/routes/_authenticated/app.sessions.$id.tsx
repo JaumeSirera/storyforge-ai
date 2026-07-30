@@ -46,6 +46,9 @@ function PlayerPage() {
 
   const sceneOrder = computeSceneOrder(story as any);
   const sceneNumber = sceneOrder.get(node.id);
+  const nextSceneId = sceneNumber === undefined
+    ? undefined
+    : Array.from(sceneOrder.entries()).find(([, order]) => order === sceneNumber + 1)?.[0];
   const nextNodes = nextCandidateNodes(story.nodes as any, node);
 
   return (
@@ -57,15 +60,16 @@ function PlayerPage() {
       totalNodes={totalNodes}
       simTitle={sim.title}
       sceneNumber={sceneNumber}
+      nextSceneId={nextSceneId}
       nextNodes={nextNodes}
     />
   );
 }
 
 function Player({
-  sessionId, node, score, answered, totalNodes, simTitle, sceneNumber, nextNodes,
+  sessionId, node, score, answered, totalNodes, simTitle, sceneNumber, nextSceneId, nextNodes,
 }: {
-  sessionId: string; node: any; score: number; answered: number; totalNodes: number; simTitle: string; sceneNumber?: number; nextNodes: any[];
+  sessionId: string; node: any; score: number; answered: number; totalNodes: number; simTitle: string; sceneNumber?: number; nextSceneId?: string; nextNodes: any[];
 }) {
   const submit = useServerFn(submitAnswer);
   const returnFn = useServerFn(returnToNode);
@@ -179,15 +183,29 @@ function Player({
   } | null>(null);
   const [branchClipEnded, setBranchClipEnded] = useState(false);
   const [branchCountdown, setBranchCountdown] = useState(0);
+  const advancingSceneRef = useRef(false);
 
   // Reset scene-local state whenever the active scene changes.
   useEffect(() => {
+    advancingSceneRef.current = false;
     setSceneAnsweredIds(new Set());
     setForcedQId(undefined);
     setPendingClipId(undefined);
     setBranchClipEnded(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node.id]);
+
+  async function advanceToNextScene() {
+    if (!nextSceneId || advancingSceneRef.current) return;
+    advancingSceneRef.current = true;
+    try {
+      await returnFn({ data: { sessionId, nodeId: nextSceneId } });
+      await qc.invalidateQueries({ queryKey: ["session", sessionId] });
+    } catch (e: any) {
+      advancingSceneRef.current = false;
+      toast.error(e?.message ?? "No se pudo continuar a la siguiente escena");
+    }
+  }
 
   // Countdown + auto-return when the branched clip ends.
   useEffect(() => {
@@ -310,6 +328,7 @@ function Player({
           initialClipId={pendingClipId}
           branchClipId={branchReturn?.branchClipId}
           onBranchClipEnded={() => setBranchClipEnded(true)}
+          onSceneEnded={() => void advanceToNextScene()}
         />
 
         {branchReturn && branchClipEnded && (
@@ -445,7 +464,7 @@ function Player({
       <Progress value={progress} className="h-1.5" />
 
       <div className="relative">
-        <ScenePlayback key={`${node.id}:${clipJumpNonce}`} node={node} submitting={submitting} feedback={feedback} selected={selected} onPick={pick} nextNodes={nextNodes} answeredIds={sceneAnsweredIds} forcedQId={forcedQId} initialClipId={pendingClipId} branchClipId={branchReturn?.branchClipId} onBranchClipEnded={() => setBranchClipEnded(true)} />
+        <ScenePlayback key={`${node.id}:${clipJumpNonce}`} node={node} submitting={submitting} feedback={feedback} selected={selected} onPick={pick} nextNodes={nextNodes} answeredIds={sceneAnsweredIds} forcedQId={forcedQId} initialClipId={pendingClipId} branchClipId={branchReturn?.branchClipId} onBranchClipEnded={() => setBranchClipEnded(true)} onSceneEnded={() => void advanceToNextScene()} />
         {branchReturn && branchClipEnded && (
           <BranchReturnOverlay countdown={branchCountdown} onContinue={() => void resolveBranchReturn()} />
         )}
@@ -456,7 +475,7 @@ function Player({
 }
 
 function ScenePlayback({
-  node, submitting, feedback, selected, onPick, nextNodes, immersive, answeredIds, forcedQId, initialClipId, branchClipId, onBranchClipEnded,
+  node, submitting, feedback, selected, onPick, nextNodes, immersive, answeredIds, forcedQId, initialClipId, branchClipId, onBranchClipEnded, onSceneEnded,
 }: {
   node: any;
   submitting: boolean;
@@ -470,6 +489,7 @@ function ScenePlayback({
   initialClipId?: string;
   branchClipId?: string;
   onBranchClipEnded?: () => void;
+  onSceneEnded?: () => void;
 }) {
   const clips = nodeClips(node);
   const initialActiveClipId =
@@ -546,7 +566,11 @@ function ScenePlayback({
           onPauseAtTime={() => setQuestionReady(true)}
           onEnded={() => {
             if (trig.mode === "end") setQuestionReady(true);
-            if (branchClipId && activeClipId === branchClipId) onBranchClipEnded?.();
+            if (branchClipId && activeClipId === branchClipId) {
+              onBranchClipEnded?.();
+              return;
+            }
+            if (trig.mode !== "end" && notAnswered.length === 0) onSceneEnded?.();
           }}
         />
         <VideoPrefetch nodes={nextNodes} />
@@ -623,7 +647,11 @@ function ScenePlayback({
         onPauseAtTime={() => setQuestionReady(true)}
         onEnded={() => {
           if (trig.mode === "end") setQuestionReady(true);
-          if (branchClipId && activeClipId === branchClipId) onBranchClipEnded?.();
+          if (branchClipId && activeClipId === branchClipId) {
+            onBranchClipEnded?.();
+            return;
+          }
+          if (trig.mode !== "end" && notAnswered.length === 0) onSceneEnded?.();
         }}
       />
       <VideoPrefetch nodes={nextNodes} />
