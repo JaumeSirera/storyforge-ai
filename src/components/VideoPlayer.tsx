@@ -520,7 +520,7 @@ function AccessibleControls({
   };
 
   const wrapCls = overlay
-    ? "absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-1 rounded-full bg-black/70 px-1 py-2 backdrop-blur-md pointer-events-auto shadow-lg"
+    ? "absolute z-50 flex pointer-events-auto rounded-full bg-black/70 backdrop-blur-md shadow-lg gap-1 items-center left-2 top-2 flex-row px-2 py-1 sm:left-3 sm:top-1/2 sm:-translate-y-1/2 sm:flex-col sm:px-1 sm:py-2"
     : "mt-2 flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 w-fit";
 
 
