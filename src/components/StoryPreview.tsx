@@ -430,8 +430,9 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
 
         {/* Bottom overlay: narrative + feedback + question/choices */}
         {(node.narrative || (!ended && !node.isEnding && q)) && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/60 to-transparent p-4 pt-16 pl-4 sm:pl-20">
-            <div className="pointer-events-auto space-y-3 max-h-[55%] sm:max-h-[70%] overflow-y-auto">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/60 to-transparent p-4 scene-overlay-pad">
+            <div className="pointer-events-auto space-y-3 scene-overlay-scroll">
+
 
               {node.narrative && (
                 <p className="text-sm text-white/95 leading-relaxed drop-shadow">
