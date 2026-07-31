@@ -179,8 +179,9 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
     setForcedQId(undefined);
   }, [node?.id]);
 
-  const pauseAtSec =
-    !questionReady && trig.mode === "time" ? trig.seconds : undefined;
+  // Keep the time trigger bound to the clip timeline even after firing, so
+  // seeking back before the decision point re-arms the question.
+  const pauseAtSec = q && trig.mode === "time" ? trig.seconds : undefined;
 
   // Reset comment text when the prompt changes.
   useEffect(() => {
@@ -368,6 +369,9 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
           }}
           pauseAtSec={pauseAtSec}
           onPauseAtTime={() => setQuestionReady(true)}
+          onTriggerReset={() => {
+            if (!(forcedQId && q?.id === forcedQId)) setQuestionReady(false);
+          }}
           onTimeUpdate={(t) => {
             currentTimeRef.current = t;
           }}

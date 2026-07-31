@@ -535,8 +535,10 @@ function ScenePlayback({
     setCommentText("");
   }, [node.id, activeClipId, q?.id, q?.triggerAt?.mode, forcedQId]);
 
-  const pauseAtSec =
-    !questionReady && trig.mode === "time" ? trig.seconds : undefined;
+  // Keep the trigger bound to the clip timeline even after it fired, so that
+  // rewinding/seeking before the decision point re-arms it instead of leaving
+  // a stale question on screen.
+  const pauseAtSec = q && trig.mode === "time" ? trig.seconds : undefined;
 
   // Auto-submit for goto prompts when ready.
   const autoFiredRef = useRef<string | null>(null);
@@ -564,6 +566,9 @@ function ScenePlayback({
           onActiveClipChange={setActiveClipId}
           pauseAtSec={pauseAtSec}
           onPauseAtTime={() => setQuestionReady(true)}
+          onTriggerReset={() => {
+            if (!feedback && !(forcedQId && q?.id === forcedQId)) setQuestionReady(false);
+          }}
           onEnded={() => {
             if (trig.mode === "end") setQuestionReady(true);
             if (branchClipId && activeClipId === branchClipId) {
@@ -645,6 +650,9 @@ function ScenePlayback({
         onActiveClipChange={setActiveClipId}
         pauseAtSec={pauseAtSec}
         onPauseAtTime={() => setQuestionReady(true)}
+        onTriggerReset={() => {
+          if (!feedback && !(forcedQId && q?.id === forcedQId)) setQuestionReady(false);
+        }}
         onEnded={() => {
           if (trig.mode === "end") setQuestionReady(true);
           if (branchClipId && activeClipId === branchClipId) {
