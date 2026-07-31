@@ -64,6 +64,7 @@ interface SingleVideoProps {
   video: VideoSource;
   pauseAtSec?: number;
   onPauseAtTime?: () => void;
+  onTriggerReset?: () => void;
   onEnded?: () => void;
   onTimeUpdate?: (t: number) => void;
   startAt?: number;
@@ -73,10 +74,40 @@ interface SingleVideoProps {
 
 type CbsRef = React.MutableRefObject<{
   onPauseAtTime?: () => void;
+  onTriggerReset?: () => void;
   onEnded?: () => void;
   onTimeUpdate?: (t: number) => void;
   pauseAtSec?: number;
 }>;
+
+/**
+ * Keeps time-based decision points in sync with the real playback position.
+ * Fires the trigger when the head crosses it, and re-arms it when the user
+ * seeks (or rewinds) back before the trigger, so pausing/seeking never leaves
+ * the scene in a stale state.
+ */
+function syncTrigger(
+  cbsRef: CbsRef,
+  firedRef: React.MutableRefObject<boolean>,
+  cur: number,
+  pause: () => void,
+) {
+  if (typeof cur !== "number" || Number.isNaN(cur)) return;
+  cbsRef.current.onTimeUpdate?.(cur);
+  const tgt = cbsRef.current.pauseAtSec;
+  if (typeof tgt !== "number") return;
+  if (!firedRef.current && cur >= tgt) {
+    firedRef.current = true;
+    pause();
+    cbsRef.current.onPauseAtTime?.();
+    return;
+  }
+  if (firedRef.current && cur < tgt - 0.75) {
+    firedRef.current = false;
+    cbsRef.current.onTriggerReset?.();
+  }
+}
+
 
 
 function MediaWithDialogue({
@@ -168,15 +199,14 @@ function MediaWithDialogue({
           }
         }}
         onTimeUpdate={(e) => {
-          const cur = e.currentTarget.currentTime;
-          cbsRef.current.onTimeUpdate?.(cur);
-          const tgt = cbsRef.current.pauseAtSec;
-          if (tgt && !firedRef.current && cur >= tgt) {
-            firedRef.current = true;
-            e.currentTarget.pause();
-            cbsRef.current.onPauseAtTime?.();
-          }
+          const el = e.currentTarget;
+          syncTrigger(cbsRef, firedRef, el.currentTime, () => el.pause());
         }}
+        onSeeked={(e) => {
+          const el = e.currentTarget;
+          syncTrigger(cbsRef, firedRef, el.currentTime, () => el.pause());
+        }}
+
         onEnded={() => {
           audioRef.current?.pause();
           cbsRef.current.onEnded?.();
@@ -190,11 +220,11 @@ function MediaWithDialogue({
 
 
 
-function SingleVideo({ video, pauseAtSec, onPauseAtTime, onEnded, onTimeUpdate, startAt, fill, controllerRef }: SingleVideoProps) {
-  const cbsRef = useRef({ onPauseAtTime, onEnded, onTimeUpdate, pauseAtSec });
+function SingleVideo({ video, pauseAtSec, onPauseAtTime, onTriggerReset, onEnded, onTimeUpdate, startAt, fill, controllerRef }: SingleVideoProps) {
+  const cbsRef = useRef({ onPauseAtTime, onTriggerReset, onEnded, onTimeUpdate, pauseAtSec });
   useEffect(() => {
-    cbsRef.current = { onPauseAtTime, onEnded, onTimeUpdate, pauseAtSec };
-  }, [onPauseAtTime, onEnded, onTimeUpdate, pauseAtSec]);
+    cbsRef.current = { onPauseAtTime, onTriggerReset, onEnded, onTimeUpdate, pauseAtSec };
+  }, [onPauseAtTime, onTriggerReset, onEnded, onTimeUpdate, pauseAtSec]);
 
   const firedRef = useRef(false);
   useEffect(() => {
@@ -337,12 +367,8 @@ function YouTubePlayer({
             interval = setInterval(() => {
               try {
                 const t = player.getCurrentTime();
-                if (typeof t === "number") cbsRef.current.onTimeUpdate?.(t);
-                const tgt = cbsRef.current.pauseAtSec;
-                if (tgt && !firedRef.current && typeof t === "number" && t >= tgt) {
-                  firedRef.current = true;
-                  player.pauseVideo();
-                  cbsRef.current.onPauseAtTime?.();
+                if (typeof t === "number") {
+                  syncTrigger(cbsRef, firedRef, t, () => player.pauseVideo());
                 }
               } catch {}
             }, 250);
@@ -440,14 +466,10 @@ function VimeoPlayer({
         };
       }
       player.on("timeupdate", (data: { seconds: number }) => {
-        cbsRef.current.onTimeUpdate?.(data.seconds);
-        const tgt = cbsRef.current.pauseAtSec;
-        if (!tgt || firedRef.current) return;
-        if (data.seconds >= tgt) {
-          firedRef.current = true;
-          player.pause().catch(() => {});
-          cbsRef.current.onPauseAtTime?.();
-        }
+        syncTrigger(cbsRef, firedRef, data.seconds, () => player.pause().catch(() => {}));
+      });
+      player.on("seeked", (data: { seconds: number }) => {
+        syncTrigger(cbsRef, firedRef, data.seconds, () => player.pause().catch(() => {}));
       });
       player.on("ended", () => cbsRef.current.onEnded?.());
     });
@@ -556,6 +578,7 @@ export function VideoPlayer({
   onActiveClipChange,
   pauseAtSec,
   onPauseAtTime,
+  onTriggerReset,
   onEnded,
   onTimeUpdate,
   startAt,
@@ -567,6 +590,7 @@ export function VideoPlayer({
   onActiveClipChange?: (clipId: string) => void;
   pauseAtSec?: number;
   onPauseAtTime?: () => void;
+  onTriggerReset?: () => void;
   onEnded?: () => void;
   onTimeUpdate?: (t: number) => void;
   startAt?: number;
@@ -617,6 +641,7 @@ export function VideoPlayer({
       video={active.source}
       pauseAtSec={pauseAtSec}
       onPauseAtTime={onPauseAtTime}
+      onTriggerReset={onTriggerReset}
       onEnded={onEnded}
       onTimeUpdate={onTimeUpdate}
       startAt={startAt}
@@ -678,6 +703,7 @@ export function VideoPlayer({
           video={active.source}
           pauseAtSec={pauseAtSec}
           onPauseAtTime={onPauseAtTime}
+          onTriggerReset={onTriggerReset}
           onEnded={onEnded}
           onTimeUpdate={onTimeUpdate}
           startAt={startAt}
@@ -744,6 +770,7 @@ export function VideoPlayer({
         video={active.source}
         pauseAtSec={pauseAtSec}
         onPauseAtTime={onPauseAtTime}
+        onTriggerReset={onTriggerReset}
         onEnded={onEnded}
         onTimeUpdate={onTimeUpdate}
         startAt={startAt}
