@@ -369,6 +369,9 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
           }}
           pauseAtSec={pauseAtSec}
           onPauseAtTime={() => setQuestionReady(true)}
+          onTriggerReset={() => {
+            if (!(forcedQId && q?.id === forcedQId)) setQuestionReady(false);
+          }}
           onTimeUpdate={(t) => {
             currentTimeRef.current = t;
           }}
