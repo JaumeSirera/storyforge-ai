@@ -713,7 +713,7 @@ export function VideoPlayer({
           controllerRef={controllerRef}
         />
         <div
-          className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex flex-wrap gap-1.5 pointer-events-auto"
+          className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex flex-wrap justify-center gap-1.5 pointer-events-auto max-w-[calc(100%-10rem)] [@media(min-width:640px)and(min-height:500px)]:max-w-[calc(100%-8rem)]"
           role="tablist"
           aria-label="Clips de la escena"
         >
