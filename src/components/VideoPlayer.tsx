@@ -669,7 +669,6 @@ export function VideoPlayer({
           className="contents focus:outline-none"
         >
           {single}
-          <AccessibleControls controllerRef={controllerRef} overlay liveRef={liveRef} />
           {liveRegion}
         </div>
       );
@@ -734,7 +733,7 @@ export function VideoPlayer({
             </button>
           ))}
         </div>
-        <AccessibleControls controllerRef={controllerRef} overlay liveRef={liveRef} />
+        
         {liveRegion}
       </div>
     );
