@@ -32,6 +32,7 @@ import { StoryPreview } from "@/components/StoryPreview";
 import type { Story, StoryNode, Choice, EvaluationCriterion, VideoSource, VideoClip, Question, QuestionTrigger } from "@/lib/story-types";
 import { nodeClips } from "@/lib/story-types";
 import { AiClipPanel } from "@/components/AiClipPanel";
+import { StoryFlowchart } from "@/components/StoryFlowchart";
 
 import { computeSceneOrder, sortNodesByOrder } from "@/lib/scene-order";
 import {
@@ -197,6 +198,8 @@ function EditSimulation() {
     () => (state ? sortNodesByOrder(state.nodes, sceneOrder) : []),
     [state, sceneOrder],
   );
+
+  const [openScenes, setOpenScenes] = useState<string[]>([]);
 
   // ---------- drag & drop sensors (must be declared before any early return) ----------
   const sensors = useSensors(
@@ -787,11 +790,11 @@ function EditSimulation() {
         <CardContent>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext items={state.nodes.map((n) => n.id)} strategy={verticalListSortingStrategy}>
-              <Accordion type="multiple" className="space-y-2">
+              <Accordion type="multiple" value={openScenes} onValueChange={setOpenScenes} className="space-y-2">
                 {state.nodes.map((n, nIdx) => (
                   <SortableScene key={n.id} id={n.id}>
                     {({ handleProps }) => (
-                      <AccordionItem value={n.id} className="border rounded-lg px-3 bg-card">
+                      <AccordionItem id={`scene-card-${n.id}`} value={n.id} className="border rounded-lg px-3 bg-card">
                         <div className="flex items-center gap-1">
                           <button
                             type="button"
