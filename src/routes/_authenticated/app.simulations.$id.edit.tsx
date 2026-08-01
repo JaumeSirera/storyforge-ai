@@ -32,6 +32,7 @@ import { StoryPreview } from "@/components/StoryPreview";
 import type { Story, StoryNode, Choice, EvaluationCriterion, VideoSource, VideoClip, Question, QuestionTrigger } from "@/lib/story-types";
 import { nodeClips } from "@/lib/story-types";
 import { AiClipPanel } from "@/components/AiClipPanel";
+import { StoryFlowchart } from "@/components/StoryFlowchart";
 
 import { computeSceneOrder, sortNodesByOrder } from "@/lib/scene-order";
 import {
@@ -197,6 +198,8 @@ function EditSimulation() {
     () => (state ? sortNodesByOrder(state.nodes, sceneOrder) : []),
     [state, sceneOrder],
   );
+
+  const [openScenes, setOpenScenes] = useState<string[]>([]);
 
   // ---------- drag & drop sensors (must be declared before any early return) ----------
   const sensors = useSensors(
@@ -393,13 +396,12 @@ function EditSimulation() {
   // ---------- drag & drop ordering ----------
 
 
-  const onDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
+  const reorderScenes = (activeId: string, overId: string) => {
+    if (activeId === overId) return;
     setState((s) => {
       if (!s) return s;
-      const oldIdx = s.nodes.findIndex((n) => n.id === active.id);
-      const newIdx = s.nodes.findIndex((n) => n.id === over.id);
+      const oldIdx = s.nodes.findIndex((n) => n.id === activeId);
+      const newIdx = s.nodes.findIndex((n) => n.id === overId);
       if (oldIdx < 0 || newIdx < 0) return s;
       const reordered = arrayMove(s.nodes, oldIdx, newIdx).map((n, i) => ({
         ...n,
@@ -408,6 +410,12 @@ function EditSimulation() {
       }));
       return { ...s, orderMode: "manual", startNodeId: reordered[0]?.id ?? s.startNodeId, nodes: reordered };
     });
+  };
+
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+    reorderScenes(String(active.id), String(over.id));
   };
 
   const onQuestionDragEnd = (nIdx: number) => (event: DragEndEvent) => {
@@ -736,6 +744,40 @@ function EditSimulation() {
       </Card>
 
       <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <GitBranch className="h-4 w-4" /> Organigrama de escenas y ramificaciones
+          </CardTitle>
+          <CardDescription>
+            Vista global del árbol. Reordena escenas o cambia el destino de una ramificación arrastrando.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <StoryFlowchart
+            nodes={state.nodes}
+            disabled={locked}
+            onReorderScenes={reorderScenes}
+            onRewireChoice={({ nodeIdx, qIdx, cIdx }, targetNodeId) =>
+              updateChoice(nodeIdx, qIdx, cIdx, {
+                next: targetNodeId,
+                nextClipId: undefined,
+                nextKind: targetNodeId ? "scene" : "end",
+              })
+            }
+            onDeleteScene={deleteNode}
+            onDeleteChoice={({ nodeIdx, qIdx, cIdx }) => deleteChoice(nodeIdx, qIdx, cIdx)}
+            onEditScene={(nodeId) => {
+              setOpenScenes((prev) => (prev.includes(nodeId) ? prev : [...prev, nodeId]));
+              requestAnimationFrame(() => {
+                document.getElementById(`scene-card-${nodeId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+              });
+            }}
+            onAddScene={addNode}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Escenas ({state.nodes.length})</CardTitle>
@@ -748,11 +790,11 @@ function EditSimulation() {
         <CardContent>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext items={state.nodes.map((n) => n.id)} strategy={verticalListSortingStrategy}>
-              <Accordion type="multiple" className="space-y-2">
+              <Accordion type="multiple" value={openScenes} onValueChange={setOpenScenes} className="space-y-2">
                 {state.nodes.map((n, nIdx) => (
                   <SortableScene key={n.id} id={n.id}>
                     {({ handleProps }) => (
-                      <AccordionItem value={n.id} className="border rounded-lg px-3 bg-card">
+                      <AccordionItem id={`scene-card-${n.id}`} value={n.id} className="border rounded-lg px-3 bg-card">
                         <div className="flex items-center gap-1">
                           <button
                             type="button"
