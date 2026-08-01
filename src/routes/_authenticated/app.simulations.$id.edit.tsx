@@ -741,6 +741,40 @@ function EditSimulation() {
       </Card>
 
       <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <GitBranch className="h-4 w-4" /> Organigrama de escenas y ramificaciones
+          </CardTitle>
+          <CardDescription>
+            Vista global del árbol. Reordena escenas o cambia el destino de una ramificación arrastrando.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <StoryFlowchart
+            nodes={state.nodes}
+            disabled={locked}
+            onReorderScenes={reorderScenes}
+            onRewireChoice={({ nodeIdx, qIdx, cIdx }, targetNodeId) =>
+              updateChoice(nodeIdx, qIdx, cIdx, {
+                next: targetNodeId,
+                nextClipId: undefined,
+                nextKind: targetNodeId ? "scene" : "end",
+              })
+            }
+            onDeleteScene={deleteNode}
+            onDeleteChoice={({ nodeIdx, qIdx, cIdx }) => deleteChoice(nodeIdx, qIdx, cIdx)}
+            onEditScene={(nodeId) => {
+              setOpenScenes((prev) => (prev.includes(nodeId) ? prev : [...prev, nodeId]));
+              requestAnimationFrame(() => {
+                document.getElementById(`scene-card-${nodeId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+              });
+            }}
+            onAddScene={addNode}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Escenas ({state.nodes.length})</CardTitle>
