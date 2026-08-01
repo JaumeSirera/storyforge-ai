@@ -733,7 +733,7 @@ export function VideoPlayer({
             </button>
           ))}
         </div>
-        <AccessibleControls controllerRef={controllerRef} overlay liveRef={liveRef} />
+        
         {liveRegion}
       </div>
     );
