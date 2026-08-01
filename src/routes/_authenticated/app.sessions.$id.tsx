@@ -581,8 +581,8 @@ function ScenePlayback({
         <VideoPrefetch nodes={nextNodes} />
 
         {/* Bottom overlay: narrative + question + answers */}
-        <div className="absolute inset-x-0 bottom-0 z-20 scene-overlay-scroll p-4 sm:p-6 scene-overlay-pad bg-gradient-to-t from-black/85 via-black/65 to-transparent text-white">
-          <div className="mx-auto max-w-4xl space-y-4">
+        <div className="pointer-events-none absolute inset-x-0 bottom-14 sm:bottom-16 z-20 scene-overlay-scroll p-4 sm:p-6 scene-overlay-pad bg-gradient-to-t from-black/85 via-black/65 to-transparent text-white">
+          <div className="pointer-events-auto mx-auto max-w-4xl space-y-4">
             {node.narrative && (
               <p className="text-sm md:text-base leading-relaxed text-white/95 drop-shadow">
                 {node.narrative}
