@@ -393,13 +393,12 @@ function EditSimulation() {
   // ---------- drag & drop ordering ----------
 
 
-  const onDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
+  const reorderScenes = (activeId: string, overId: string) => {
+    if (activeId === overId) return;
     setState((s) => {
       if (!s) return s;
-      const oldIdx = s.nodes.findIndex((n) => n.id === active.id);
-      const newIdx = s.nodes.findIndex((n) => n.id === over.id);
+      const oldIdx = s.nodes.findIndex((n) => n.id === activeId);
+      const newIdx = s.nodes.findIndex((n) => n.id === overId);
       if (oldIdx < 0 || newIdx < 0) return s;
       const reordered = arrayMove(s.nodes, oldIdx, newIdx).map((n, i) => ({
         ...n,
@@ -408,6 +407,12 @@ function EditSimulation() {
       }));
       return { ...s, orderMode: "manual", startNodeId: reordered[0]?.id ?? s.startNodeId, nodes: reordered };
     });
+  };
+
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+    reorderScenes(String(active.id), String(over.id));
   };
 
   const onQuestionDragEnd = (nIdx: number) => (event: DragEndEvent) => {
