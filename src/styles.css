@@ -136,22 +136,21 @@
   .text-balance { text-wrap: balance; }
 }
 
-/* Interactive player overlays: keep scene text clear of the floating controls
+/* Interactive player overlays: keep scene text above the native video controls
    in both portrait and landscape, and never overflow short viewports. */
 @utility scene-overlay-pad {
   padding-left: 1rem;
-  padding-top: 3.5rem;
+  padding-bottom: 0.5rem;
   @media (min-width: 640px) and (min-height: 500px) {
-    padding-left: 5rem;
-    padding-top: 4rem;
+    padding-left: 1.5rem;
   }
 }
 
 @utility scene-overlay-scroll {
-  max-height: min(60%, 42vh);
+  max-height: min(55%, 38vh);
   overflow-y: auto;
   overscroll-behavior: contain;
   @media (min-width: 640px) and (min-height: 500px) {
-    max-height: min(65%, 60vh);
+    max-height: min(60%, 52vh);
   }
 }
