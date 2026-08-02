@@ -130,8 +130,24 @@ export function StoryFlowchart({
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
         Arrastra la <strong>escena</strong> por su asa para reordenarla, o arrastra una <strong>ramificación</strong> y suéltala
-        sobre otra escena (o sobre <strong>FIN</strong>) para cambiar su destino.
+        sobre otra escena (o sobre <strong>FIN</strong>) para cambiar su destino. Usa la rueda o el pellizco para hacer zoom y
+        arrastra el fondo para desplazarte.
       </p>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => zoomBy(1 / 1.2)} aria-label="Alejar organigrama">
+          <Minus className="h-4 w-4" />
+        </Button>
+        <span className="min-w-[3.5rem] text-center text-xs tabular-nums text-muted-foreground" aria-live="polite">
+          {Math.round(zoom * 100)}%
+        </span>
+        <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => zoomBy(1.2)} aria-label="Acercar organigrama">
+          <Plus className="h-4 w-4" />
+        </Button>
+        <Button type="button" size="sm" variant="ghost" className="h-8 gap-1 px-2" onClick={resetView} aria-label="Restablecer vista del organigrama">
+          <Maximize2 className="h-4 w-4" /> Ajustar
+        </Button>
+      </div>
 
       <DndContext
         sensors={sensors}
@@ -140,65 +156,76 @@ export function StoryFlowchart({
         onDragEnd={handleDragEnd}
         onDragCancel={() => setDragging(null)}
       >
-        <div className="sm:overflow-x-auto">
-          <div ref={containerRef} className="relative space-y-3 sm:min-w-[520px] sm:pr-28">
-            <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
-              <defs>
-                <marker id="flow-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-                  <path d="M0,0 L6,3 L0,6 z" fill="currentColor" className="text-primary" />
-                </marker>
-              </defs>
-              {paths.map((p) => (
-                <path
-                  key={p.key}
-                  d={p.d}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
-                  strokeDasharray="4 3"
-                  className="text-primary/50"
-                  markerEnd="url(#flow-arrow)"
-                />
-              ))}
-            </svg>
+        <ZoomContext.Provider value={zoom}>
+          <div
+            ref={viewportRef}
+            onPointerDown={handleViewportPointerDown}
+            className="relative h-[65vh] min-h-[320px] cursor-grab touch-none overflow-hidden rounded-lg border bg-muted/10 active:cursor-grabbing"
+          >
+            <div
+              className="absolute left-0 top-0 w-[520px] max-w-none origin-top-left will-change-transform"
+              style={{ transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${zoom})` }}
+            >
+              <div ref={containerRef} className="relative space-y-3 p-3 pr-28">
+                <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
+                  <defs>
+                    <marker id="flow-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                      <path d="M0,0 L6,3 L0,6 z" fill="currentColor" className="text-primary" />
+                    </marker>
+                  </defs>
+                  {paths.map((p) => (
+                    <path
+                      key={p.key}
+                      d={p.d}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                      strokeDasharray="4 3"
+                      className="text-primary/50"
+                      markerEnd="url(#flow-arrow)"
+                    />
+                  ))}
+                </svg>
 
-            {nodes.map((n, nodeIdx) => (
-              <FlowSceneCard
-                key={n.id}
-                node={n}
-                nodeIdx={nodeIdx}
-                disabled={disabled}
-                highlight={dragging?.type === "choice"}
-                sceneLabel={(id) => {
-                  const i = nodes.findIndex((t) => t.id === id);
-                  if (i < 0) return "escena";
-                  return `Escena ${i + 1}: ${nodes[i].title || "sin título"}`;
-                }}
-                registerRef={(el) => {
-                  if (el) cardRefs.current.set(n.id, el);
-                  else cardRefs.current.delete(n.id);
-                }}
-                onDeleteScene={onDeleteScene}
-                onDeleteChoice={onDeleteChoice}
-                onEditScene={onEditScene}
-              />
-            ))}
+                {nodes.map((n, nodeIdx) => (
+                  <FlowSceneCard
+                    key={n.id}
+                    node={n}
+                    nodeIdx={nodeIdx}
+                    disabled={disabled}
+                    highlight={dragging?.type === "choice"}
+                    sceneLabel={(id) => {
+                      const i = nodes.findIndex((t) => t.id === id);
+                      if (i < 0) return "escena";
+                      return `Escena ${i + 1}: ${nodes[i].title || "sin título"}`;
+                    }}
+                    registerRef={(el) => {
+                      if (el) cardRefs.current.set(n.id, el);
+                      else cardRefs.current.delete(n.id);
+                    }}
+                    onDeleteScene={onDeleteScene}
+                    onDeleteChoice={onDeleteChoice}
+                    onEditScene={onEditScene}
+                  />
+                ))}
 
-
-            <div className="flex items-center gap-3">
-              <EndDropZone active={dragging?.type === "choice"} />
-              {!disabled && (
-                <Button type="button" size="sm" variant="outline" onClick={onAddScene}>
-                  <Plus className="mr-1 h-4 w-4" /> Añadir escena
-                </Button>
-              )}
+                <div className="flex items-center gap-3">
+                  <EndDropZone active={dragging?.type === "choice"} />
+                  {!disabled && (
+                    <Button type="button" size="sm" variant="outline" onClick={onAddScene}>
+                      <Plus className="mr-1 h-4 w-4" /> Añadir escena
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </ZoomContext.Provider>
       </DndContext>
     </div>
   );
 }
+
 
 function EndDropZone({ active }: { active: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: "flow-end", data: { type: "end-drop", nodeId: null } });
