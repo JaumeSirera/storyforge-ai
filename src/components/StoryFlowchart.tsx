@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   DndContext,
   closestCenter,
@@ -14,10 +14,16 @@ import {
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Flag, GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { Flag, GripVertical, Maximize2, Minus, Pencil, Plus, Trash2 } from "lucide-react";
 import type { StoryNode } from "@/lib/story-types";
 import { nodeQuestions } from "@/lib/story-types";
 import { cn } from "@/lib/utils";
+
+const ZoomContext = createContext(1);
+const MIN_ZOOM = 0.35;
+const MAX_ZOOM = 2.5;
+const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
+
 
 type ChoiceRef = { nodeIdx: number; qIdx: number; cIdx: number };
 
