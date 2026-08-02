@@ -221,6 +221,7 @@ function FlowSceneCard({
   nodeIdx,
   disabled,
   highlight,
+  sceneLabel,
   registerRef,
   onDeleteScene,
   onDeleteChoice,
@@ -230,11 +231,13 @@ function FlowSceneCard({
   nodeIdx: number;
   disabled: boolean;
   highlight: boolean;
+  sceneLabel: (id: string) => string;
   registerRef: (el: HTMLElement | null) => void;
   onDeleteScene: (nodeIdx: number) => void;
   onDeleteChoice: (ref: ChoiceRef) => void;
   onEditScene: (nodeId: string) => void;
 }) {
+
   const draggable = useDraggable({ id: `scene-${node.id}`, data: { type: "scene", nodeId: node.id }, disabled });
   const droppable = useDroppable({ id: `drop-${node.id}`, data: { type: "scene-drop", nodeId: node.id } });
 
