@@ -140,8 +140,8 @@ export function StoryFlowchart({
         onDragEnd={handleDragEnd}
         onDragCancel={() => setDragging(null)}
       >
-        <div className="overflow-x-auto">
-          <div ref={containerRef} className="relative min-w-[520px] space-y-3 pr-28">
+        <div className="sm:overflow-x-auto">
+          <div ref={containerRef} className="relative space-y-3 sm:min-w-[520px] sm:pr-28">
             <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
               <defs>
                 <marker id="flow-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
@@ -169,6 +169,11 @@ export function StoryFlowchart({
                 nodeIdx={nodeIdx}
                 disabled={disabled}
                 highlight={dragging?.type === "choice"}
+                sceneLabel={(id) => {
+                  const i = nodes.findIndex((t) => t.id === id);
+                  if (i < 0) return "escena";
+                  return `Escena ${i + 1}: ${nodes[i].title || "sin título"}`;
+                }}
                 registerRef={(el) => {
                   if (el) cardRefs.current.set(n.id, el);
                   else cardRefs.current.delete(n.id);
@@ -178,6 +183,7 @@ export function StoryFlowchart({
                 onEditScene={onEditScene}
               />
             ))}
+
 
             <div className="flex items-center gap-3">
               <EndDropZone active={dragging?.type === "choice"} />
@@ -215,6 +221,7 @@ function FlowSceneCard({
   nodeIdx,
   disabled,
   highlight,
+  sceneLabel,
   registerRef,
   onDeleteScene,
   onDeleteChoice,
@@ -224,11 +231,13 @@ function FlowSceneCard({
   nodeIdx: number;
   disabled: boolean;
   highlight: boolean;
+  sceneLabel: (id: string) => string;
   registerRef: (el: HTMLElement | null) => void;
   onDeleteScene: (nodeIdx: number) => void;
   onDeleteChoice: (ref: ChoiceRef) => void;
   onEditScene: (nodeId: string) => void;
 }) {
+
   const draggable = useDraggable({ id: `scene-${node.id}`, data: { type: "scene", nodeId: node.id }, disabled });
   const droppable = useDroppable({ id: `drop-${node.id}`, data: { type: "scene-drop", nodeId: node.id } });
 
@@ -287,7 +296,7 @@ function FlowSceneCard({
                       <BranchChip
                         key={c.id}
                         label={c.label || `Opción ${cIdx + 1}`}
-                        destination={destinationLabel(c.nextKind, c.next)}
+                        destination={destinationLabel(c.nextKind, c.next, sceneLabel)}
                         disabled={disabled}
                         ref_={{ nodeIdx, qIdx, cIdx }}
                         onDelete={disabled ? undefined : () => onDeleteChoice({ nodeIdx, qIdx, cIdx })}
@@ -322,13 +331,18 @@ function FlowSceneCard({
   );
 }
 
-function destinationLabel(nextKind: string | undefined, next: string | null): string {
+function destinationLabel(
+  nextKind: string | undefined,
+  next: string | null,
+  sceneLabel: (id: string) => string,
+): string {
   const kind = nextKind ?? (next ? "scene" : "end");
   if (kind === "end") return "FIN";
   if (kind === "continue") return "sigue el vídeo";
   if (kind === "question") return "otra pregunta";
-  return "escena";
+  return next ? sceneLabel(next) : "escena sin destino";
 }
+
 
 function BranchChip({
   label,
@@ -368,7 +382,8 @@ function BranchChip({
       >
         <GripVertical className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
         <span className="truncate">{label}</span>
-        <span className="flex-shrink-0 text-muted-foreground">→ {destination}</span>
+        <span className="min-w-0 truncate text-muted-foreground">→ {destination}</span>
+
       </button>
       {onDelete && (
         <button
