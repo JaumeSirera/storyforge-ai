@@ -204,7 +204,7 @@ export function StoryFlowchart({
       next.push({ key: e.key, d, label: e.label, x: Math.max(x1, x2) + bulge * 0.6, y: (y1 + y2) / 2 });
     }
     setPaths(next);
-  }, [edgesKey, nodes.length]);
+  }, [edgesKey, nodes.length, zoom]);
 
   useLayoutEffect(() => {
     measure();
