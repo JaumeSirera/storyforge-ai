@@ -382,7 +382,8 @@ function BranchChip({
       >
         <GripVertical className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
         <span className="truncate">{label}</span>
-        <span className="flex-shrink-0 text-muted-foreground">→ {destination}</span>
+        <span className="min-w-0 truncate text-muted-foreground">→ {destination}</span>
+
       </button>
       {onDelete && (
         <button
