@@ -381,7 +381,7 @@ function FlowSceneCard({
   onDeleteChoice: (ref: ChoiceRef) => void;
   onEditScene: (nodeId: string) => void;
 }) {
-
+  const zoom = useContext(ZoomContext);
   const draggable = useDraggable({ id: `scene-${node.id}`, data: { type: "scene", nodeId: node.id }, disabled });
   const droppable = useDroppable({ id: `drop-${node.id}`, data: { type: "scene-drop", nodeId: node.id } });
 
@@ -389,11 +389,17 @@ function FlowSceneCard({
 
   return (
     <div
+      data-flow-card=""
       ref={(el) => {
         droppable.setNodeRef(el);
         registerRef(el);
       }}
-      style={{ transform: draggable.transform ? `translate3d(${draggable.transform.x}px, ${draggable.transform.y}px, 0)` : undefined }}
+      style={{
+        transform: draggable.transform
+          ? `translate3d(${draggable.transform.x / zoom}px, ${draggable.transform.y / zoom}px, 0)`
+          : undefined,
+      }}
+
       className={cn(
         "relative z-10 rounded-lg border bg-card p-3 shadow-soft transition-colors",
         draggable.isDragging && "opacity-60",
