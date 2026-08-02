@@ -141,7 +141,7 @@ export function StoryFlowchart({
         onDragCancel={() => setDragging(null)}
       >
         <div className="overflow-x-auto">
-          <div ref={containerRef} className="relative min-w-[520px] space-y-3 pr-28">
+          <div ref={containerRef} className="relative space-y-3 sm:min-w-[520px] sm:pr-28">
             <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
               <defs>
                 <marker id="flow-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
