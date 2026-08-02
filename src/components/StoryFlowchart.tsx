@@ -59,6 +59,115 @@ export function StoryFlowchart({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
   const [paths, setPaths] = useState<{ key: string; d: string; label: string; x: number; y: number }[]>([]);
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const zoomRef = useRef(1);
+  const offsetRef = useRef({ x: 0, y: 0 });
+  zoomRef.current = zoom;
+  offsetRef.current = offset;
+
+  /** Zoom anchored at a point in viewport coordinates (defaults to viewport center). */
+  const zoomAt = useCallback((factor: number, px?: number, py?: number) => {
+    const rect = viewportRef.current?.getBoundingClientRect();
+    const ax = px ?? (rect ? rect.width / 2 : 0);
+    const ay = py ?? (rect ? rect.height / 2 : 0);
+    const current = zoomRef.current;
+    const next = clampZoom(current * factor);
+    const k = next / current;
+    const o = offsetRef.current;
+    setOffset({ x: ax - (ax - o.x) * k, y: ay - (ay - o.y) * k });
+    setZoom(next);
+  }, []);
+
+  const zoomBy = useCallback((factor: number) => zoomAt(factor), [zoomAt]);
+  const resetView = useCallback(() => {
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+  }, []);
+
+  // Native non-passive wheel listener (React's onWheel is passive).
+  const wheelHandlerRef = useRef<(e: WheelEvent) => void>(() => {});
+  wheelHandlerRef.current = (e: WheelEvent) => {
+    const rect = viewportRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
+    if (e.ctrlKey || e.metaKey) {
+      zoomAt(Math.exp(-dy * 0.0025), e.clientX - rect.left, e.clientY - rect.top);
+      return;
+    }
+    const dx = e.deltaX * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
+    if (e.shiftKey || Math.abs(dx) > Math.abs(dy)) {
+      setOffset((o) => ({ x: o.x - dx, y: o.y - dy }));
+      return;
+    }
+    zoomAt(Math.exp(-dy * 0.0015), e.clientX - rect.left, e.clientY - rect.top);
+  };
+
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      wheelHandlerRef.current(e);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  // Background drag to pan + two-pointer pinch zoom.
+  const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const pinchRef = useRef<{ dist: number; cx: number; cy: number } | null>(null);
+
+  const handleViewportPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement;
+      // Let cards, buttons and drag handles keep their own interactions.
+      if (target.closest("[data-flow-card],button,a,input,select,textarea")) {
+        if (pointersRef.current.size === 0) return;
+      }
+      const el = viewportRef.current;
+      if (!el) return;
+      el.setPointerCapture(e.pointerId);
+      pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      const onMove = (ev: PointerEvent) => {
+        const pts = pointersRef.current;
+        const prev = pts.get(ev.pointerId);
+        if (!prev) return;
+        pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+        const list = [...pts.values()];
+        if (list.length >= 2) {
+          const [p1, p2] = list;
+          const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+          const rect = el.getBoundingClientRect();
+          const cx = (p1.x + p2.x) / 2 - rect.left;
+          const cy = (p1.y + p2.y) / 2 - rect.top;
+          if (pinchRef.current && pinchRef.current.dist > 0) {
+            zoomAt(dist / pinchRef.current.dist, cx, cy);
+          }
+          pinchRef.current = { dist, cx, cy };
+          return;
+        }
+        pinchRef.current = null;
+        setOffset((o) => ({ x: o.x + (ev.clientX - prev.x), y: o.y + (ev.clientY - prev.y) }));
+      };
+      const onUp = (ev: PointerEvent) => {
+        pointersRef.current.delete(ev.pointerId);
+        if (pointersRef.current.size < 2) pinchRef.current = null;
+        if (pointersRef.current.size === 0) {
+          el.removeEventListener("pointermove", onMove);
+          el.removeEventListener("pointerup", onUp);
+          el.removeEventListener("pointercancel", onUp);
+        }
+      };
+      el.addEventListener("pointermove", onMove);
+      el.addEventListener("pointerup", onUp);
+      el.addEventListener("pointercancel", onUp);
+    },
+    [zoomAt],
+  );
+
 
   const edges: Edge[] = [];
   nodes.forEach((n, nodeIdx) => {
