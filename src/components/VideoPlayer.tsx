@@ -544,7 +544,7 @@ function AccessibleControls({
   // Portrait phones and short landscape viewports: compact horizontal bar at
   // the top-left. Only on roomy screens does it become a vertical side rail.
   const wrapCls = overlay
-    ? "absolute z-50 flex pointer-events-auto rounded-full bg-black/70 backdrop-blur-md shadow-lg gap-1 items-center max-w-[calc(100%-1rem)] left-2 top-2 flex-row px-2 py-1 [@media(min-width:640px)and(min-height:500px)]:left-3 [@media(min-width:640px)and(min-height:500px)]:top-1/2 [@media(min-width:640px)and(min-height:500px)]:-translate-y-1/2 [@media(min-width:640px)and(min-height:500px)]:flex-col [@media(min-width:640px)and(min-height:500px)]:px-1 [@media(min-width:640px)and(min-height:500px)]:py-2"
+    ? "absolute z-50 flex pointer-events-auto rounded-full bg-black/70 backdrop-blur-md shadow-lg gap-1 items-center max-w-[calc(100%-1rem)] left-2 top-2 flex-row px-2 py-1 [@media(min-width:640px)_and_(min-height:500px)]:left-3 [@media(min-width:640px)_and_(min-height:500px)]:top-1/2 [@media(min-width:640px)_and_(min-height:500px)]:-translate-y-1/2 [@media(min-width:640px)_and_(min-height:500px)]:flex-col [@media(min-width:640px)_and_(min-height:500px)]:px-1 [@media(min-width:640px)_and_(min-height:500px)]:py-2"
     : "mt-2 flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 w-fit";
 
 
@@ -712,7 +712,7 @@ export function VideoPlayer({
           controllerRef={controllerRef}
         />
         <div
-          className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex flex-wrap justify-center gap-1.5 pointer-events-auto max-w-[calc(100%-10rem)] [@media(min-width:640px)and(min-height:500px)]:max-w-[calc(100%-8rem)]"
+          className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex flex-wrap justify-center gap-1.5 pointer-events-auto max-w-[calc(100%-10rem)] [@media(min-width:640px)_and_(min-height:500px)]:max-w-[calc(100%-8rem)]"
           role="tablist"
           aria-label="Clips de la escena"
         >
