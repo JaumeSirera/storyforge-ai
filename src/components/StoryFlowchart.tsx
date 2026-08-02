@@ -331,13 +331,18 @@ function FlowSceneCard({
   );
 }
 
-function destinationLabel(nextKind: string | undefined, next: string | null): string {
+function destinationLabel(
+  nextKind: string | undefined,
+  next: string | null,
+  sceneLabel: (id: string) => string,
+): string {
   const kind = nextKind ?? (next ? "scene" : "end");
   if (kind === "end") return "FIN";
   if (kind === "continue") return "sigue el vídeo";
   if (kind === "question") return "otra pregunta";
-  return "escena";
+  return next ? sceneLabel(next) : "escena sin destino";
 }
+
 
 function BranchChip({
   label,
