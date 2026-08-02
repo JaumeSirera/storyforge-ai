@@ -187,16 +187,18 @@ export function StoryFlowchart({
     if (!container) return;
     const cb = container.getBoundingClientRect();
     const next: { key: string; d: string; label: string; x: number; y: number }[] = [];
+    const s = zoomRef.current || 1;
     for (const e of edges) {
       const a = cardRefs.current.get(e.from);
       const b = cardRefs.current.get(e.to);
       if (!a || !b) continue;
       const ra = a.getBoundingClientRect();
       const rb = b.getBoundingClientRect();
-      const x1 = ra.right - cb.left;
-      const y1 = ra.top + ra.height / 2 - cb.top;
-      const x2 = rb.right - cb.left;
-      const y2 = rb.top + rb.height / 2 - cb.top;
+      const x1 = (ra.right - cb.left) / s;
+      const y1 = (ra.top + ra.height / 2 - cb.top) / s;
+      const x2 = (rb.right - cb.left) / s;
+      const y2 = (rb.top + rb.height / 2 - cb.top) / s;
+
       const bulge = 28 + Math.min(90, Math.abs(y2 - y1) * 0.25);
       const d = `M ${x1} ${y1} C ${x1 + bulge} ${y1}, ${x2 + bulge} ${y2}, ${x2} ${y2}`;
       next.push({ key: e.key, d, label: e.label, x: Math.max(x1, x2) + bulge * 0.6, y: (y1 + y2) / 2 });
