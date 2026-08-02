@@ -141,16 +141,21 @@
 @utility scene-overlay-pad {
   padding-left: 1rem;
   padding-bottom: 0.5rem;
-  @media (min-width: 640px) and (min-height: 500px) {
-    padding-left: 1.5rem;
-  }
 }
 
 @utility scene-overlay-scroll {
   max-height: min(55%, 38vh);
   overflow-y: auto;
   overscroll-behavior: contain;
-  @media (min-width: 640px) and (min-height: 500px) {
-    max-height: min(60%, 52vh);
+}
+
+@media (min-width: 640px) {
+  @media (min-height: 500px) {
+    .scene-overlay-pad {
+      padding-left: 1.5rem;
+    }
+    .scene-overlay-scroll {
+      max-height: min(60%, 52vh);
+    }
   }
 }
