@@ -274,7 +274,7 @@ function FlowSceneCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <Badge className="text-[11px]">Escena {nodeIdx + 1}</Badge>
-            <span className="truncate font-medium">{node.title}</span>
+            <span className="min-w-0 break-words font-medium">{node.title}</span>
             {node.isEnding && (
               <Badge variant={node.endingType === "success" ? "default" : "secondary"} className="gap-1">
                 <Flag className="h-3 w-3" /> Final
@@ -288,10 +288,10 @@ function FlowSceneCard({
             <div className="mt-2 space-y-2">
               {questions.map((q, qIdx) => (
                 <div key={q.id ?? qIdx} className="rounded-md border border-dashed bg-muted/20 p-2">
-                  <p className="mb-1 line-clamp-1 text-xs text-muted-foreground">
+                  <p className="mb-1 break-words text-xs text-muted-foreground">
                     {q.kind === "comment" ? "Comentario" : q.kind === "goto" ? "Enlace" : "Pregunta"} {qIdx + 1}: {q.text || "—"}
                   </p>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-col gap-1.5 sm:flex-row sm:flex-wrap">
                     {q.choices.map((c, cIdx) => (
                       <BranchChip
                         key={c.id}
@@ -367,7 +367,7 @@ function BranchChip({
       ref={setNodeRef}
       style={{ transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined }}
       className={cn(
-        "inline-flex max-w-full items-center gap-1 rounded-full border bg-background px-2 py-0.5 text-[11px]",
+        "flex max-w-full items-start gap-1 rounded-lg border bg-background px-2 py-1 text-xs sm:inline-flex sm:items-center sm:rounded-full",
         isDragging && "opacity-60 ring-2 ring-primary",
       )}
     >
@@ -377,13 +377,14 @@ function BranchChip({
         {...attributes}
         {...listeners}
         disabled={disabled}
-        className="flex min-w-0 cursor-grab touch-none items-center gap-1 active:cursor-grabbing disabled:cursor-default"
+        className="flex min-w-0 flex-1 cursor-grab touch-none items-start gap-1 text-left active:cursor-grabbing disabled:cursor-default sm:items-center"
         title="Arrastra sobre una escena para cambiar el destino"
       >
-        <GripVertical className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
-        <span className="truncate">{label}</span>
-        <span className="min-w-0 truncate text-muted-foreground">→ {destination}</span>
-
+        <GripVertical className="mt-0.5 h-3 w-3 flex-shrink-0 text-muted-foreground sm:mt-0" />
+        <span className="min-w-0 break-words">
+          <span className="font-medium">{label}</span>{" "}
+          <span className="text-muted-foreground">→ {destination}</span>
+        </span>
       </button>
       {onDelete && (
         <button
