@@ -296,7 +296,7 @@ function FlowSceneCard({
                       <BranchChip
                         key={c.id}
                         label={c.label || `Opción ${cIdx + 1}`}
-                        destination={destinationLabel(c.nextKind, c.next)}
+                        destination={destinationLabel(c.nextKind, c.next, sceneLabel)}
                         disabled={disabled}
                         ref_={{ nodeIdx, qIdx, cIdx }}
                         onDelete={disabled ? undefined : () => onDeleteChoice({ nodeIdx, qIdx, cIdx })}
