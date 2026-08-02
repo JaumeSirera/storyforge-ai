@@ -507,6 +507,7 @@ function BranchChip({
   ref_: ChoiceRef;
   onDelete?: () => void;
 }) {
+  const zoom = useContext(ZoomContext);
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, isDragging } = useDraggable({
     id: `choice-${ref_.nodeIdx}-${ref_.qIdx}-${ref_.cIdx}`,
     data: { type: "choice", ref: ref_ },
@@ -515,7 +516,8 @@ function BranchChip({
   return (
     <span
       ref={setNodeRef}
-      style={{ transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined }}
+      style={{ transform: transform ? `translate3d(${transform.x / zoom}px, ${transform.y / zoom}px, 0)` : undefined }}
+
       className={cn(
         "flex max-w-full items-start gap-1 rounded-lg border bg-background px-2 py-1 text-xs sm:inline-flex sm:items-center sm:rounded-full",
         isDragging && "opacity-60 ring-2 ring-primary",
