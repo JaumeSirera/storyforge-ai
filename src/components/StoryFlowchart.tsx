@@ -169,6 +169,11 @@ export function StoryFlowchart({
                 nodeIdx={nodeIdx}
                 disabled={disabled}
                 highlight={dragging?.type === "choice"}
+                sceneLabel={(id) => {
+                  const i = nodes.findIndex((t) => t.id === id);
+                  if (i < 0) return "escena";
+                  return `Escena ${i + 1}: ${nodes[i].title || "sin título"}`;
+                }}
                 registerRef={(el) => {
                   if (el) cardRefs.current.set(n.id, el);
                   else cardRefs.current.delete(n.id);
@@ -178,6 +183,7 @@ export function StoryFlowchart({
                 onEditScene={onEditScene}
               />
             ))}
+
 
             <div className="flex items-center gap-3">
               <EndDropZone active={dragging?.type === "choice"} />
