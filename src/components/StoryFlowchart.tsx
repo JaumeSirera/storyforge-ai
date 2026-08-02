@@ -140,7 +140,7 @@ export function StoryFlowchart({
         onDragEnd={handleDragEnd}
         onDragCancel={() => setDragging(null)}
       >
-        <div className="overflow-x-auto">
+        <div className="sm:overflow-x-auto">
           <div ref={containerRef} className="relative space-y-3 sm:min-w-[520px] sm:pr-28">
             <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
               <defs>
