@@ -61,6 +61,7 @@ export function StoryFlowchart({
   const [paths, setPaths] = useState<{ key: string; d: string; label: string; x: number; y: number }[]>([]);
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [viewportWidth, setViewportWidth] = useState(0);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const zoomRef = useRef(1);
   const offsetRef = useRef({ x: 0, y: 0 });
@@ -114,6 +115,19 @@ export function StoryFlowchart({
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
+
+  // Track the viewport width so the content reflows to fill it at any zoom level.
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const update = () => setViewportWidth(el.getBoundingClientRect().width);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+
 
   // Background drag to pan + two-pointer pinch zoom.
   const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
@@ -204,7 +218,7 @@ export function StoryFlowchart({
       next.push({ key: e.key, d, label: e.label, x: Math.max(x1, x2) + bulge * 0.6, y: (y1 + y2) / 2 });
     }
     setPaths(next);
-  }, [edgesKey, nodes.length, zoom]);
+  }, [edgesKey, nodes.length, zoom, viewportWidth]);
 
   useLayoutEffect(() => {
     measure();
@@ -277,13 +291,16 @@ export function StoryFlowchart({
           <div
             ref={viewportRef}
             onPointerDown={handleViewportPointerDown}
-            className="relative h-[65vh] min-h-[320px] cursor-grab touch-none overflow-hidden rounded-lg border bg-muted/10 active:cursor-grabbing"
+            className="relative h-[clamp(320px,68dvh,820px)] w-full cursor-grab touch-none overflow-hidden rounded-lg border bg-muted/10 active:cursor-grabbing"
           >
             <div
-              className="absolute left-0 top-0 w-full min-w-[300px] max-w-none origin-top-left will-change-transform"
-              style={{ transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${zoom})` }}
+              className="absolute left-0 top-0 max-w-none origin-top-left will-change-transform"
+              style={{
+                width: viewportWidth ? Math.max(280, viewportWidth / zoom) : "100%",
+                transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${zoom})`,
+              }}
             >
-              <div ref={containerRef} className="relative space-y-3 p-3 pr-16 sm:pr-28 lg:pr-40">
+              <div ref={containerRef} className="relative space-y-3 p-2 pr-10 sm:p-3 sm:pr-24 lg:pr-40">
                 <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
                   <defs>
                     <marker id="flow-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
