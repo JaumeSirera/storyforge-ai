@@ -13,7 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Save, Plus, Trash2, MessageSquare, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Star, Save, Plus, Trash2, MessageSquare, CheckCircle2, Download } from "lucide-react";
+import { downloadReportPdf } from "@/lib/report-pdf";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -294,9 +295,36 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
         )}
 
         {report && (
-          <div className="rounded-md border border-border p-3 text-sm space-y-1">
+          <div className="rounded-md border border-border p-3 text-sm space-y-2">
             <div className="font-medium">Informe IA · {report.outcome}</div>
             <p className="text-muted-foreground">{report.summary}</p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-2"
+              onClick={() =>
+                downloadReportPdf({
+                  simulation: {
+                    title: s.simulation?.title ?? "Simulación",
+                    objective: s.simulation?.objective ?? null,
+                  },
+                  candidate: { name: s.candidate_name, email: s.candidate_email },
+                  session: {
+                    id: s.id,
+                    startedAt: s.started_at,
+                    completedAt: s.completed_at,
+                    adminFeedback: s.admin_feedback,
+                  },
+                  report,
+                  answers: (s.answers ?? []) as any[],
+                  criteriaLabels: Object.fromEntries(
+                    ((s.simulation?.evaluation_criteria ?? []) as any[]).map((c) => [c.key, c.label]),
+                  ),
+                })
+              }
+            >
+              <Download className="h-4 w-4" /> Descargar informe PDF
+            </Button>
           </div>
         )}
 
