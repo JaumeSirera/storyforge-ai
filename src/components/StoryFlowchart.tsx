@@ -116,6 +116,19 @@ export function StoryFlowchart({
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
 
+  // Track the viewport width so the content reflows to fill it at any zoom level.
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const update = () => setViewportWidth(el.getBoundingClientRect().width);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+
+
   // Background drag to pan + two-pointer pinch zoom.
   const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
   const pinchRef = useRef<{ dist: number; cx: number; cy: number } | null>(null);
