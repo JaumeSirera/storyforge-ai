@@ -898,7 +898,27 @@ function FinalReport({ sessionId, sess, sim }: { sessionId: string; sess: any; s
         </CardContent>
       </Card>
 
-      <div className="flex justify-center gap-3">
+      <div className="flex flex-wrap justify-center gap-3">
+        <Button
+          className="gap-2"
+          onClick={() =>
+            downloadReportPdf({
+              simulation: { title: sim.title, objective: sim.objective },
+              candidate: { name: sess.candidate_name, email: sess.candidate_email },
+              session: {
+                id: sessionId,
+                startedAt: sess.started_at,
+                completedAt: sess.completed_at,
+                adminFeedback: sess.admin_feedback,
+              },
+              report: r,
+              answers: (sess.answers ?? []) as any[],
+              criteriaLabels: Object.fromEntries(criteriaMap as any),
+            })
+          }
+        >
+          <Download className="h-4 w-4" /> Descargar informe PDF
+        </Button>
         <Button variant="outline" onClick={() => navigate({ to: "/app/dashboard" })} className="gap-2">
           <Home className="h-4 w-4" /> Volver al inicio
         </Button>
