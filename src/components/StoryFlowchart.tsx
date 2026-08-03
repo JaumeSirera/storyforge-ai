@@ -61,6 +61,7 @@ export function StoryFlowchart({
   const [paths, setPaths] = useState<{ key: string; d: string; label: string; x: number; y: number }[]>([]);
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [viewportWidth, setViewportWidth] = useState(0);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const zoomRef = useRef(1);
   const offsetRef = useRef({ x: 0, y: 0 });
