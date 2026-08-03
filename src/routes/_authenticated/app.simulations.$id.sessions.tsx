@@ -13,7 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Save, Plus, Trash2, MessageSquare, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Star, Save, Plus, Trash2, MessageSquare, CheckCircle2, Download } from "lucide-react";
+import { downloadReportPdf } from "@/lib/report-pdf";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
