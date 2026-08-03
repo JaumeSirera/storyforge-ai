@@ -86,7 +86,7 @@ export const getSimulationSessionDetail = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: sess, error } = await context.supabase
       .from("sessions")
-      .select("*, simulation:simulations(id, title, owner_id)")
+      .select("*, simulation:simulations(id, title, owner_id, objective, evaluation_criteria)")
       .eq("id", data.sessionId)
       .maybeSingle();
     if (error) throw new Error(error.message);
