@@ -280,10 +280,10 @@ export function StoryFlowchart({
             className="relative h-[65vh] min-h-[320px] cursor-grab touch-none overflow-hidden rounded-lg border bg-muted/10 active:cursor-grabbing"
           >
             <div
-              className="absolute left-0 top-0 w-[520px] max-w-none origin-top-left will-change-transform"
+              className="absolute left-0 top-0 w-full min-w-[300px] max-w-none origin-top-left will-change-transform"
               style={{ transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${zoom})` }}
             >
-              <div ref={containerRef} className="relative space-y-3 p-3 pr-28">
+              <div ref={containerRef} className="relative space-y-3 p-3 pr-16 sm:pr-28 lg:pr-40">
                 <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
                   <defs>
                     <marker id="flow-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
