@@ -371,7 +371,7 @@ export const listMySessions = createServerFn({ method: "GET" })
       )
       .eq("user_id", context.userId)
       .order("started_at", { ascending: false })
-      .limit(20);
+      .limit(200);
     if (error) throw new Error(error.message);
     return data ?? [];
   });
