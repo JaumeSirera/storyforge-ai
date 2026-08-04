@@ -79,11 +79,17 @@ function Dashboard() {
       </section>
 
       <section>
-        <h2 className="text-xl font-semibold mb-3">Tus últimas partidas</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xl font-semibold">Tus últimas partidas</h2>
+          <span className="text-xs text-muted-foreground">
+            {sess.data?.length ?? 0} partida(s)
+          </span>
+        </div>
         {(sess.data?.length ?? 0) === 0 ? (
           <p className="text-sm text-muted-foreground">Aún no has jugado ninguna simulación.</p>
         ) : (
-          <div className="rounded-2xl border border-border bg-card divide-y divide-border">
+          <div className="max-h-[28rem] overflow-y-auto rounded-2xl border border-border bg-card divide-y divide-border">
+
             {sess.data!.map((s: any) => (
               <div key={s.id} className="flex items-center justify-between px-4 py-3">
                 <div>

@@ -370,8 +370,7 @@ export const listMySessions = createServerFn({ method: "GET" })
         "id, score, stars, started_at, completed_at, admin_feedback, admin_feedback_at, simulation:simulations(title)",
       )
       .eq("user_id", context.userId)
-      .order("started_at", { ascending: false })
-      .limit(200);
+      .order("started_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
   });
