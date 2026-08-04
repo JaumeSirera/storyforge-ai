@@ -92,6 +92,11 @@ function Dashboard() {
                     {s.completed_at ? "Terminada" : "En curso"} ·{" "}
                     {formatDistanceToNow(new Date(s.started_at), { addSuffix: true, locale: es })}
                   </div>
+                  {s.admin_feedback && (
+                    <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                      Feedback del creador disponible
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-4 text-sm">
                   <span className="flex items-center gap-1">
