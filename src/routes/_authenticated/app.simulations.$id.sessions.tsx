@@ -294,39 +294,52 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
           </div>
         )}
 
-        {report && (
-          <div className="rounded-md border border-border p-3 text-sm space-y-2">
-            <div className="font-medium">Informe IA · {report.outcome}</div>
-            <p className="text-muted-foreground">{report.summary}</p>
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-2"
-              onClick={() =>
-                downloadReportPdf({
-                  simulation: {
-                    title: s.simulation?.title ?? "Simulación",
-                    objective: s.simulation?.objective ?? null,
+        <div className="rounded-md border border-border p-3 text-sm space-y-2">
+          {report ? (
+            <>
+              <div className="font-medium">Informe IA · {report.outcome}</div>
+              <p className="text-muted-foreground">{report.summary}</p>
+            </>
+          ) : (
+            <p className="text-muted-foreground">
+              Esta sesión aún no tiene informe IA (sin completar). Puedes descargar un informe
+              provisional con las respuestas registradas hasta ahora.
+            </p>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            onClick={() =>
+              downloadReportPdf({
+                simulation: {
+                  title: s.simulation?.title ?? "Simulación",
+                  objective: s.simulation?.objective ?? null,
+                },
+                candidate: { name: s.candidate_name, email: s.candidate_email },
+                session: {
+                  id: s.id,
+                  startedAt: s.started_at,
+                  completedAt: s.completed_at,
+                  adminFeedback: s.admin_feedback,
+                },
+                report:
+                  report ?? {
+                    finalScore: s.score ?? 0,
+                    stars: s.stars ?? 0,
+                    outcome: "en_curso",
+                    summary: "Sesión en curso: informe provisional con las respuestas registradas.",
                   },
-                  candidate: { name: s.candidate_name, email: s.candidate_email },
-                  session: {
-                    id: s.id,
-                    startedAt: s.started_at,
-                    completedAt: s.completed_at,
-                    adminFeedback: s.admin_feedback,
-                  },
-                  report,
-                  answers: (s.answers ?? []) as any[],
-                  criteriaLabels: Object.fromEntries(
-                    ((s.simulation?.evaluation_criteria ?? []) as any[]).map((c) => [c.key, c.label]),
-                  ),
-                })
-              }
-            >
-              <Download className="h-4 w-4" /> Descargar informe PDF
-            </Button>
-          </div>
-        )}
+                answers: (s.answers ?? []) as any[],
+                criteriaLabels: Object.fromEntries(
+                  ((s.simulation?.evaluation_criteria ?? []) as any[]).map((c) => [c.key, c.label]),
+                ),
+              })
+            }
+          >
+            <Download className="h-4 w-4" /> Descargar informe PDF
+          </Button>
+        </div>
 
         <div className="space-y-2">
           <Label htmlFor="fb">Feedback para el candidato</Label>
