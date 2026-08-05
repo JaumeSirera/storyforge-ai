@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      email_settings: {
+        Row: {
+          body_template: string | null
+          created_at: string
+          from_email: string | null
+          from_name: string | null
+          reply_to: string | null
+          subject_template: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body_template?: string | null
+          created_at?: string
+          from_email?: string | null
+          from_name?: string | null
+          reply_to?: string | null
+          subject_template?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body_template?: string | null
+          created_at?: string
+          from_email?: string | null
+          from_name?: string | null
+          reply_to?: string | null
+          subject_template?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pricing_config: {
         Row: {
           created_at: string
