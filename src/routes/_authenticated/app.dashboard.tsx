@@ -5,9 +5,13 @@ import { listMySimulations } from "@/lib/simulations.functions";
 import { listMySessions } from "@/lib/sessions.functions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trophy, Star, PlayCircle, ArrowRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Trophy, Star, PlayCircle, ArrowRight, Search, CheckCircle2, Circle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import { useState, useMemo } from "react";
 
 export const Route = createFileRoute("/_authenticated/app/dashboard")({
   component: Dashboard,
