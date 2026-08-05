@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMyApiKeys, saveMyApiKeys } from "@/lib/user-keys.functions";
+import { getMyEmailSettings, saveMyEmailSettings } from "@/lib/email-settings.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -14,8 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { useState } from "react";
-import { KeyRound, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { KeyRound, Trash2, Mail } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/app/settings")({
   component: SettingsPage,
