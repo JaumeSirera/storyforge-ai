@@ -19,10 +19,33 @@ export const Route = createFileRoute("/_authenticated/app/dashboard")({
 
 function Dashboard() {
   const navigate = useNavigate();
+  const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "in_progress">("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const listSims = useServerFn(listMySimulations);
   const listSess = useServerFn(listMySessions);
   const sims = useQuery({ queryKey: ["my-simulations"], queryFn: () => listSims() });
   const sess = useQuery({ queryKey: ["my-sessions"], queryFn: () => listSess() });
+
+  const filteredSessions = useMemo(() => {
+    const rows = (sess.data ?? []) as any[];
+    return rows.filter((s) => {
+      const isCompleted = !!s.completed_at;
+      const statusMatch =
+        statusFilter === "all"
+          ? true
+          : statusFilter === "completed"
+            ? isCompleted
+            : !isCompleted;
+      const text = [s.simulation?.title ?? "", s.candidate_name ?? "", s.candidate_email ?? ""]
+        .join(" ")
+        .toLowerCase();
+      const searchMatch = !searchQuery || text.includes(searchQuery.toLowerCase());
+      return statusMatch && searchMatch;
+    });
+  }, [sess.data, statusFilter, searchQuery]);
+
+  const completedCount = (sess.data ?? []).filter((s: any) => !!s.completed_at).length;
+  const inProgressCount = (sess.data ?? []).length - completedCount;
 
   const totalScore = (sess.data ?? []).reduce((acc, s: any) => acc + (s.score ?? 0), 0);
   const totalStars = (sess.data ?? []).reduce((acc, s: any) => acc + (s.stars ?? 0), 0);
