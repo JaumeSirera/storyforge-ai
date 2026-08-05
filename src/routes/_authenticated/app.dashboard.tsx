@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trophy, Star, PlayCircle, ArrowRight, Search, CheckCircle2, Circle } from "lucide-react";
+import { Plus, Trophy, Star, PlayCircle, ArrowRight, Search, CheckCircle2, Circle, Info } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { useState, useMemo } from "react";
