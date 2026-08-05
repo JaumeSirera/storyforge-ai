@@ -67,6 +67,10 @@ function SettingsPage() {
         </p>
       </div>
 
+      <EmailSettingsCard />
+
+
+
       <Card>
         <CardHeader>
           <CardTitle>Proveedor de texto</CardTitle>
