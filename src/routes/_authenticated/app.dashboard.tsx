@@ -198,7 +198,7 @@ function Dashboard() {
                       <Star className="h-3.5 w-3.5 text-warning" />
                       {s.stars ?? 0}
                     </span>
-                    <Link to="/app/sessions/$id" params={{ id: s.id }}>
+                    <Link to="/app/sessions/$id" params={{ id: s.id }} title="Abrir partida para ver el informe y descargar el PDF">
                       <Button size="sm" variant="ghost" aria-label={isCompleted ? "Ver partida completada" : "Continuar partida en curso"}>
                         <PlayCircle className="h-4 w-4" />
                       </Button>
