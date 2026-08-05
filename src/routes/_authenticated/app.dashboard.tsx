@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trophy, Star, PlayCircle, ArrowRight, Search, CheckCircle2, Circle } from "lucide-react";
+import { Plus, Trophy, Star, PlayCircle, ArrowRight, Search, CheckCircle2, Circle, Info } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { useState, useMemo } from "react";
@@ -139,10 +139,18 @@ function Dashboard() {
         </div>
         {(sess.data?.length ?? 0) === 0 ? (
           <p className="text-sm text-muted-foreground">Aún no has jugado ninguna simulación.</p>
-        ) : filteredSessions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No hay partidas que coincidan con los filtros.</p>
         ) : (
-          <div className="max-h-[28rem] overflow-y-auto rounded-2xl border border-border bg-card divide-y divide-border">
+          <>
+            <div className="mb-3 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-primary">
+              <Info className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                Abre una partida para ver el informe y descargar el PDF (botón "Descargar informe PDF").
+              </span>
+            </div>
+            {filteredSessions.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No hay partidas que coincidan con los filtros.</p>
+            ) : (
+              <div className="max-h-[28rem] overflow-y-auto rounded-2xl border border-border bg-card divide-y divide-border">
             {filteredSessions.map((s: any) => {
               const isCompleted = !!s.completed_at;
               return (
@@ -190,7 +198,7 @@ function Dashboard() {
                       <Star className="h-3.5 w-3.5 text-warning" />
                       {s.stars ?? 0}
                     </span>
-                    <Link to="/app/sessions/$id" params={{ id: s.id }}>
+                    <Link to="/app/sessions/$id" params={{ id: s.id }} title="Abrir partida para ver el informe y descargar el PDF">
                       <Button size="sm" variant="ghost" aria-label={isCompleted ? "Ver partida completada" : "Continuar partida en curso"}>
                         <PlayCircle className="h-4 w-4" />
                       </Button>
@@ -199,7 +207,9 @@ function Dashboard() {
                 </div>
               );
             })}
-          </div>
+              </div>
+            )}
+          </>
         )}
       </section>
     </div>
