@@ -38,7 +38,14 @@ export const saveMyEmailSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => SaveInput.parse(input))
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = { user_id: context.userId };
+    const patch: {
+      user_id: string;
+      from_name?: string | null;
+      from_email?: string | null;
+      reply_to?: string | null;
+      subject_template?: string | null;
+      body_template?: string | null;
+    } = { user_id: context.userId };
     if (data.fromName !== undefined) patch.from_name = data.fromName || null;
     if (data.fromEmail !== undefined) patch.from_email = data.fromEmail || null;
     if (data.replyTo !== undefined) patch.reply_to = data.replyTo || null;
