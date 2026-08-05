@@ -207,3 +207,124 @@ function KeyCard({
     </Card>
   );
 }
+
+function EmailSettingsCard() {
+  const qc = useQueryClient();
+  const load = useServerFn(getMyEmailSettings);
+  const persist = useServerFn(saveMyEmailSettings);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["my-email-settings"],
+    queryFn: () => load(),
+  });
+
+  const [fromName, setFromName] = useState("");
+  const [fromEmail, setFromEmail] = useState("");
+  const [replyTo, setReplyTo] = useState("");
+  const [subjectTemplate, setSubjectTemplate] = useState("");
+  const [bodyTemplate, setBodyTemplate] = useState("");
+
+  useEffect(() => {
+    if (!data) return;
+    setFromName(data.fromName);
+    setFromEmail(data.fromEmail);
+    setReplyTo(data.replyTo);
+    setSubjectTemplate(data.subjectTemplate);
+    setBodyTemplate(data.bodyTemplate);
+  }, [data]);
+
+  const save = useMutation({
+    mutationFn: () =>
+      persist({
+        data: { fromName, fromEmail, replyTo, subjectTemplate, bodyTemplate },
+      }),
+    onSuccess: () => {
+      toast.success("Configuración de correo guardada");
+      qc.invalidateQueries({ queryKey: ["my-email-settings"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Mail className="h-4 w-4" /> Correo de envío
+        </CardTitle>
+        <CardDescription>
+          Configura el remitente con el que se enviarán los correos (por ejemplo, los
+          informes a los candidatos) y el asunto y mensaje por defecto.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isLoading ? (
+          <div className="text-sm text-muted-foreground">Cargando…</div>
+        ) : (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="from-name">Nombre visible</Label>
+                <Input
+                  id="from-name"
+                  placeholder="PlayGame"
+                  value={fromName}
+                  onChange={(e) => setFromName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="from-email">Correo del remitente</Label>
+                <Input
+                  id="from-email"
+                  type="email"
+                  autoComplete="off"
+                  placeholder="informes@tudominio.com"
+                  value={fromEmail}
+                  onChange={(e) => setFromEmail(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="reply-to">Responder a (opcional)</Label>
+              <Input
+                id="reply-to"
+                type="email"
+                autoComplete="off"
+                placeholder="rrhh@tudominio.com"
+                value={replyTo}
+                onChange={(e) => setReplyTo(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="subject-tpl">Asunto por defecto</Label>
+              <Input
+                id="subject-tpl"
+                value={subjectTemplate}
+                onChange={(e) => setSubjectTemplate(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="body-tpl">Mensaje por defecto</Label>
+              <Textarea
+                id="body-tpl"
+                rows={5}
+                value={bodyTemplate}
+                onChange={(e) => setBodyTemplate(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Puedes usar {"{{candidato}}"} y {"{{simulacion}}"} como campos dinámicos.
+              </p>
+            </div>
+
+            <Button size="sm" onClick={() => save.mutate()} disabled={save.isPending}>
+              Guardar configuración
+            </Button>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
