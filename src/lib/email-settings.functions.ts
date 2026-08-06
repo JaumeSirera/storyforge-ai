@@ -48,12 +48,15 @@ export const saveMyEmailSettings = createServerFn({ method: "POST" })
       reply_to?: string | null;
       subject_template?: string | null;
       body_template?: string | null;
+      logo_url?: string | null;
     } = { user_id: context.userId };
     if (data.fromName !== undefined) patch.from_name = data.fromName || null;
     if (data.fromEmail !== undefined) patch.from_email = data.fromEmail || null;
     if (data.replyTo !== undefined) patch.reply_to = data.replyTo || null;
     if (data.subjectTemplate !== undefined) patch.subject_template = data.subjectTemplate || null;
     if (data.bodyTemplate !== undefined) patch.body_template = data.bodyTemplate || null;
+    if (data.logoUrl !== undefined) patch.logo_url = data.logoUrl || null;
+
 
     const { error } = await context.supabase
       .from("email_settings")
