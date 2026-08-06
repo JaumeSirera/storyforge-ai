@@ -319,6 +319,44 @@ function EmailSettingsCard() {
           <div className="text-sm text-muted-foreground">Cargando…</div>
         ) : (
           <>
+            <div className="space-y-2">
+              <Label>Logo de la empresa</Label>
+              <div className="flex items-center gap-3">
+                <div className="h-16 w-28 rounded-md border border-border bg-muted/40 flex items-center justify-center overflow-hidden">
+                  {logoPreview ? (
+                    <img src={logoPreview} alt="Logo de la empresa" className="max-h-full max-w-full object-contain" />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Sin logo</span>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Input
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    disabled={uploading}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void uploadLogo(f);
+                      e.target.value = "";
+                    }}
+                    className="max-w-xs"
+                  />
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-muted-foreground">PNG o JPG, máx. 2 MB.</p>
+                    {logoUrl && (
+                      <Button variant="ghost" size="sm" onClick={() => void removeLogo()}>
+                        <Trash2 className="h-3.5 w-3.5 mr-1" /> Quitar
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Se usa en la cabecera del informe PDF que se envía a los candidatos.
+              </p>
+            </div>
+
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="from-name">Nombre visible</Label>
