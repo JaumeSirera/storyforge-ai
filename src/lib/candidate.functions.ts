@@ -64,8 +64,9 @@ export const listSimulationSessions = createServerFn({ method: "POST" })
     const { data: sessions, error } = await context.supabase
       .from("sessions")
       .select(
-        "id, user_id, candidate_name, candidate_email, candidate_fields_data, score, stars, started_at, completed_at, admin_feedback, admin_feedback_at, report",
+        "id, user_id, candidate_name, candidate_email, candidate_fields_data, score, stars, started_at, completed_at, admin_feedback, admin_feedback_at, report, report_email_sent_at, report_email_to",
       )
+
       .eq("simulation_id", data.simulationId)
       .order("started_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -111,6 +112,29 @@ export const submitAdminFeedback = createServerFn({ method: "POST" })
       .update({
         admin_feedback: data.feedback || null,
         admin_feedback_at: data.feedback ? new Date().toISOString() : null,
+      } as any)
+      .eq("id", data.sessionId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Registra en la sesión que el informe se ha enviado por correo al candidato. */
+export const markReportEmailSent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v: unknown) =>
+    z
+      .object({
+        sessionId: z.string().uuid(),
+        to: z.string().trim().email().max(255),
+      })
+      .parse(v),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("sessions")
+      .update({
+        report_email_sent_at: new Date().toISOString(),
+        report_email_to: data.to,
       } as any)
       .eq("id", data.sessionId);
     if (error) throw new Error(error.message);
