@@ -29,6 +29,9 @@ export interface ReportPdfData {
   };
   answers: ReportAnswer[];
   criteriaLabels?: Record<string, string>;
+  /** Marca de empresa opcional: logo en base64 (data URL). */
+  branding?: { logoDataUrl?: string | null; companyName?: string | null };
+
 }
 
 const OUTCOME_LABEL: Record<string, string> = {
