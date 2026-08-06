@@ -273,6 +273,78 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
     }
   }
 
+  function pdfPayload(logoDataUrl: string | null) {
+    return {
+      simulation: {
+        title: s.simulation?.title ?? "Simulación",
+        objective: s.simulation?.objective ?? null,
+      },
+      candidate: { name: s.candidate_name, email: s.candidate_email },
+      session: {
+        id: s.id,
+        startedAt: s.started_at,
+        completedAt: s.completed_at,
+        adminFeedback: s.admin_feedback,
+      },
+      report:
+        report ?? {
+          finalScore: s.score ?? 0,
+          stars: s.stars ?? 0,
+          outcome: "en_curso",
+          summary: "Sesión en curso: informe provisional con las respuestas registradas.",
+        },
+      answers: (s.answers ?? []) as any[],
+      criteriaLabels: Object.fromEntries(
+        ((s.simulation?.evaluation_criteria ?? []) as any[]).map((c) => [c.key, c.label]),
+      ),
+      branding: { logoDataUrl },
+    };
+  }
+
+  async function downloadPdf() {
+    const logo = await loadLogoDataUrl(settingsQ.data?.logoUrl || null);
+    downloadReportPdf(pdfPayload(logo));
+  }
+
+  async function sendReportByEmail() {
+    const to = (s.candidate_email as string | null) || "";
+    if (!to) {
+      toast.error("Esta sesión no tiene email del candidato.");
+      return;
+    }
+    setSendingMail(true);
+    try {
+      const cfg = settingsQ.data;
+      const logo = await loadLogoDataUrl(cfg?.logoUrl || null);
+      // Descarga el PDF para adjuntarlo en el correo.
+      downloadReportPdf(pdfPayload(logo));
+
+      const vars = { candidato: s.candidate_name, simulacion: s.simulation?.title };
+      const subject = renderTemplate(cfg?.subjectTemplate || "Tu informe de la simulación {{simulacion}}", vars);
+      const bodyBase = renderTemplate(cfg?.bodyTemplate || "Hola {{candidato}},", vars);
+      const signature = cfg?.fromName ? `\n\n${cfg.fromName}` : "";
+      const fb = s.admin_feedback ? `\n\nFeedback del evaluador:\n${s.admin_feedback}` : "";
+
+      await markSent({ data: { sessionId, to } });
+      qc.invalidateQueries({ queryKey: ["sim-session", sessionId] });
+      onSaved();
+
+      openMailClient({
+        to,
+        subject,
+        body: `${bodyBase}${fb}${signature}`,
+        replyTo: cfg?.replyTo || null,
+        fromEmail: cfg?.fromEmail || null,
+      });
+      toast.success("Informe descargado y correo preparado. Adjunta el PDF y envíalo.");
+    } catch (e: any) {
+      toast.error(e.message || "No se pudo preparar el envío");
+    } finally {
+      setSendingMail(false);
+    }
+  }
+
+
   return (
     <Card>
       <CardHeader>
