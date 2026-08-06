@@ -3,6 +3,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMyApiKeys, saveMyApiKeys } from "@/lib/user-keys.functions";
 import { getMyEmailSettings, saveMyEmailSettings } from "@/lib/email-settings.functions";
+import { supabase } from "@/integrations/supabase/client";
+import { loadLogoDataUrl } from "@/lib/email-report";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -223,6 +226,9 @@ function EmailSettingsCard() {
   const [replyTo, setReplyTo] = useState("");
   const [subjectTemplate, setSubjectTemplate] = useState("");
   const [bodyTemplate, setBodyTemplate] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!data) return;
@@ -231,12 +237,27 @@ function EmailSettingsCard() {
     setReplyTo(data.replyTo);
     setSubjectTemplate(data.subjectTemplate);
     setBodyTemplate(data.bodyTemplate);
+    setLogoUrl(data.logoUrl ?? "");
   }, [data]);
+
+  useEffect(() => {
+    let alive = true;
+    if (!logoUrl) {
+      setLogoPreview(null);
+      return;
+    }
+    loadLogoDataUrl(logoUrl).then((url) => {
+      if (alive) setLogoPreview(url);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [logoUrl]);
 
   const save = useMutation({
     mutationFn: () =>
       persist({
-        data: { fromName, fromEmail, replyTo, subjectTemplate, bodyTemplate },
+        data: { fromName, fromEmail, replyTo, subjectTemplate, bodyTemplate, logoUrl },
       }),
     onSuccess: () => {
       toast.success("Configuración de correo guardada");
@@ -244,6 +265,43 @@ function EmailSettingsCard() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  async function uploadLogo(file: File) {
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("El logo debe pesar menos de 2 MB");
+      return;
+    }
+    setUploading(true);
+    try {
+      const { data: userRes } = await supabase.auth.getUser();
+      const uid = userRes.user?.id;
+      if (!uid) throw new Error("Sesión no válida");
+      const ext = file.name.toLowerCase().endsWith(".jpg") || file.name.toLowerCase().endsWith(".jpeg")
+        ? "jpg"
+        : "png";
+      const path = `${uid}/logo-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("branding")
+        .upload(path, file, { upsert: true, contentType: file.type || `image/${ext}` });
+      if (error) throw new Error(error.message);
+      setLogoUrl(path);
+      await persist({ data: { logoUrl: path } });
+      qc.invalidateQueries({ queryKey: ["my-email-settings"] });
+      toast.success("Logo subido");
+    } catch (e: any) {
+      toast.error(e.message || "No se pudo subir el logo");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function removeLogo() {
+    setLogoUrl("");
+    await persist({ data: { logoUrl: "" } });
+    qc.invalidateQueries({ queryKey: ["my-email-settings"] });
+    toast.success("Logo eliminado");
+  }
+
 
   return (
     <Card>
@@ -261,6 +319,44 @@ function EmailSettingsCard() {
           <div className="text-sm text-muted-foreground">Cargando…</div>
         ) : (
           <>
+            <div className="space-y-2">
+              <Label>Logo de la empresa</Label>
+              <div className="flex items-center gap-3">
+                <div className="h-16 w-28 rounded-md border border-border bg-muted/40 flex items-center justify-center overflow-hidden">
+                  {logoPreview ? (
+                    <img src={logoPreview} alt="Logo de la empresa" className="max-h-full max-w-full object-contain" />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Sin logo</span>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Input
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    disabled={uploading}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void uploadLogo(f);
+                      e.target.value = "";
+                    }}
+                    className="max-w-xs"
+                  />
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-muted-foreground">PNG o JPG, máx. 2 MB.</p>
+                    {logoUrl && (
+                      <Button variant="ghost" size="sm" onClick={() => void removeLogo()}>
+                        <Trash2 className="h-3.5 w-3.5 mr-1" /> Quitar
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Se usa en la cabecera del informe PDF que se envía a los candidatos.
+              </p>
+            </div>
+
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="from-name">Nombre visible</Label>

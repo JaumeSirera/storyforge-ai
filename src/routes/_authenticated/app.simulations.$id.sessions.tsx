@@ -6,17 +6,21 @@ import {
   getSimulationSessionDetail,
   submitAdminFeedback,
   updateCandidateFields,
+  markReportEmailSent,
 } from "@/lib/candidate.functions";
+import { getMyEmailSettings } from "@/lib/email-settings.functions";
+import { loadLogoDataUrl, renderTemplate, openMailClient } from "@/lib/email-report";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Save, Plus, Trash2, MessageSquare, CheckCircle2, Download } from "lucide-react";
+import { ArrowLeft, Star, Save, Plus, Trash2, MessageSquare, CheckCircle2, Download, Mail } from "lucide-react";
 import { downloadReportPdf } from "@/lib/report-pdf";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/_authenticated/app/simulations/$id/sessions")({
   component: SimulationSessionsPage,
@@ -223,17 +227,25 @@ function CandidateFieldsEditor({
 function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved: () => void }) {
   const get = useServerFn(getSimulationSessionDetail);
   const send = useServerFn(submitAdminFeedback);
+  const loadEmailSettings = useServerFn(getMyEmailSettings);
+  const markSent = useServerFn(markReportEmailSent);
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["sim-session", sessionId],
     queryFn: () => get({ data: { sessionId } }),
   });
+  const settingsQ = useQuery({
+    queryKey: ["my-email-settings"],
+    queryFn: () => loadEmailSettings(),
+  });
   const [feedback, setFeedback] = useState("");
   const [saving, setSaving] = useState(false);
+  const [sendingMail, setSendingMail] = useState(false);
 
   useEffect(() => {
     if (q.data) setFeedback(((q.data as any).admin_feedback ?? "") as string);
   }, [q.data]);
+
 
   if (q.isLoading || !q.data) {
     return (
@@ -260,6 +272,78 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
       setSaving(false);
     }
   }
+
+  function pdfPayload(logoDataUrl: string | null) {
+    return {
+      simulation: {
+        title: s.simulation?.title ?? "Simulación",
+        objective: s.simulation?.objective ?? null,
+      },
+      candidate: { name: s.candidate_name, email: s.candidate_email },
+      session: {
+        id: s.id,
+        startedAt: s.started_at,
+        completedAt: s.completed_at,
+        adminFeedback: s.admin_feedback,
+      },
+      report:
+        report ?? {
+          finalScore: s.score ?? 0,
+          stars: s.stars ?? 0,
+          outcome: "en_curso",
+          summary: "Sesión en curso: informe provisional con las respuestas registradas.",
+        },
+      answers: (s.answers ?? []) as any[],
+      criteriaLabels: Object.fromEntries(
+        ((s.simulation?.evaluation_criteria ?? []) as any[]).map((c) => [c.key, c.label]),
+      ),
+      branding: { logoDataUrl },
+    };
+  }
+
+  async function downloadPdf() {
+    const logo = await loadLogoDataUrl(settingsQ.data?.logoUrl || null);
+    downloadReportPdf(pdfPayload(logo));
+  }
+
+  async function sendReportByEmail() {
+    const to = (s.candidate_email as string | null) || "";
+    if (!to) {
+      toast.error("Esta sesión no tiene email del candidato.");
+      return;
+    }
+    setSendingMail(true);
+    try {
+      const cfg = settingsQ.data;
+      const logo = await loadLogoDataUrl(cfg?.logoUrl || null);
+      // Descarga el PDF para adjuntarlo en el correo.
+      downloadReportPdf(pdfPayload(logo));
+
+      const vars = { candidato: s.candidate_name, simulacion: s.simulation?.title };
+      const subject = renderTemplate(cfg?.subjectTemplate || "Tu informe de la simulación {{simulacion}}", vars);
+      const bodyBase = renderTemplate(cfg?.bodyTemplate || "Hola {{candidato}},", vars);
+      const signature = cfg?.fromName ? `\n\n${cfg.fromName}` : "";
+      const fb = s.admin_feedback ? `\n\nFeedback del evaluador:\n${s.admin_feedback}` : "";
+
+      await markSent({ data: { sessionId, to } });
+      qc.invalidateQueries({ queryKey: ["sim-session", sessionId] });
+      onSaved();
+
+      openMailClient({
+        to,
+        subject,
+        body: `${bodyBase}${fb}${signature}`,
+        replyTo: cfg?.replyTo || null,
+        fromEmail: cfg?.fromEmail || null,
+      });
+      toast.success("Informe descargado y correo preparado. Adjunta el PDF y envíalo.");
+    } catch (e: any) {
+      toast.error(e.message || "No se pudo preparar el envío");
+    } finally {
+      setSendingMail(false);
+    }
+  }
+
 
   return (
     <Card>
@@ -306,39 +390,29 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
               provisional con las respuestas registradas hasta ahora.
             </p>
           )}
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-2"
-            onClick={() =>
-              downloadReportPdf({
-                simulation: {
-                  title: s.simulation?.title ?? "Simulación",
-                  objective: s.simulation?.objective ?? null,
-                },
-                candidate: { name: s.candidate_name, email: s.candidate_email },
-                session: {
-                  id: s.id,
-                  startedAt: s.started_at,
-                  completedAt: s.completed_at,
-                  adminFeedback: s.admin_feedback,
-                },
-                report:
-                  report ?? {
-                    finalScore: s.score ?? 0,
-                    stars: s.stars ?? 0,
-                    outcome: "en_curso",
-                    summary: "Sesión en curso: informe provisional con las respuestas registradas.",
-                  },
-                answers: (s.answers ?? []) as any[],
-                criteriaLabels: Object.fromEntries(
-                  ((s.simulation?.evaluation_criteria ?? []) as any[]).map((c) => [c.key, c.label]),
-                ),
-              })
-            }
-          >
-            <Download className="h-4 w-4" /> Descargar informe PDF
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" className="gap-2" onClick={() => void downloadPdf()}>
+              <Download className="h-4 w-4" /> Descargar informe PDF
+            </Button>
+            <Button
+              size="sm"
+              className="gap-2"
+              disabled={sendingMail || !s.candidate_email}
+              onClick={() => void sendReportByEmail()}
+            >
+              <Mail className="h-4 w-4" /> Enviar informe por email
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Se usa la configuración de <strong>Ajustes → Correo de envío</strong> (remitente, logo,
+            asunto y mensaje). El PDF se descarga para adjuntarlo al correo.
+          </p>
+          {s.report_email_sent_at && (
+            <p className="text-xs text-primary">
+              Enviado a {s.report_email_to} el {new Date(s.report_email_sent_at).toLocaleString()}
+            </p>
+          )}
+
         </div>
 
         <div className="space-y-2">
