@@ -89,32 +89,46 @@ export function generateReportPdf(data: ReportPdfData): jsPDF {
   };
 
   // ---- Header band
+  const logo = data.branding?.logoDataUrl || null;
+  const BAND = logo ? 176 : 132;
+  const TOP = logo ? 96 : 56;
   doc.setFillColor(37, 62, 122);
-  doc.rect(0, 0, W, 132, "F");
+  doc.rect(0, 0, W, BAND, "F");
+  if (logo) {
+    try {
+      const fmt = logo.includes("image/jpeg") || logo.includes("image/jpg") ? "JPEG" : "PNG";
+      doc.addImage(logo, fmt, M, 20, 0, 40);
+    } catch {
+      /* logo no válido: se ignora */
+    }
+  }
   doc.setTextColor(255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
   const titleLines = doc.splitTextToSize(data.simulation.title, CW - 140) as string[];
-  doc.text(titleLines.slice(0, 2), M, 56);
+  doc.text(titleLines.slice(0, 2), M, TOP);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
-  doc.text("Informe final de simulación", M, 56 + titleLines.slice(0, 2).length * 22);
+  doc.text("Informe final de simulación", M, TOP + titleLines.slice(0, 2).length * 22);
 
   const outcome = OUTCOME_LABEL[data.report.outcome] ?? data.report.outcome?.toUpperCase() ?? "—";
   doc.setFont("helvetica", "bold");
   doc.setFontSize(28);
-  doc.text(String(data.report.finalScore ?? 0), W - M, 52, { align: "right" });
+  doc.text(String(data.report.finalScore ?? 0), W - M, BAND - 80, { align: "right" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.text("PUNTOS", W - M, 66, { align: "right" });
+  doc.text("PUNTOS", W - M, BAND - 66, { align: "right" });
   const stars = Math.max(0, Math.min(5, data.report.stars ?? 0));
   doc.setFontSize(11);
-  doc.text(`${"*".repeat(stars)}${"-".repeat(5 - stars)}  (${stars}/5)`, W - M, 86, { align: "right" });
+  doc.text(`${"*".repeat(stars)}${"-".repeat(5 - stars)}  (${stars}/5)`, W - M, BAND - 46, {
+    align: "right",
+  });
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.text(outcome, W - M, 108, { align: "right" });
+  doc.text(outcome, W - M, BAND - 24, { align: "right" });
 
-  y = 132 + 24;
+  y = BAND + 24;
+
   doc.setTextColor(60);
 
   // ---- Meta
