@@ -20,6 +20,7 @@ export type Database = {
           created_at: string
           from_email: string | null
           from_name: string | null
+          logo_url: string | null
           reply_to: string | null
           subject_template: string | null
           updated_at: string
@@ -30,6 +31,7 @@ export type Database = {
           created_at?: string
           from_email?: string | null
           from_name?: string | null
+          logo_url?: string | null
           reply_to?: string | null
           subject_template?: string | null
           updated_at?: string
@@ -40,6 +42,7 @@ export type Database = {
           created_at?: string
           from_email?: string | null
           from_name?: string | null
+          logo_url?: string | null
           reply_to?: string | null
           subject_template?: string | null
           updated_at?: string
@@ -208,6 +211,8 @@ export type Database = {
           current_node_id: string | null
           id: string
           report: Json | null
+          report_email_sent_at: string | null
+          report_email_to: string | null
           score: number
           simulation_id: string
           stars: number
@@ -228,6 +233,8 @@ export type Database = {
           current_node_id?: string | null
           id?: string
           report?: Json | null
+          report_email_sent_at?: string | null
+          report_email_to?: string | null
           score?: number
           simulation_id: string
           stars?: number
@@ -248,6 +255,8 @@ export type Database = {
           current_node_id?: string | null
           id?: string
           report?: Json | null
+          report_email_sent_at?: string | null
+          report_email_to?: string | null
           score?: number
           simulation_id?: string
           stars?: number
