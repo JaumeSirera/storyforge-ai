@@ -8,7 +8,7 @@ export const getMyEmailSettings = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("email_settings")
-      .select("from_name, from_email, reply_to, subject_template, body_template")
+      .select("from_name, from_email, reply_to, subject_template, body_template, logo_url")
       .eq("user_id", context.userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -17,6 +17,7 @@ export const getMyEmailSettings = createServerFn({ method: "GET" })
       fromName: (data?.from_name as string | null) ?? "",
       fromEmail: (data?.from_email as string | null) ?? "",
       replyTo: (data?.reply_to as string | null) ?? "",
+      logoUrl: ((data as any)?.logo_url as string | null) ?? "",
       subjectTemplate:
         (data?.subject_template as string | null) ?? "Tu informe de la simulación {{simulacion}}",
       bodyTemplate:
@@ -31,7 +32,9 @@ const SaveInput = z.object({
   replyTo: z.string().trim().max(200).email("Introduce un email válido").or(z.literal("")).optional(),
   subjectTemplate: z.string().trim().max(200).optional(),
   bodyTemplate: z.string().trim().max(4000).optional(),
+  logoUrl: z.string().trim().max(500).optional(),
 });
+
 
 /** Guarda los ajustes de correo del usuario actual. */
 export const saveMyEmailSettings = createServerFn({ method: "POST" })
