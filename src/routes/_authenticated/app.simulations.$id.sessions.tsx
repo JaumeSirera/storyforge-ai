@@ -227,17 +227,25 @@ function CandidateFieldsEditor({
 function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved: () => void }) {
   const get = useServerFn(getSimulationSessionDetail);
   const send = useServerFn(submitAdminFeedback);
+  const loadEmailSettings = useServerFn(getMyEmailSettings);
+  const markSent = useServerFn(markReportEmailSent);
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["sim-session", sessionId],
     queryFn: () => get({ data: { sessionId } }),
   });
+  const settingsQ = useQuery({
+    queryKey: ["my-email-settings"],
+    queryFn: () => loadEmailSettings(),
+  });
   const [feedback, setFeedback] = useState("");
   const [saving, setSaving] = useState(false);
+  const [sendingMail, setSendingMail] = useState(false);
 
   useEffect(() => {
     if (q.data) setFeedback(((q.data as any).admin_feedback ?? "") as string);
   }, [q.data]);
+
 
   if (q.isLoading || !q.data) {
     return (
