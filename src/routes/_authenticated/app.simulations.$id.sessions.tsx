@@ -345,10 +345,15 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
   const [feedback, setFeedback] = useState("");
   const [saving, setSaving] = useState(false);
   const [sendingMail, setSendingMail] = useState(false);
+  const [mailTo, setMailTo] = useState("");
 
   useEffect(() => {
-    if (q.data) setFeedback(((q.data as any).admin_feedback ?? "") as string);
+    if (q.data) {
+      setFeedback(((q.data as any).admin_feedback ?? "") as string);
+      setMailTo((((q.data as any).candidate_email ?? "") as string) || "");
+    }
   }, [q.data]);
+
 
 
   if (q.isLoading || !q.data) {
