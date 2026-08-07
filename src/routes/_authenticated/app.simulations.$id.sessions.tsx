@@ -16,10 +16,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Save, Plus, Trash2, MessageSquare, CheckCircle2, Download, Mail } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Star, Save, Plus, Trash2, MessageSquare, CheckCircle2, Download, Mail, Search, FilterX } from "lucide-react";
 import { downloadReportPdf } from "@/lib/report-pdf";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+
 
 
 export const Route = createFileRoute("/_authenticated/app/simulations/$id/sessions")({
