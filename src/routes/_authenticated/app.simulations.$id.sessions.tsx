@@ -35,6 +35,48 @@ function SimulationSessionsPage() {
   });
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<"all" | "completed" | "in_progress">("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [minPoints, setMinPoints] = useState("");
+  const [maxPoints, setMaxPoints] = useState("");
+
+  const sessions = (q.data?.sessions ?? []) as any[];
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const from = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() : null;
+    const to = dateTo ? new Date(`${dateTo}T23:59:59`).getTime() : null;
+    const min = minPoints === "" ? null : Number(minPoints);
+    const max = maxPoints === "" ? null : Number(maxPoints);
+    return sessions.filter((s) => {
+      const done = !!s.completed_at;
+      if (status === "completed" && !done) return false;
+      if (status === "in_progress" && done) return false;
+      if (term) {
+        const hay = [s.candidate_name ?? "", s.candidate_email ?? "", ...Object.values(s.candidate_fields_data ?? {})]
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(term)) return false;
+      }
+      const t = new Date(s.started_at).getTime();
+      if (from !== null && t < from) return false;
+      if (to !== null && t > to) return false;
+      const pts = s.score ?? 0;
+      if (min !== null && !Number.isNaN(min) && pts < min) return false;
+      if (max !== null && !Number.isNaN(max) && pts > max) return false;
+      return true;
+    });
+  }, [sessions, search, status, dateFrom, dateTo, minPoints, maxPoints]);
+
+  function resetFilters() {
+    setSearch("");
+    setStatus("all");
+    setDateFrom("");
+    setDateTo("");
+    setMinPoints("");
+    setMaxPoints("");
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -63,16 +105,75 @@ function SimulationSessionsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Candidatos</CardTitle>
-            <CardDescription>{q.data?.sessions?.length ?? 0} sesión(es)</CardDescription>
+            <CardDescription>
+              {filtered.length} de {sessions.length} sesión(es)
+            </CardDescription>
           </CardHeader>
+          <CardContent className="space-y-3 pb-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder="Buscar por candidato o email…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                aria-label="Buscar candidato"
+              />
+            </div>
+            <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
+              <SelectTrigger aria-label="Filtrar por estado">
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                <SelectItem value="completed">Completadas</SelectItem>
+                <SelectItem value="in_progress">En curso</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Desde</Label>
+                <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Hasta</Label>
+                <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Puntos mín.</Label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  value={minPoints}
+                  onChange={(e) => setMinPoints(e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Puntos máx.</Label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  value={maxPoints}
+                  onChange={(e) => setMaxPoints(e.target.value)}
+                  placeholder="100"
+                />
+              </div>
+            </div>
+            <Button variant="ghost" size="sm" onClick={resetFilters} className="gap-1">
+              <FilterX className="h-4 w-4" /> Limpiar filtros
+            </Button>
+          </CardContent>
           <CardContent className="p-0">
             {q.isLoading ? (
               <p className="p-4 text-sm text-muted-foreground">Cargando…</p>
-            ) : (q.data?.sessions?.length ?? 0) === 0 ? (
+            ) : sessions.length === 0 ? (
               <p className="p-4 text-sm text-muted-foreground">Aún nadie ha jugado esta simulación.</p>
+            ) : filtered.length === 0 ? (
+              <p className="p-4 text-sm text-muted-foreground">Ninguna sesión coincide con los filtros.</p>
             ) : (
-              <ul className="divide-y divide-border">
-                {q.data!.sessions.map((s: any) => (
+              <ul className="max-h-[32rem] overflow-y-auto divide-y divide-border">
+                {filtered.map((s: any) => (
                   <li key={s.id}>
                     <button
                       onClick={() => setSelectedId(s.id)}
@@ -111,6 +212,7 @@ function SimulationSessionsPage() {
             )}
           </CardContent>
         </Card>
+
 
         <div>
           {selectedId ? (
