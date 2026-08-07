@@ -34,12 +34,34 @@ export function openMailClient(opts: {
   body: string;
   replyTo?: string | null;
   fromEmail?: string | null;
-}) {
+}): boolean {
   const params = new URLSearchParams();
   params.set("subject", opts.subject);
   params.set("body", opts.body);
   const cc = opts.replyTo && opts.replyTo !== opts.to ? opts.replyTo : null;
   if (cc) params.set("cc", cc);
   const url = `mailto:${encodeURIComponent(opts.to)}?${params.toString().replace(/\+/g, "%20")}`;
-  window.location.href = url;
+
+  // En el preview la app corre dentro de un iframe: `location.href` puede
+  // bloquearse, así que usamos un enlace real en la ventana superior.
+  try {
+    const doc = window.top?.document ?? document;
+    const a = doc.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.style.display = "none";
+    doc.body.appendChild(a);
+    a.click();
+    a.remove();
+    return true;
+  } catch {
+    try {
+      window.location.href = url;
+      return true;
+    } catch {
+      return false;
+    }
+  }
 }
+
