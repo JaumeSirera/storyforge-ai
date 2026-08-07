@@ -411,9 +411,9 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
   }
 
   async function sendReportByEmail() {
-    const to = (s.candidate_email as string | null) || "";
-    if (!to) {
-      toast.error("Esta sesión no tiene email del candidato.");
+    const to = (mailTo || (s.candidate_email as string | null) || "").trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      toast.error("Indica un email de destino válido.");
       return;
     }
     setSendingMail(true);
@@ -429,24 +429,30 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
       const signature = cfg?.fromName ? `\n\n${cfg.fromName}` : "";
       const fb = s.admin_feedback ? `\n\nFeedback del evaluador:\n${s.admin_feedback}` : "";
 
-      await markSent({ data: { sessionId, to } });
-      qc.invalidateQueries({ queryKey: ["sim-session", sessionId] });
-      onSaved();
-
-      openMailClient({
+      const opened = openMailClient({
         to,
         subject,
         body: `${bodyBase}${fb}${signature}`,
         replyTo: cfg?.replyTo || null,
         fromEmail: cfg?.fromEmail || null,
       });
-      toast.success("Informe descargado y correo preparado. Adjunta el PDF y envíalo.");
+
+      await markSent({ data: { sessionId, to } });
+      qc.invalidateQueries({ queryKey: ["sim-session", sessionId] });
+      onSaved();
+
+      if (opened) {
+        toast.success("Informe descargado y correo preparado. Adjunta el PDF y envíalo.");
+      } else {
+        toast.warning("Informe descargado, pero no se pudo abrir el cliente de correo.");
+      }
     } catch (e: any) {
       toast.error(e.message || "No se pudo preparar el envío");
     } finally {
       setSendingMail(false);
     }
   }
+
 
 
   return (
