@@ -505,6 +505,18 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
               provisional con las respuestas registradas hasta ahora.
             </p>
           )}
+          <div className="space-y-1">
+            <Label htmlFor="mailto" className="text-xs">
+              Enviar a
+            </Label>
+            <Input
+              id="mailto"
+              type="email"
+              value={mailTo}
+              onChange={(e) => setMailTo(e.target.value)}
+              placeholder="candidato@empresa.com"
+            />
+          </div>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" className="gap-2" onClick={() => void downloadPdf()}>
               <Download className="h-4 w-4" /> Descargar informe PDF
@@ -512,12 +524,13 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
             <Button
               size="sm"
               className="gap-2"
-              disabled={sendingMail || !s.candidate_email}
+              disabled={sendingMail}
               onClick={() => void sendReportByEmail()}
             >
               <Mail className="h-4 w-4" /> Enviar informe por email
             </Button>
           </div>
+
           <p className="text-xs text-muted-foreground">
             Se usa la configuración de <strong>Ajustes → Correo de envío</strong> (remitente, logo,
             asunto y mensaje). El PDF se descarga para adjuntarlo al correo.
