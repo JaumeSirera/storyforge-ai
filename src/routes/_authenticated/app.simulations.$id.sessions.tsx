@@ -16,10 +16,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Save, Plus, Trash2, MessageSquare, CheckCircle2, Download, Mail } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Star, Save, Plus, Trash2, MessageSquare, CheckCircle2, Download, Mail, Search, FilterX } from "lucide-react";
 import { downloadReportPdf } from "@/lib/report-pdf";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+
 
 
 export const Route = createFileRoute("/_authenticated/app/simulations/$id/sessions")({
@@ -35,6 +37,48 @@ function SimulationSessionsPage() {
   });
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<"all" | "completed" | "in_progress">("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [minPoints, setMinPoints] = useState("");
+  const [maxPoints, setMaxPoints] = useState("");
+
+  const sessions = (q.data?.sessions ?? []) as any[];
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const from = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() : null;
+    const to = dateTo ? new Date(`${dateTo}T23:59:59`).getTime() : null;
+    const min = minPoints === "" ? null : Number(minPoints);
+    const max = maxPoints === "" ? null : Number(maxPoints);
+    return sessions.filter((s) => {
+      const done = !!s.completed_at;
+      if (status === "completed" && !done) return false;
+      if (status === "in_progress" && done) return false;
+      if (term) {
+        const hay = [s.candidate_name ?? "", s.candidate_email ?? "", ...Object.values(s.candidate_fields_data ?? {})]
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(term)) return false;
+      }
+      const t = new Date(s.started_at).getTime();
+      if (from !== null && t < from) return false;
+      if (to !== null && t > to) return false;
+      const pts = s.score ?? 0;
+      if (min !== null && !Number.isNaN(min) && pts < min) return false;
+      if (max !== null && !Number.isNaN(max) && pts > max) return false;
+      return true;
+    });
+  }, [sessions, search, status, dateFrom, dateTo, minPoints, maxPoints]);
+
+  function resetFilters() {
+    setSearch("");
+    setStatus("all");
+    setDateFrom("");
+    setDateTo("");
+    setMinPoints("");
+    setMaxPoints("");
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -63,16 +107,75 @@ function SimulationSessionsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Candidatos</CardTitle>
-            <CardDescription>{q.data?.sessions?.length ?? 0} sesión(es)</CardDescription>
+            <CardDescription>
+              {filtered.length} de {sessions.length} sesión(es)
+            </CardDescription>
           </CardHeader>
+          <CardContent className="space-y-3 pb-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder="Buscar por candidato o email…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                aria-label="Buscar candidato"
+              />
+            </div>
+            <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
+              <SelectTrigger aria-label="Filtrar por estado">
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                <SelectItem value="completed">Completadas</SelectItem>
+                <SelectItem value="in_progress">En curso</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Desde</Label>
+                <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Hasta</Label>
+                <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Puntos mín.</Label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  value={minPoints}
+                  onChange={(e) => setMinPoints(e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Puntos máx.</Label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  value={maxPoints}
+                  onChange={(e) => setMaxPoints(e.target.value)}
+                  placeholder="100"
+                />
+              </div>
+            </div>
+            <Button variant="ghost" size="sm" onClick={resetFilters} className="gap-1">
+              <FilterX className="h-4 w-4" /> Limpiar filtros
+            </Button>
+          </CardContent>
           <CardContent className="p-0">
             {q.isLoading ? (
               <p className="p-4 text-sm text-muted-foreground">Cargando…</p>
-            ) : (q.data?.sessions?.length ?? 0) === 0 ? (
+            ) : sessions.length === 0 ? (
               <p className="p-4 text-sm text-muted-foreground">Aún nadie ha jugado esta simulación.</p>
+            ) : filtered.length === 0 ? (
+              <p className="p-4 text-sm text-muted-foreground">Ninguna sesión coincide con los filtros.</p>
             ) : (
-              <ul className="divide-y divide-border">
-                {q.data!.sessions.map((s: any) => (
+              <ul className="max-h-[32rem] overflow-y-auto divide-y divide-border">
+                {filtered.map((s: any) => (
                   <li key={s.id}>
                     <button
                       onClick={() => setSelectedId(s.id)}
@@ -111,6 +214,7 @@ function SimulationSessionsPage() {
             )}
           </CardContent>
         </Card>
+
 
         <div>
           {selectedId ? (
@@ -241,10 +345,15 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
   const [feedback, setFeedback] = useState("");
   const [saving, setSaving] = useState(false);
   const [sendingMail, setSendingMail] = useState(false);
+  const [mailTo, setMailTo] = useState("");
 
   useEffect(() => {
-    if (q.data) setFeedback(((q.data as any).admin_feedback ?? "") as string);
+    if (q.data) {
+      setFeedback(((q.data as any).admin_feedback ?? "") as string);
+      setMailTo((((q.data as any).candidate_email ?? "") as string) || "");
+    }
   }, [q.data]);
+
 
 
   if (q.isLoading || !q.data) {
@@ -307,9 +416,9 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
   }
 
   async function sendReportByEmail() {
-    const to = (s.candidate_email as string | null) || "";
-    if (!to) {
-      toast.error("Esta sesión no tiene email del candidato.");
+    const to = (mailTo || (s.candidate_email as string | null) || "").trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      toast.error("Indica un email de destino válido.");
       return;
     }
     setSendingMail(true);
@@ -325,24 +434,30 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
       const signature = cfg?.fromName ? `\n\n${cfg.fromName}` : "";
       const fb = s.admin_feedback ? `\n\nFeedback del evaluador:\n${s.admin_feedback}` : "";
 
-      await markSent({ data: { sessionId, to } });
-      qc.invalidateQueries({ queryKey: ["sim-session", sessionId] });
-      onSaved();
-
-      openMailClient({
+      const opened = openMailClient({
         to,
         subject,
         body: `${bodyBase}${fb}${signature}`,
         replyTo: cfg?.replyTo || null,
         fromEmail: cfg?.fromEmail || null,
       });
-      toast.success("Informe descargado y correo preparado. Adjunta el PDF y envíalo.");
+
+      await markSent({ data: { sessionId, to } });
+      qc.invalidateQueries({ queryKey: ["sim-session", sessionId] });
+      onSaved();
+
+      if (opened) {
+        toast.success("Informe descargado y correo preparado. Adjunta el PDF y envíalo.");
+      } else {
+        toast.warning("Informe descargado, pero no se pudo abrir el cliente de correo.");
+      }
     } catch (e: any) {
       toast.error(e.message || "No se pudo preparar el envío");
     } finally {
       setSendingMail(false);
     }
   }
+
 
 
   return (
@@ -390,6 +505,18 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
               provisional con las respuestas registradas hasta ahora.
             </p>
           )}
+          <div className="space-y-1">
+            <Label htmlFor="mailto" className="text-xs">
+              Enviar a
+            </Label>
+            <Input
+              id="mailto"
+              type="email"
+              value={mailTo}
+              onChange={(e) => setMailTo(e.target.value)}
+              placeholder="candidato@empresa.com"
+            />
+          </div>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" className="gap-2" onClick={() => void downloadPdf()}>
               <Download className="h-4 w-4" /> Descargar informe PDF
@@ -397,12 +524,13 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
             <Button
               size="sm"
               className="gap-2"
-              disabled={sendingMail || !s.candidate_email}
+              disabled={sendingMail}
               onClick={() => void sendReportByEmail()}
             >
               <Mail className="h-4 w-4" /> Enviar informe por email
             </Button>
           </div>
+
           <p className="text-xs text-muted-foreground">
             Se usa la configuración de <strong>Ajustes → Correo de envío</strong> (remitente, logo,
             asunto y mensaje). El PDF se descarga para adjuntarlo al correo.
