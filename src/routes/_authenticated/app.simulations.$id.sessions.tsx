@@ -333,6 +333,8 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
   const send = useServerFn(submitAdminFeedback);
   const loadEmailSettings = useServerFn(getMyEmailSettings);
   const markSent = useServerFn(markReportEmailSent);
+  const logSend = useServerFn(logReportEmail);
+  const listLog = useServerFn(listReportEmailLog);
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["sim-session", sessionId],
@@ -342,10 +344,16 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
     queryKey: ["my-email-settings"],
     queryFn: () => loadEmailSettings(),
   });
+  const logQ = useQuery({
+    queryKey: ["report-email-log", sessionId],
+    queryFn: () => listLog({ data: { sessionId } }),
+  });
   const [feedback, setFeedback] = useState("");
   const [saving, setSaving] = useState(false);
   const [sendingMail, setSendingMail] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [mailTo, setMailTo] = useState("");
+
 
   useEffect(() => {
     if (q.data) {
