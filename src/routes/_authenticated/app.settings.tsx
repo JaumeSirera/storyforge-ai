@@ -419,9 +419,21 @@ function EmailSettingsCard() {
               </p>
             </div>
 
+            <div className="flex items-start justify-between gap-4 rounded-md border border-border p-3">
+              <div className="space-y-1">
+                <Label htmlFor="auto-send">Enviar el informe automáticamente al finalizar</Label>
+                <p className="text-xs text-muted-foreground">
+                  Cuando un candidato termina la simulación, el informe se prepara con esta
+                  configuración y queda registrado en el historial de la sesión.
+                </p>
+              </div>
+              <Switch id="auto-send" checked={autoSend} onCheckedChange={setAutoSend} />
+            </div>
+
             <Button size="sm" onClick={() => save.mutate()} disabled={save.isPending}>
               Guardar configuración
             </Button>
+
           </>
         )}
       </CardContent>
