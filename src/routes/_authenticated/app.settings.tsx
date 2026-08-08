@@ -231,6 +231,7 @@ function EmailSettingsCard() {
   const [logoUrl, setLogoUrl] = useState("");
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [autoSend, setAutoSend] = useState(false);
 
   useEffect(() => {
     if (!data) return;
@@ -240,7 +241,9 @@ function EmailSettingsCard() {
     setSubjectTemplate(data.subjectTemplate);
     setBodyTemplate(data.bodyTemplate);
     setLogoUrl(data.logoUrl ?? "");
+    setAutoSend(Boolean((data as any).autoSendOnComplete));
   }, [data]);
+
 
   useEffect(() => {
     let alive = true;
