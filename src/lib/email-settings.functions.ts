@@ -35,6 +35,7 @@ const SaveInput = z.object({
   subjectTemplate: z.string().trim().max(200).optional(),
   bodyTemplate: z.string().trim().max(4000).optional(),
   logoUrl: z.string().trim().max(500).optional(),
+  autoSendOnComplete: z.boolean().optional(),
 });
 
 
@@ -51,6 +52,7 @@ export const saveMyEmailSettings = createServerFn({ method: "POST" })
       subject_template?: string | null;
       body_template?: string | null;
       logo_url?: string | null;
+      auto_send_on_complete?: boolean;
     } = { user_id: context.userId };
     if (data.fromName !== undefined) patch.from_name = data.fromName || null;
     if (data.fromEmail !== undefined) patch.from_email = data.fromEmail || null;
@@ -58,6 +60,7 @@ export const saveMyEmailSettings = createServerFn({ method: "POST" })
     if (data.subjectTemplate !== undefined) patch.subject_template = data.subjectTemplate || null;
     if (data.bodyTemplate !== undefined) patch.body_template = data.bodyTemplate || null;
     if (data.logoUrl !== undefined) patch.logo_url = data.logoUrl || null;
+    if (data.autoSendOnComplete !== undefined) patch.auto_send_on_complete = data.autoSendOnComplete;
 
 
     const { error } = await context.supabase
@@ -66,3 +69,4 @@ export const saveMyEmailSettings = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
