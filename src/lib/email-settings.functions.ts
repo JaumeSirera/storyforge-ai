@@ -8,7 +8,7 @@ export const getMyEmailSettings = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("email_settings")
-      .select("from_name, from_email, reply_to, subject_template, body_template, logo_url")
+      .select("from_name, from_email, reply_to, subject_template, body_template, logo_url, auto_send_on_complete")
       .eq("user_id", context.userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -18,6 +18,7 @@ export const getMyEmailSettings = createServerFn({ method: "GET" })
       fromEmail: (data?.from_email as string | null) ?? "",
       replyTo: (data?.reply_to as string | null) ?? "",
       logoUrl: ((data as any)?.logo_url as string | null) ?? "",
+      autoSendOnComplete: Boolean((data as any)?.auto_send_on_complete),
       subjectTemplate:
         (data?.subject_template as string | null) ?? "Tu informe de la simulación {{simulacion}}",
       bodyTemplate:
@@ -25,6 +26,7 @@ export const getMyEmailSettings = createServerFn({ method: "GET" })
         "Hola {{candidato}},\n\nAdjuntamos el informe de tu simulación «{{simulacion}}».\n\nUn saludo.",
     };
   });
+
 
 const SaveInput = z.object({
   fromName: z.string().trim().max(120).optional(),
