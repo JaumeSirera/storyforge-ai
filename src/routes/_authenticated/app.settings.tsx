@@ -262,7 +262,7 @@ function EmailSettingsCard() {
   const save = useMutation({
     mutationFn: () =>
       persist({
-        data: { fromName, fromEmail, replyTo, subjectTemplate, bodyTemplate, logoUrl },
+        data: { fromName, fromEmail, replyTo, subjectTemplate, bodyTemplate, logoUrl, autoSendOnComplete: autoSend },
       }),
     onSuccess: () => {
       toast.success("Configuración de correo guardada");
