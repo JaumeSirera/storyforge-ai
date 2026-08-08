@@ -741,11 +741,21 @@ function BranchReturnOverlay({ countdown, onContinue }: { countdown: number; onC
 
 function FinalReport({ sessionId, sess, sim }: { sessionId: string; sess: any; sim: any }) {
   const gen = useServerFn(generateReport);
+  const queueAuto = useServerFn(queueAutoReportEmail);
   const report = useQuery({
     queryKey: ["report", sessionId],
     queryFn: () => gen({ data: { sessionId } }),
   });
   const navigate = useNavigate();
+
+  // Envío automático del informe al finalizar (si está activado en Ajustes → Correo de envío).
+  useEffect(() => {
+    if (!report.data) return;
+    queueAuto({ data: { sessionId } }).catch(() => {
+      /* el propietario puede enviarlo manualmente */
+    });
+  }, [report.data, sessionId, queueAuto]);
+
 
   if (report.isLoading) {
     return (
