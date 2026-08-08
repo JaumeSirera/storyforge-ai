@@ -568,15 +568,114 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
             <Button size="sm" variant="outline" className="gap-2" onClick={() => void downloadPdf()}>
               <Download className="h-4 w-4" /> Descargar informe PDF
             </Button>
-            <Button
-              size="sm"
-              className="gap-2"
-              disabled={sendingMail}
-              onClick={() => void sendReportByEmail()}
-            >
-              <Mail className="h-4 w-4" /> Enviar informe por email
+            <Button size="sm" className="gap-2" onClick={() => setPreviewOpen(true)}>
+              <Mail className="h-4 w-4" /> Ver y enviar email
             </Button>
           </div>
+
+          <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Vista previa del email</DialogTitle>
+                <DialogDescription>
+                  Revisa el asunto y el mensaje antes de enviarlo al candidato.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 text-sm">
+                <div className="rounded-md border border-border p-3 space-y-1">
+                  <div>
+                    <span className="text-muted-foreground">De:</span>{" "}
+                    {cfg?.fromName || "(sin nombre)"} &lt;{cfg?.fromEmail || "sin remitente"}&gt;
+                  </div>
+                  {cfg?.replyTo && (
+                    <div>
+                      <span className="text-muted-foreground">Responder a:</span> {cfg.replyTo}
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-muted-foreground">Para:</span>{" "}
+                    {mailTo || s.candidate_email || "—"}
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Asunto:</span> {previewSubject}
+                  </div>
+                </div>
+                <div className="rounded-md border border-border p-3 whitespace-pre-wrap max-h-64 overflow-y-auto">
+                  {previewBody}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Se adjunta el informe PDF (se descarga al confirmar) con tu logo y marca.
+                </p>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={() => setPreviewOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button size="sm" disabled={sendingMail} onClick={() => void sendReportByEmail()}>
+                  Confirmar y enviar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <div className="space-y-1">
+            <div className="text-xs font-medium">Historial de envíos</div>
+            {logQ.isLoading ? (
+              <p className="text-xs text-muted-foreground">Cargando historial…</p>
+            ) : (logQ.data ?? []).length === 0 ? (
+              <p className="text-xs text-muted-foreground">Todavía no se ha enviado ningún informe.</p>
+            ) : (
+              <ul className="space-y-1">
+                {(logQ.data as any[]).map((row) => (
+                  <li
+                    key={row.id}
+                    className="flex flex-wrap items-center gap-2 rounded-md border border-border px-2 py-1.5 text-xs"
+                  >
+                    <Badge
+                      variant={
+                        row.status === "sent"
+                          ? "default"
+                          : row.status === "failed"
+                            ? "destructive"
+                            : "secondary"
+                      }
+                    >
+                      {row.status === "sent"
+                        ? "Enviado"
+                        : row.status === "failed"
+                          ? "Fallido"
+                          : "Pendiente"}
+                    </Badge>
+                    <span className="font-medium">{row.recipient}</span>
+                    <span className="text-muted-foreground">
+                      {new Date(row.updated_at ?? row.created_at).toLocaleString()}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {row.attempts} intento{row.attempts === 1 ? "" : "s"}
+                    </span>
+                    {row.auto && <span className="text-muted-foreground">· automático</span>}
+                    {row.error_message && (
+                      <span className="text-destructive">· {row.error_message}</span>
+                    )}
+                    {row.status !== "sent" && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2"
+                        onClick={() => {
+                          setMailTo(row.recipient);
+                          setPreviewOpen(true);
+                        }}
+                      >
+                        Reintentar
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
 
           <p className="text-xs text-muted-foreground">
             Se usa la configuración de <strong>Ajustes → Correo de envío</strong> (remitente, logo,
