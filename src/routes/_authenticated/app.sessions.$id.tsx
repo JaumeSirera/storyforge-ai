@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getSession, submitAnswer, generateReport, returnToNode } from "@/lib/sessions.functions";
+import { queueAutoReportEmail } from "@/lib/report-email.functions";
+
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { nodeClips } from "@/lib/story-types";
 
@@ -741,11 +743,21 @@ function BranchReturnOverlay({ countdown, onContinue }: { countdown: number; onC
 
 function FinalReport({ sessionId, sess, sim }: { sessionId: string; sess: any; sim: any }) {
   const gen = useServerFn(generateReport);
+  const queueAuto = useServerFn(queueAutoReportEmail);
   const report = useQuery({
     queryKey: ["report", sessionId],
     queryFn: () => gen({ data: { sessionId } }),
   });
   const navigate = useNavigate();
+
+  // Envío automático del informe al finalizar (si está activado en Ajustes → Correo de envío).
+  useEffect(() => {
+    if (!report.data) return;
+    queueAuto({ data: { sessionId } }).catch(() => {
+      /* el propietario puede enviarlo manualmente */
+    });
+  }, [report.data, sessionId, queueAuto]);
+
 
   if (report.isLoading) {
     return (

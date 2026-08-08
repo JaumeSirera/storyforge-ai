@@ -8,7 +8,7 @@ export const getMyEmailSettings = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("email_settings")
-      .select("from_name, from_email, reply_to, subject_template, body_template, logo_url")
+      .select("from_name, from_email, reply_to, subject_template, body_template, logo_url, auto_send_on_complete")
       .eq("user_id", context.userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -18,6 +18,7 @@ export const getMyEmailSettings = createServerFn({ method: "GET" })
       fromEmail: (data?.from_email as string | null) ?? "",
       replyTo: (data?.reply_to as string | null) ?? "",
       logoUrl: ((data as any)?.logo_url as string | null) ?? "",
+      autoSendOnComplete: Boolean((data as any)?.auto_send_on_complete),
       subjectTemplate:
         (data?.subject_template as string | null) ?? "Tu informe de la simulación {{simulacion}}",
       bodyTemplate:
@@ -26,6 +27,7 @@ export const getMyEmailSettings = createServerFn({ method: "GET" })
     };
   });
 
+
 const SaveInput = z.object({
   fromName: z.string().trim().max(120).optional(),
   fromEmail: z.string().trim().max(200).email("Introduce un email válido").or(z.literal("")).optional(),
@@ -33,6 +35,7 @@ const SaveInput = z.object({
   subjectTemplate: z.string().trim().max(200).optional(),
   bodyTemplate: z.string().trim().max(4000).optional(),
   logoUrl: z.string().trim().max(500).optional(),
+  autoSendOnComplete: z.boolean().optional(),
 });
 
 
@@ -49,6 +52,7 @@ export const saveMyEmailSettings = createServerFn({ method: "POST" })
       subject_template?: string | null;
       body_template?: string | null;
       logo_url?: string | null;
+      auto_send_on_complete?: boolean;
     } = { user_id: context.userId };
     if (data.fromName !== undefined) patch.from_name = data.fromName || null;
     if (data.fromEmail !== undefined) patch.from_email = data.fromEmail || null;
@@ -56,6 +60,7 @@ export const saveMyEmailSettings = createServerFn({ method: "POST" })
     if (data.subjectTemplate !== undefined) patch.subject_template = data.subjectTemplate || null;
     if (data.bodyTemplate !== undefined) patch.body_template = data.bodyTemplate || null;
     if (data.logoUrl !== undefined) patch.logo_url = data.logoUrl || null;
+    if (data.autoSendOnComplete !== undefined) patch.auto_send_on_complete = data.autoSendOnComplete;
 
 
     const { error } = await context.supabase
@@ -64,3 +69,4 @@ export const saveMyEmailSettings = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+

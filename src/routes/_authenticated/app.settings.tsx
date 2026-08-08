@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+
 import {
   Select,
   SelectContent,
@@ -229,6 +231,7 @@ function EmailSettingsCard() {
   const [logoUrl, setLogoUrl] = useState("");
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [autoSend, setAutoSend] = useState(false);
 
   useEffect(() => {
     if (!data) return;
@@ -238,7 +241,9 @@ function EmailSettingsCard() {
     setSubjectTemplate(data.subjectTemplate);
     setBodyTemplate(data.bodyTemplate);
     setLogoUrl(data.logoUrl ?? "");
+    setAutoSend(Boolean((data as any).autoSendOnComplete));
   }, [data]);
+
 
   useEffect(() => {
     let alive = true;
@@ -257,7 +262,7 @@ function EmailSettingsCard() {
   const save = useMutation({
     mutationFn: () =>
       persist({
-        data: { fromName, fromEmail, replyTo, subjectTemplate, bodyTemplate, logoUrl },
+        data: { fromName, fromEmail, replyTo, subjectTemplate, bodyTemplate, logoUrl, autoSendOnComplete: autoSend },
       }),
     onSuccess: () => {
       toast.success("Configuración de correo guardada");
@@ -414,9 +419,21 @@ function EmailSettingsCard() {
               </p>
             </div>
 
+            <div className="flex items-start justify-between gap-4 rounded-md border border-border p-3">
+              <div className="space-y-1">
+                <Label htmlFor="auto-send">Enviar el informe automáticamente al finalizar</Label>
+                <p className="text-xs text-muted-foreground">
+                  Cuando un candidato termina la simulación, el informe se prepara con esta
+                  configuración y queda registrado en el historial de la sesión.
+                </p>
+              </div>
+              <Switch id="auto-send" checked={autoSend} onCheckedChange={setAutoSend} />
+            </div>
+
             <Button size="sm" onClick={() => save.mutate()} disabled={save.isPending}>
               Guardar configuración
             </Button>
+
           </>
         )}
       </CardContent>

@@ -9,7 +9,17 @@ import {
   markReportEmailSent,
 } from "@/lib/candidate.functions";
 import { getMyEmailSettings } from "@/lib/email-settings.functions";
+import { logReportEmail, listReportEmailLog } from "@/lib/report-email.functions";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { loadLogoDataUrl, renderTemplate, openMailClient } from "@/lib/email-report";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -333,6 +343,8 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
   const send = useServerFn(submitAdminFeedback);
   const loadEmailSettings = useServerFn(getMyEmailSettings);
   const markSent = useServerFn(markReportEmailSent);
+  const logSend = useServerFn(logReportEmail);
+  const listLog = useServerFn(listReportEmailLog);
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["sim-session", sessionId],
@@ -342,10 +354,16 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
     queryKey: ["my-email-settings"],
     queryFn: () => loadEmailSettings(),
   });
+  const logQ = useQuery({
+    queryKey: ["report-email-log", sessionId],
+    queryFn: () => listLog({ data: { sessionId } }),
+  });
   const [feedback, setFeedback] = useState("");
   const [saving, setSaving] = useState(false);
   const [sendingMail, setSendingMail] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [mailTo, setMailTo] = useState("");
+
 
   useEffect(() => {
     if (q.data) {
@@ -415,6 +433,16 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
     downloadReportPdf(pdfPayload(logo));
   }
 
+  const cfg = settingsQ.data;
+  const mailVars = { candidato: s.candidate_name, simulacion: s.simulation?.title };
+  const previewSubject = renderTemplate(
+    cfg?.subjectTemplate || "Tu informe de la simulación {{simulacion}}",
+    mailVars,
+  );
+  const previewBody = `${renderTemplate(cfg?.bodyTemplate || "Hola {{candidato}},", mailVars)}${
+    s.admin_feedback ? `\n\nFeedback del evaluador:\n${s.admin_feedback}` : ""
+  }${cfg?.fromName ? `\n\n${cfg.fromName}` : ""}`;
+
   async function sendReportByEmail() {
     const to = (mailTo || (s.candidate_email as string | null) || "").trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
@@ -423,27 +451,31 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
     }
     setSendingMail(true);
     try {
-      const cfg = settingsQ.data;
       const logo = await loadLogoDataUrl(cfg?.logoUrl || null);
       // Descarga el PDF para adjuntarlo en el correo.
       downloadReportPdf(pdfPayload(logo));
 
-      const vars = { candidato: s.candidate_name, simulacion: s.simulation?.title };
-      const subject = renderTemplate(cfg?.subjectTemplate || "Tu informe de la simulación {{simulacion}}", vars);
-      const bodyBase = renderTemplate(cfg?.bodyTemplate || "Hola {{candidato}},", vars);
-      const signature = cfg?.fromName ? `\n\n${cfg.fromName}` : "";
-      const fb = s.admin_feedback ? `\n\nFeedback del evaluador:\n${s.admin_feedback}` : "";
-
       const opened = openMailClient({
         to,
-        subject,
-        body: `${bodyBase}${fb}${signature}`,
+        subject: previewSubject,
+        body: previewBody,
         replyTo: cfg?.replyTo || null,
         fromEmail: cfg?.fromEmail || null,
       });
 
       await markSent({ data: { sessionId, to } });
+      await logSend({
+        data: {
+          sessionId,
+          recipient: to,
+          subject: previewSubject,
+          status: opened ? "sent" : "failed",
+          ...(opened ? {} : { errorMessage: "No se pudo abrir el cliente de correo" }),
+        },
+      });
+      setPreviewOpen(false);
       qc.invalidateQueries({ queryKey: ["sim-session", sessionId] });
+      qc.invalidateQueries({ queryKey: ["report-email-log", sessionId] });
       onSaved();
 
       if (opened) {
@@ -452,11 +484,26 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
         toast.warning("Informe descargado, pero no se pudo abrir el cliente de correo.");
       }
     } catch (e: any) {
+      try {
+        await logSend({
+          data: {
+            sessionId,
+            recipient: to,
+            subject: previewSubject,
+            status: "failed",
+            errorMessage: String(e?.message ?? "Error desconocido").slice(0, 400),
+          },
+        });
+        qc.invalidateQueries({ queryKey: ["report-email-log", sessionId] });
+      } catch {
+        /* ignora fallos de registro */
+      }
       toast.error(e.message || "No se pudo preparar el envío");
     } finally {
       setSendingMail(false);
     }
   }
+
 
 
 
@@ -521,15 +568,114 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
             <Button size="sm" variant="outline" className="gap-2" onClick={() => void downloadPdf()}>
               <Download className="h-4 w-4" /> Descargar informe PDF
             </Button>
-            <Button
-              size="sm"
-              className="gap-2"
-              disabled={sendingMail}
-              onClick={() => void sendReportByEmail()}
-            >
-              <Mail className="h-4 w-4" /> Enviar informe por email
+            <Button size="sm" className="gap-2" onClick={() => setPreviewOpen(true)}>
+              <Mail className="h-4 w-4" /> Ver y enviar email
             </Button>
           </div>
+
+          <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Vista previa del email</DialogTitle>
+                <DialogDescription>
+                  Revisa el asunto y el mensaje antes de enviarlo al candidato.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 text-sm">
+                <div className="rounded-md border border-border p-3 space-y-1">
+                  <div>
+                    <span className="text-muted-foreground">De:</span>{" "}
+                    {cfg?.fromName || "(sin nombre)"} &lt;{cfg?.fromEmail || "sin remitente"}&gt;
+                  </div>
+                  {cfg?.replyTo && (
+                    <div>
+                      <span className="text-muted-foreground">Responder a:</span> {cfg.replyTo}
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-muted-foreground">Para:</span>{" "}
+                    {mailTo || s.candidate_email || "—"}
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Asunto:</span> {previewSubject}
+                  </div>
+                </div>
+                <div className="rounded-md border border-border p-3 whitespace-pre-wrap max-h-64 overflow-y-auto">
+                  {previewBody}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Se adjunta el informe PDF (se descarga al confirmar) con tu logo y marca.
+                </p>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={() => setPreviewOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button size="sm" disabled={sendingMail} onClick={() => void sendReportByEmail()}>
+                  Confirmar y enviar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <div className="space-y-1">
+            <div className="text-xs font-medium">Historial de envíos</div>
+            {logQ.isLoading ? (
+              <p className="text-xs text-muted-foreground">Cargando historial…</p>
+            ) : (logQ.data ?? []).length === 0 ? (
+              <p className="text-xs text-muted-foreground">Todavía no se ha enviado ningún informe.</p>
+            ) : (
+              <ul className="space-y-1">
+                {(logQ.data as any[]).map((row) => (
+                  <li
+                    key={row.id}
+                    className="flex flex-wrap items-center gap-2 rounded-md border border-border px-2 py-1.5 text-xs"
+                  >
+                    <Badge
+                      variant={
+                        row.status === "sent"
+                          ? "default"
+                          : row.status === "failed"
+                            ? "destructive"
+                            : "secondary"
+                      }
+                    >
+                      {row.status === "sent"
+                        ? "Enviado"
+                        : row.status === "failed"
+                          ? "Fallido"
+                          : "Pendiente"}
+                    </Badge>
+                    <span className="font-medium">{row.recipient}</span>
+                    <span className="text-muted-foreground">
+                      {new Date(row.updated_at ?? row.created_at).toLocaleString()}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {row.attempts} intento{row.attempts === 1 ? "" : "s"}
+                    </span>
+                    {row.auto && <span className="text-muted-foreground">· automático</span>}
+                    {row.error_message && (
+                      <span className="text-destructive">· {row.error_message}</span>
+                    )}
+                    {row.status !== "sent" && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2"
+                        onClick={() => {
+                          setMailTo(row.recipient);
+                          setPreviewOpen(true);
+                        }}
+                      >
+                        Reintentar
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
 
           <p className="text-xs text-muted-foreground">
             Se usa la configuración de <strong>Ajustes → Correo de envío</strong> (remitente, logo,
