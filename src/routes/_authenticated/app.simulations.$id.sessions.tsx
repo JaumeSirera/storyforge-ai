@@ -415,6 +415,16 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
     downloadReportPdf(pdfPayload(logo));
   }
 
+  const cfg = settingsQ.data;
+  const mailVars = { candidato: s.candidate_name, simulacion: s.simulation?.title };
+  const previewSubject = renderTemplate(
+    cfg?.subjectTemplate || "Tu informe de la simulación {{simulacion}}",
+    mailVars,
+  );
+  const previewBody = `${renderTemplate(cfg?.bodyTemplate || "Hola {{candidato}},", mailVars)}${
+    s.admin_feedback ? `\n\nFeedback del evaluador:\n${s.admin_feedback}` : ""
+  }${cfg?.fromName ? `\n\n${cfg.fromName}` : ""}`;
+
   async function sendReportByEmail() {
     const to = (mailTo || (s.candidate_email as string | null) || "").trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
@@ -423,27 +433,31 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
     }
     setSendingMail(true);
     try {
-      const cfg = settingsQ.data;
       const logo = await loadLogoDataUrl(cfg?.logoUrl || null);
       // Descarga el PDF para adjuntarlo en el correo.
       downloadReportPdf(pdfPayload(logo));
 
-      const vars = { candidato: s.candidate_name, simulacion: s.simulation?.title };
-      const subject = renderTemplate(cfg?.subjectTemplate || "Tu informe de la simulación {{simulacion}}", vars);
-      const bodyBase = renderTemplate(cfg?.bodyTemplate || "Hola {{candidato}},", vars);
-      const signature = cfg?.fromName ? `\n\n${cfg.fromName}` : "";
-      const fb = s.admin_feedback ? `\n\nFeedback del evaluador:\n${s.admin_feedback}` : "";
-
       const opened = openMailClient({
         to,
-        subject,
-        body: `${bodyBase}${fb}${signature}`,
+        subject: previewSubject,
+        body: previewBody,
         replyTo: cfg?.replyTo || null,
         fromEmail: cfg?.fromEmail || null,
       });
 
       await markSent({ data: { sessionId, to } });
+      await logSend({
+        data: {
+          sessionId,
+          recipient: to,
+          subject: previewSubject,
+          status: opened ? "sent" : "failed",
+          ...(opened ? {} : { errorMessage: "No se pudo abrir el cliente de correo" }),
+        },
+      });
+      setPreviewOpen(false);
       qc.invalidateQueries({ queryKey: ["sim-session", sessionId] });
+      qc.invalidateQueries({ queryKey: ["report-email-log", sessionId] });
       onSaved();
 
       if (opened) {
@@ -452,11 +466,26 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
         toast.warning("Informe descargado, pero no se pudo abrir el cliente de correo.");
       }
     } catch (e: any) {
+      try {
+        await logSend({
+          data: {
+            sessionId,
+            recipient: to,
+            subject: previewSubject,
+            status: "failed",
+            errorMessage: String(e?.message ?? "Error desconocido").slice(0, 400),
+          },
+        });
+        qc.invalidateQueries({ queryKey: ["report-email-log", sessionId] });
+      } catch {
+        /* ignora fallos de registro */
+      }
       toast.error(e.message || "No se pudo preparar el envío");
     } finally {
       setSendingMail(false);
     }
   }
+
 
 
 
