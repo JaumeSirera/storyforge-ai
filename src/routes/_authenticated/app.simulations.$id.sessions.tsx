@@ -9,7 +9,17 @@ import {
   markReportEmailSent,
 } from "@/lib/candidate.functions";
 import { getMyEmailSettings } from "@/lib/email-settings.functions";
+import { logReportEmail, listReportEmailLog } from "@/lib/report-email.functions";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { loadLogoDataUrl, renderTemplate, openMailClient } from "@/lib/email-report";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
