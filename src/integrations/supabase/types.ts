@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       email_settings: {
         Row: {
+          auto_send_on_complete: boolean
           body_template: string | null
           created_at: string
           from_email: string | null
@@ -27,6 +28,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          auto_send_on_complete?: boolean
           body_template?: string | null
           created_at?: string
           from_email?: string | null
@@ -38,6 +40,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          auto_send_on_complete?: boolean
           body_template?: string | null
           created_at?: string
           from_email?: string | null
@@ -196,6 +199,66 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      report_email_log: {
+        Row: {
+          attempts: number
+          auto: boolean
+          created_at: string
+          error_message: string | null
+          id: string
+          owner_id: string
+          recipient: string
+          session_id: string
+          simulation_id: string | null
+          status: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          auto?: boolean
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          owner_id: string
+          recipient: string
+          session_id: string
+          simulation_id?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          auto?: boolean
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          owner_id?: string
+          recipient?: string
+          session_id?: string
+          simulation_id?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_email_log_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_email_log_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "simulations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sessions: {
         Row: {
