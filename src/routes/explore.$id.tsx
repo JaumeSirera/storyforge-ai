@@ -42,7 +42,7 @@ function PublicSimulationDetail() {
             <ArrowLeft className="h-4 w-4" /> Galería
           </Link>
           <Link to="/" className="flex items-center gap-2 font-semibold">
-            <Sparkles className="h-5 w-5 text-primary" /> PlayGame
+            <Sparkles className="h-5 w-5 text-primary" /> Playnalyze
           </Link>
         </div>
       </header>
