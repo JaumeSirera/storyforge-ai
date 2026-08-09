@@ -575,6 +575,61 @@ function AccessibleControls({
   );
 }
 
+/* ---------- Subtitles (SRT / VTT) ---------- */
+const CAPTIONS_PREF_KEY = "playgame:captions-on";
+
+function CaptionsToggle({
+  on,
+  onToggle,
+  overlay,
+  label,
+}: {
+  on: boolean;
+  onToggle: () => void;
+  overlay?: boolean;
+  label?: string;
+}) {
+  const cls = overlay
+    ? "inline-flex items-center gap-1.5 rounded-full px-3 min-h-11 text-xs backdrop-blur-md border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black " +
+      (on
+        ? "border-primary bg-primary/80 text-primary-foreground"
+        : "border-white/30 bg-black/50 text-white hover:bg-black/70")
+    : "inline-flex items-center gap-1.5 rounded-full border px-3 min-h-11 text-xs transition focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background " +
+      (on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background hover:bg-accent");
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={on}
+      aria-label={on ? "Desactivar subtítulos" : "Activar subtítulos"}
+      title={on ? "Desactivar subtítulos" : "Activar subtítulos"}
+      className={cls}
+    >
+      <Subtitles className="h-4 w-4" aria-hidden="true" />
+      <span>{label || "Subtítulos"}</span>
+    </button>
+  );
+}
+
+function CaptionOverlay({ text, overlay }: { text: string; overlay?: boolean }) {
+  if (!text) return null;
+  const wrap = overlay
+    ? "absolute bottom-16 left-1/2 -translate-x-1/2 z-30 w-[min(90%,52rem)] px-2 text-center pointer-events-none"
+    : "mt-2 text-center";
+  return (
+    <div className={wrap}>
+      <p
+        className="inline-block whitespace-pre-line rounded-md bg-black/75 px-3 py-1.5 text-sm sm:text-base leading-snug text-white shadow-lg"
+        aria-live="polite"
+      >
+        {text}
+      </p>
+    </div>
+  );
+}
+
+
 export function VideoPlayer({
   video,
   videos,
