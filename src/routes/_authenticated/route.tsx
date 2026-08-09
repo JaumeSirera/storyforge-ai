@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Sparkles, LayoutDashboard, Plus, LogOut, Library, Settings, Shield, CreditCard, Menu, X } from "lucide-react";
+import { Sparkles, LayoutDashboard, Plus, LogOut, Library, Settings, Shield, CreditCard, Menu, X , Video} from "lucide-react";
 import { getMyAdminStatus } from "@/lib/admin.functions";
 
 
@@ -47,6 +47,7 @@ function AppLayout() {
             <NavItem to="/app/dashboard" icon={LayoutDashboard} label="Inicio" />
             <NavItem to="/app/simulations" icon={Library} label="Mis simulaciones" />
             <NavItem to="/app/new" icon={Plus} label="Nueva" />
+            <NavItem to="/app/capture" icon={Video} label="Capture" />
             <NavItem to="/app/settings" icon={Settings} label="Ajustes" />
             <NavItem to="/app/billing" icon={CreditCard} label="Facturación" />
             {adminStatus?.isAdmin && (
@@ -75,6 +76,7 @@ function AppLayout() {
               <MobileNavItem to="/app/dashboard" icon={LayoutDashboard} label="Inicio" onClick={() => setMobileOpen(false)} />
               <MobileNavItem to="/app/simulations" icon={Library} label="Mis simulaciones" onClick={() => setMobileOpen(false)} />
               <MobileNavItem to="/app/new" icon={Plus} label="Nueva" onClick={() => setMobileOpen(false)} />
+              <MobileNavItem to="/app/capture" icon={Video} label="Capture" onClick={() => setMobileOpen(false)} />
               <MobileNavItem to="/app/settings" icon={Settings} label="Ajustes" onClick={() => setMobileOpen(false)} />
               <MobileNavItem to="/app/billing" icon={CreditCard} label="Facturación" onClick={() => setMobileOpen(false)} />
               {adminStatus?.isAdmin && (
@@ -100,6 +102,7 @@ function AppLayout() {
         <ul className="mx-auto grid max-w-7xl grid-cols-3">
           <li><BottomNavItem to="/app/dashboard" icon={LayoutDashboard} label="Inicio" /></li>
           <li><BottomNavItem to="/app/simulations" icon={Library} label="Simulaciones" /></li>
+          <li><BottomNavItem to="/app/capture" icon={Video} label="Capture" /></li>
           <li><BottomNavItem to="/app/settings" icon={Settings} label="Perfil" /></li>
         </ul>
       </nav>
