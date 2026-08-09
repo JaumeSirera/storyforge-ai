@@ -218,7 +218,20 @@ function CaptureIndex() {
                   <p className="text-xs text-muted-foreground mt-2">
                     Se elimina el {new Date(s.deleteAfter).toLocaleDateString("es-ES")}
                   </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button asChild size="sm" variant="outline" className="gap-2">
+                      <Link to="/app/capture/$id" params={{ id: s.id }}>
+                        <Video className="h-3.5 w-3.5" /> Abrir sesión
+                      </Link>
+                    </Button>
+                    <Button asChild size="sm" variant="secondary" className="gap-2">
+                      <Link to="/app/capture/$id/analyze" params={{ id: s.id }}>
+                        <BarChart3 className="h-3.5 w-3.5" /> Analyze
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
+
                 <Button
                   size="icon"
                   variant="ghost"
