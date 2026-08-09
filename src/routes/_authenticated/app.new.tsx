@@ -184,7 +184,20 @@ function NewSimulation() {
           setLoading(true);
           try {
             const result = await generate({
-              data: { title, objective, prompt, topic: topic || undefined, durationMin: duration, videos, model },
+              data: {
+                title,
+                objective,
+                prompt,
+                topic: topic || undefined,
+                areaKey: areaKey || undefined,
+                areaLabel:
+                  (areas.data ?? []).find((a: PracticeArea) => a.key === areaKey)?.label ||
+                  undefined,
+                durationMin: duration,
+                videos,
+                model,
+              },
+
             });
             if (!result?.id) throw new Error("No se pudo crear la simulación");
             toast.success("¡Simulación generada!");
