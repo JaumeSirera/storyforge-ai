@@ -239,23 +239,28 @@ export const updateCaptureSession = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const patch: Record<string, any> = {};
-    if (data.title !== undefined) patch.title = data.title.trim();
-    if (data.areaKey !== undefined) patch.area_key = data.areaKey;
-    if (data.mode !== undefined) patch.mode = data.mode;
-    if (data.captureMode !== undefined) patch.capture_mode = data.captureMode;
-    if (data.recordScreen !== undefined) patch.record_screen = data.recordScreen;
-    if (data.consentRecording !== undefined) patch.consent_recording = data.consentRecording;
-    if (data.consentFaceAnalysis !== undefined)
-      patch.consent_face_analysis = data.consentFaceAnalysis;
-    if (data.consentText !== undefined) patch.consent_text = data.consentText;
-    if (data.status !== undefined) patch.status = data.status;
-    if (data.startedAt !== undefined) patch.started_at = data.startedAt;
-    if (data.endedAt !== undefined) patch.ended_at = data.endedAt;
-    if (data.retentionDays !== undefined) {
-      patch.retention_days = data.retentionDays;
-      patch.delete_after = new Date(Date.now() + data.retentionDays * 86400_000).toISOString();
-    }
+    const patch = {
+      ...(data.title !== undefined ? { title: data.title.trim() } : {}),
+      ...(data.areaKey !== undefined ? { area_key: data.areaKey } : {}),
+      ...(data.mode !== undefined ? { mode: data.mode } : {}),
+      ...(data.captureMode !== undefined ? { capture_mode: data.captureMode } : {}),
+      ...(data.recordScreen !== undefined ? { record_screen: data.recordScreen } : {}),
+      ...(data.consentRecording !== undefined ? { consent_recording: data.consentRecording } : {}),
+      ...(data.consentFaceAnalysis !== undefined
+        ? { consent_face_analysis: data.consentFaceAnalysis }
+        : {}),
+      ...(data.consentText !== undefined ? { consent_text: data.consentText } : {}),
+      ...(data.status !== undefined ? { status: data.status } : {}),
+      ...(data.startedAt !== undefined ? { started_at: data.startedAt } : {}),
+      ...(data.endedAt !== undefined ? { ended_at: data.endedAt } : {}),
+      ...(data.retentionDays !== undefined
+        ? {
+            retention_days: data.retentionDays,
+            delete_after: new Date(Date.now() + data.retentionDays * 86400_000).toISOString(),
+          }
+        : {}),
+    };
+
 
     const { error } = await context.supabase
       .from("capture_sessions")
