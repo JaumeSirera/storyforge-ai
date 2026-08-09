@@ -202,6 +202,68 @@ function NewSimulation() {
               <Input id="obj" required value={objective} onChange={(e) => setObjective(e.target.value)}
                 placeholder="Evaluar capacidad de liderazgo, gestión de crisis y conocimiento técnico" />
             </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <Label>Área de aplicación</Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 gap-1 text-xs"
+                  onClick={() => setAddingArea((v) => !v)}
+                >
+                  <Plus className="h-3.5 w-3.5" /> Añadir nueva área
+                </Button>
+              </div>
+              <Select value={areaKey} onValueChange={setAreaKey}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un área (entrevistas, terapia grupal…)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(areas.data ?? []).map((a) => (
+                    <SelectItem key={a.id} value={a.key}>
+                      {a.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {addingArea && (
+                <div className="flex gap-2 pt-1">
+                  <Input
+                    value={newArea}
+                    onChange={(e) => setNewArea(e.target.value)}
+                    placeholder="Nombre del área (ej: Onboarding técnico)"
+                    maxLength={120}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={savingArea}
+                    onClick={async () => {
+                      if (newArea.trim().length < 2) {
+                        toast.error("Indica el nombre del área");
+                        return;
+                      }
+                      setSavingArea(true);
+                      try {
+                        const created = await createArea({ data: { label: newArea.trim() } });
+                        setNewArea("");
+                        setAddingArea(false);
+                        await areas.refetch();
+                        setAreaKey(created.key);
+                        toast.success("Área añadida");
+                      } catch (err: any) {
+                        toast.error(err?.message ?? "No se pudo crear el área");
+                      } finally {
+                        setSavingArea(false);
+                      }
+                    }}
+                  >
+                    {savingArea ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}
+                  </Button>
+                </div>
+              )}
+            </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="topic">Tema/sector (opcional)</Label>
@@ -214,6 +276,7 @@ function NewSimulation() {
                   onChange={(e) => setDuration(Number(e.target.value))} />
               </div>
             </div>
+
           </CardContent>
         </Card>
 
