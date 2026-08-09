@@ -72,6 +72,14 @@ function NewSimulation() {
   const [lastFile, setLastFile] = useState<string | null>(null);
   const [model, setModel] = useState<AiModelId>(DEFAULT_AI_MODEL);
   const [hydrated, setHydrated] = useState(false);
+  const [areaKey, setAreaKey] = useState("");
+  const [addingArea, setAddingArea] = useState(false);
+  const [newArea, setNewArea] = useState("");
+  const [savingArea, setSavingArea] = useState(false);
+  const listAreas = useServerFn(listPracticeAreas);
+  const createArea = useServerFn(createPracticeArea);
+  const areas = useQuery({ queryKey: ["practice-areas"], queryFn: () => listAreas() });
+
 
   // Restore draft from localStorage on mount so edits survive reloads / HMR.
   useEffect(() => {
