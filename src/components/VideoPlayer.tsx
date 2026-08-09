@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play, RotateCcw, RotateCw } from "lucide-react";
+import { Pause, Play, RotateCcw, RotateCw, Subtitles } from "lucide-react";
 import type { VideoClip, VideoSource } from "@/lib/story-types";
+import { cueAt, parseCaptions } from "@/lib/captions";
+
 
 function getYouTubeId(url: string): string | null {
   const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([\w-]{11})/);
