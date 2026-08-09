@@ -445,6 +445,7 @@ Tu salida debe seguir el esquema EXACTO solicitado:
 
 TÍTULO: ${data.title}
 OBJETIVO: ${data.objective}
+ÁREA DE APLICACIÓN: ${data.areaLabel ?? data.areaKey ?? "(genérica)"}
 TEMA/SECTOR: ${data.topic ?? "(no especificado)"}
 DURACIÓN OBJETIVO: ~${data.durationMin} minutos
 
