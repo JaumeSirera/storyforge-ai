@@ -14,6 +14,9 @@ const GenerateInput = z.object({
   objective: z.string().min(10).max(500),
   prompt: z.string().min(20).max(500000),
   topic: z.string().max(200).optional(),
+  areaKey: z.string().max(80).optional(),
+  areaLabel: z.string().max(160).optional(),
+
   durationMin: z.number().int().min(5).max(60).default(15),
   model: z.enum(AI_MODEL_IDS).default(DEFAULT_AI_MODEL),
   videos: z
