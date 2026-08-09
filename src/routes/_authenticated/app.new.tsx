@@ -1,8 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { generateSimulation } from "@/lib/simulations.functions";
+import { listPracticeAreas, createPracticeArea, type PracticeArea } from "@/lib/areas.functions";
 import { extractDocumentText } from "@/lib/document-parse.functions";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,6 +75,14 @@ function NewSimulation() {
   const [lastFile, setLastFile] = useState<string | null>(null);
   const [model, setModel] = useState<AiModelId>(DEFAULT_AI_MODEL);
   const [hydrated, setHydrated] = useState(false);
+  const [areaKey, setAreaKey] = useState("");
+  const [addingArea, setAddingArea] = useState(false);
+  const [newArea, setNewArea] = useState("");
+  const [savingArea, setSavingArea] = useState(false);
+  const listAreas = useServerFn(listPracticeAreas);
+  const createArea = useServerFn(createPracticeArea);
+  const areas = useQuery({ queryKey: ["practice-areas"], queryFn: () => listAreas() });
+
 
   // Restore draft from localStorage on mount so edits survive reloads / HMR.
   useEffect(() => {
@@ -173,7 +184,20 @@ function NewSimulation() {
           setLoading(true);
           try {
             const result = await generate({
-              data: { title, objective, prompt, topic: topic || undefined, durationMin: duration, videos, model },
+              data: {
+                title,
+                objective,
+                prompt,
+                topic: topic || undefined,
+                areaKey: areaKey || undefined,
+                areaLabel:
+                  (areas.data ?? []).find((a: PracticeArea) => a.key === areaKey)?.label ||
+                  undefined,
+                durationMin: duration,
+                videos,
+                model,
+              },
+
             });
             if (!result?.id) throw new Error("No se pudo crear la simulación");
             toast.success("¡Simulación generada!");
@@ -202,6 +226,68 @@ function NewSimulation() {
               <Input id="obj" required value={objective} onChange={(e) => setObjective(e.target.value)}
                 placeholder="Evaluar capacidad de liderazgo, gestión de crisis y conocimiento técnico" />
             </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <Label>Área de aplicación</Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 gap-1 text-xs"
+                  onClick={() => setAddingArea((v) => !v)}
+                >
+                  <Plus className="h-3.5 w-3.5" /> Añadir nueva área
+                </Button>
+              </div>
+              <Select value={areaKey} onValueChange={setAreaKey}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un área (entrevistas, terapia grupal…)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(areas.data ?? []).map((a: PracticeArea) => (
+                    <SelectItem key={a.id} value={a.key}>
+                      {a.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {addingArea && (
+                <div className="flex gap-2 pt-1">
+                  <Input
+                    value={newArea}
+                    onChange={(e) => setNewArea(e.target.value)}
+                    placeholder="Nombre del área (ej: Onboarding técnico)"
+                    maxLength={120}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={savingArea}
+                    onClick={async () => {
+                      if (newArea.trim().length < 2) {
+                        toast.error("Indica el nombre del área");
+                        return;
+                      }
+                      setSavingArea(true);
+                      try {
+                        const created = await createArea({ data: { label: newArea.trim() } });
+                        setNewArea("");
+                        setAddingArea(false);
+                        await areas.refetch();
+                        setAreaKey(created.key);
+                        toast.success("Área añadida");
+                      } catch (err: any) {
+                        toast.error(err?.message ?? "No se pudo crear el área");
+                      } finally {
+                        setSavingArea(false);
+                      }
+                    }}
+                  >
+                    {savingArea ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}
+                  </Button>
+                </div>
+              )}
+            </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="topic">Tema/sector (opcional)</Label>
@@ -214,6 +300,7 @@ function NewSimulation() {
                   onChange={(e) => setDuration(Number(e.target.value))} />
               </div>
             </div>
+
           </CardContent>
         </Card>
 

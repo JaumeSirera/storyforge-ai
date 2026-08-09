@@ -14,6 +14,257 @@ export type Database = {
   }
   public: {
     Tables: {
+      capture_consents: {
+        Row: {
+          capture_session_id: string
+          consent_text: string | null
+          created_at: string
+          granted: boolean
+          granted_at: string | null
+          id: string
+          owner_id: string
+          participant_id: string | null
+          scope: string
+        }
+        Insert: {
+          capture_session_id: string
+          consent_text?: string | null
+          created_at?: string
+          granted?: boolean
+          granted_at?: string | null
+          id?: string
+          owner_id: string
+          participant_id?: string | null
+          scope?: string
+        }
+        Update: {
+          capture_session_id?: string
+          consent_text?: string | null
+          created_at?: string
+          granted?: boolean
+          granted_at?: string | null
+          id?: string
+          owner_id?: string
+          participant_id?: string | null
+          scope?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capture_consents_capture_session_id_fkey"
+            columns: ["capture_session_id"]
+            isOneToOne: false
+            referencedRelation: "capture_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capture_consents_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "capture_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      capture_participants: {
+        Row: {
+          capture_session_id: string
+          color: string | null
+          created_at: string
+          id: string
+          identifier: string | null
+          is_late: boolean
+          joined_at_sec: number | null
+          name: string
+          owner_id: string
+          photo_path: string | null
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          capture_session_id: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          identifier?: string | null
+          is_late?: boolean
+          joined_at_sec?: number | null
+          name: string
+          owner_id: string
+          photo_path?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          capture_session_id?: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          identifier?: string | null
+          is_late?: boolean
+          joined_at_sec?: number | null
+          name?: string
+          owner_id?: string
+          photo_path?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capture_participants_capture_session_id_fkey"
+            columns: ["capture_session_id"]
+            isOneToOne: false
+            referencedRelation: "capture_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      capture_recordings: {
+        Row: {
+          capture_session_id: string
+          created_at: string
+          duration_sec: number | null
+          error_message: string | null
+          id: string
+          kind: string
+          mime_type: string | null
+          owner_id: string
+          participant_id: string | null
+          size_bytes: number | null
+          status: string
+          storage_path: string
+          sync_offset_ms: number
+          updated_at: string
+        }
+        Insert: {
+          capture_session_id: string
+          created_at?: string
+          duration_sec?: number | null
+          error_message?: string | null
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          owner_id: string
+          participant_id?: string | null
+          size_bytes?: number | null
+          status?: string
+          storage_path: string
+          sync_offset_ms?: number
+          updated_at?: string
+        }
+        Update: {
+          capture_session_id?: string
+          created_at?: string
+          duration_sec?: number | null
+          error_message?: string | null
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          owner_id?: string
+          participant_id?: string | null
+          size_bytes?: number | null
+          status?: string
+          storage_path?: string
+          sync_offset_ms?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capture_recordings_capture_session_id_fkey"
+            columns: ["capture_session_id"]
+            isOneToOne: false
+            referencedRelation: "capture_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capture_recordings_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "capture_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      capture_sessions: {
+        Row: {
+          area_key: string | null
+          capture_mode: string
+          consent_face_analysis: boolean
+          consent_recording: boolean
+          consent_text: string | null
+          created_at: string
+          delete_after: string
+          ended_at: string | null
+          game_session_id: string | null
+          id: string
+          mode: string
+          owner_id: string
+          record_screen: boolean
+          retention_days: number
+          simulation_id: string | null
+          started_at: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          area_key?: string | null
+          capture_mode?: string
+          consent_face_analysis?: boolean
+          consent_recording?: boolean
+          consent_text?: string | null
+          created_at?: string
+          delete_after?: string
+          ended_at?: string | null
+          game_session_id?: string | null
+          id?: string
+          mode?: string
+          owner_id: string
+          record_screen?: boolean
+          retention_days?: number
+          simulation_id?: string | null
+          started_at?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          area_key?: string | null
+          capture_mode?: string
+          consent_face_analysis?: boolean
+          consent_recording?: boolean
+          consent_text?: string | null
+          created_at?: string
+          delete_after?: string
+          ended_at?: string | null
+          game_session_id?: string | null
+          id?: string
+          mode?: string
+          owner_id?: string
+          record_screen?: boolean
+          retention_days?: number
+          simulation_id?: string | null
+          started_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capture_sessions_game_session_id_fkey"
+            columns: ["game_session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capture_sessions_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "simulations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_settings: {
         Row: {
           auto_send_on_complete: boolean
@@ -50,6 +301,39 @@ export type Database = {
           subject_template?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      practice_areas: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_default: boolean
+          key: string
+          label: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          key: string
+          label: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          key?: string
+          label?: string
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -477,6 +761,7 @@ export type Database = {
       }
       simulations: {
         Row: {
+          area_key: string | null
           candidate_fields: Json
           cover_image_url: string | null
           created_at: string
@@ -495,6 +780,7 @@ export type Database = {
           videos: Json
         }
         Insert: {
+          area_key?: string | null
           candidate_fields?: Json
           cover_image_url?: string | null
           created_at?: string
@@ -513,6 +799,7 @@ export type Database = {
           videos?: Json
         }
         Update: {
+          area_key?: string | null
           candidate_fields?: Json
           cover_image_url?: string | null
           created_at?: string

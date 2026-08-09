@@ -14,6 +14,9 @@ const GenerateInput = z.object({
   objective: z.string().min(10).max(500),
   prompt: z.string().min(20).max(500000),
   topic: z.string().max(200).optional(),
+  areaKey: z.string().max(80).optional(),
+  areaLabel: z.string().max(160).optional(),
+
   durationMin: z.number().int().min(5).max(60).default(15),
   model: z.enum(AI_MODEL_IDS).default(DEFAULT_AI_MODEL),
   videos: z
@@ -442,6 +445,7 @@ Tu salida debe seguir el esquema EXACTO solicitado:
 
 TÍTULO: ${data.title}
 OBJETIVO: ${data.objective}
+ÁREA DE APLICACIÓN: ${data.areaLabel ?? data.areaKey ?? "(genérica)"}
 TEMA/SECTOR: ${data.topic ?? "(no especificado)"}
 DURACIÓN OBJETIVO: ~${data.durationMin} minutos
 
@@ -534,6 +538,8 @@ Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
         objective: data.objective,
         prompt: sanitizedPrompt,
         topic: data.topic ?? null,
+        area_key: data.areaKey ?? null,
+
         duration_min: data.durationMin,
         status: "ready",
         story: story as any,

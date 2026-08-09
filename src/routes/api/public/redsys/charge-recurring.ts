@@ -58,7 +58,7 @@ export const Route = createFileRoute("/api/public/redsys/charge-recurring")({
               cfg,
               cardToken: row.redsys_card_token,
               originalAuthCode: row.redsys_original_auth_code,
-              productDescription: "PlayGame — Renovación mensual",
+              productDescription: "Playnalyze — Renovación mensual",
             });
             await supabaseAdmin
               .from("redsys_payments")
