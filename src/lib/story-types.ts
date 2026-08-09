@@ -1,5 +1,9 @@
 // Shared story / simulation types used by client and server.
 
+import type { CaptionTrack } from "./captions";
+
+
+
 export type VideoSource =
   | { type: "youtube"; url: string; startSec?: number; endSec?: number }
   | { type: "vimeo"; url: string; startSec?: number; endSec?: number }
