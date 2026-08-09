@@ -190,7 +190,7 @@ Genera el informe Insights: titular, resumen, observaciones con evidencia tempor
       {
         capture_session_id: data.captureSessionId,
         owner_id: context.userId,
-        insights: insights as unknown as Record<string, unknown>,
+        insights: insights as any,
         insights_generated_at: generatedAt,
       },
       { onConflict: "capture_session_id" },
