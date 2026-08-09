@@ -20,6 +20,8 @@ export type Database = {
           created_at: string
           error_message: string | null
           id: string
+          insights: Json
+          insights_generated_at: string | null
           interactions: Json
           metrics: Json
           owner_id: string
@@ -33,6 +35,8 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          insights?: Json
+          insights_generated_at?: string | null
           interactions?: Json
           metrics?: Json
           owner_id: string
@@ -46,6 +50,8 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          insights?: Json
+          insights_generated_at?: string | null
           interactions?: Json
           metrics?: Json
           owner_id?: string
