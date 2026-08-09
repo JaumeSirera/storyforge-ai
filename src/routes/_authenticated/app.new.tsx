@@ -1,8 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { generateSimulation } from "@/lib/simulations.functions";
+import { listPracticeAreas, createPracticeArea, type PracticeArea } from "@/lib/areas.functions";
 import { extractDocumentText } from "@/lib/document-parse.functions";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
