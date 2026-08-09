@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      capture_analyses: {
+        Row: {
+          capture_session_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          interactions: Json
+          metrics: Json
+          owner_id: string
+          stage: string | null
+          status: string
+          transcription_model: string | null
+          updated_at: string
+        }
+        Insert: {
+          capture_session_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          interactions?: Json
+          metrics?: Json
+          owner_id: string
+          stage?: string | null
+          status?: string
+          transcription_model?: string | null
+          updated_at?: string
+        }
+        Update: {
+          capture_session_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          interactions?: Json
+          metrics?: Json
+          owner_id?: string
+          stage?: string | null
+          status?: string
+          transcription_model?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capture_analyses_capture_session_id_fkey"
+            columns: ["capture_session_id"]
+            isOneToOne: true
+            referencedRelation: "capture_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       capture_consents: {
         Row: {
           capture_session_id: string
@@ -261,6 +311,70 @@ export type Database = {
             columns: ["simulation_id"]
             isOneToOne: false
             referencedRelation: "simulations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      capture_transcript_segments: {
+        Row: {
+          capture_session_id: string
+          created_at: string
+          end_sec: number
+          id: string
+          owner_id: string
+          participant_id: string | null
+          recording_id: string
+          speaker_label: string | null
+          start_sec: number
+          text: string
+          updated_at: string
+        }
+        Insert: {
+          capture_session_id: string
+          created_at?: string
+          end_sec?: number
+          id?: string
+          owner_id: string
+          participant_id?: string | null
+          recording_id: string
+          speaker_label?: string | null
+          start_sec?: number
+          text: string
+          updated_at?: string
+        }
+        Update: {
+          capture_session_id?: string
+          created_at?: string
+          end_sec?: number
+          id?: string
+          owner_id?: string
+          participant_id?: string | null
+          recording_id?: string
+          speaker_label?: string | null
+          start_sec?: number
+          text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capture_transcript_segments_capture_session_id_fkey"
+            columns: ["capture_session_id"]
+            isOneToOne: false
+            referencedRelation: "capture_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capture_transcript_segments_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "capture_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capture_transcript_segments_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "capture_recordings"
             referencedColumns: ["id"]
           },
         ]

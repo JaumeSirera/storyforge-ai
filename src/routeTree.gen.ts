@@ -31,6 +31,7 @@ import { Route as AuthenticatedAppSessionsIdRouteImport } from './routes/_authen
 import { Route as AuthenticatedAppSimulationsIndexRouteImport } from './routes/_authenticated/app.simulations.index'
 import { Route as ApiPublicRedsysChargeRecurringRouteImport } from './routes/api/public/redsys/charge-recurring'
 import { Route as ApiPublicRedsysNotificationRouteImport } from './routes/api/public/redsys/notification'
+import { Route as AuthenticatedAppCaptureIdAnalyzeRouteImport } from './routes/_authenticated/app.capture.$id.analyze'
 import { Route as AuthenticatedAppSimulationsIdIndexRouteImport } from './routes/_authenticated/app.simulations.$id.index'
 import { Route as AuthenticatedAppSimulationsIdEditRouteImport } from './routes/_authenticated/app.simulations.$id.edit'
 import { Route as AuthenticatedAppSimulationsIdReviewRouteImport } from './routes/_authenticated/app.simulations.$id.review'
@@ -156,6 +157,12 @@ const ApiPublicRedsysNotificationRoute =
     path: '/api/public/redsys/notification',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedAppCaptureIdAnalyzeRoute =
+  AuthenticatedAppCaptureIdAnalyzeRouteImport.update({
+    id: '/analyze',
+    path: '/analyze',
+    getParentRoute: () => AuthenticatedAppCaptureIdRoute,
+  } as any)
 const AuthenticatedAppSimulationsIdIndexRoute =
   AuthenticatedAppSimulationsIdIndexRouteImport.update({
     id: '/app/simulations/$id/',
@@ -196,13 +203,14 @@ export interface FileRoutesByFullPath {
   '/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
-  '/app/capture/$id': typeof AuthenticatedAppCaptureIdRoute
+  '/app/capture/$id': typeof AuthenticatedAppCaptureIdRouteWithChildren
   '/app/play/$id': typeof AuthenticatedAppPlayIdRoute
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
   '/app/capture/': typeof AuthenticatedAppCaptureIndexRoute
   '/app/simulations/': typeof AuthenticatedAppSimulationsIndexRoute
+  '/app/capture/$id/analyze': typeof AuthenticatedAppCaptureIdAnalyzeRoute
   '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
   '/app/simulations/$id/sessions': typeof AuthenticatedAppSimulationsIdSessionsRoute
@@ -223,13 +231,14 @@ export interface FileRoutesByTo {
   '/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
-  '/app/capture/$id': typeof AuthenticatedAppCaptureIdRoute
+  '/app/capture/$id': typeof AuthenticatedAppCaptureIdRouteWithChildren
   '/app/play/$id': typeof AuthenticatedAppPlayIdRoute
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
   '/app/capture': typeof AuthenticatedAppCaptureIndexRoute
   '/app/simulations': typeof AuthenticatedAppSimulationsIndexRoute
+  '/app/capture/$id/analyze': typeof AuthenticatedAppCaptureIdAnalyzeRoute
   '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
   '/app/simulations/$id/sessions': typeof AuthenticatedAppSimulationsIdSessionsRoute
@@ -252,13 +261,14 @@ export interface FileRoutesById {
   '/_authenticated/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/_authenticated/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/_authenticated/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
-  '/_authenticated/app/capture/$id': typeof AuthenticatedAppCaptureIdRoute
+  '/_authenticated/app/capture/$id': typeof AuthenticatedAppCaptureIdRouteWithChildren
   '/_authenticated/app/play/$id': typeof AuthenticatedAppPlayIdRoute
   '/_authenticated/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
   '/_authenticated/app/capture/': typeof AuthenticatedAppCaptureIndexRoute
   '/_authenticated/app/simulations/': typeof AuthenticatedAppSimulationsIndexRoute
+  '/_authenticated/app/capture/$id/analyze': typeof AuthenticatedAppCaptureIdAnalyzeRoute
   '/_authenticated/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/_authenticated/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
   '/_authenticated/app/simulations/$id/sessions': typeof AuthenticatedAppSimulationsIdSessionsRoute
@@ -288,6 +298,7 @@ export interface FileRouteTypes {
     | '/api/public/redsys/notification'
     | '/app/capture/'
     | '/app/simulations/'
+    | '/app/capture/$id/analyze'
     | '/app/simulations/$id/edit'
     | '/app/simulations/$id/review'
     | '/app/simulations/$id/sessions'
@@ -315,6 +326,7 @@ export interface FileRouteTypes {
     | '/api/public/redsys/notification'
     | '/app/capture'
     | '/app/simulations'
+    | '/app/capture/$id/analyze'
     | '/app/simulations/$id/edit'
     | '/app/simulations/$id/review'
     | '/app/simulations/$id/sessions'
@@ -343,6 +355,7 @@ export interface FileRouteTypes {
     | '/api/public/redsys/notification'
     | '/_authenticated/app/capture/'
     | '/_authenticated/app/simulations/'
+    | '/_authenticated/app/capture/$id/analyze'
     | '/_authenticated/app/simulations/$id/edit'
     | '/_authenticated/app/simulations/$id/review'
     | '/_authenticated/app/simulations/$id/sessions'
@@ -517,6 +530,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicRedsysNotificationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/app/capture/$id/analyze': {
+      id: '/_authenticated/app/capture/$id/analyze'
+      path: '/analyze'
+      fullPath: '/app/capture/$id/analyze'
+      preLoaderRoute: typeof AuthenticatedAppCaptureIdAnalyzeRouteImport
+      parentRoute: typeof AuthenticatedAppCaptureIdRoute
+    }
     '/_authenticated/app/simulations/$id/': {
       id: '/_authenticated/app/simulations/$id/'
       path: '/app/simulations/$id'
@@ -565,13 +585,28 @@ const AuthenticatedAppAdminRouteWithChildren =
     AuthenticatedAppAdminRouteChildren,
   )
 
+interface AuthenticatedAppCaptureIdRouteChildren {
+  AuthenticatedAppCaptureIdAnalyzeRoute: typeof AuthenticatedAppCaptureIdAnalyzeRoute
+}
+
+const AuthenticatedAppCaptureIdRouteChildren: AuthenticatedAppCaptureIdRouteChildren =
+  {
+    AuthenticatedAppCaptureIdAnalyzeRoute:
+      AuthenticatedAppCaptureIdAnalyzeRoute,
+  }
+
+const AuthenticatedAppCaptureIdRouteWithChildren =
+  AuthenticatedAppCaptureIdRoute._addFileChildren(
+    AuthenticatedAppCaptureIdRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppAdminRoute: typeof AuthenticatedAppAdminRouteWithChildren
   AuthenticatedAppBillingRoute: typeof AuthenticatedAppBillingRoute
   AuthenticatedAppDashboardRoute: typeof AuthenticatedAppDashboardRoute
   AuthenticatedAppNewRoute: typeof AuthenticatedAppNewRoute
   AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
-  AuthenticatedAppCaptureIdRoute: typeof AuthenticatedAppCaptureIdRoute
+  AuthenticatedAppCaptureIdRoute: typeof AuthenticatedAppCaptureIdRouteWithChildren
   AuthenticatedAppPlayIdRoute: typeof AuthenticatedAppPlayIdRoute
   AuthenticatedAppSessionsIdRoute: typeof AuthenticatedAppSessionsIdRoute
   AuthenticatedAppCaptureIndexRoute: typeof AuthenticatedAppCaptureIndexRoute
@@ -588,7 +623,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppDashboardRoute: AuthenticatedAppDashboardRoute,
   AuthenticatedAppNewRoute: AuthenticatedAppNewRoute,
   AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
-  AuthenticatedAppCaptureIdRoute: AuthenticatedAppCaptureIdRoute,
+  AuthenticatedAppCaptureIdRoute: AuthenticatedAppCaptureIdRouteWithChildren,
   AuthenticatedAppPlayIdRoute: AuthenticatedAppPlayIdRoute,
   AuthenticatedAppSessionsIdRoute: AuthenticatedAppSessionsIdRoute,
   AuthenticatedAppCaptureIndexRoute: AuthenticatedAppCaptureIndexRoute,
