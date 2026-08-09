@@ -231,7 +231,7 @@ function NewSimulation() {
                   <SelectValue placeholder="Selecciona un área (entrevistas, terapia grupal…)" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(areas.data ?? []).map((a) => (
+                  {(areas.data ?? []).map((a: PracticeArea) => (
                     <SelectItem key={a.id} value={a.key}>
                       {a.label}
                     </SelectItem>
