@@ -534,6 +534,8 @@ Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
         objective: data.objective,
         prompt: sanitizedPrompt,
         topic: data.topic ?? null,
+        area_key: data.areaKey ?? null,
+
         duration_min: data.durationMin,
         status: "ready",
         story: story as any,
