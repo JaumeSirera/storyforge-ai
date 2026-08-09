@@ -239,7 +239,7 @@ export const updateCaptureSession = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = {};
+    const patch: Record<string, any> = {};
     if (data.title !== undefined) patch.title = data.title.trim();
     if (data.areaKey !== undefined) patch.area_key = data.areaKey;
     if (data.mode !== undefined) patch.mode = data.mode;
