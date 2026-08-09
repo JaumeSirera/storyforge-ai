@@ -31,6 +31,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { StoryPreview } from "@/components/StoryPreview";
 import type { Story, StoryNode, Choice, EvaluationCriterion, VideoSource, VideoClip, Question, QuestionTrigger } from "@/lib/story-types";
 import { nodeClips } from "@/lib/story-types";
+import { Switch } from "@/components/ui/switch";
+import { captionFormat, parseCaptions } from "@/lib/captions";
+
 import { AiClipPanel } from "@/components/AiClipPanel";
 import { StoryFlowchart } from "@/components/StoryFlowchart";
 
