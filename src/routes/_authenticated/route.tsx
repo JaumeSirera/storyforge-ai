@@ -41,7 +41,7 @@ function AppLayout() {
             <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
               <Sparkles className="h-3.5 w-3.5" />
             </span>
-            <span className="truncate">PlayGame</span>
+            <span className="truncate">Playnalyze</span>
           </Link>
           <nav className="hidden md:flex items-center gap-1 text-sm">
             <NavItem to="/app/dashboard" icon={LayoutDashboard} label="Inicio" />

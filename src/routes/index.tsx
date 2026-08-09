@@ -5,7 +5,7 @@ import { Sparkles, Film, GitBranch, BarChart3, Award, ArrowRight } from "lucide-
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "PlayGame — Simulaciones profesionales gamificadas con IA" },
+      { title: "Playnalyze — Interacción humana impulsada por IA" },
       {
         name: "description",
         content:
@@ -252,7 +252,7 @@ function CTA() {
 function Footer() {
   return (
     <footer className="border-t border-border/60 py-10 text-center text-sm text-muted-foreground">
-      © {new Date().getFullYear()} PlayGame. Simulaciones profesionales con IA.
+      © {new Date().getFullYear()} Playnalyze. Interacción humana impulsada por IA.
     </footer>
   );
 }

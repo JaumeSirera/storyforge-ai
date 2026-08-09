@@ -10,13 +10,13 @@ import { Play, Sparkles, Home, Gamepad2 } from "lucide-react";
 export const Route = createFileRoute("/explore/")({
   head: () => ({
     meta: [
-      { title: "Galería de juegos gamificados — PlayGame" },
+      { title: "Galería de juegos gamificados — Playnalyze" },
       {
         name: "description",
         content:
           "Descubre vídeos convertidos en juegos interactivos: preguntas, decisiones, puntuación y informe de competencias. Creados con IA en minutos.",
       },
-      { property: "og:title", content: "Galería de juegos gamificados — PlayGame" },
+      { property: "og:title", content: "Galería de juegos gamificados — Playnalyze" },
       {
         property: "og:description",
         content: "Juega vídeos interactivos profesionales generados con IA.",
