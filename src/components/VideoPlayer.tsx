@@ -752,6 +752,12 @@ export function VideoPlayer({
     <div ref={liveRef} role="status" aria-live="polite" className="sr-only" />
   );
 
+  const captionsToggleOverlay = captionsUi ? (
+    <div className="absolute right-2 bottom-16 z-40 pointer-events-auto">
+      <CaptionsToggle on={captionsOn} onToggle={toggleCaptions} overlay label={trackLabel} />
+    </div>
+  ) : null;
+
   if (clips.length <= 1) {
     if (fill) {
       // In fill mode the container is positioned by the parent; we overlay controls.
@@ -765,6 +771,8 @@ export function VideoPlayer({
           className="contents focus:outline-none"
         >
           {single}
+          <CaptionOverlay text={cueText} overlay />
+          {captionsToggleOverlay}
           {liveRegion}
         </div>
       );
@@ -779,7 +787,13 @@ export function VideoPlayer({
         className="focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-xl"
       >
         {single}
-        <AccessibleControls controllerRef={controllerRef} liveRef={liveRef} />
+        <CaptionOverlay text={cueText} />
+        <div className="flex flex-wrap items-center gap-2">
+          <AccessibleControls controllerRef={controllerRef} liveRef={liveRef} />
+          {captionsUi && (
+            <CaptionsToggle on={captionsOn} onToggle={toggleCaptions} label={trackLabel} />
+          )}
+        </div>
         {liveRegion}
       </div>
     );
@@ -802,7 +816,7 @@ export function VideoPlayer({
           onPauseAtTime={onPauseAtTime}
           onTriggerReset={onTriggerReset}
           onEnded={onEnded}
-          onTimeUpdate={onTimeUpdate}
+          onTimeUpdate={handleTimeUpdate}
           startAt={startAt}
           fill
           controllerRef={controllerRef}
@@ -829,7 +843,8 @@ export function VideoPlayer({
             </button>
           ))}
         </div>
-        
+        <CaptionOverlay text={cueText} overlay />
+        {captionsToggleOverlay}
         {liveRegion}
       </div>
     );
@@ -869,12 +884,19 @@ export function VideoPlayer({
         onPauseAtTime={onPauseAtTime}
         onTriggerReset={onTriggerReset}
         onEnded={onEnded}
-        onTimeUpdate={onTimeUpdate}
+        onTimeUpdate={handleTimeUpdate}
         startAt={startAt}
         controllerRef={controllerRef}
       />
-      <AccessibleControls controllerRef={controllerRef} liveRef={liveRef} />
+      <CaptionOverlay text={cueText} />
+      <div className="flex flex-wrap items-center gap-2">
+        <AccessibleControls controllerRef={controllerRef} liveRef={liveRef} />
+        {captionsUi && (
+          <CaptionsToggle on={captionsOn} onToggle={toggleCaptions} label={trackLabel} />
+        )}
+      </div>
       {liveRegion}
     </div>
+
   );
 }
