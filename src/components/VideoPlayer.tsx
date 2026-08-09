@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play, RotateCcw, RotateCw } from "lucide-react";
+import { Pause, Play, RotateCcw, RotateCw, Subtitles } from "lucide-react";
 import type { VideoClip, VideoSource } from "@/lib/story-types";
+import { cueAt, parseCaptions } from "@/lib/captions";
+
 
 function getYouTubeId(url: string): string | null {
   const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([\w-]{11})/);
@@ -573,6 +575,61 @@ function AccessibleControls({
   );
 }
 
+/* ---------- Subtitles (SRT / VTT) ---------- */
+const CAPTIONS_PREF_KEY = "playgame:captions-on";
+
+function CaptionsToggle({
+  on,
+  onToggle,
+  overlay,
+  label,
+}: {
+  on: boolean;
+  onToggle: () => void;
+  overlay?: boolean;
+  label?: string;
+}) {
+  const cls = overlay
+    ? "inline-flex items-center gap-1.5 rounded-full px-3 min-h-11 text-xs backdrop-blur-md border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black " +
+      (on
+        ? "border-primary bg-primary/80 text-primary-foreground"
+        : "border-white/30 bg-black/50 text-white hover:bg-black/70")
+    : "inline-flex items-center gap-1.5 rounded-full border px-3 min-h-11 text-xs transition focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background " +
+      (on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background hover:bg-accent");
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={on}
+      aria-label={on ? "Desactivar subtítulos" : "Activar subtítulos"}
+      title={on ? "Desactivar subtítulos" : "Activar subtítulos"}
+      className={cls}
+    >
+      <Subtitles className="h-4 w-4" aria-hidden="true" />
+      <span>{label || "Subtítulos"}</span>
+    </button>
+  );
+}
+
+function CaptionOverlay({ text, overlay }: { text: string; overlay?: boolean }) {
+  if (!text) return null;
+  const wrap = overlay
+    ? "absolute bottom-16 left-1/2 -translate-x-1/2 z-30 w-[min(90%,52rem)] px-2 text-center pointer-events-none"
+    : "mt-2 text-center";
+  return (
+    <div className={wrap}>
+      <p
+        className="inline-block whitespace-pre-line rounded-md bg-black/75 px-3 py-1.5 text-sm sm:text-base leading-snug text-white shadow-lg"
+        aria-live="polite"
+      >
+        {text}
+      </p>
+    </div>
+  );
+}
+
+
 export function VideoPlayer({
   video,
   videos,
@@ -617,6 +674,41 @@ export function VideoPlayer({
   const liveRef = useRef<HTMLDivElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
+  /* ---- subtitles ---- */
+  const track = active?.captions;
+  const cues = useMemo(() => parseCaptions(track?.content), [track?.content]);
+  const hasCaptions = cues.length > 0;
+
+  const [captionsOn, setCaptionsOn] = useState<boolean>(!!track?.defaultOn);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem(CAPTIONS_PREF_KEY);
+    if (stored === "1") setCaptionsOn(true);
+    else if (stored === "0") setCaptionsOn(false);
+  }, []);
+
+  const toggleCaptions = useCallback(() => {
+    setCaptionsOn((prev) => {
+      const next = !prev;
+      try { window.localStorage.setItem(CAPTIONS_PREF_KEY, next ? "1" : "0"); } catch {}
+      if (liveRef.current) liveRef.current.textContent = next ? "Subtítulos activados" : "Subtítulos desactivados";
+      return next;
+    });
+  }, []);
+
+  // Playback position drives the visible cue, so pausing/seeking stays in sync.
+  const [time, setTime] = useState(0);
+  const handleTimeUpdate = useCallback(
+    (t: number) => {
+      setTime(t);
+      onTimeUpdate?.(t);
+    },
+    [onTimeUpdate],
+  );
+  const cueText = captionsOn && hasCaptions ? (cueAt(cues, time)?.text ?? "") : "";
+  const captionsUi = hasCaptions;
+  const trackLabel = track?.label?.trim() || "Subtítulos";
+
   // Keyboard shortcuts scoped to the player container.
   const onKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     // Ignore keys typed inside inputs/textareas.
@@ -635,8 +727,11 @@ export function VideoPlayer({
       e.preventDefault();
       controllerRef.current?.seekBy(10);
       if (liveRef.current) liveRef.current.textContent = "Adelantado 10 segundos";
+    } else if (e.key === "c" || e.key === "C") {
+      e.preventDefault();
+      toggleCaptions();
     }
-  }, []);
+  }, [toggleCaptions]);
 
   const single = (
     <SingleVideo
@@ -645,16 +740,23 @@ export function VideoPlayer({
       onPauseAtTime={onPauseAtTime}
       onTriggerReset={onTriggerReset}
       onEnded={onEnded}
-      onTimeUpdate={onTimeUpdate}
+      onTimeUpdate={handleTimeUpdate}
       startAt={startAt}
       fill={fill}
       controllerRef={controllerRef}
     />
   );
 
+
   const liveRegion = (
     <div ref={liveRef} role="status" aria-live="polite" className="sr-only" />
   );
+
+  const captionsToggleOverlay = captionsUi ? (
+    <div className="absolute right-2 bottom-16 z-40 pointer-events-auto">
+      <CaptionsToggle on={captionsOn} onToggle={toggleCaptions} overlay label={trackLabel} />
+    </div>
+  ) : null;
 
   if (clips.length <= 1) {
     if (fill) {
@@ -669,6 +771,8 @@ export function VideoPlayer({
           className="contents focus:outline-none"
         >
           {single}
+          <CaptionOverlay text={cueText} overlay />
+          {captionsToggleOverlay}
           {liveRegion}
         </div>
       );
@@ -683,7 +787,13 @@ export function VideoPlayer({
         className="focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-xl"
       >
         {single}
-        <AccessibleControls controllerRef={controllerRef} liveRef={liveRef} />
+        <CaptionOverlay text={cueText} />
+        <div className="flex flex-wrap items-center gap-2">
+          <AccessibleControls controllerRef={controllerRef} liveRef={liveRef} />
+          {captionsUi && (
+            <CaptionsToggle on={captionsOn} onToggle={toggleCaptions} label={trackLabel} />
+          )}
+        </div>
         {liveRegion}
       </div>
     );
@@ -706,7 +816,7 @@ export function VideoPlayer({
           onPauseAtTime={onPauseAtTime}
           onTriggerReset={onTriggerReset}
           onEnded={onEnded}
-          onTimeUpdate={onTimeUpdate}
+          onTimeUpdate={handleTimeUpdate}
           startAt={startAt}
           fill
           controllerRef={controllerRef}
@@ -733,7 +843,8 @@ export function VideoPlayer({
             </button>
           ))}
         </div>
-        
+        <CaptionOverlay text={cueText} overlay />
+        {captionsToggleOverlay}
         {liveRegion}
       </div>
     );
@@ -773,12 +884,19 @@ export function VideoPlayer({
         onPauseAtTime={onPauseAtTime}
         onTriggerReset={onTriggerReset}
         onEnded={onEnded}
-        onTimeUpdate={onTimeUpdate}
+        onTimeUpdate={handleTimeUpdate}
         startAt={startAt}
         controllerRef={controllerRef}
       />
-      <AccessibleControls controllerRef={controllerRef} liveRef={liveRef} />
+      <CaptionOverlay text={cueText} />
+      <div className="flex flex-wrap items-center gap-2">
+        <AccessibleControls controllerRef={controllerRef} liveRef={liveRef} />
+        {captionsUi && (
+          <CaptionsToggle on={captionsOn} onToggle={toggleCaptions} label={trackLabel} />
+        )}
+      </div>
       {liveRegion}
     </div>
+
   );
 }

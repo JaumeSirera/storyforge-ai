@@ -31,6 +31,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { StoryPreview } from "@/components/StoryPreview";
 import type { Story, StoryNode, Choice, EvaluationCriterion, VideoSource, VideoClip, Question, QuestionTrigger } from "@/lib/story-types";
 import { nodeClips } from "@/lib/story-types";
+import { Switch } from "@/components/ui/switch";
+import { captionFormat, parseCaptions } from "@/lib/captions";
+
 import { AiClipPanel } from "@/components/AiClipPanel";
 import { StoryFlowchart } from "@/components/StoryFlowchart";
 
@@ -985,6 +988,74 @@ function EditSimulation() {
                                 </div>
                               </div>
                             )}
+                            <div className="space-y-1.5 rounded-md border border-dashed p-3">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Label className="text-xs">Subtítulos (SRT o VTT)</Label>
+                                {clip.captions?.content?.trim() && (
+                                  <Badge variant="outline" className="text-[10px] uppercase">
+                                    {captionFormat(clip.captions.content) === "unknown"
+                                      ? "formato no reconocido"
+                                      : captionFormat(clip.captions.content)}
+                                    {" · "}
+                                    {parseCaptions(clip.captions.content).length} líneas
+                                  </Badge>
+                                )}
+                              </div>
+                              <Textarea
+                                rows={4}
+                                className="font-mono text-xs"
+                                placeholder={"1\n00:00:01,000 --> 00:00:04,000\nTexto del subtítulo"}
+                                value={clip.captions?.content ?? ""}
+                                onChange={(e) =>
+                                  updateClip(nIdx, cIdx, {
+                                    captions: { ...(clip.captions ?? {}), content: e.target.value },
+                                  })
+                                }
+                              />
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs">Etiqueta</Label>
+                                  <Input
+                                    className="h-8"
+                                    placeholder="Español"
+                                    value={clip.captions?.label ?? ""}
+                                    onChange={(e) =>
+                                      updateClip(nIdx, cIdx, {
+                                        captions: { content: clip.captions?.content ?? "", ...(clip.captions ?? {}), label: e.target.value },
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs">Idioma</Label>
+                                  <Input
+                                    className="h-8"
+                                    placeholder="es"
+                                    value={clip.captions?.lang ?? ""}
+                                    onChange={(e) =>
+                                      updateClip(nIdx, cIdx, {
+                                        captions: { content: clip.captions?.content ?? "", ...(clip.captions ?? {}), lang: e.target.value },
+                                      })
+                                    }
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between gap-3 pt-1">
+                                <Label htmlFor={`cc-default-${clip.id}`} className="text-xs font-normal text-muted-foreground">
+                                  Activados por defecto al jugar (el usuario puede desactivarlos)
+                                </Label>
+                                <Switch
+                                  id={`cc-default-${clip.id}`}
+                                  checked={!!clip.captions?.defaultOn}
+                                  onCheckedChange={(v) =>
+                                    updateClip(nIdx, cIdx, {
+                                      captions: { content: clip.captions?.content ?? "", ...(clip.captions ?? {}), defaultOn: v },
+                                    })
+                                  }
+                                />
+                              </div>
+                            </div>
+
                           </div>
                         );
                       })}
