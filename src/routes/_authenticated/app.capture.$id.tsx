@@ -40,6 +40,7 @@ import {
   Play,
   Loader2,
   UserPlus,
+  BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -181,6 +182,11 @@ function CaptureSessionPage() {
             </Badge>
           </div>
         </div>
+        <Button asChild variant="outline" className="gap-2">
+          <Link to="/app/capture/$id/analyze" params={{ id }}>
+            <BarChart3 className="h-4 w-4" /> Analyze
+          </Link>
+        </Button>
       </div>
 
       {/* Consentimiento */}
