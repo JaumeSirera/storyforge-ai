@@ -674,6 +674,41 @@ export function VideoPlayer({
   const liveRef = useRef<HTMLDivElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
+  /* ---- subtitles ---- */
+  const track = active?.captions;
+  const cues = useMemo(() => parseCaptions(track?.content), [track?.content]);
+  const hasCaptions = cues.length > 0;
+
+  const [captionsOn, setCaptionsOn] = useState<boolean>(!!track?.defaultOn);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem(CAPTIONS_PREF_KEY);
+    if (stored === "1") setCaptionsOn(true);
+    else if (stored === "0") setCaptionsOn(false);
+  }, []);
+
+  const toggleCaptions = useCallback(() => {
+    setCaptionsOn((prev) => {
+      const next = !prev;
+      try { window.localStorage.setItem(CAPTIONS_PREF_KEY, next ? "1" : "0"); } catch {}
+      if (liveRef.current) liveRef.current.textContent = next ? "Subtítulos activados" : "Subtítulos desactivados";
+      return next;
+    });
+  }, []);
+
+  // Playback position drives the visible cue, so pausing/seeking stays in sync.
+  const [time, setTime] = useState(0);
+  const handleTimeUpdate = useCallback(
+    (t: number) => {
+      setTime(t);
+      onTimeUpdate?.(t);
+    },
+    [onTimeUpdate],
+  );
+  const cueText = captionsOn && hasCaptions ? (cueAt(cues, time)?.text ?? "") : "";
+  const captionsUi = hasCaptions;
+  const trackLabel = track?.label?.trim() || "Subtítulos";
+
   // Keyboard shortcuts scoped to the player container.
   const onKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     // Ignore keys typed inside inputs/textareas.
@@ -692,8 +727,11 @@ export function VideoPlayer({
       e.preventDefault();
       controllerRef.current?.seekBy(10);
       if (liveRef.current) liveRef.current.textContent = "Adelantado 10 segundos";
+    } else if (e.key === "c" || e.key === "C") {
+      e.preventDefault();
+      toggleCaptions();
     }
-  }, []);
+  }, [toggleCaptions]);
 
   const single = (
     <SingleVideo
@@ -702,12 +740,13 @@ export function VideoPlayer({
       onPauseAtTime={onPauseAtTime}
       onTriggerReset={onTriggerReset}
       onEnded={onEnded}
-      onTimeUpdate={onTimeUpdate}
+      onTimeUpdate={handleTimeUpdate}
       startAt={startAt}
       fill={fill}
       controllerRef={controllerRef}
     />
   );
+
 
   const liveRegion = (
     <div ref={liveRef} role="status" aria-live="polite" className="sr-only" />
