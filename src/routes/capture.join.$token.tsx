@@ -11,6 +11,8 @@ import {
 import { CaptureRecorder } from "@/components/CaptureRecorder";
 import { MultiCamMosaic } from "@/components/MultiCamMosaic";
 import { CaptureConsentGate, type ConsentScopes } from "@/components/CaptureConsentGate";
+import { MediaDeviceSelector, type MediaDeviceSelection } from "@/components/MediaDeviceSelector";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
