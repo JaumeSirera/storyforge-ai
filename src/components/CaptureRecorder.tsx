@@ -6,10 +6,11 @@ import {
   createParticipantUploadTicket,
   registerParticipantRecording,
 } from "@/lib/capture-invitations.functions";
+import { joinCaptureControlChannel } from "@/lib/capture-control";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Circle, Square, Loader2, Video, MonitorUp, Mic } from "lucide-react";
+import { Circle, Square, Loader2, Video, MonitorUp, Mic, Pause, Play, Radio } from "lucide-react";
 import { toast } from "sonner";
 
 function fmt(sec: number) {
@@ -41,6 +42,8 @@ interface Props {
   inviteToken?: string | null;
   /** Milisegundos transcurridos del juego al iniciar (sincronización con el vídeo). */
   getGameOffsetMs?: () => number;
+  /** Obedecer las órdenes de inicio/pausa/parada del anfitrión (por defecto sí). */
+  followHost?: boolean;
   onUploaded?: () => void;
 }
 
@@ -51,6 +54,7 @@ export function CaptureRecorder({
   recordScreen,
   inviteToken = null,
   getGameOffsetMs,
+  followHost = true,
   onUploaded,
 }: Props) {
   const register = useServerFn(registerRecording);
@@ -63,12 +67,16 @@ export function CaptureRecorder({
   const screenChunks = useRef<Blob[]>([]);
   const streams = useRef<MediaStream[]>([]);
   const startedAt = useRef<number>(0);
+  const pausedMs = useRef<number>(0);
+  const pausedAt = useRef<number>(0);
   const offsetMs = useRef<number>(0);
 
-  const [state, setState] = useState<"idle" | "recording" | "uploading">("idle");
+  const [state, setState] = useState<"idle" | "recording" | "paused" | "uploading">("idle");
   const [elapsed, setElapsed] = useState(0);
   const [previewOn, setPreviewOn] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [hostSynced, setHostSynced] = useState(false);
+
 
   async function attachStream(stream: MediaStream) {
     const el = videoRef.current;
@@ -118,7 +126,10 @@ export function CaptureRecorder({
 
   useEffect(() => {
     if (state !== "recording") return;
-    const t = setInterval(() => setElapsed((Date.now() - startedAt.current) / 1000), 500);
+    const t = setInterval(
+      () => setElapsed((Date.now() - startedAt.current - pausedMs.current) / 1000),
+      500,
+    );
     return () => clearInterval(t);
   }, [state]);
 
@@ -127,6 +138,33 @@ export function CaptureRecorder({
       streams.current.forEach((s) => s.getTracks().forEach((t) => t.stop()));
     };
   }, []);
+
+  // Órdenes del anfitrión: inicio, pausa, reanudación y parada sincronizadas.
+  const actions = useRef({ start, pause, resume, stop });
+  actions.current = { start, pause, resume, stop };
+
+  useEffect(() => {
+    if (!followHost) return;
+    const channel = joinCaptureControlChannel(captureSessionId, (msg) => {
+      const a = actions.current;
+      if (msg.action === "start") {
+        toast.info("El anfitrión ha iniciado la grabación");
+        void a.start();
+      } else if (msg.action === "pause") {
+        a.pause();
+      } else if (msg.action === "resume") {
+        a.resume();
+      } else if (msg.action === "stop") {
+        void a.stop();
+      }
+    });
+    setHostSynced(true);
+    return () => {
+      setHostSynced(false);
+      void channel.unsubscribe();
+    };
+  }, [captureSessionId, followHost]);
+
 
   async function upload(blob: Blob, kind: "camera" | "screen", durationSec: number) {
     const ext0 = blob.type.includes("mp4") ? "mp4" : "webm";
@@ -209,6 +247,8 @@ export function CaptureRecorder({
 
       offsetMs.current = getGameOffsetMs?.() ?? 0;
       startedAt.current = Date.now();
+      pausedMs.current = 0;
+      pausedAt.current = 0;
       setElapsed(0);
       rec.start(2000);
       setState("recording");
@@ -221,8 +261,31 @@ export function CaptureRecorder({
     }
   }
 
+  function pause() {
+    if (state !== "recording") return;
+    [camRecorder.current, screenRecorder.current].forEach((r) => {
+      if (r && r.state === "recording") r.pause();
+    });
+    pausedAt.current = Date.now();
+    setState("paused");
+  }
+
+  function resume() {
+    if (state !== "paused") return;
+    if (pausedAt.current) pausedMs.current += Date.now() - pausedAt.current;
+    pausedAt.current = 0;
+    [camRecorder.current, screenRecorder.current].forEach((r) => {
+      if (r && r.state === "paused") r.resume();
+    });
+    setState("recording");
+  }
+
   async function stop() {
-    const duration = (Date.now() - startedAt.current) / 1000;
+    if (state === "paused" && pausedAt.current) {
+      pausedMs.current += Date.now() - pausedAt.current;
+      pausedAt.current = 0;
+    }
+    const duration = (Date.now() - startedAt.current - pausedMs.current) / 1000;
     setState("uploading");
     try {
       const waitFor = (rec: MediaRecorder | null) =>
@@ -281,13 +344,22 @@ export function CaptureRecorder({
                   <MonitorUp className="h-3 w-3" /> Pantalla
                 </span>
               )}
+              {followHost && hostSynced && (
+                <span className="inline-flex items-center gap-1">
+                  <Radio className="h-3 w-3" /> Sincronizado con el anfitrión
+                </span>
+              )}
             </CardDescription>
           </div>
-          {state === "recording" && (
-            <Badge variant="destructive" className="gap-1">
-              <Circle className="h-2.5 w-2.5 fill-current animate-pulse" /> {fmt(elapsed)}
+          {(state === "recording" || state === "paused") && (
+            <Badge variant={state === "paused" ? "secondary" : "destructive"} className="gap-1">
+              <Circle
+                className={`h-2.5 w-2.5 fill-current ${state === "recording" ? "animate-pulse" : ""}`}
+              />
+              {state === "paused" ? `En pausa · ${fmt(elapsed)}` : fmt(elapsed)}
             </Badge>
           )}
+
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -315,8 +387,8 @@ export function CaptureRecorder({
             </div>
           )}
         </div>
-        <div className="flex gap-2">
-          {state !== "recording" ? (
+        <div className="flex flex-wrap gap-2">
+          {state === "idle" || state === "uploading" ? (
             <Button onClick={start} disabled={state === "uploading"} className="gap-2">
               {state === "uploading" ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -326,11 +398,23 @@ export function CaptureRecorder({
               {state === "uploading" ? "Guardando…" : "Iniciar grabación"}
             </Button>
           ) : (
-            <Button onClick={stop} variant="destructive" className="gap-2">
-              <Square className="h-4 w-4" /> Detener y guardar
-            </Button>
+            <>
+              {state === "recording" ? (
+                <Button onClick={pause} variant="secondary" className="gap-2">
+                  <Pause className="h-4 w-4" /> Pausar
+                </Button>
+              ) : (
+                <Button onClick={resume} variant="secondary" className="gap-2">
+                  <Play className="h-4 w-4" /> Reanudar
+                </Button>
+              )}
+              <Button onClick={stop} variant="destructive" className="gap-2">
+                <Square className="h-4 w-4" /> Detener y guardar
+              </Button>
+            </>
           )}
         </div>
+
 
         <p className="text-xs text-muted-foreground">
           La grabación se guarda cifrada en tu almacenamiento privado y se elimina automáticamente al

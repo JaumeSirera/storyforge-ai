@@ -20,6 +20,7 @@ import { listPracticeAreas } from "@/lib/areas.functions";
 import { CaptureRecorder } from "@/components/CaptureRecorder";
 import { MultiCamMosaic } from "@/components/MultiCamMosaic";
 import { CaptureInvitationsCard } from "@/components/CaptureInvitationsCard";
+import { CaptureHostControls } from "@/components/CaptureHostControls";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -558,6 +559,12 @@ function CaptureSessionPage() {
 
       {/* Invitaciones para que cada participante entre desde su dispositivo */}
       <CaptureInvitationsCard captureSessionId={id} participants={participants} />
+
+      {/* Control sincronizado de la grabación en todos los dispositivos */}
+      {consentsOk && (session.mode === "group" || session.captureMode === "per_participant") && (
+        <CaptureHostControls captureSessionId={id} />
+      )}
+
 
       {/* Mosaico multicámara en directo */}
       {consentsOk && (session.mode === "group" || session.captureMode === "per_participant") && (
