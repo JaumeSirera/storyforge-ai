@@ -21,6 +21,7 @@ import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
 import { Route as AuthenticatedAppNewRouteImport } from './routes/_authenticated/app.new'
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
+import { Route as CaptureJoinTokenRouteImport } from './routes/capture.join.$token'
 import { Route as AuthenticatedAppAdminPricingRouteImport } from './routes/_authenticated/app.admin.pricing'
 import { Route as AuthenticatedAppAdminSimulationsRouteImport } from './routes/_authenticated/app.admin.simulations'
 import { Route as AuthenticatedAppAdminUsersRouteImport } from './routes/_authenticated/app.admin.users'
@@ -100,6 +101,11 @@ const AuthenticatedAppSettingsRoute =
     path: '/app/settings',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const CaptureJoinTokenRoute = CaptureJoinTokenRouteImport.update({
+  id: '/capture/join/$token',
+  path: '/capture/join/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAppAdminPricingRoute =
   AuthenticatedAppAdminPricingRouteImport.update({
     id: '/pricing',
@@ -214,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/new': typeof AuthenticatedAppNewRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/capture/join/$token': typeof CaptureJoinTokenRoute
   '/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
@@ -244,6 +251,7 @@ export interface FileRoutesByTo {
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/new': typeof AuthenticatedAppNewRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/capture/join/$token': typeof CaptureJoinTokenRoute
   '/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
@@ -276,6 +284,7 @@ export interface FileRoutesById {
   '/_authenticated/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/_authenticated/app/new': typeof AuthenticatedAppNewRoute
   '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/capture/join/$token': typeof CaptureJoinTokenRoute
   '/_authenticated/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/_authenticated/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/_authenticated/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
@@ -308,6 +317,7 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/new'
     | '/app/settings'
+    | '/capture/join/$token'
     | '/app/admin/pricing'
     | '/app/admin/simulations'
     | '/app/admin/users'
@@ -338,6 +348,7 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/new'
     | '/app/settings'
+    | '/capture/join/$token'
     | '/app/admin/pricing'
     | '/app/admin/simulations'
     | '/app/admin/users'
@@ -369,6 +380,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/dashboard'
     | '/_authenticated/app/new'
     | '/_authenticated/app/settings'
+    | '/capture/join/$token'
     | '/_authenticated/app/admin/pricing'
     | '/_authenticated/app/admin/simulations'
     | '/_authenticated/app/admin/users'
@@ -396,6 +408,7 @@ export interface RootRouteChildren {
   ExploreIdRoute: typeof ExploreIdRoute
   InviteTokenRoute: typeof InviteTokenRoute
   ExploreIndexRoute: typeof ExploreIndexRoute
+  CaptureJoinTokenRoute: typeof CaptureJoinTokenRoute
   ApiPublicRedsysChargeRecurringRoute: typeof ApiPublicRedsysChargeRecurringRoute
   ApiPublicRedsysNotificationRoute: typeof ApiPublicRedsysNotificationRoute
 }
@@ -485,6 +498,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/settings'
       preLoaderRoute: typeof AuthenticatedAppSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/capture/join/$token': {
+      id: '/capture/join/$token'
+      path: '/capture/join/$token'
+      fullPath: '/capture/join/$token'
+      preLoaderRoute: typeof CaptureJoinTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/admin/pricing': {
       id: '/_authenticated/app/admin/pricing'
@@ -694,6 +714,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExploreIdRoute: ExploreIdRoute,
   InviteTokenRoute: InviteTokenRoute,
   ExploreIndexRoute: ExploreIndexRoute,
+  CaptureJoinTokenRoute: CaptureJoinTokenRoute,
   ApiPublicRedsysChargeRecurringRoute: ApiPublicRedsysChargeRecurringRoute,
   ApiPublicRedsysNotificationRoute: ApiPublicRedsysNotificationRoute,
 }

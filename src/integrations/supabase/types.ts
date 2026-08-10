@@ -127,6 +127,66 @@ export type Database = {
           },
         ]
       }
+      capture_invitations: {
+        Row: {
+          capture_session_id: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          max_uses: number | null
+          note: string | null
+          owner_id: string
+          participant_id: string | null
+          revoked_at: string | null
+          token: string
+          updated_at: string
+          uses_count: number
+        }
+        Insert: {
+          capture_session_id: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          note?: string | null
+          owner_id: string
+          participant_id?: string | null
+          revoked_at?: string | null
+          token: string
+          updated_at?: string
+          uses_count?: number
+        }
+        Update: {
+          capture_session_id?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          note?: string | null
+          owner_id?: string
+          participant_id?: string | null
+          revoked_at?: string | null
+          token?: string
+          updated_at?: string
+          uses_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capture_invitations_capture_session_id_fkey"
+            columns: ["capture_session_id"]
+            isOneToOne: false
+            referencedRelation: "capture_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capture_invitations_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "capture_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       capture_participants: {
         Row: {
           capture_session_id: string
@@ -135,12 +195,14 @@ export type Database = {
           id: string
           identifier: string | null
           is_late: boolean
+          joined_at: string | null
           joined_at_sec: number | null
           name: string
           owner_id: string
           photo_path: string | null
           role: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           capture_session_id: string
@@ -149,12 +211,14 @@ export type Database = {
           id?: string
           identifier?: string | null
           is_late?: boolean
+          joined_at?: string | null
           joined_at_sec?: number | null
           name: string
           owner_id: string
           photo_path?: string | null
           role?: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           capture_session_id?: string
@@ -163,12 +227,14 @@ export type Database = {
           id?: string
           identifier?: string | null
           is_late?: boolean
+          joined_at?: string | null
           joined_at_sec?: number | null
           name?: string
           owner_id?: string
           photo_path?: string | null
           role?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {

@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { registerRecording } from "@/lib/capture.functions";
+import {
+  createParticipantUploadTicket,
+  registerParticipantRecording,
+} from "@/lib/capture-invitations.functions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +37,8 @@ interface Props {
   participantId?: string | null;
   participantName?: string | null;
   recordScreen: boolean;
+  /** Token de invitación: activa el modo participante invitado (sube al espacio del anfitrión). */
+  inviteToken?: string | null;
   /** Milisegundos transcurridos del juego al iniciar (sincronización con el vídeo). */
   getGameOffsetMs?: () => number;
   onUploaded?: () => void;
@@ -43,10 +49,13 @@ export function CaptureRecorder({
   participantId = null,
   participantName,
   recordScreen,
+  inviteToken = null,
   getGameOffsetMs,
   onUploaded,
 }: Props) {
   const register = useServerFn(registerRecording);
+  const createTicket = useServerFn(createParticipantUploadTicket);
+  const registerInvited = useServerFn(registerParticipantRecording);
   const videoRef = useRef<HTMLVideoElement>(null);
   const camRecorder = useRef<MediaRecorder | null>(null);
   const screenRecorder = useRef<MediaRecorder | null>(null);
@@ -120,6 +129,31 @@ export function CaptureRecorder({
   }, []);
 
   async function upload(blob: Blob, kind: "camera" | "screen", durationSec: number) {
+    const ext0 = blob.type.includes("mp4") ? "mp4" : "webm";
+
+    // Modo invitado: subida con URL firmada al espacio del anfitrión.
+    if (inviteToken) {
+      const ticket = await createTicket({ data: { token: inviteToken, kind, ext: ext0 } });
+      const { error } = await supabase.storage
+        .from("recordings")
+        .uploadToSignedUrl(ticket.path, ticket.uploadToken, blob, {
+          contentType: blob.type || "video/webm",
+        });
+      if (error) throw new Error(error.message);
+      await registerInvited({
+        data: {
+          token: inviteToken,
+          kind,
+          storagePath: ticket.path,
+          mimeType: blob.type || "video/webm",
+          sizeBytes: blob.size,
+          durationSec,
+          syncOffsetMs: Math.round(offsetMs.current),
+        },
+      });
+      return;
+    }
+
     const { data: auth } = await supabase.auth.getUser();
     const uid = auth.user?.id;
     if (!uid) throw new Error("Sesión caducada");
