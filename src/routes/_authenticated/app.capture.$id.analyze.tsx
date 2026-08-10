@@ -31,6 +31,7 @@ import {
   Users,
   MessageSquare,
   Info,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
