@@ -15,7 +15,9 @@ import {
   PARTICIPANT_ROLE_LABELS,
   type ParticipantRole,
 } from "@/lib/capture.functions";
+import { listPracticeAreas } from "@/lib/areas.functions";
 import { CaptureRecorder } from "@/components/CaptureRecorder";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
