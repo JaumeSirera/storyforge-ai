@@ -11,6 +11,8 @@ import {
 import { CaptureRecorder } from "@/components/CaptureRecorder";
 import { MultiCamMosaic } from "@/components/MultiCamMosaic";
 import { CaptureConsentGate, type ConsentScopes } from "@/components/CaptureConsentGate";
+import { MediaDeviceSelector, type MediaDeviceSelection } from "@/components/MediaDeviceSelector";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +54,7 @@ function JoinCapturePage() {
   const [busy, setBusy] = useState(false);
   const [participantId, setParticipantId] = useState<string | null>(null);
   const [mediaScopes, setMediaScopes] = useState<ConsentScopes | null>(null);
+  const [mediaSelection, setMediaSelection] = useState<MediaDeviceSelection | null>(null);
 
   const inv = useQuery({
     queryKey: ["capture-invite", token],
@@ -64,7 +67,8 @@ function JoinCapturePage() {
       const { data } = await supabase.auth.getUser();
       const u = data.user;
       setAuthed(!!u);
-      if (u) setName((p) => p || (u.user_metadata?.full_name as string | undefined) || u.email || "");
+      if (u)
+        setName((p) => p || (u.user_metadata?.full_name as string | undefined) || u.email || "");
     })();
   }, []);
 
@@ -166,8 +170,8 @@ function JoinCapturePage() {
           <CardHeader>
             <CardTitle className="text-base">Inicia sesión para continuar</CardTitle>
             <CardDescription>
-              Esta sesión de grabación requiere una cuenta para identificar tu vídeo y tu progreso en
-              la simulación.
+              Esta sesión de grabación requiere una cuenta para identificar tu vídeo y tu progreso
+              en la simulación.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -198,12 +202,14 @@ function JoinCapturePage() {
             </label>
             <label className="flex items-start gap-2 text-sm">
               <Checkbox checked={faceConsent} onCheckedChange={(v) => setFaceConsent(v === true)} />
-              <span>
-                Acepto además el análisis de expresiones faciales y emociones (opcional).
-              </span>
+              <span>Acepto además el análisis de expresiones faciales y emociones (opcional).</span>
             </label>
             <Button onClick={onJoin} disabled={busy} className="gap-2">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+              {busy ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ShieldCheck className="h-4 w-4" />
+              )}
               Unirme a la sesión
             </Button>
           </CardContent>
@@ -223,11 +229,7 @@ function JoinCapturePage() {
               </CardHeader>
               <CardContent>
                 <Button asChild variant="secondary" className="gap-2">
-                  <a
-                    href={`/app/play/${session.simulationId}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
+                  <a href={`/app/play/${session.simulationId}`} target="_blank" rel="noreferrer">
                     <Gamepad2 className="h-4 w-4" /> Abrir simulación en otra pestaña
                   </a>
                 </Button>
@@ -246,6 +248,11 @@ function JoinCapturePage() {
               storageKey={`pn-consent-${session.id}`}
               onGranted={setMediaScopes}
             />
+          ) : !mediaSelection ? (
+            <MediaDeviceSelector
+              storageKey={`pn-devices-${session.id}-${participantId ?? "guest"}`}
+              onSelected={setMediaSelection}
+            />
           ) : (
             <>
               <CaptureRecorder
@@ -254,6 +261,7 @@ function JoinCapturePage() {
                 participantName={name}
                 recordScreen={session.recordScreen && mediaScopes.screen}
                 inviteToken={token}
+                mediaSelection={mediaSelection}
               />
 
               {(session.mode === "group" || session.captureMode === "per_participant") && (
