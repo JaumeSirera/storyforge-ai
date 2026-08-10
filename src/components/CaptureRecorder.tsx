@@ -387,8 +387,8 @@ export function CaptureRecorder({
             </div>
           )}
         </div>
-        <div className="flex gap-2">
-          {state !== "recording" ? (
+        <div className="flex flex-wrap gap-2">
+          {state === "idle" || state === "uploading" ? (
             <Button onClick={start} disabled={state === "uploading"} className="gap-2">
               {state === "uploading" ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -398,11 +398,23 @@ export function CaptureRecorder({
               {state === "uploading" ? "Guardando…" : "Iniciar grabación"}
             </Button>
           ) : (
-            <Button onClick={stop} variant="destructive" className="gap-2">
-              <Square className="h-4 w-4" /> Detener y guardar
-            </Button>
+            <>
+              {state === "recording" ? (
+                <Button onClick={pause} variant="secondary" className="gap-2">
+                  <Pause className="h-4 w-4" /> Pausar
+                </Button>
+              ) : (
+                <Button onClick={resume} variant="secondary" className="gap-2">
+                  <Play className="h-4 w-4" /> Reanudar
+                </Button>
+              )}
+              <Button onClick={stop} variant="destructive" className="gap-2">
+                <Square className="h-4 w-4" /> Detener y guardar
+              </Button>
+            </>
           )}
         </div>
+
 
         <p className="text-xs text-muted-foreground">
           La grabación se guarda cifrada en tu almacenamiento privado y se elimina automáticamente al
