@@ -81,6 +81,8 @@ function CaptureSessionPage() {
   const delRec = useServerFn(deleteRecording);
   const recUrl = useServerFn(getRecordingUrl);
   const consent = useServerFn(recordConsent);
+  const listAreas = useServerFn(listPracticeAreas);
+
 
   const q = useQuery({ queryKey: ["capture-session", id], queryFn: () => get({ data: { id } }) });
   const areasQ = useQuery({ queryKey: ["practice-areas"], queryFn: () => listAreas() });
