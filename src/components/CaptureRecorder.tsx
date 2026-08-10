@@ -42,6 +42,8 @@ interface Props {
   inviteToken?: string | null;
   /** Milisegundos transcurridos del juego al iniciar (sincronización con el vídeo). */
   getGameOffsetMs?: () => number;
+  /** Obedecer las órdenes de inicio/pausa/parada del anfitrión (por defecto sí). */
+  followHost?: boolean;
   onUploaded?: () => void;
 }
 
@@ -52,6 +54,7 @@ export function CaptureRecorder({
   recordScreen,
   inviteToken = null,
   getGameOffsetMs,
+  followHost = true,
   onUploaded,
 }: Props) {
   const register = useServerFn(registerRecording);
@@ -64,12 +67,16 @@ export function CaptureRecorder({
   const screenChunks = useRef<Blob[]>([]);
   const streams = useRef<MediaStream[]>([]);
   const startedAt = useRef<number>(0);
+  const pausedMs = useRef<number>(0);
+  const pausedAt = useRef<number>(0);
   const offsetMs = useRef<number>(0);
 
-  const [state, setState] = useState<"idle" | "recording" | "uploading">("idle");
+  const [state, setState] = useState<"idle" | "recording" | "paused" | "uploading">("idle");
   const [elapsed, setElapsed] = useState(0);
   const [previewOn, setPreviewOn] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [hostSynced, setHostSynced] = useState(false);
+
 
   async function attachStream(stream: MediaStream) {
     const el = videoRef.current;
