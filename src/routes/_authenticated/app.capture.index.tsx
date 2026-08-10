@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, Trash2, Video, Users, ShieldCheck, BarChart3 } from "lucide-react";
+import { Loader2, Plus, Trash2, Video, Users, ShieldCheck, BarChart3, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/capture/")({
@@ -227,6 +227,11 @@ function CaptureIndex() {
                     <Button asChild size="sm" variant="secondary" className="gap-2">
                       <Link to="/app/capture/$id/analyze" params={{ id: s.id }}>
                         <BarChart3 className="h-3.5 w-3.5" /> Analyze
+                      </Link>
+                    </Button>
+                    <Button asChild size="sm" className="gap-2">
+                      <Link to="/app/capture/$id/insights" params={{ id: s.id }}>
+                        <Sparkles className="h-3.5 w-3.5" /> Insights
                       </Link>
                     </Button>
                   </div>

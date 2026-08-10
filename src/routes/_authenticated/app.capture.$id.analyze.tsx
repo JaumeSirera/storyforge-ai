@@ -31,6 +31,7 @@ import {
   Users,
   MessageSquare,
   Info,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -132,7 +133,12 @@ function AnalyzePage() {
             grabación.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm" className="gap-2">
+            <Link to="/app/capture/$id/insights" params={{ id }}>
+              <Sparkles className="h-4 w-4" /> Insights
+            </Link>
+          </Button>
           <Button
             variant="outline"
             size="sm"
