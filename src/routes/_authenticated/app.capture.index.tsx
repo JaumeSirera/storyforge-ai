@@ -229,6 +229,11 @@ function CaptureIndex() {
                         <BarChart3 className="h-3.5 w-3.5" /> Analyze
                       </Link>
                     </Button>
+                    <Button asChild size="sm" className="gap-2">
+                      <Link to="/app/capture/$id/insights" params={{ id: s.id }}>
+                        <Sparkles className="h-3.5 w-3.5" /> Insights
+                      </Link>
+                    </Button>
                   </div>
                 </div>
 
