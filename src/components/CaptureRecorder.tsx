@@ -344,13 +344,22 @@ export function CaptureRecorder({
                   <MonitorUp className="h-3 w-3" /> Pantalla
                 </span>
               )}
+              {followHost && hostSynced && (
+                <span className="inline-flex items-center gap-1">
+                  <Radio className="h-3 w-3" /> Sincronizado con el anfitrión
+                </span>
+              )}
             </CardDescription>
           </div>
-          {state === "recording" && (
-            <Badge variant="destructive" className="gap-1">
-              <Circle className="h-2.5 w-2.5 fill-current animate-pulse" /> {fmt(elapsed)}
+          {(state === "recording" || state === "paused") && (
+            <Badge variant={state === "paused" ? "secondary" : "destructive"} className="gap-1">
+              <Circle
+                className={`h-2.5 w-2.5 fill-current ${state === "recording" ? "animate-pulse" : ""}`}
+              />
+              {state === "paused" ? `En pausa · ${fmt(elapsed)}` : fmt(elapsed)}
             </Badge>
           )}
+
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
