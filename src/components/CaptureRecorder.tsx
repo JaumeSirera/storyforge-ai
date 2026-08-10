@@ -256,10 +256,26 @@ export function CaptureRecorder({
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="relative overflow-hidden rounded-lg bg-muted aspect-video">
-          <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
-          {state === "idle" && (
-            <div className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">
-              Vista previa de la cámara
+          <video
+            ref={videoRef}
+            playsInline
+            autoPlay
+            muted
+            className="h-full w-full object-cover"
+          />
+          {!previewOn && (
+            <div className="absolute inset-0 grid place-items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex flex-col items-center gap-2 text-center px-4">
+                <Video className="h-6 w-6" />
+                <span>Vista previa de la cámara desactivada</span>
+                <Button size="sm" variant="secondary" onClick={startPreview} disabled={previewLoading}>
+                  {previewLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Activar cámara"
+                  )}
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -279,6 +295,7 @@ export function CaptureRecorder({
             </Button>
           )}
         </div>
+
         <p className="text-xs text-muted-foreground">
           La grabación se guarda cifrada en tu almacenamiento privado y se elimina automáticamente al
           cumplirse el plazo de conservación de la sesión.
