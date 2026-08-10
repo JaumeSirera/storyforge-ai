@@ -14,6 +14,7 @@ import {
   PARTICIPANT_ROLES,
   PARTICIPANT_ROLE_LABELS,
   type ParticipantRole,
+  saveCapturePreferences,
 } from "@/lib/capture.functions";
 import { listPracticeAreas } from "@/lib/areas.functions";
 import { CaptureRecorder } from "@/components/CaptureRecorder";
