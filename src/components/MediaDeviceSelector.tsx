@@ -81,7 +81,6 @@ export function MediaDeviceSelector({
         toast.error(e?.message || "No se pudieron listar los dispositivos");
       }
     } finally {
-
       setLoading(false);
     }
   }
