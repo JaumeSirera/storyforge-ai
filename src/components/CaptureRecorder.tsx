@@ -126,7 +126,10 @@ export function CaptureRecorder({
 
   useEffect(() => {
     if (state !== "recording") return;
-    const t = setInterval(() => setElapsed((Date.now() - startedAt.current) / 1000), 500);
+    const t = setInterval(
+      () => setElapsed((Date.now() - startedAt.current - pausedMs.current) / 1000),
+      500,
+    );
     return () => clearInterval(t);
   }, [state]);
 
@@ -135,6 +138,33 @@ export function CaptureRecorder({
       streams.current.forEach((s) => s.getTracks().forEach((t) => t.stop()));
     };
   }, []);
+
+  // Órdenes del anfitrión: inicio, pausa, reanudación y parada sincronizadas.
+  const actions = useRef({ start, pause, resume, stop });
+  actions.current = { start, pause, resume, stop };
+
+  useEffect(() => {
+    if (!followHost) return;
+    const channel = joinCaptureControlChannel(captureSessionId, (msg) => {
+      const a = actions.current;
+      if (msg.action === "start") {
+        toast.info("El anfitrión ha iniciado la grabación");
+        void a.start();
+      } else if (msg.action === "pause") {
+        a.pause();
+      } else if (msg.action === "resume") {
+        a.resume();
+      } else if (msg.action === "stop") {
+        void a.stop();
+      }
+    });
+    setHostSynced(true);
+    return () => {
+      setHostSynced(false);
+      void channel.unsubscribe();
+    };
+  }, [captureSessionId, followHost]);
+
 
   async function upload(blob: Blob, kind: "camera" | "screen", durationSec: number) {
     const ext0 = blob.type.includes("mp4") ? "mp4" : "webm";
