@@ -189,7 +189,136 @@ function CaptureSessionPage() {
         </Button>
       </div>
 
+      {/* Configuración de la sesión */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Settings2 className="h-4 w-4" /> Configuración de la sesión
+          </CardTitle>
+          <CardDescription>
+            Ajusta el tipo de sesión y la captura antes de empezar a grabar.
+            {recordings.length > 0
+              ? " Ya hay grabaciones: los cambios no afectan a las pistas existentes."
+              : ""}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="s-title">Título</Label>
+              <Input
+                id="s-title"
+                value={title ?? session.title}
+                maxLength={200}
+                onChange={(e) => setTitle(e.target.value)}
+                onBlur={() => {
+                  const v = (title ?? session.title).trim();
+                  if (v.length >= 2 && v !== session.title) patch({ title: v });
+                }}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Área de aplicación</Label>
+              <Select
+                value={session.areaKey ?? "none"}
+                onValueChange={(v) => patch({ areaKey: v === "none" ? null : v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sin área" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin área</SelectItem>
+                  {(areasQ.data ?? []).map((a) => (
+                    <SelectItem key={a.key} value={a.key}>
+                      {a.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Tipo de sesión</Label>
+              <Select value={session.mode} onValueChange={(v) => patch({ mode: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="individual">Individual</SelectItem>
+                  <SelectItem value="group">Grupal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Modo de captura</Label>
+              <Select value={session.captureMode} onValueChange={(v) => patch({ captureMode: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="single_device">Un solo dispositivo</SelectItem>
+                  <SelectItem value="per_participant">Un dispositivo por participante</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Con un dispositivo por participante se crea una grabadora por persona.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Retención</Label>
+              <Select
+                value={String(session.retentionDays)}
+                onValueChange={(v) => patch({ retentionDays: Number(v) })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[7, 15, 30, 60, 90, 180, 365].map((d) => (
+                    <SelectItem key={d} value={String(d)}>
+                      {d} días
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Borrado automático el{" "}
+                {new Date(session.deleteAfter).toLocaleDateString("es-ES")}.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Estado</Label>
+              <Select value={session.status} onValueChange={(v) => patch({ status: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Borrador</SelectItem>
+                  <SelectItem value="ready">Preparada</SelectItem>
+                  <SelectItem value="recording">Grabando</SelectItem>
+                  <SelectItem value="recorded">Grabada</SelectItem>
+                  <SelectItem value="analyzing">Analizando</SelectItem>
+                  <SelectItem value="done">Finalizada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+            <div>
+              <p className="text-sm font-medium">Grabar también la pantalla</p>
+              <p className="text-xs text-muted-foreground">
+                Añade una pista de pantalla sincronizada con la cámara.
+              </p>
+            </div>
+            <Switch
+              checked={session.recordScreen}
+              onCheckedChange={(v) => patch({ recordScreen: v })}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Consentimiento */}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
