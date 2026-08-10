@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   listCaptureSessions,
   createCaptureSession,
   deleteCaptureSession,
+  getCapturePreferences,
+  saveCapturePreferences,
 } from "@/lib/capture.functions";
 import { listPracticeAreas } from "@/lib/areas.functions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +53,8 @@ function CaptureIndex() {
   const create = useServerFn(createCaptureSession);
   const del = useServerFn(deleteCaptureSession);
   const areasFn = useServerFn(listPracticeAreas);
+  const getPrefs = useServerFn(getCapturePreferences);
+  const savePrefs = useServerFn(saveCapturePreferences);
 
   const sessions = useQuery({ queryKey: ["capture-sessions"], queryFn: () => list() });
   const areas = useQuery({ queryKey: ["practice-areas"], queryFn: () => areasFn() });
@@ -62,6 +66,20 @@ function CaptureIndex() {
     "single_device",
   );
   const [recordScreen, setRecordScreen] = useState(false);
+  const [retentionDays, setRetentionDays] = useState(30);
+
+  const prefs = useQuery({ queryKey: ["capture-preferences"], queryFn: () => getPrefs() });
+  const prefsApplied = useRef(false);
+  useEffect(() => {
+    if (prefsApplied.current || !prefs.data) return;
+    prefsApplied.current = true;
+    const p = prefs.data;
+    setAreaKey(p.areaKey ?? "");
+    setMode(p.mode === "group" ? "group" : "individual");
+    setCaptureMode(p.captureMode === "per_participant" ? "per_participant" : "single_device");
+    setRecordScreen(p.recordScreen);
+    setRetentionDays(p.retentionDays);
+  }, [prefs.data]);
 
   const createMut = useMutation({
     mutationFn: async () => {
@@ -73,11 +91,14 @@ function CaptureIndex() {
           mode,
           captureMode,
           recordScreen,
-          retentionDays: 30,
+          retentionDays,
         },
       });
     },
     onSuccess: () => {
+      void savePrefs({
+        data: { areaKey: areaKey || null, mode, captureMode, recordScreen, retentionDays },
+      }).then(() => qc.invalidateQueries({ queryKey: ["capture-preferences"] }));
       setTitle("");
       toast.success("Sesión creada");
       qc.invalidateQueries({ queryKey: ["capture-sessions"] });
@@ -100,6 +121,9 @@ function CaptureIndex() {
           <CardTitle className="text-base">Nueva sesión de grabación</CardTitle>
           <CardDescription>
             Define el tipo de sesión y cómo se graba. Podrás añadir participantes después.
+            {prefs.data
+              ? " Se han cargado tus ajustes guardados en tu cuenta."
+              : ""}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
