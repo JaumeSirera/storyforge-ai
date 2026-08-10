@@ -250,6 +250,11 @@ function JoinCapturePage() {
               storageKey={`pn-consent-${session.id}`}
               onGranted={setMediaScopes}
             />
+          ) : !mediaSelection ? (
+            <MediaDeviceSelector
+              storageKey={`pn-devices-${session.id}-${participantId ?? "guest"}`}
+              onSelected={setMediaSelection}
+            />
           ) : (
             <>
               <CaptureRecorder
@@ -258,6 +263,7 @@ function JoinCapturePage() {
                 participantName={name}
                 recordScreen={session.recordScreen && mediaScopes.screen}
                 inviteToken={token}
+                mediaSelection={mediaSelection}
               />
 
               {(session.mode === "group" || session.captureMode === "per_participant") && (
@@ -265,6 +271,7 @@ function JoinCapturePage() {
               )}
             </>
           )}
+
         </div>
       )}
     </div>
