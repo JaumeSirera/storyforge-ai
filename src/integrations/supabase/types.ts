@@ -80,35 +80,50 @@ export type Database = {
         Row: {
           capture_session_id: string
           consent_text: string | null
+          consent_version: string
           created_at: string
           granted: boolean
           granted_at: string | null
           id: string
           owner_id: string
           participant_id: string | null
+          recorded_at: string
           scope: string
+          source: string
+          user_agent: string | null
+          user_id: string | null
         }
         Insert: {
           capture_session_id: string
           consent_text?: string | null
+          consent_version?: string
           created_at?: string
           granted?: boolean
           granted_at?: string | null
           id?: string
           owner_id: string
           participant_id?: string | null
+          recorded_at?: string
           scope?: string
+          source?: string
+          user_agent?: string | null
+          user_id?: string | null
         }
         Update: {
           capture_session_id?: string
           consent_text?: string | null
+          consent_version?: string
           created_at?: string
           granted?: boolean
           granted_at?: string | null
           id?: string
           owner_id?: string
           participant_id?: string | null
+          recorded_at?: string
           scope?: string
+          source?: string
+          user_agent?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
