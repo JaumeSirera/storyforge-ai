@@ -588,7 +588,14 @@ function CaptureSessionPage() {
             Activa el consentimiento de grabación para habilitar la captura.
           </CardContent>
         </Card>
+      ) : !mediaSelection ? (
+        <MediaDeviceSelector
+          storageKey={`pn-devices-host-${id}`}
+          onSelected={setMediaSelection}
+          title="Dispositivos de captura del anfitrión"
+        />
       ) : session.captureMode === "per_participant" && participants.length > 0 ? (
+
         <div className="grid gap-4 md:grid-cols-2">
           {participants.map((p) => (
             <CaptureRecorder
