@@ -557,8 +557,12 @@ function CaptureSessionPage() {
         </CardContent>
       </Card>
 
+      {/* Auditoría de consentimientos */}
+      <CaptureConsentAudit captureSessionId={id} />
+
       {/* Invitaciones para que cada participante entre desde su dispositivo */}
       <CaptureInvitationsCard captureSessionId={id} participants={participants} />
+
 
       {/* Control sincronizado de la grabación en todos los dispositivos */}
       {consentsOk && (session.mode === "group" || session.captureMode === "per_participant") && (
