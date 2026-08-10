@@ -183,6 +183,16 @@ export const joinCaptureInvitation = createServerFn({ method: "POST" })
       participantId = created.id as string;
     }
 
+    const { CONSENT_VERSION } = await import("./consent-version");
+    const { getRequestHeader } = await import("@tanstack/react-start/server");
+    const joinNow = new Date().toISOString();
+    const joinAudit = {
+      consent_version: CONSENT_VERSION,
+      user_id: context.userId,
+      user_agent: getRequestHeader("user-agent") ?? null,
+      recorded_at: joinNow,
+      source: "join",
+    };
     await supabaseAdmin.from("capture_consents").insert([
       {
         capture_session_id: session.id,
@@ -191,7 +201,8 @@ export const joinCaptureInvitation = createServerFn({ method: "POST" })
         scope: "recording",
         granted: true,
         consent_text: session.consent_text ?? null,
-        granted_at: new Date().toISOString(),
+        granted_at: joinNow,
+        ...joinAudit,
       },
       ...(data.consentFaceAnalysis
         ? [
@@ -202,11 +213,13 @@ export const joinCaptureInvitation = createServerFn({ method: "POST" })
               scope: "face_analysis",
               granted: true,
               consent_text: session.consent_text ?? null,
-              granted_at: new Date().toISOString(),
+              granted_at: joinNow,
+              ...joinAudit,
             },
           ]
         : []),
     ] as any);
+
 
     await supabaseAdmin
       .from("capture_invitations" as any)
@@ -331,8 +344,11 @@ export const recordInvitedConsent = createServerFn({ method: "POST" })
     const { session } = await loadCaptureInvitation(data.token);
     const participant = await requireLinkedParticipant(session.id, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { getRequestHeader } = await import("@tanstack/react-start/server");
+    const { CONSENT_VERSION } = await import("./consent-version");
 
     const now = new Date().toISOString();
+    const userAgent = getRequestHeader("user-agent") ?? null;
     const scopes: Array<{ scope: string; granted: boolean }> = [
       { scope: "recording", granted: data.recording },
       { scope: "face_analysis", granted: data.faceAnalysis },
@@ -349,8 +365,14 @@ export const recordInvitedConsent = createServerFn({ method: "POST" })
         granted: s.granted,
         consent_text: session.consent_text ?? null,
         granted_at: s.granted ? now : null,
+        consent_version: CONSENT_VERSION,
+        user_id: context.userId,
+        user_agent: userAgent,
+        recorded_at: now,
+        source: "invitation",
       })) as any,
     );
     if (error) throw new Error(error.message);
-    return { ok: true, participantId: participant.id as string };
+    return { ok: true, participantId: participant.id as string, consentVersion: CONSENT_VERSION };
   });
+

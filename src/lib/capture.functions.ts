@@ -448,6 +448,9 @@ export const recordConsent = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    const { getRequestHeader } = await import("@tanstack/react-start/server");
+    const { CONSENT_VERSION } = await import("./consent-version");
+    const now = new Date().toISOString();
     const { error } = await context.supabase.from("capture_consents").insert({
       capture_session_id: data.captureSessionId,
       participant_id: data.participantId ?? null,
@@ -455,7 +458,12 @@ export const recordConsent = createServerFn({ method: "POST" })
       scope: data.scope,
       granted: data.granted,
       consent_text: data.consentText ?? null,
-      granted_at: data.granted ? new Date().toISOString() : null,
+      granted_at: data.granted ? now : null,
+      consent_version: CONSENT_VERSION,
+      user_id: context.userId,
+      user_agent: getRequestHeader("user-agent") ?? null,
+      recorded_at: now,
+      source: "host",
     });
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -473,6 +481,54 @@ export const listConsents = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
+
+/** Auditoría completa de consentimientos para el anfitrión de la sesión. */
+export const listConsentAudit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ captureSessionId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: sess, error: sErr } = await context.supabase
+      .from("capture_sessions")
+      .select("id")
+      .eq("id", data.captureSessionId)
+      .eq("owner_id", context.userId)
+      .maybeSingle();
+    if (sErr) throw new Error(sErr.message);
+    if (!sess) throw new Error("Sesión no encontrada");
+
+    const [{ data: rows, error }, { data: parts }] = await Promise.all([
+      context.supabase
+        .from("capture_consents")
+        .select(
+          "id, participant_id, scope, granted, granted_at, recorded_at, created_at, consent_version, consent_text, user_agent, source, user_id",
+        )
+        .eq("capture_session_id", data.captureSessionId)
+        .order("recorded_at", { ascending: false }),
+      context.supabase
+        .from("capture_participants")
+        .select("id, name, role")
+        .eq("capture_session_id", data.captureSessionId),
+    ]);
+    if (error) throw new Error(error.message);
+
+    const byId = new Map((parts ?? []).map((p: any) => [p.id as string, p]));
+    return (rows ?? []).map((r: any) => ({
+      id: r.id as string,
+      participantId: (r.participant_id ?? null) as string | null,
+      participantName: (byId.get(r.participant_id)?.name ?? null) as string | null,
+      participantRole: (byId.get(r.participant_id)?.role ?? null) as string | null,
+      scope: r.scope as string,
+      granted: Boolean(r.granted),
+      grantedAt: (r.granted_at ?? null) as string | null,
+      recordedAt: (r.recorded_at ?? r.created_at) as string,
+      consentVersion: (r.consent_version ?? "v1") as string,
+      consentText: (r.consent_text ?? null) as string | null,
+      userAgent: (r.user_agent ?? null) as string | null,
+      source: (r.source ?? "host") as string,
+      isSelf: r.user_id === context.userId,
+    }));
+  });
+
 
 /* ---- Preferencias de captura del usuario (se guardan en su cuenta) ---- */
 
