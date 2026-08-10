@@ -22,6 +22,8 @@ import { MultiCamMosaic } from "@/components/MultiCamMosaic";
 import { CaptureInvitationsCard } from "@/components/CaptureInvitationsCard";
 import { CaptureConsentAudit } from "@/components/CaptureConsentAudit";
 import { CaptureHostControls } from "@/components/CaptureHostControls";
+import { MediaDeviceSelector, type MediaDeviceSelection } from "@/components/MediaDeviceSelector";
+
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
