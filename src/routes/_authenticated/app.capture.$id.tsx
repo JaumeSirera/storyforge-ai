@@ -83,7 +83,7 @@ function CaptureSessionPage() {
   const consent = useServerFn(recordConsent);
 
   const q = useQuery({ queryKey: ["capture-session", id], queryFn: () => get({ data: { id } }) });
-  const areasQ = useQuery({ queryKey: ["practice-areas"], queryFn: () => listAreas({}) });
+  const areasQ = useQuery({ queryKey: ["practice-areas"], queryFn: () => listAreas() });
 
   const [title, setTitle] = useState<string | null>(null);
   const [pName, setPName] = useState("");
