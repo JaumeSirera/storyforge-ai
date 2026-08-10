@@ -217,6 +217,8 @@ export function CaptureRecorder({
 
       offsetMs.current = getGameOffsetMs?.() ?? 0;
       startedAt.current = Date.now();
+      pausedMs.current = 0;
+      pausedAt.current = 0;
       setElapsed(0);
       rec.start(2000);
       setState("recording");
