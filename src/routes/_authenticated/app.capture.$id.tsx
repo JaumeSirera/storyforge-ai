@@ -41,6 +41,8 @@ import {
   Loader2,
   UserPlus,
   BarChart3,
+  Settings2,
+
 } from "lucide-react";
 import { toast } from "sonner";
 
