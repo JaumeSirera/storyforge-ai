@@ -134,11 +134,17 @@ function AnalyzePage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm" variant="outline" className="gap-2">
+            <Link to="/app/capture/$id/scenes" params={{ id }}>
+              <Film className="h-4 w-4" /> Escenas
+            </Link>
+          </Button>
           <Button asChild size="sm" className="gap-2">
             <Link to="/app/capture/$id/insights" params={{ id }}>
               <Sparkles className="h-4 w-4" /> Insights
             </Link>
           </Button>
+
           <Button
             variant="outline"
             size="sm"

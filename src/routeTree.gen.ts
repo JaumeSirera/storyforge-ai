@@ -33,6 +33,7 @@ import { Route as ApiPublicRedsysChargeRecurringRouteImport } from './routes/api
 import { Route as ApiPublicRedsysNotificationRouteImport } from './routes/api/public/redsys/notification'
 import { Route as AuthenticatedAppCaptureIdAnalyzeRouteImport } from './routes/_authenticated/app.capture.$id.analyze'
 import { Route as AuthenticatedAppCaptureIdInsightsRouteImport } from './routes/_authenticated/app.capture.$id.insights'
+import { Route as AuthenticatedAppCaptureIdScenesRouteImport } from './routes/_authenticated/app.capture.$id.scenes'
 import { Route as AuthenticatedAppSimulationsIdIndexRouteImport } from './routes/_authenticated/app.simulations.$id.index'
 import { Route as AuthenticatedAppSimulationsIdEditRouteImport } from './routes/_authenticated/app.simulations.$id.edit'
 import { Route as AuthenticatedAppSimulationsIdReviewRouteImport } from './routes/_authenticated/app.simulations.$id.review'
@@ -170,6 +171,12 @@ const AuthenticatedAppCaptureIdInsightsRoute =
     path: '/insights',
     getParentRoute: () => AuthenticatedAppCaptureIdRoute,
   } as any)
+const AuthenticatedAppCaptureIdScenesRoute =
+  AuthenticatedAppCaptureIdScenesRouteImport.update({
+    id: '/scenes',
+    path: '/scenes',
+    getParentRoute: () => AuthenticatedAppCaptureIdRoute,
+  } as any)
 const AuthenticatedAppSimulationsIdIndexRoute =
   AuthenticatedAppSimulationsIdIndexRouteImport.update({
     id: '/app/simulations/$id/',
@@ -219,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/app/simulations/': typeof AuthenticatedAppSimulationsIndexRoute
   '/app/capture/$id/analyze': typeof AuthenticatedAppCaptureIdAnalyzeRoute
   '/app/capture/$id/insights': typeof AuthenticatedAppCaptureIdInsightsRoute
+  '/app/capture/$id/scenes': typeof AuthenticatedAppCaptureIdScenesRoute
   '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
   '/app/simulations/$id/sessions': typeof AuthenticatedAppSimulationsIdSessionsRoute
@@ -248,6 +256,7 @@ export interface FileRoutesByTo {
   '/app/simulations': typeof AuthenticatedAppSimulationsIndexRoute
   '/app/capture/$id/analyze': typeof AuthenticatedAppCaptureIdAnalyzeRoute
   '/app/capture/$id/insights': typeof AuthenticatedAppCaptureIdInsightsRoute
+  '/app/capture/$id/scenes': typeof AuthenticatedAppCaptureIdScenesRoute
   '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
   '/app/simulations/$id/sessions': typeof AuthenticatedAppSimulationsIdSessionsRoute
@@ -279,6 +288,7 @@ export interface FileRoutesById {
   '/_authenticated/app/simulations/': typeof AuthenticatedAppSimulationsIndexRoute
   '/_authenticated/app/capture/$id/analyze': typeof AuthenticatedAppCaptureIdAnalyzeRoute
   '/_authenticated/app/capture/$id/insights': typeof AuthenticatedAppCaptureIdInsightsRoute
+  '/_authenticated/app/capture/$id/scenes': typeof AuthenticatedAppCaptureIdScenesRoute
   '/_authenticated/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/_authenticated/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
   '/_authenticated/app/simulations/$id/sessions': typeof AuthenticatedAppSimulationsIdSessionsRoute
@@ -310,6 +320,7 @@ export interface FileRouteTypes {
     | '/app/simulations/'
     | '/app/capture/$id/analyze'
     | '/app/capture/$id/insights'
+    | '/app/capture/$id/scenes'
     | '/app/simulations/$id/edit'
     | '/app/simulations/$id/review'
     | '/app/simulations/$id/sessions'
@@ -339,6 +350,7 @@ export interface FileRouteTypes {
     | '/app/simulations'
     | '/app/capture/$id/analyze'
     | '/app/capture/$id/insights'
+    | '/app/capture/$id/scenes'
     | '/app/simulations/$id/edit'
     | '/app/simulations/$id/review'
     | '/app/simulations/$id/sessions'
@@ -369,6 +381,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/simulations/'
     | '/_authenticated/app/capture/$id/analyze'
     | '/_authenticated/app/capture/$id/insights'
+    | '/_authenticated/app/capture/$id/scenes'
     | '/_authenticated/app/simulations/$id/edit'
     | '/_authenticated/app/simulations/$id/review'
     | '/_authenticated/app/simulations/$id/sessions'
@@ -557,6 +570,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppCaptureIdInsightsRouteImport
       parentRoute: typeof AuthenticatedAppCaptureIdRoute
     }
+    '/_authenticated/app/capture/$id/scenes': {
+      id: '/_authenticated/app/capture/$id/scenes'
+      path: '/scenes'
+      fullPath: '/app/capture/$id/scenes'
+      preLoaderRoute: typeof AuthenticatedAppCaptureIdScenesRouteImport
+      parentRoute: typeof AuthenticatedAppCaptureIdRoute
+    }
     '/_authenticated/app/simulations/$id/': {
       id: '/_authenticated/app/simulations/$id/'
       path: '/app/simulations/$id'
@@ -608,6 +628,7 @@ const AuthenticatedAppAdminRouteWithChildren =
 interface AuthenticatedAppCaptureIdRouteChildren {
   AuthenticatedAppCaptureIdAnalyzeRoute: typeof AuthenticatedAppCaptureIdAnalyzeRoute
   AuthenticatedAppCaptureIdInsightsRoute: typeof AuthenticatedAppCaptureIdInsightsRoute
+  AuthenticatedAppCaptureIdScenesRoute: typeof AuthenticatedAppCaptureIdScenesRoute
 }
 
 const AuthenticatedAppCaptureIdRouteChildren: AuthenticatedAppCaptureIdRouteChildren =
@@ -616,6 +637,7 @@ const AuthenticatedAppCaptureIdRouteChildren: AuthenticatedAppCaptureIdRouteChil
       AuthenticatedAppCaptureIdAnalyzeRoute,
     AuthenticatedAppCaptureIdInsightsRoute:
       AuthenticatedAppCaptureIdInsightsRoute,
+    AuthenticatedAppCaptureIdScenesRoute: AuthenticatedAppCaptureIdScenesRoute,
   }
 
 const AuthenticatedAppCaptureIdRouteWithChildren =
