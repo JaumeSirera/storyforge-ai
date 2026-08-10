@@ -58,6 +58,54 @@ export function CaptureRecorder({
 
   const [state, setState] = useState<"idle" | "recording" | "uploading">("idle");
   const [elapsed, setElapsed] = useState(0);
+  const [previewOn, setPreviewOn] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  async function attachStream(stream: MediaStream) {
+    const el = videoRef.current;
+    if (!el) return;
+    el.srcObject = stream;
+    el.muted = true;
+    el.playsInline = true;
+    try {
+      await el.play();
+    } catch {
+      /* autoplay puede requerir gesto del usuario */
+    }
+  }
+
+  async function ensurePreview(): Promise<MediaStream> {
+    const existing = streams.current.find((s) => s.getVideoTracks().some((t) => t.readyState === "live"));
+    if (existing) {
+      await attachStream(existing);
+      setPreviewOn(true);
+      return existing;
+    }
+    const cam = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+      audio: { echoCancellation: true, noiseSuppression: true },
+    });
+    streams.current.push(cam);
+    await attachStream(cam);
+    setPreviewOn(true);
+    return cam;
+  }
+
+  async function startPreview() {
+    setPreviewLoading(true);
+    try {
+      await ensurePreview();
+    } catch (err: any) {
+      toast.error(
+        err?.name === "NotAllowedError"
+          ? "Necesitamos permiso de cámara y micrófono para ver la vista previa."
+          : err?.message || "No se pudo activar la cámara",
+      );
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
 
   useEffect(() => {
     if (state !== "recording") return;
