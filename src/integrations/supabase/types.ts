@@ -180,6 +180,39 @@ export type Database = {
           },
         ]
       }
+      capture_preferences: {
+        Row: {
+          area_key: string | null
+          capture_mode: string
+          created_at: string
+          mode: string
+          record_screen: boolean
+          retention_days: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          area_key?: string | null
+          capture_mode?: string
+          created_at?: string
+          mode?: string
+          record_screen?: boolean
+          retention_days?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          area_key?: string | null
+          capture_mode?: string
+          created_at?: string
+          mode?: string
+          record_screen?: boolean
+          retention_days?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       capture_recordings: {
         Row: {
           capture_session_id: string
