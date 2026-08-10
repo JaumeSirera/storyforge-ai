@@ -229,8 +229,31 @@ export function CaptureRecorder({
     }
   }
 
+  function pause() {
+    if (state !== "recording") return;
+    [camRecorder.current, screenRecorder.current].forEach((r) => {
+      if (r && r.state === "recording") r.pause();
+    });
+    pausedAt.current = Date.now();
+    setState("paused");
+  }
+
+  function resume() {
+    if (state !== "paused") return;
+    if (pausedAt.current) pausedMs.current += Date.now() - pausedAt.current;
+    pausedAt.current = 0;
+    [camRecorder.current, screenRecorder.current].forEach((r) => {
+      if (r && r.state === "paused") r.resume();
+    });
+    setState("recording");
+  }
+
   async function stop() {
-    const duration = (Date.now() - startedAt.current) / 1000;
+    if (state === "paused" && pausedAt.current) {
+      pausedMs.current += Date.now() - pausedAt.current;
+      pausedAt.current = 0;
+    }
+    const duration = (Date.now() - startedAt.current - pausedMs.current) / 1000;
     setState("uploading");
     try {
       const waitFor = (rec: MediaRecorder | null) =>
