@@ -24,7 +24,6 @@ import { CaptureConsentAudit } from "@/components/CaptureConsentAudit";
 import { CaptureHostControls } from "@/components/CaptureHostControls";
 import { MediaDeviceSelector, type MediaDeviceSelection } from "@/components/MediaDeviceSelector";
 
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,7 +50,6 @@ import {
   UserPlus,
   BarChart3,
   Settings2,
-
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -67,7 +65,8 @@ export const Route = createFileRoute("/_authenticated/app/capture/$id")({
       { property: "og:title", content: "Sesión de grabación — Capture | Playnalyze" },
       {
         property: "og:description",
-        content: "Prepara la sesión: participantes, roles y consentimiento, y graba con sincronización.",
+        content:
+          "Prepara la sesión: participantes, roles y consentimiento, y graba con sincronización.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -90,7 +89,6 @@ function CaptureSessionPage() {
   const consent = useServerFn(recordConsent);
   const listAreas = useServerFn(listPracticeAreas);
   const savePrefs = useServerFn(saveCapturePreferences);
-
 
   const q = useQuery({ queryKey: ["capture-session", id], queryFn: () => get({ data: { id } }) });
   const areasQ = useQuery({ queryKey: ["practice-areas"], queryFn: () => listAreas() });
@@ -322,8 +320,7 @@ function CaptureSessionPage() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Borrado automático el{" "}
-                {new Date(session.deleteAfter).toLocaleDateString("es-ES")}.
+                Borrado automático el {new Date(session.deleteAfter).toLocaleDateString("es-ES")}.
               </p>
             </div>
             <div className="space-y-1.5">
@@ -568,18 +565,15 @@ function CaptureSessionPage() {
       {/* Invitaciones para que cada participante entre desde su dispositivo */}
       <CaptureInvitationsCard captureSessionId={id} participants={participants} />
 
-
       {/* Control sincronizado de la grabación en todos los dispositivos */}
       {consentsOk && (session.mode === "group" || session.captureMode === "per_participant") && (
         <CaptureHostControls captureSessionId={id} />
       )}
 
-
       {/* Mosaico multicámara en directo */}
       {consentsOk && (session.mode === "group" || session.captureMode === "per_participant") && (
         <MultiCamMosaic captureSessionId={id} displayName={myName} />
       )}
-
 
       {/* Grabación */}
       {!consentsOk ? (
@@ -595,7 +589,6 @@ function CaptureSessionPage() {
           title="Dispositivos de captura del anfitrión"
         />
       ) : session.captureMode === "per_participant" && participants.length > 0 ? (
-
         <div className="grid gap-4 md:grid-cols-2">
           {participants.map((p) => (
             <CaptureRecorder
@@ -623,7 +616,6 @@ function CaptureSessionPage() {
           }}
         />
       )}
-
 
       {/* Grabaciones */}
       <Card>
