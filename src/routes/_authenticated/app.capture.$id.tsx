@@ -83,6 +83,7 @@ function CaptureSessionPage() {
   const recUrl = useServerFn(getRecordingUrl);
   const consent = useServerFn(recordConsent);
   const listAreas = useServerFn(listPracticeAreas);
+  const savePrefs = useServerFn(saveCapturePreferences);
 
 
   const q = useQuery({ queryKey: ["capture-session", id], queryFn: () => get({ data: { id } }) });
