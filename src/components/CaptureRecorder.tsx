@@ -58,6 +58,54 @@ export function CaptureRecorder({
 
   const [state, setState] = useState<"idle" | "recording" | "uploading">("idle");
   const [elapsed, setElapsed] = useState(0);
+  const [previewOn, setPreviewOn] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  async function attachStream(stream: MediaStream) {
+    const el = videoRef.current;
+    if (!el) return;
+    el.srcObject = stream;
+    el.muted = true;
+    el.playsInline = true;
+    try {
+      await el.play();
+    } catch {
+      /* autoplay puede requerir gesto del usuario */
+    }
+  }
+
+  async function ensurePreview(): Promise<MediaStream> {
+    const existing = streams.current.find((s) => s.getVideoTracks().some((t) => t.readyState === "live"));
+    if (existing) {
+      await attachStream(existing);
+      setPreviewOn(true);
+      return existing;
+    }
+    const cam = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+      audio: { echoCancellation: true, noiseSuppression: true },
+    });
+    streams.current.push(cam);
+    await attachStream(cam);
+    setPreviewOn(true);
+    return cam;
+  }
+
+  async function startPreview() {
+    setPreviewLoading(true);
+    try {
+      await ensurePreview();
+    } catch (err: any) {
+      toast.error(
+        err?.name === "NotAllowedError"
+          ? "Necesitamos permiso de cámara y micrófono para ver la vista previa."
+          : err?.message || "No se pudo activar la cámara",
+      );
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
 
   useEffect(() => {
     if (state !== "recording") return;
@@ -98,16 +146,8 @@ export function CaptureRecorder({
 
   async function start() {
     try {
-      const cam = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-        audio: { echoCancellation: true, noiseSuppression: true },
-      });
-      streams.current.push(cam);
-      if (videoRef.current) {
-        videoRef.current.srcObject = cam;
-        videoRef.current.muted = true;
-        await videoRef.current.play().catch(() => {});
-      }
+      const cam = await ensurePreview();
+
 
       const mime = pickMime();
       camChunks.current = [];
@@ -162,6 +202,8 @@ export function CaptureRecorder({
       streams.current.forEach((s) => s.getTracks().forEach((t) => t.stop()));
       streams.current = [];
       if (videoRef.current) videoRef.current.srcObject = null;
+      setPreviewOn(false);
+
 
       const camBlob = new Blob(camChunks.current, { type: camChunks.current[0]?.type || "video/webm" });
       if (camBlob.size < 2048) throw new Error("La grabación quedó vacía; inténtalo de nuevo.");
@@ -216,10 +258,26 @@ export function CaptureRecorder({
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="relative overflow-hidden rounded-lg bg-muted aspect-video">
-          <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
-          {state === "idle" && (
-            <div className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">
-              Vista previa de la cámara
+          <video
+            ref={videoRef}
+            playsInline
+            autoPlay
+            muted
+            className="h-full w-full object-cover"
+          />
+          {!previewOn && (
+            <div className="absolute inset-0 grid place-items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex flex-col items-center gap-2 text-center px-4">
+                <Video className="h-6 w-6" />
+                <span>Vista previa de la cámara desactivada</span>
+                <Button size="sm" variant="secondary" onClick={startPreview} disabled={previewLoading}>
+                  {previewLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Activar cámara"
+                  )}
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -239,6 +297,7 @@ export function CaptureRecorder({
             </Button>
           )}
         </div>
+
         <p className="text-xs text-muted-foreground">
           La grabación se guarda cifrada en tu almacenamiento privado y se elimina automáticamente al
           cumplirse el plazo de conservación de la sesión.
