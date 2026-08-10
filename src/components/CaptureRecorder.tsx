@@ -6,10 +6,11 @@ import {
   createParticipantUploadTicket,
   registerParticipantRecording,
 } from "@/lib/capture-invitations.functions";
+import { joinCaptureControlChannel } from "@/lib/capture-control";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Circle, Square, Loader2, Video, MonitorUp, Mic } from "lucide-react";
+import { Circle, Square, Loader2, Video, MonitorUp, Mic, Pause, Play, Radio } from "lucide-react";
 import { toast } from "sonner";
 
 function fmt(sec: number) {
