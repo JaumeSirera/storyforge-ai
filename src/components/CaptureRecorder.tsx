@@ -347,11 +347,22 @@ export function CaptureRecorder({
     }
   }
 
+  if (!mediaSelection) {
+    return (
+      <MediaDeviceSelector
+        storageKey={effectiveStorageKey}
+        onSelected={setMediaSelection}
+        title={participantName ? `Dispositivos de ${participantName}` : "Elige dispositivos de captura"}
+      />
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div>
+
             <CardTitle className="text-base flex items-center gap-2">
               <Video className="h-4 w-4" />
               {participantName ? `Grabación de ${participantName}` : "Grabación de la sesión"}
