@@ -604,6 +604,7 @@ function CaptureSessionPage() {
               participantId={p.id}
               participantName={p.name}
               recordScreen={session.recordScreen}
+              mediaSelection={mediaSelection}
               onUploaded={() => {
                 qc.invalidateQueries({ queryKey: ["capture-session", id] });
                 patch({ status: "recorded", endedAt: new Date().toISOString() });
@@ -615,12 +616,14 @@ function CaptureSessionPage() {
         <CaptureRecorder
           captureSessionId={id}
           recordScreen={session.recordScreen}
+          mediaSelection={mediaSelection}
           onUploaded={() => {
             qc.invalidateQueries({ queryKey: ["capture-session", id] });
             patch({ status: "recorded", endedAt: new Date().toISOString() });
           }}
         />
       )}
+
 
       {/* Grabaciones */}
       <Card>
