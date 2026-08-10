@@ -73,13 +73,15 @@ export function MediaDeviceSelector({
       if (defaultVideo) {
         onSelected({ videoDeviceId: defaultVideo, audioDeviceId: defaultAudio });
       }
-    } catch (err: any) {
-      if (err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError") {
+    } catch (err) {
+      const e = err as Error | undefined;
+      if (e?.name === "NotAllowedError" || e?.name === "PermissionDeniedError") {
         setPermissionDenied(true);
       } else {
-        toast.error(err?.message || "No se pudieron listar los dispositivos");
+        toast.error(e?.message || "No se pudieron listar los dispositivos");
       }
     } finally {
+
       setLoading(false);
     }
   }
