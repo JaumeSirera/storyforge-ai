@@ -555,10 +555,14 @@ function CaptureSessionPage() {
         </CardContent>
       </Card>
 
+      {/* Invitaciones para que cada participante entre desde su dispositivo */}
+      <CaptureInvitationsCard captureSessionId={id} participants={participants} />
+
       {/* Mosaico multicámara en directo */}
       {consentsOk && (session.mode === "group" || session.captureMode === "per_participant") && (
         <MultiCamMosaic captureSessionId={id} displayName={myName} />
       )}
+
 
       {/* Grabación */}
       {!consentsOk ? (
