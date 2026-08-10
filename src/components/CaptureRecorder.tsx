@@ -63,6 +63,8 @@ export function CaptureRecorder({
   getGameOffsetMs,
   followHost = true,
   onUploaded,
+  mediaSelection: externalMediaSelection,
+  deviceStorageKey,
 }: Props) {
   const register = useServerFn(registerRecording);
   const createTicket = useServerFn(createParticipantUploadTicket);
@@ -83,9 +85,14 @@ export function CaptureRecorder({
   const [previewOn, setPreviewOn] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [hostSynced, setHostSynced] = useState(false);
+  const [mediaSelection, setMediaSelection] = useState<MediaDeviceSelection | null>(
+    externalMediaSelection ?? null,
+  );
 
+  const effectiveStorageKey = deviceStorageKey ?? `pn-devices-${captureSessionId}-${participantId ?? "host"}`;
 
   async function attachStream(stream: MediaStream) {
+
     const el = videoRef.current;
     if (!el) return;
     el.srcObject = stream;
