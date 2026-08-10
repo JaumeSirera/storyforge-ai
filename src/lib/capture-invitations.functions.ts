@@ -1,11 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import {
-  loadCaptureInvitation,
-  newCaptureToken,
-  requireLinkedParticipant,
-} from "./capture-invitations.server";
 import { PARTICIPANT_ROLES } from "./capture.functions";
 
 /* ---------------- Anfitrión (propietario de la sesión) ---------------- */
@@ -56,7 +51,7 @@ export const createCaptureInvitation = createServerFn({ method: "POST" })
         capture_session_id: data.captureSessionId,
         participant_id: data.participantId ?? null,
         owner_id: context.userId,
-        token: newCaptureToken(28),
+        token: (await import("./capture-invitations.server")).newCaptureToken(28),
         note: data.note || null,
         expires_at: expiresAt,
         max_uses: data.maxUses ?? null,
@@ -99,6 +94,7 @@ export const deleteCaptureInvitation = createServerFn({ method: "POST" })
 export const validateCaptureInvitation = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => z.object({ token: z.string().min(8).max(128) }).parse(v))
   .handler(async ({ data }) => {
+    const { loadCaptureInvitation } = await import("./capture-invitations.server");
     const { invitation, session } = await loadCaptureInvitation(data.token);
     return {
       invitationId: invitation.id as string,
@@ -134,6 +130,7 @@ export const joinCaptureInvitation = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     if (!data.consentRecording) throw new Error("Debes aceptar el consentimiento de grabación");
+    const { loadCaptureInvitation } = await import("./capture-invitations.server");
     const { invitation, session } = await loadCaptureInvitation(data.token);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -224,6 +221,7 @@ export const getCaptureJoinState = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v: unknown) => z.object({ token: z.string().min(8).max(128) }).parse(v))
   .handler(async ({ data, context }) => {
+    const { loadCaptureInvitation, requireLinkedParticipant } = await import("./capture-invitations.server");
     const { session } = await loadCaptureInvitation(data.token);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: p } = await supabaseAdmin
@@ -251,6 +249,7 @@ export const createParticipantUploadTicket = createServerFn({ method: "POST" })
       .parse(v),
   )
   .handler(async ({ data, context }) => {
+    const { loadCaptureInvitation, requireLinkedParticipant } = await import("./capture-invitations.server");
     const { session } = await loadCaptureInvitation(data.token);
     const participant = await requireLinkedParticipant(session.id, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -279,6 +278,7 @@ export const registerParticipantRecording = createServerFn({ method: "POST" })
       .parse(v),
   )
   .handler(async ({ data, context }) => {
+    const { loadCaptureInvitation, requireLinkedParticipant } = await import("./capture-invitations.server");
     const { session } = await loadCaptureInvitation(data.token);
     const participant = await requireLinkedParticipant(session.id, context.userId);
     if (!data.storagePath.startsWith(`${session.owner_id}/${session.id}/`)) {
