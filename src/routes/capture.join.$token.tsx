@@ -10,6 +10,7 @@ import {
 } from "@/lib/capture-invitations.functions";
 import { CaptureRecorder } from "@/components/CaptureRecorder";
 import { MultiCamMosaic } from "@/components/MultiCamMosaic";
+import { CaptureConsentGate, type ConsentScopes } from "@/components/CaptureConsentGate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +51,7 @@ function JoinCapturePage() {
   const [faceConsent, setFaceConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [participantId, setParticipantId] = useState<string | null>(null);
+  const [mediaScopes, setMediaScopes] = useState<ConsentScopes | null>(null);
 
   const inv = useQuery({
     queryKey: ["capture-invite", token],
@@ -233,16 +235,31 @@ function JoinCapturePage() {
             </Card>
           )}
 
-          <CaptureRecorder
-            captureSessionId={session.id}
-            participantId={participantId}
-            participantName={name}
-            recordScreen={session.recordScreen}
-            inviteToken={token}
-          />
+          {!mediaScopes ? (
+            <CaptureConsentGate
+              token={token}
+              sessionTitle={session.title}
+              consentText={session.consentText}
+              retentionDays={session.retentionDays}
+              recordScreen={session.recordScreen}
+              initial={{ recording: consent, faceAnalysis: faceConsent }}
+              storageKey={`pn-consent-${session.id}`}
+              onGranted={setMediaScopes}
+            />
+          ) : (
+            <>
+              <CaptureRecorder
+                captureSessionId={session.id}
+                participantId={participantId}
+                participantName={name}
+                recordScreen={session.recordScreen && mediaScopes.screen}
+                inviteToken={token}
+              />
 
-          {(session.mode === "group" || session.captureMode === "per_participant") && (
-            <MultiCamMosaic captureSessionId={session.id} displayName={name} />
+              {(session.mode === "group" || session.captureMode === "per_participant") && (
+                <MultiCamMosaic captureSessionId={session.id} displayName={name} />
+              )}
+            </>
           )}
         </div>
       )}
