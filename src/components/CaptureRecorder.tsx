@@ -14,7 +14,6 @@ import { Circle, Square, Loader2, Video, MonitorUp, Mic, Pause, Play, Radio } fr
 import { toast } from "sonner";
 import { MediaDeviceSelector, type MediaDeviceSelection } from "./MediaDeviceSelector";
 
-
 function fmt(sec: number) {
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60);
@@ -53,7 +52,6 @@ interface Props {
   deviceStorageKey?: string;
 }
 
-
 export function CaptureRecorder({
   captureSessionId,
   participantId = null,
@@ -89,10 +87,10 @@ export function CaptureRecorder({
     externalMediaSelection ?? null,
   );
 
-  const effectiveStorageKey = deviceStorageKey ?? `pn-devices-${captureSessionId}-${participantId ?? "host"}`;
+  const effectiveStorageKey =
+    deviceStorageKey ?? `pn-devices-${captureSessionId}-${participantId ?? "host"}`;
 
   async function attachStream(stream: MediaStream) {
-
     const el = videoRef.current;
     if (!el) return;
     el.srcObject = stream;
@@ -106,17 +104,27 @@ export function CaptureRecorder({
   }
 
   async function ensurePreview(): Promise<MediaStream> {
-    const existing = streams.current.find((s) => s.getVideoTracks().some((t) => t.readyState === "live"));
+    const existing = streams.current.find((s) =>
+      s.getVideoTracks().some((t) => t.readyState === "live"),
+    );
     if (existing) {
       await attachStream(existing);
       setPreviewOn(true);
       return existing;
     }
     const videoConstraints: MediaTrackConstraints = mediaSelection?.videoDeviceId
-      ? { deviceId: { exact: mediaSelection.videoDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+      ? {
+          deviceId: { exact: mediaSelection.videoDeviceId },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        }
       : { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" };
     const audioConstraints: MediaTrackConstraints | boolean = mediaSelection?.audioDeviceId
-      ? { deviceId: { exact: mediaSelection.audioDeviceId }, echoCancellation: true, noiseSuppression: true }
+      ? {
+          deviceId: { exact: mediaSelection.audioDeviceId },
+          echoCancellation: true,
+          noiseSuppression: true,
+        }
       : { echoCancellation: true, noiseSuppression: true };
     const cam = await navigator.mediaDevices.getUserMedia({
       video: videoConstraints,
@@ -127,7 +135,6 @@ export function CaptureRecorder({
     setPreviewOn(true);
     return cam;
   }
-
 
   async function startPreview() {
     setPreviewLoading(true);
@@ -143,7 +150,6 @@ export function CaptureRecorder({
       setPreviewLoading(false);
     }
   }
-
 
   useEffect(() => {
     if (state !== "recording") return;
@@ -185,7 +191,6 @@ export function CaptureRecorder({
       void channel.unsubscribe();
     };
   }, [captureSessionId, followHost]);
-
 
   async function upload(blob: Blob, kind: "camera" | "screen", durationSec: number) {
     const ext0 = blob.type.includes("mp4") ? "mp4" : "webm";
@@ -241,7 +246,6 @@ export function CaptureRecorder({
     try {
       const cam = await ensurePreview();
 
-
       const mime = pickMime();
       camChunks.current = [];
       const rec = new MediaRecorder(cam, mime ? { mimeType: mime } : undefined);
@@ -252,7 +256,10 @@ export function CaptureRecorder({
 
       if (recordScreen) {
         try {
-          const screen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+          const screen = await navigator.mediaDevices.getDisplayMedia({
+            video: true,
+            audio: false,
+          });
           streams.current.push(screen);
           screenChunks.current = [];
           const srec = new MediaRecorder(screen, mime ? { mimeType: mime } : undefined);
@@ -322,8 +329,9 @@ export function CaptureRecorder({
       if (videoRef.current) videoRef.current.srcObject = null;
       setPreviewOn(false);
 
-
-      const camBlob = new Blob(camChunks.current, { type: camChunks.current[0]?.type || "video/webm" });
+      const camBlob = new Blob(camChunks.current, {
+        type: camChunks.current[0]?.type || "video/webm",
+      });
       if (camBlob.size < 2048) throw new Error("La grabación quedó vacía; inténtalo de nuevo.");
       await upload(camBlob, "camera", duration);
 
@@ -352,7 +360,9 @@ export function CaptureRecorder({
       <MediaDeviceSelector
         storageKey={effectiveStorageKey}
         onSelected={setMediaSelection}
-        title={participantName ? `Dispositivos de ${participantName}` : "Elige dispositivos de captura"}
+        title={
+          participantName ? `Dispositivos de ${participantName}` : "Elige dispositivos de captura"
+        }
       />
     );
   }
@@ -362,7 +372,6 @@ export function CaptureRecorder({
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div>
-
             <CardTitle className="text-base flex items-center gap-2">
               <Video className="h-4 w-4" />
               {participantName ? `Grabación de ${participantName}` : "Grabación de la sesión"}
@@ -391,29 +400,23 @@ export function CaptureRecorder({
               {state === "paused" ? `En pausa · ${fmt(elapsed)}` : fmt(elapsed)}
             </Badge>
           )}
-
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="relative overflow-hidden rounded-lg bg-muted aspect-video">
-          <video
-            ref={videoRef}
-            playsInline
-            autoPlay
-            muted
-            className="h-full w-full object-cover"
-          />
+          <video ref={videoRef} playsInline autoPlay muted className="h-full w-full object-cover" />
           {!previewOn && (
             <div className="absolute inset-0 grid place-items-center gap-2 text-sm text-muted-foreground">
               <div className="flex flex-col items-center gap-2 text-center px-4">
                 <Video className="h-6 w-6" />
                 <span>Vista previa de la cámara desactivada</span>
-                <Button size="sm" variant="secondary" onClick={startPreview} disabled={previewLoading}>
-                  {previewLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Activar cámara"
-                  )}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={startPreview}
+                  disabled={previewLoading}
+                >
+                  {previewLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Activar cámara"}
                 </Button>
               </div>
             </div>
@@ -447,10 +450,9 @@ export function CaptureRecorder({
           )}
         </div>
 
-
         <p className="text-xs text-muted-foreground">
-          La grabación se guarda cifrada en tu almacenamiento privado y se elimina automáticamente al
-          cumplirse el plazo de conservación de la sesión.
+          La grabación se guarda cifrada en tu almacenamiento privado y se elimina automáticamente
+          al cumplirse el plazo de conservación de la sesión.
         </p>
       </CardContent>
     </Card>

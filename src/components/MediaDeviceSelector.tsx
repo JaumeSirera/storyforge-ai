@@ -65,9 +65,7 @@ export function MediaDeviceSelector({
         cams[0]?.deviceId ??
         null;
       const defaultAudio =
-        mics.find((d) => d.deviceId === saved.audioDeviceId)?.deviceId ??
-        mics[0]?.deviceId ??
-        null;
+        mics.find((d) => d.deviceId === saved.audioDeviceId)?.deviceId ?? mics[0]?.deviceId ?? null;
 
       setVideoId(defaultVideo);
       setAudioId(defaultAudio);
@@ -126,7 +124,6 @@ export function MediaDeviceSelector({
             Necesitamos acceso a la cámara{!videoOnly && " y al micrófono"} para mostrar los
             dispositivos disponibles. Permíteles en el icono de la barra de direcciones y vuelve a
             intentarlo.
-
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -157,7 +154,6 @@ export function MediaDeviceSelector({
         <CardDescription>
           Selecciona la cámara{!videoOnly && " y el micrófono"} que quieres usar en esta sesión.
         </CardDescription>
-
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
