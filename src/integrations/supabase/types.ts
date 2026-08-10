@@ -25,6 +25,8 @@ export type Database = {
           interactions: Json
           metrics: Json
           owner_id: string
+          scenes: Json
+          scenes_generated_at: string | null
           stage: string | null
           status: string
           transcription_model: string | null
@@ -40,6 +42,8 @@ export type Database = {
           interactions?: Json
           metrics?: Json
           owner_id: string
+          scenes?: Json
+          scenes_generated_at?: string | null
           stage?: string | null
           status?: string
           transcription_model?: string | null
@@ -55,6 +59,8 @@ export type Database = {
           interactions?: Json
           metrics?: Json
           owner_id?: string
+          scenes?: Json
+          scenes_generated_at?: string | null
           stage?: string | null
           status?: string
           transcription_model?: string | null
