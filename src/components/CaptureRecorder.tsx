@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Circle, Square, Loader2, Video, MonitorUp, Mic, Pause, Play, Radio } from "lucide-react";
 import { toast } from "sonner";
+import { MediaDeviceSelector, type MediaDeviceSelection } from "./MediaDeviceSelector";
+
 
 function fmt(sec: number) {
   const m = Math.floor(sec / 60);
