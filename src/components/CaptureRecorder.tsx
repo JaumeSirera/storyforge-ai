@@ -146,16 +146,8 @@ export function CaptureRecorder({
 
   async function start() {
     try {
-      const cam = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-        audio: { echoCancellation: true, noiseSuppression: true },
-      });
-      streams.current.push(cam);
-      if (videoRef.current) {
-        videoRef.current.srcObject = cam;
-        videoRef.current.muted = true;
-        await videoRef.current.play().catch(() => {});
-      }
+      const cam = await ensurePreview();
+
 
       const mime = pickMime();
       camChunks.current = [];
