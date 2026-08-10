@@ -221,7 +221,7 @@ export const getCaptureJoinState = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v: unknown) => z.object({ token: z.string().min(8).max(128) }).parse(v))
   .handler(async ({ data, context }) => {
-    const { loadCaptureInvitation, requireLinkedParticipant } = await import("./capture-invitations.server");
+    const { loadCaptureInvitation } = await import("./capture-invitations.server");
     const { session } = await loadCaptureInvitation(data.token);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: p } = await supabaseAdmin
