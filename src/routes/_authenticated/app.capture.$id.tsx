@@ -18,6 +18,7 @@ import {
 } from "@/lib/capture.functions";
 import { listPracticeAreas } from "@/lib/areas.functions";
 import { CaptureRecorder } from "@/components/CaptureRecorder";
+import { MultiCamMosaic } from "@/components/MultiCamMosaic";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -99,6 +100,15 @@ function CaptureSessionPage() {
   const [lateMode, setLateMode] = useState(false);
   const [consentText, setConsentText] = useState<string | null>(null);
   const [playing, setPlaying] = useState<{ id: string; url: string } | null>(null);
+  const [myName, setMyName] = useState("Yo");
+  useEffect(() => {
+    void supabase.auth.getUser().then(({ data }) => {
+      const u = data.user;
+      const name =
+        (u?.user_metadata?.full_name as string | undefined) || u?.email?.split("@")[0] || "Yo";
+      setMyName(name);
+    });
+  }, []);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const session = q.data?.session;
@@ -544,6 +554,11 @@ function CaptureSessionPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Mosaico multicámara en directo */}
+      {consentsOk && (session.mode === "group" || session.captureMode === "per_participant") && (
+        <MultiCamMosaic captureSessionId={id} displayName={myName} />
+      )}
 
       {/* Grabación */}
       {!consentsOk ? (
