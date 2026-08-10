@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, Trash2, Video, Users, ShieldCheck, BarChart3 } from "lucide-react";
+import { Loader2, Plus, Trash2, Video, Users, ShieldCheck, BarChart3, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/capture/")({
