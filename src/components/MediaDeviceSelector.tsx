@@ -123,9 +123,10 @@ export function MediaDeviceSelector({
             <AlertTriangle className="h-4 w-4 text-destructive" /> Permisos bloqueados
           </CardTitle>
           <CardDescription>
-            Necesitamos acceso a la cámara{y !videoOnly && " y al micrófono"} para mostrar los
+            Necesitamos acceso a la cámara{!videoOnly && " y al micrófono"} para mostrar los
             dispositivos disponibles. Permíteles en el icono de la barra de direcciones y vuelve a
             intentarlo.
+
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -154,8 +155,9 @@ export function MediaDeviceSelector({
           <Camera className="h-4 w-4" /> {title}
         </CardTitle>
         <CardDescription>
-          Selecciona la cámara{y !videoOnly && " y el micrófono"} que quieres usar en esta sesión.
+          Selecciona la cámara{!videoOnly && " y el micrófono"} que quieres usar en esta sesión.
         </CardDescription>
+
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
