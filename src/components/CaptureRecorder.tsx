@@ -112,15 +112,22 @@ export function CaptureRecorder({
       setPreviewOn(true);
       return existing;
     }
+    const videoConstraints: MediaTrackConstraints = mediaSelection?.videoDeviceId
+      ? { deviceId: { exact: mediaSelection.videoDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+      : { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" };
+    const audioConstraints: MediaTrackConstraints | boolean = mediaSelection?.audioDeviceId
+      ? { deviceId: { exact: mediaSelection.audioDeviceId }, echoCancellation: true, noiseSuppression: true }
+      : { echoCancellation: true, noiseSuppression: true };
     const cam = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-      audio: { echoCancellation: true, noiseSuppression: true },
+      video: videoConstraints,
+      audio: audioConstraints,
     });
     streams.current.push(cam);
     await attachStream(cam);
     setPreviewOn(true);
     return cam;
   }
+
 
   async function startPreview() {
     setPreviewLoading(true);
