@@ -54,8 +54,10 @@ function JoinCapturePage() {
   const [busy, setBusy] = useState(false);
   const [participantId, setParticipantId] = useState<string | null>(null);
   const [mediaScopes, setMediaScopes] = useState<ConsentScopes | null>(null);
+  const [mediaSelection, setMediaSelection] = useState<MediaDeviceSelection | null>(null);
 
   const inv = useQuery({
+
     queryKey: ["capture-invite", token],
     queryFn: () => validate({ data: { token } }),
     retry: false,
