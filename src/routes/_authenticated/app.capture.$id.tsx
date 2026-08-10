@@ -14,6 +14,7 @@ import {
   PARTICIPANT_ROLES,
   PARTICIPANT_ROLE_LABELS,
   type ParticipantRole,
+  saveCapturePreferences,
 } from "@/lib/capture.functions";
 import { listPracticeAreas } from "@/lib/areas.functions";
 import { CaptureRecorder } from "@/components/CaptureRecorder";
@@ -82,6 +83,7 @@ function CaptureSessionPage() {
   const recUrl = useServerFn(getRecordingUrl);
   const consent = useServerFn(recordConsent);
   const listAreas = useServerFn(listPracticeAreas);
+  const savePrefs = useServerFn(saveCapturePreferences);
 
 
   const q = useQuery({ queryKey: ["capture-session", id], queryFn: () => get({ data: { id } }) });
@@ -107,6 +109,18 @@ function CaptureSessionPage() {
   async function patch(data: Record<string, unknown>) {
     await update({ data: { id, ...data } as any });
     qc.invalidateQueries({ queryKey: ["capture-session", id] });
+    // Guarda los ajustes reutilizables como preferencias de la cuenta
+    const prefKeys = ["areaKey", "mode", "captureMode", "recordScreen", "retentionDays"] as const;
+    const prefs: Record<string, unknown> = {};
+    for (const k of prefKeys) if (k in data) prefs[k] = data[k];
+    if (Object.keys(prefs).length > 0) {
+      try {
+        await savePrefs({ data: prefs as any });
+        qc.invalidateQueries({ queryKey: ["capture-preferences"] });
+      } catch {
+        /* preferencias no críticas */
+      }
+    }
   }
 
   async function uploadPhoto(file: File) {
@@ -205,7 +219,8 @@ function CaptureSessionPage() {
             <Settings2 className="h-4 w-4" /> Configuración de la sesión
           </CardTitle>
           <CardDescription>
-            Ajusta el tipo de sesión y la captura antes de empezar a grabar.
+            Ajusta el tipo de sesión y la captura antes de empezar a grabar. Los cambios se guardan
+            en tu cuenta y se recuperan al volver a esta sesión.
             {recordings.length > 0
               ? " Ya hay grabaciones: los cambios no afectan a las pistas existentes."
               : ""}

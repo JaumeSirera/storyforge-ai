@@ -473,3 +473,59 @@ export const listConsents = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
+
+/* ---- Preferencias de captura del usuario (se guardan en su cuenta) ---- */
+
+export const getCapturePreferences = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("capture_preferences")
+      .select("area_key, mode, capture_mode, record_screen, retention_days, updated_at")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) return null;
+    return {
+      areaKey: data.area_key as string | null,
+      mode: data.mode as string,
+      captureMode: data.capture_mode as string,
+      recordScreen: data.record_screen as boolean,
+      retentionDays: data.retention_days as number,
+      updatedAt: data.updated_at as string,
+    };
+  });
+
+export const saveCapturePreferences = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        areaKey: z.string().max(80).nullable().optional(),
+        mode: z.enum(SESSION_MODES).optional(),
+        captureMode: z.enum(CAPTURE_MODES).optional(),
+        recordScreen: z.boolean().optional(),
+        retentionDays: z.number().int().min(1).max(365).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: prev } = await context.supabase
+      .from("capture_preferences")
+      .select("area_key, mode, capture_mode, record_screen, retention_days")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    const row = {
+      user_id: context.userId,
+      area_key: data.areaKey !== undefined ? data.areaKey : (prev?.area_key ?? null),
+      mode: data.mode ?? prev?.mode ?? "individual",
+      capture_mode: data.captureMode ?? prev?.capture_mode ?? "single_device",
+      record_screen: data.recordScreen ?? prev?.record_screen ?? false,
+      retention_days: data.retentionDays ?? prev?.retention_days ?? 30,
+    };
+    const { error } = await context.supabase
+      .from("capture_preferences")
+      .upsert(row, { onConflict: "user_id" });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
