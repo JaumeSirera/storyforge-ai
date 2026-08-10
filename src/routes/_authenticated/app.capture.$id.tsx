@@ -105,7 +105,9 @@ function CaptureSessionPage() {
   const [lateMode, setLateMode] = useState(false);
   const [consentText, setConsentText] = useState<string | null>(null);
   const [playing, setPlaying] = useState<{ id: string; url: string } | null>(null);
+  const [mediaSelection, setMediaSelection] = useState<MediaDeviceSelection | null>(null);
   const [myName, setMyName] = useState("Yo");
+
   useEffect(() => {
     void supabase.auth.getUser().then(({ data }) => {
       const u = data.user;
