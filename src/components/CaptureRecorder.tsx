@@ -202,6 +202,8 @@ export function CaptureRecorder({
       streams.current.forEach((s) => s.getTracks().forEach((t) => t.stop()));
       streams.current = [];
       if (videoRef.current) videoRef.current.srcObject = null;
+      setPreviewOn(false);
+
 
       const camBlob = new Blob(camChunks.current, { type: camChunks.current[0]?.type || "video/webm" });
       if (camBlob.size < 2048) throw new Error("La grabación quedó vacía; inténtalo de nuevo.");
