@@ -219,7 +219,8 @@ function CaptureSessionPage() {
             <Settings2 className="h-4 w-4" /> Configuración de la sesión
           </CardTitle>
           <CardDescription>
-            Ajusta el tipo de sesión y la captura antes de empezar a grabar.
+            Ajusta el tipo de sesión y la captura antes de empezar a grabar. Los cambios se guardan
+            en tu cuenta y se recuperan al volver a esta sesión.
             {recordings.length > 0
               ? " Ya hay grabaciones: los cambios no afectan a las pistas existentes."
               : ""}
