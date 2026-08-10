@@ -304,3 +304,53 @@ export const registerParticipantRecording = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { id: row.id as string };
   });
+
+/**
+ * Registra (o actualiza) los consentimientos del invitado justo antes de
+ * activar cámara y micrófono. Se guarda con permisos del anfitrión porque el
+ * invitado no es propietario de la sesión.
+ */
+export const recordInvitedConsent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v: unknown) =>
+    z
+      .object({
+        token: z.string().min(8).max(128),
+        recording: z.boolean(),
+        faceAnalysis: z.boolean().default(false),
+        voiceAnalysis: z.boolean().default(false),
+        screen: z.boolean().default(false),
+      })
+      .parse(v),
+  )
+  .handler(async ({ data, context }) => {
+    if (!data.recording) throw new Error("Debes aceptar el consentimiento de grabación");
+    const { loadCaptureInvitation, requireLinkedParticipant } = await import(
+      "./capture-invitations.server"
+    );
+    const { session } = await loadCaptureInvitation(data.token);
+    const participant = await requireLinkedParticipant(session.id, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const now = new Date().toISOString();
+    const scopes: Array<{ scope: string; granted: boolean }> = [
+      { scope: "recording", granted: data.recording },
+      { scope: "face_analysis", granted: data.faceAnalysis },
+      { scope: "voice_analysis", granted: data.voiceAnalysis },
+      { scope: "screen", granted: data.screen },
+    ];
+
+    const { error } = await supabaseAdmin.from("capture_consents").insert(
+      scopes.map((s) => ({
+        capture_session_id: session.id,
+        participant_id: participant.id,
+        owner_id: session.owner_id,
+        scope: s.scope,
+        granted: s.granted,
+        consent_text: session.consent_text ?? null,
+        granted_at: s.granted ? now : null,
+      })) as any,
+    );
+    if (error) throw new Error(error.message);
+    return { ok: true, participantId: participant.id as string };
+  });
