@@ -47,7 +47,12 @@ interface Props {
   /** Obedecer las órdenes de inicio/pausa/parada del anfitrión (por defecto sí). */
   followHost?: boolean;
   onUploaded?: () => void;
+  /** Dispositivos preseleccionados. Si no se pasan, el selector se muestra internamente. */
+  mediaSelection?: MediaDeviceSelection | null;
+  /** Clave para recordar la selección de dispositivos en sessionStorage. */
+  deviceStorageKey?: string;
 }
+
 
 export function CaptureRecorder({
   captureSessionId,
