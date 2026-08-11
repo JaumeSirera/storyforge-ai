@@ -645,6 +645,12 @@ function CaptureSessionPage() {
               </p>
             )}
 
+          <ComposedExportButton
+            recordings={recordings}
+            fileBase={`sesion-${(session.title || id).slice(0, 40)}`}
+            getUrl={async (rid) => (await recUrl({ data: { id: rid } })).url}
+          />
+
           {recordings.map((r) => {
             const p = participants.find((x) => x.id === r.participantId);
             return (
