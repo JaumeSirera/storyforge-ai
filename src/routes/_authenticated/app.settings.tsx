@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
-import { KeyRound, Trash2, Mail } from "lucide-react";
+import { KeyRound, Trash2, Mail, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/app/settings")({
   component: SettingsPage,
