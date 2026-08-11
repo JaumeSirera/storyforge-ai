@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Wifi } from "lucide-react";
+import { Wifi, ExternalLink } from "lucide-react";
 
 export function TurnSettingsCard() {
   const qc = useQueryClient();
@@ -92,7 +92,26 @@ export function TurnSettingsCard() {
           (móvil 4G ↔ PC). Cloudflare Realtime TURN tiene un plan gratuito con 1.000 GB
           de tráfico al mes: crea una clave TURN en tu panel de Cloudflare y pega aquí el
           identificador y el token.
+          <span className="mt-2 flex flex-wrap gap-3">
+            <a
+              href="https://dash.cloudflare.com/?to=/:account/realtime/turn"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-primary underline underline-offset-2"
+            >
+              Crear clave TURN en Cloudflare <ExternalLink className="h-3 w-3" aria-hidden="true" />
+            </a>
+            <a
+              href="https://developers.cloudflare.com/realtime/turn/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-muted-foreground underline underline-offset-2"
+            >
+              Documentación <ExternalLink className="h-3 w-3" aria-hidden="true" />
+            </a>
+          </span>
         </CardDescription>
+
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">

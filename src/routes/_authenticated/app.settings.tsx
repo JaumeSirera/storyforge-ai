@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
-import { KeyRound, Trash2, Mail } from "lucide-react";
+import { KeyRound, Trash2, Mail, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/app/settings")({
   component: SettingsPage,
@@ -118,6 +118,8 @@ function SettingsPage() {
         onClear={() => save.mutate({ openaiKey: null })}
         placeholder="sk-..."
         saving={save.isPending}
+        signupUrl="https://platform.openai.com/signup"
+        keyUrl="https://platform.openai.com/api-keys"
       />
 
       <KeyCard
@@ -131,6 +133,8 @@ function SettingsPage() {
         onClear={() => save.mutate({ geminiKey: null })}
         placeholder="AIza..."
         saving={save.isPending}
+        signupUrl="https://aistudio.google.com/"
+        keyUrl="https://aistudio.google.com/app/apikey"
       />
 
       <KeyCard
@@ -144,6 +148,8 @@ function SettingsPage() {
         onClear={() => save.mutate({ replicateKey: null })}
         placeholder="r8_..."
         saving={save.isPending}
+        signupUrl="https://replicate.com/signin"
+        keyUrl="https://replicate.com/account/api-tokens"
       />
 
       <KeyCard
@@ -157,13 +163,17 @@ function SettingsPage() {
         onClear={() => save.mutate({ elevenlabsKey: null })}
         placeholder="sk_..."
         saving={save.isPending}
+        signupUrl="https://elevenlabs.io/app/sign-up"
+        keyUrl="https://elevenlabs.io/app/settings/api-keys"
       />
+
     </div>
   );
 }
 
 function KeyCard({
   title, description, masked, has, value, onChange, onSave, onClear, placeholder, saving,
+  signupUrl, keyUrl,
 }: {
   title: string;
   description: string;
@@ -175,13 +185,36 @@ function KeyCard({
   onClear: () => void;
   placeholder: string;
   saving: boolean;
+  signupUrl: string;
+  keyUrl: string;
 }) {
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+        <CardDescription>
+          {description}
+          <span className="mt-2 flex flex-wrap gap-3">
+            <a
+              href={keyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-primary underline underline-offset-2"
+            >
+              Obtener clave de {title} <ExternalLink className="h-3 w-3" aria-hidden="true" />
+            </a>
+            <a
+              href={signupUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-muted-foreground underline underline-offset-2"
+            >
+              Crear cuenta <ExternalLink className="h-3 w-3" aria-hidden="true" />
+            </a>
+          </span>
+        </CardDescription>
       </CardHeader>
+
       <CardContent className="space-y-3">
         <div className="text-sm">
           Estado:{" "}
