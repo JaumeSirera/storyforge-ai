@@ -18,6 +18,7 @@ import {
   pauseRecording,
   pendingRecovery,
   recoverRecording,
+  restartCamera,
   resumeRecording,
   startRecording,
   stopRecording,
@@ -91,7 +92,7 @@ export function CaptureRecorder({
   const screenRef = useRef<HTMLVideoElement>(null);
 
   const key = captureKey(captureSessionId, participantId);
-  const { phase, previewOn, elapsed, screenSharing } = useCaptureState(key);
+  const { phase, previewOn, elapsed, screenSharing, cameraLost } = useCaptureState(key);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [hostSynced, setHostSynced] = useState(false);
   const [mediaSelection, setMediaSelection] = useState<MediaDeviceSelection | null>(
@@ -367,6 +368,33 @@ export function CaptureRecorder({
                 <Trash2 className="h-4 w-4" /> Descartar
               </Button>
             </div>
+          </div>
+        )}
+
+        {cameraLost && (
+          <div
+            role="alert"
+            className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm"
+          >
+            <p className="font-medium">Se cortó la pista de cámara</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              La cámara dejó de emitir (permiso revocado u otra app la ocupó). Lo grabado hasta
+              ahora está a salvo: reactívala para seguir grabando la cámara.
+            </p>
+            <Button
+              size="sm"
+              className="mt-2 gap-2"
+              onClick={async () => {
+                const ok = await restartCamera(key, mediaSelection);
+                toast[ok ? "success" : "error"](
+                  ok
+                    ? "Cámara reactivada; la grabación continúa."
+                    : "No se pudo reactivar la cámara. Revisa los permisos del navegador.",
+                );
+              }}
+            >
+              <Video className="h-4 w-4" /> Reactivar cámara
+            </Button>
           </div>
         )}
 
