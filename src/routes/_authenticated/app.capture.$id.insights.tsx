@@ -118,12 +118,12 @@ function InsightsPage() {
         params={{ id }}
         className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="mr-1 h-4 w-4" /> Volver a Analyze
+        <ArrowLeft className="mr-1 h-4 w-4" /> Volver a Analizar
       </Link>
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Insights · {session.title}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Conclusiones · {session.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Informe profesional a partir de las métricas y la transcripción de la sesión.
             {insights?.generatedAt
@@ -205,7 +205,7 @@ function InsightsPage() {
             </p>
             <Button asChild variant="outline" size="sm">
               <Link to="/app/capture/$id/analyze" params={{ id }}>
-                Ir a Analyze
+                Ir a Analizar
               </Link>
             </Button>
           </CardContent>

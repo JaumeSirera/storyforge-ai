@@ -247,7 +247,7 @@ function ScenesPage() {
         params={{ id }}
         className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4 mr-1" /> Volver a Analyze
+        <ArrowLeft className="h-4 w-4 mr-1" /> Volver a Analizar
       </Link>
 
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -271,7 +271,7 @@ function ScenesPage() {
           </Button>
           <Button asChild variant="outline" size="sm" className="gap-2">
             <Link to="/app/capture/$id/insights" params={{ id }}>
-              <Sparkles className="h-4 w-4" /> Insights
+              <Sparkles className="h-4 w-4" /> Conclusiones
             </Link>
           </Button>
           {scenes.length > 0 && (
@@ -347,7 +347,7 @@ function ScenesPage() {
               </Button>
               <Button asChild size="sm" className="gap-2" disabled={recordings.length === 0}>
                 <Link to="/app/capture/$id/analyze" params={{ id }}>
-                  Ir a Analyze
+                  Ir a Analizar
                 </Link>
               </Button>
             </div>
