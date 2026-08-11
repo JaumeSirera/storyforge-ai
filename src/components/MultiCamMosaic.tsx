@@ -142,6 +142,9 @@ export function MultiCamMosaic({
   const namesRef = useRef<Map<string, string>>(new Map());
   const pendingIceRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const restartAttemptsRef = useRef<Map<string, number>>(new Map());
+  const statsSampleRef = useRef<Map<string, InboundSample>>(new Map());
+  const peerErrorsRef = useRef<Map<string, string>>(new Map());
+
 
   const upsertPeer = useCallback((id: string, patch: Partial<PeerState>) => {
     setPeers((prev) => {
