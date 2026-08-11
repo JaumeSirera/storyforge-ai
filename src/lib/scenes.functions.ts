@@ -169,7 +169,7 @@ Selecciona los momentos más relevantes y devuélvelos como escenas de la "pelí
     if (saveErr) throw new Error(saveErr.message);
 
     try {
-      const usage = result.usage as
+      const usage = result?.usage as
         | { inputTokens?: number; outputTokens?: number; promptTokens?: number; completionTokens?: number }
         | undefined;
       const { recordUsage, userPaysPlatform } = await import("./usage.server");
