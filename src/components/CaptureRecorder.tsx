@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Circle, Square, Loader2, Video, MonitorUp, Mic, Pause, Play, Radio } from "lucide-react";
 import { toast } from "sonner";
 import { MediaDeviceSelector, type MediaDeviceSelection } from "./MediaDeviceSelector";
+import { PreviewViewControls, usePreviewView } from "./PreviewViewControls";
 
 function fmt(sec: number) {
   const m = Math.floor(sec / 60);
@@ -89,6 +90,7 @@ export function CaptureRecorder({
 
   const effectiveStorageKey =
     deviceStorageKey ?? `pn-devices-${captureSessionId}-${participantId ?? "host"}`;
+  const preview = usePreviewView(`pn-preview-view-${participantId ?? "host"}`);
 
   async function attachStream(stream: MediaStream) {
     const el = videoRef.current;
@@ -403,8 +405,9 @@ export function CaptureRecorder({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="relative overflow-hidden rounded-lg bg-muted aspect-video">
-          <video ref={videoRef} playsInline autoPlay muted className="h-full w-full object-cover" />
+        <PreviewViewControls view={preview.view} onChange={preview.update} />
+        <div className={`relative overflow-hidden rounded-lg bg-muted ${preview.frameClass}`}>
+          <video ref={videoRef} playsInline autoPlay muted className={preview.videoClass} />
           {!previewOn && (
             <div className="absolute inset-0 grid place-items-center gap-2 text-sm text-muted-foreground">
               <div className="flex flex-col items-center gap-2 text-center px-4">
