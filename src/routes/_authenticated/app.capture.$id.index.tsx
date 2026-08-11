@@ -250,21 +250,79 @@ function CaptureSessionPage() {
         </Button>
       </div>
 
+      {/* Hub de secciones */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <SectionCard
+          icon={Settings2}
+          title="Configuración de la sesión"
+          summary={`${session.mode === "group" ? "Grupal" : "Individual"} · ${
+            session.captureMode === "per_participant" ? "Un dispositivo por persona" : "Un dispositivo"
+          } · ${session.retentionDays} días`}
+          onClick={() => setOpen("config")}
+        />
+        <SectionCard
+          icon={ShieldCheck}
+          title="Consentimientos"
+          summary={
+            consentsOk
+              ? `Grabación aceptada${session.consentFaceAnalysis ? " · análisis facial" : ""}`
+              : "Pendiente: sin consentimiento no se puede grabar"
+          }
+          onClick={() => setOpen("consent")}
+        />
+        <SectionCard
+          icon={Users}
+          title="Participantes"
+          summary={
+            participants.length === 0
+              ? "Aún no hay participantes"
+              : `${participants.length} persona${participants.length === 1 ? "" : "s"}: ${participants
+                  .map((p) => p.name)
+                  .slice(0, 3)
+                  .join(", ")}`
+          }
+          onClick={() => setOpen("participants")}
+        />
+        <SectionCard
+          icon={ClipboardCheck}
+          title="Auditoría de consentimientos"
+          summary="Quién aceptó, cuándo y con qué versión del texto"
+          onClick={() => setOpen("audit")}
+        />
+        <SectionCard
+          icon={Mail}
+          title="Invitaciones"
+          summary="Enlaces para que cada persona entre desde su dispositivo"
+          onClick={() => setOpen("invites")}
+        />
+        <SectionCard
+          icon={Film}
+          title="Grabaciones"
+          summary={
+            recordings.length === 0
+              ? "Aún no hay grabaciones"
+              : `${recordings.length} pista${recordings.length === 1 ? "" : "s"} · ver y exportar`
+          }
+          onClick={() => setOpen("recordings")}
+        />
+      </div>
+
       {/* Configuración de la sesión */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Settings2 className="h-4 w-4" /> Configuración de la sesión
-          </CardTitle>
-          <CardDescription>
-            Ajusta el tipo de sesión y la captura antes de empezar a grabar. Los cambios se guardan
-            en tu cuenta y se recuperan al volver a esta sesión.
-            {recordings.length > 0
-              ? " Ya hay grabaciones: los cambios no afectan a las pistas existentes."
-              : ""}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <Dialog open={open === "config"} onOpenChange={(v) => setOpen(v ? "config" : null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="h-4 w-4" /> Configuración de la sesión
+            </DialogTitle>
+            <DialogDescription>
+              Ajusta el tipo de sesión y la captura antes de empezar a grabar. Los cambios se guardan
+              en tu cuenta y se recuperan al volver a esta sesión.
+              {recordings.length > 0
+                ? " Ya hay grabaciones: los cambios no afectan a las pistas existentes."
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+        <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="s-title">Título</Label>
