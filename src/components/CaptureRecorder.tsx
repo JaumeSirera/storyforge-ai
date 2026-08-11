@@ -403,8 +403,9 @@ export function CaptureRecorder({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="relative overflow-hidden rounded-lg bg-muted aspect-video">
-          <video ref={videoRef} playsInline autoPlay muted className="h-full w-full object-cover" />
+        <PreviewViewControls view={preview.view} onChange={preview.update} />
+        <div className={`relative overflow-hidden rounded-lg bg-muted ${preview.frameClass}`}>
+          <video ref={videoRef} playsInline autoPlay muted className={preview.videoClass} />
           {!previewOn && (
             <div className="absolute inset-0 grid place-items-center gap-2 text-sm text-muted-foreground">
               <div className="flex flex-col items-center gap-2 text-center px-4">
