@@ -68,6 +68,7 @@ function AnalyzePage() {
   const assign = useServerFn(assignSpeaker);
   const recompute = useServerFn(recomputeSessionMetrics);
   const wipe = useServerFn(deleteSessionAnalysis);
+  const listAnnotations = useServerFn(listSceneAnnotations);
 
   const sessionQ = useQuery({
     queryKey: ["capture-session", id],
