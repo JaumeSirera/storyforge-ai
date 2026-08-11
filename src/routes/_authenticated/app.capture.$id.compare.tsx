@@ -22,8 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, GitCompare, Info, Loader2, Scale, Sparkles } from "lucide-react";
+import { ArrowLeft, FileDown, GitCompare, Info, Loader2, Scale, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/_authenticated/app/capture/$id/compare")({
   head: () => ({
