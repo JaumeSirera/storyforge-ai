@@ -108,25 +108,32 @@ export async function composeCameraAndScreen(input: ComposeInput): Promise<Blob>
 
   let raf = 0;
   const startedAt = performance.now();
+  const corner = input.pipCorner ?? "br";
+  const pipSize = input.pipSize ?? "md";
+  const showPip = input.pipVisible !== false;
   const draw = () => {
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, W, H);
     drawCover(ctx, screen, 0, 0, W, H);
-    // Recuadro de cámara abajo a la derecha.
-    const pipW = Math.round(W * 0.26);
-    const pipH = Math.round((pipW * 9) / 16);
-    const x = W - pipW - 24;
-    const y = H - pipH - 24;
-    ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,0.5)";
-    ctx.shadowBlur = 16;
-    ctx.fillStyle = "#111";
-    ctx.fillRect(x - 2, y - 2, pipW + 4, pipH + 4);
-    ctx.restore();
-    drawCover(ctx, camera, x, y, pipW, pipH);
+    if (showPip) {
+      // Recuadro de cámara en la esquina y tamaño elegidos en el reproductor.
+      const camAspect =
+        camera.videoWidth && camera.videoHeight
+          ? camera.videoWidth / camera.videoHeight
+          : 16 / 9;
+      const { x, y, w: pipW, h: pipH } = pipRect(corner, pipSize, W, H, camAspect);
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,0.5)";
+      ctx.shadowBlur = 16;
+      ctx.fillStyle = "#111";
+      ctx.fillRect(x - 2, y - 2, pipW + 4, pipH + 4);
+      ctx.restore();
+      drawCover(ctx, camera, x, y, pipW, pipH);
+    }
     input.onProgress?.(Math.min(0.99, (performance.now() - startedAt) / 1000 / expected));
     raf = requestAnimationFrame(draw);
   };
+
 
   const finished = new Promise<Blob>((resolve, reject) => {
     rec.onstop = () => {
