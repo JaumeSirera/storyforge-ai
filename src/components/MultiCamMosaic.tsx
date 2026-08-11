@@ -475,6 +475,20 @@ export function MultiCamMosaic({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {turnAvailable === false && (
+          <div
+            role="status"
+            className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive-foreground"
+          >
+            <p className="font-medium text-destructive">Sin servidor de retransmisión (TURN)</p>
+            <p className="mt-1 text-muted-foreground">
+              Solo hay STUN disponible: la conexión funcionará si ambos dispositivos están en la
+              misma red, pero fallará entre móvil (4G) y PC con el error ICE 701. Configura
+              credenciales TURN para que el mosaico conecte siempre.
+            </p>
+          </div>
+        )}
+
         <div className="flex flex-wrap items-center gap-2">
           {joined ? (
             <>
