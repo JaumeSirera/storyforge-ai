@@ -170,6 +170,8 @@ function InsightsPage() {
               >
                 <Download className="h-4 w-4" /> Descargar PDF
               </Button>
+              <IntegratedReportButton captureSessionId={id} variant="outline" />
+
               <Button
                 variant="ghost"
                 size="sm"
