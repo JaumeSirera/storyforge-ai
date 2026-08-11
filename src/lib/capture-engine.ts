@@ -576,6 +576,8 @@ export async function stopRecording(key: string): Promise<boolean> {
 
   } finally {
     e.camChunks = [];
+    e.camSegments = [];
+    e.cameraLost = false;
     e.screenChunks = [];
     e.camRecorder = null;
     e.screenRecorder = null;
