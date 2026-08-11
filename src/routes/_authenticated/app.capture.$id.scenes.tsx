@@ -197,6 +197,39 @@ function ScenesPage() {
     }
   }
 
+  /** Exporta la película resumen completa (escenas, timestamps, intervenciones y observaciones). */
+  function exportPdf() {
+    if (scenes.length === 0) {
+      toast.error("Primero detecta las escenas de la sesión");
+      return;
+    }
+    try {
+      downloadScenesPdf({
+        sessionTitle: sessionQ.data?.session?.title ?? "Sesión",
+        areaLabel: sessionQ.data?.session?.areaKey ?? null,
+        generatedAt,
+        kindLabel: (k) => KIND_LABELS[k] ?? k,
+        scenes: scenes.map((scene, i) => ({
+          scene,
+          annotation: annotationByIndex.get(i) ?? null,
+          segments: segments
+            .filter((s) => s.endSec >= scene.startSec && s.startSec <= scene.endSec)
+            .map((s) => ({
+              startSec: s.startSec,
+              endSec: s.endSec,
+              speaker: nameOf(s.participantId ?? s.speakerLabel),
+              text: s.text,
+            })),
+        })),
+      });
+      toast.success("Informe PDF descargado");
+    } catch (e: any) {
+      toast.error(e?.message || "No se pudo generar el PDF");
+    }
+  }
+
+
+
   if (sessionQ.isLoading) return <p className="text-muted-foreground">Cargando…</p>;
   if (!sessionQ.data?.session) return <p>Sesión no encontrada.</p>;
   const session = sessionQ.data.session;
