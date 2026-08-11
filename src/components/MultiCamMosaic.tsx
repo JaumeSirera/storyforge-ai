@@ -11,6 +11,7 @@ type PeerState = {
   id: string;
   name: string;
   stream: MediaStream | null;
+  connectionState: RTCPeerConnectionState;
 };
 
 /**
@@ -30,6 +31,24 @@ const ICE_SERVERS: RTCIceServer[] = [
     credential: "openrelayproject",
   },
 ];
+
+const waitForIceGathering = (pc: RTCPeerConnection) =>
+  new Promise<void>((resolve) => {
+    if (pc.iceGatheringState === "complete") {
+      resolve();
+      return;
+    }
+    const finish = () => {
+      if (pc.iceGatheringState !== "complete") return;
+      pc.removeEventListener("icegatheringstatechange", finish);
+      resolve();
+    };
+    pc.addEventListener("icegatheringstatechange", finish);
+    window.setTimeout(() => {
+      pc.removeEventListener("icegatheringstatechange", finish);
+      resolve();
+    }, 5000);
+  });
 
 
 /**
@@ -59,6 +78,8 @@ export function MultiCamMosaic({
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const pcsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const namesRef = useRef<Map<string, string>>(new Map());
+  const pendingIceRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
+  const restartAttemptsRef = useRef<Map<string, number>>(new Map());
 
   const upsertPeer = useCallback((id: string, patch: Partial<PeerState>) => {
     setPeers((prev) => {
@@ -66,9 +87,27 @@ export function MultiCamMosaic({
       if (found) return prev.map((p) => (p.id === id ? { ...p, ...patch } : p));
       return [
         ...prev,
-        { id, name: namesRef.current.get(id) ?? "Participante", stream: null, ...patch },
+        {
+          id,
+          name: namesRef.current.get(id) ?? "Participante",
+          stream: null,
+          connectionState: "new",
+          ...patch,
+        },
       ];
     });
+  }, []);
+
+  const flushPendingIce = useCallback(async (peerId: string, pc: RTCPeerConnection) => {
+    const queued = pendingIceRef.current.get(peerId) ?? [];
+    pendingIceRef.current.delete(peerId);
+    for (const candidate of queued) {
+      try {
+        await pc.addIceCandidate(candidate);
+      } catch {
+        // Un candidato de una negociación anterior puede haber caducado.
+      }
+    }
   }, []);
 
   const send = useCallback(
@@ -85,26 +124,33 @@ export function MultiCamMosaic({
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
       pcsRef.current.set(peerId, pc);
 
-      localStreamRef.current?.getTracks().forEach((t) => pc.addTrack(t, localStreamRef.current!));
+      const localStream = localStreamRef.current;
+      if (localStream) localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
 
       pc.onicecandidate = (e) => {
         if (e.candidate) send("ice", { to: peerId, candidate: e.candidate.toJSON() });
       };
       pc.ontrack = (e) => {
-        const [stream] = e.streams;
-        if (stream) upsertPeer(peerId, { stream });
+        const [remoteStream] = e.streams;
+        const stream = remoteStream ?? new MediaStream([e.track]);
+        upsertPeer(peerId, { stream });
       };
       pc.onconnectionstatechange = () => {
+        upsertPeer(peerId, { connectionState: pc.connectionState });
+        if (pc.connectionState === "connected") restartAttemptsRef.current.delete(peerId);
         if (pc.connectionState === "failed") {
-          // Reintento: renegocia por relé (TURN) antes de descartar al participante.
-          if (initiator) {
+          const attempts = restartAttemptsRef.current.get(peerId) ?? 0;
+          // El iniciador determinista renegocia una vez con ICE restart.
+          if (initiator && attempts < 1) {
+            restartAttemptsRef.current.set(peerId, attempts + 1);
             void (async () => {
               try {
                 const offer = await pc.createOffer({ iceRestart: true });
                 await pc.setLocalDescription(offer);
+                await waitForIceGathering(pc);
                 send("offer", { to: peerId, sdp: pc.localDescription?.sdp, name: displayName });
               } catch {
-                /* se descartará abajo si sigue fallando */
+                upsertPeer(peerId, { connectionState: "failed" });
               }
             })();
             return;
@@ -121,6 +167,8 @@ export function MultiCamMosaic({
         void (async () => {
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
+          // Incluye en el SDP los candidatos TURN aunque el trickle llegue desordenado.
+          await waitForIceGathering(pc);
           send("offer", { to: peerId, sdp: pc.localDescription?.sdp, name: displayName });
         })();
       }
@@ -139,6 +187,8 @@ export function MultiCamMosaic({
     }
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
+    pendingIceRef.current.clear();
+    restartAttemptsRef.current.clear();
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     setPeers([]);
     setJoined(false);
@@ -168,8 +218,10 @@ export function MultiCamMosaic({
           if (name) namesRef.current.set(from, name);
           const pc = createPeer(from, false);
           await pc.setRemoteDescription({ type: "offer", sdp });
+           await flushPendingIce(from, pc);
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
+           await waitForIceGathering(pc);
           send("answer", { to: from, sdp: pc.localDescription?.sdp, name: displayName });
           upsertPeer(from, { name: name ?? "Participante" });
         })
@@ -179,6 +231,7 @@ export function MultiCamMosaic({
           const pc = pcsRef.current.get(from);
           if (!pc || pc.signalingState === "stable") return;
           await pc.setRemoteDescription({ type: "answer", sdp });
+           await flushPendingIce(from, pc);
           if (name) {
             namesRef.current.set(from, name);
             upsertPeer(from, { name });
@@ -191,10 +244,17 @@ export function MultiCamMosaic({
             candidate: RTCIceCandidateInit;
           };
           if (to !== selfId || !from) return;
+           const pc = pcsRef.current.get(from);
+           if (!pc?.remoteDescription) {
+             const queued = pendingIceRef.current.get(from) ?? [];
+             queued.push(candidate);
+             pendingIceRef.current.set(from, queued);
+             return;
+           }
           try {
-            await pcsRef.current.get(from)?.addIceCandidate(candidate);
+             await pc.addIceCandidate(candidate);
           } catch {
-            /* candidato tardío */
+             /* candidato de una negociación anterior */
           }
         })
         .on("presence", { event: "sync" }, () => {
@@ -232,7 +292,7 @@ export function MultiCamMosaic({
     } finally {
       setConnecting(false);
     }
-  }, [captureSessionId, createPeer, displayName, leave, selfId, send, upsertPeer]);
+  }, [captureSessionId, createPeer, displayName, flushPendingIce, leave, selfId, send, upsertPeer]);
 
   useEffect(() => leave, [leave]);
 
@@ -327,22 +387,65 @@ export function MultiCamMosaic({
 
 function PeerTile({ peer, frameClass }: { peer: PeerState; frameClass: string }) {
   const ref = useRef<HTMLVideoElement | null>(null);
+  const [mutedForAutoplay, setMutedForAutoplay] = useState(false);
   useEffect(() => {
-    if (ref.current) ref.current.srcObject = peer.stream ?? null;
+    const video = ref.current;
+    if (!video) return;
+    video.srcObject = peer.stream ?? null;
+    if (!peer.stream) return;
+    video.muted = false;
+    setMutedForAutoplay(false);
+    void video.play().catch(() => {
+      // Móvil y Safari suelen bloquear autoplay cuando el flujo incluye audio.
+      video.muted = true;
+      setMutedForAutoplay(true);
+      void video.play();
+    });
   }, [peer.stream]);
+
+  function enableSound() {
+    const video = ref.current;
+    if (!video) return;
+    video.muted = false;
+    void video.play();
+    setMutedForAutoplay(false);
+  }
+
   return (
     <figure
       className={`relative overflow-hidden rounded-lg border border-border bg-muted ${frameClass}`}
     >
-      <video ref={ref} autoPlay playsInline className="h-full w-full object-cover" />
+      <video
+        ref={ref}
+        autoPlay
+        playsInline
+        onLoadedMetadata={(event) => void event.currentTarget.play().catch(() => undefined)}
+        className="h-full w-full object-cover"
+      />
       {!peer.stream && (
         <span className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">
-          Conectando…
+          {peer.connectionState === "failed"
+            ? "No se pudo conectar el vídeo"
+            : peer.connectionState === "disconnected"
+              ? "Reconectando…"
+              : "Conectando…"}
         </span>
       )}
       <figcaption className="absolute bottom-1 left-1 rounded bg-background/80 px-2 py-0.5 text-xs">
         {peer.name}
       </figcaption>
+      {mutedForAutoplay && (
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={enableSound}
+          className="absolute right-2 top-2 h-8 gap-1.5"
+          aria-label={`Activar sonido de ${peer.name}`}
+        >
+          <MicOff className="h-3.5 w-3.5" /> Activar sonido
+        </Button>
+      )}
     </figure>
   );
 }
