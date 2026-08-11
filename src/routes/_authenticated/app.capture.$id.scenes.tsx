@@ -120,11 +120,11 @@ function ScenesPage() {
   const scenes = scenesQ.data?.scenes ?? [];
   const generatedAt = scenesQ.data?.generatedAt ?? null;
   const annotationByIndex = useMemo(() => {
-    const map = new Map<number, (typeof annotations)[number]>();
-    const annotations = annotationsQ.data?.annotations ?? [];
-    for (const a of annotations) map.set(a.sceneIndex, a);
+    const map = new Map<number, SceneAnnotation>();
+    for (const a of annotationsQ.data?.annotations ?? []) map.set(a.sceneIndex, a);
     return map;
   }, [annotationsQ.data]);
+
 
 
   const nameOf = (key: string | null) => {
