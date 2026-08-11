@@ -532,18 +532,47 @@ export async function stopRecording(key: string): Promise<boolean> {
     void attachScreen(e);
     e.previewOn = false;
 
-    const camBlob = new Blob(e.camChunks, { type: e.camChunks[0]?.type || "video/webm" });
-    if (camBlob.size < 2048) throw new Error("La grabación quedó vacía; inténtalo de nuevo.");
     const syncOffsetMs = Math.round(e.offsetMs);
-    await e.uploader?.({ blob: camBlob, kind: "camera", durationSec: duration, syncOffsetMs });
+    const segments = [...e.camSegments, e.camChunks].filter((c) => c.length > 0);
+    let uploaded = 0;
+    const errors: string[] = [];
+
+    // Cada pista se sube por separado: si una falla (o la cámara se cortó),
+    // no se pierde el resto de la grabación.
+    for (const chunks of segments) {
+      const blob = new Blob(chunks, { type: chunks[0]?.type || "video/webm" });
+      if (blob.size < 2048) continue;
+      try {
+        await e.uploader?.({ blob, kind: "camera", durationSec: duration, syncOffsetMs });
+        uploaded += 1;
+      } catch (err) {
+        errors.push(`cámara: ${err instanceof Error ? err.message : "error al subir"}`);
+      }
+    }
 
     if (e.screenChunks.length > 0) {
       const sBlob = new Blob(e.screenChunks, { type: e.screenChunks[0]?.type || "video/webm" });
-      if (sBlob.size > 2048)
-        await e.uploader?.({ blob: sBlob, kind: "screen", durationSec: duration, syncOffsetMs });
+      if (sBlob.size > 2048) {
+        try {
+          await e.uploader?.({ blob: sBlob, kind: "screen", durationSec: duration, syncOffsetMs });
+          uploaded += 1;
+        } catch (err) {
+          errors.push(`pantalla: ${err instanceof Error ? err.message : "error al subir"}`);
+        }
+      }
+    }
+
+    if (uploaded === 0) {
+      throw new Error(
+        errors.length > 0
+          ? `No se pudo guardar la grabación (${errors.join("; ")}).`
+          : "La grabación quedó vacía; inténtalo de nuevo.",
+      );
     }
     await clearRecovery(key);
+    if (errors.length > 0) throw new Error(`Se guardó parcialmente (${errors.join("; ")}).`);
     return true;
+
 
   } finally {
     e.camChunks = [];
