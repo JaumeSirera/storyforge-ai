@@ -238,6 +238,60 @@ function ScenesPage() {
         </p>
       </div>
 
+      {/* Requisitos previos */}
+      {segments.length === 0 && (
+        <Card className="border-amber-500/40 bg-amber-500/5">
+          <CardHeader>
+            <CardTitle className="text-base">Aún no se puede generar la película resumen</CardTitle>
+            <CardDescription>
+              La IA necesita una grabación transcrita. Completa estos pasos:
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <ol className="space-y-2">
+              <li className="flex items-start gap-2">
+                <span className="font-semibold">1.</span>
+                <span>
+                  {recordings.length === 0 ? (
+                    <>
+                      <strong>Graba la sesión</strong> — todavía no hay ninguna grabación subida.
+                    </>
+                  ) : (
+                    <>
+                      Grabación lista ({recordings.length}
+                      {recordings.length === 1 ? " pista" : " pistas"}).
+                    </>
+                  )}
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-semibold">2.</span>
+                <span>
+                  <strong>Transcribe</strong> la grabación en Analyze (aún no hay intervenciones).
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-semibold">3.</span>
+                <span>Vuelve aquí y pulsa «Detectar escenas».</span>
+              </li>
+            </ol>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild size="sm" variant="outline" className="gap-2">
+                <Link to="/app/capture/$id" params={{ id }}>
+                  Ir a grabar
+                </Link>
+              </Button>
+              <Button asChild size="sm" className="gap-2" disabled={recordings.length === 0}>
+                <Link to="/app/capture/$id/analyze" params={{ id }}>
+                  Ir a Analyze
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+
       {/* Generador */}
       <Card>
         <CardHeader>
