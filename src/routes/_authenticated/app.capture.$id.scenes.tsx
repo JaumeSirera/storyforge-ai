@@ -38,6 +38,7 @@ import {
   MessageSquare,
   Eye,
   FileDown,
+  GitCompare,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -263,6 +264,11 @@ function ScenesPage() {
               <FileDown className="h-4 w-4" /> Exportar PDF
             </Button>
           )}
+          <Button asChild variant="outline" size="sm" className="gap-2">
+            <Link to="/app/capture/$id/compare" params={{ id }}>
+              <GitCompare className="h-4 w-4" /> Comparar sesiones
+            </Link>
+          </Button>
           <Button asChild variant="outline" size="sm" className="gap-2">
             <Link to="/app/capture/$id/insights" params={{ id }}>
               <Sparkles className="h-4 w-4" /> Insights
