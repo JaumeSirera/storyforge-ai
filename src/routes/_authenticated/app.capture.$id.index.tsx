@@ -24,6 +24,8 @@ import { CaptureConsentAudit } from "@/components/CaptureConsentAudit";
 import { CaptureHostControls } from "@/components/CaptureHostControls";
 import { MediaDeviceSelector, type MediaDeviceSelection } from "@/components/MediaDeviceSelector";
 import { RecordingPlayer } from "@/components/RecordingPlayer";
+import { ComposedExportButton } from "@/components/ComposedExportButton";
+
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
