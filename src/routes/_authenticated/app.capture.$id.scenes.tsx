@@ -446,6 +446,15 @@ function ScenesPage() {
                     ))}
                   </ul>
                 </div>
+                <SceneAnnotationEditor
+                  captureSessionId={id}
+                  sceneIndex={i}
+                  sceneTitle={s.title}
+                  startSec={s.startSec}
+                  endSec={s.endSec}
+                  annotation={annotationByIndex.get(i) ?? null}
+                />
+
                 {activeIndex === i && sceneSegments.length > 0 && (
                   <div>
                     <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
