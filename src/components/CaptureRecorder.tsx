@@ -10,14 +10,19 @@ import { joinCaptureControlChannel } from "@/lib/capture-control";
 import {
   attachVideoElement,
   captureKey,
+  discardRecovery,
   ensurePreview,
   pauseRecording,
+  pendingRecovery,
+  recoverRecording,
   resumeRecording,
   startRecording,
   stopRecording,
   useCaptureState,
   type CaptureUploadPayload,
 } from "@/lib/capture-engine";
+import type { RecoveryMeta } from "@/lib/capture-recovery";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
