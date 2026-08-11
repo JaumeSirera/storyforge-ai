@@ -1188,6 +1188,11 @@ export type Database = {
           openai_key: string | null
           replicate_key: string | null
           text_provider: string
+          turn_api_token: string | null
+          turn_credential: string | null
+          turn_key_id: string | null
+          turn_urls: string | null
+          turn_username: string | null
           updated_at: string
           user_id: string
         }
@@ -1198,6 +1203,11 @@ export type Database = {
           openai_key?: string | null
           replicate_key?: string | null
           text_provider?: string
+          turn_api_token?: string | null
+          turn_credential?: string | null
+          turn_key_id?: string | null
+          turn_urls?: string | null
+          turn_username?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1208,6 +1218,11 @@ export type Database = {
           openai_key?: string | null
           replicate_key?: string | null
           text_provider?: string
+          turn_api_token?: string | null
+          turn_credential?: string | null
+          turn_key_id?: string | null
+          turn_urls?: string | null
+          turn_username?: string | null
           updated_at?: string
           user_id?: string
         }

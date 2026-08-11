@@ -5,6 +5,7 @@ import { getMyApiKeys, saveMyApiKeys } from "@/lib/user-keys.functions";
 import { getMyEmailSettings, saveMyEmailSettings } from "@/lib/email-settings.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { loadLogoDataUrl } from "@/lib/email-report";
+import { TurnSettingsCard } from "@/components/TurnSettingsCard";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,6 +74,8 @@ function SettingsPage() {
       </div>
 
       <EmailSettingsCard />
+
+      <TurnSettingsCard />
 
 
 
