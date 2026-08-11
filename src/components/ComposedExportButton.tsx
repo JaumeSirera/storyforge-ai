@@ -54,7 +54,9 @@ export function ComposedExportButton({ recordings, fileBase, getUrl, pipPrefsKey
         durationSec: Math.max(screen!.durationSec ?? 0, camera!.durationSec ?? 0) || null,
         pipCorner: prefs.corner,
         pipSize: prefs.size,
-        pipVisible: prefs.on,
+        // El vídeo combinado siempre incluye el recuadro PIP en su posición guardada.
+        pipVisible: true,
+
         onProgress: setProgress,
       });
       const url = URL.createObjectURL(blob);
