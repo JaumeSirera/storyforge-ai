@@ -408,7 +408,9 @@ export async function stopRecording(key: string): Promise<boolean> {
       if (sBlob.size > 2048)
         await e.uploader?.({ blob: sBlob, kind: "screen", durationSec: duration, syncOffsetMs });
     }
+    await clearRecovery(key);
     return true;
+
   } finally {
     e.camChunks = [];
     e.screenChunks = [];
