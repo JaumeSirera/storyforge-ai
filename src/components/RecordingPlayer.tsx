@@ -95,16 +95,10 @@ export function RecordingPlayer({
 
   // Guarda las preferencias cuando cambian.
   useEffect(() => {
-    if (!loadedRef.current || typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(
-        prefsStorageKey(pipPrefsKey),
-        JSON.stringify({ corner, size, on: pipOn, audio: audioSource, trimMs } satisfies PipPrefs),
-      );
-    } catch {
-      /* ignorar */
-    }
+    if (!loadedRef.current) return;
+    savePipPrefs(pipPrefsKey, { corner, size, on: pipOn, audio: audioSource, trimMs });
   }, [corner, size, pipOn, audioSource, trimMs, pipPrefsKey]);
+
 
   useEffect(() => {
     if (!pipSrc) setPipOn(false);
