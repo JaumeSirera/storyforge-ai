@@ -81,6 +81,8 @@ function ScenesPage() {
   const generate = useServerFn(generateSessionScenes);
   const wipe = useServerFn(deleteSessionScenes);
   const recUrl = useServerFn(getRecordingUrl);
+  const listAnnotations = useServerFn(listSceneAnnotations);
+
 
   const sessionQ = useQuery({
     queryKey: ["capture-session", id],
