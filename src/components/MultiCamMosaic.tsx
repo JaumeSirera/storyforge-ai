@@ -375,6 +375,42 @@ export function MultiCamMosaic({
 
   useEffect(() => leave, [leave]);
 
+  // Sondeo de estadísticas reales para el panel de diagnóstico.
+  useEffect(() => {
+    if (!joined) {
+      statsSampleRef.current.clear();
+      peerErrorsRef.current.clear();
+      return;
+    }
+    let cancelled = false;
+    const tick = async () => {
+      const entries = Array.from(pcsRef.current.entries());
+      const results = await Promise.all(
+        entries.map(async ([id, pc]) => {
+          const { diagnostics, sample } = await collectDiagnostics(
+            pc,
+            statsSampleRef.current.get(id),
+            peerErrorsRef.current.get(id),
+          );
+          if (sample) statsSampleRef.current.set(id, sample);
+          return [id, diagnostics] as const;
+        }),
+      );
+      if (cancelled || results.length === 0) return;
+      const map = new Map(results);
+      setPeers((prev) =>
+        prev.map((p) => (map.has(p.id) ? { ...p, diagnostics: map.get(p.id) } : p)),
+      );
+    };
+    void tick();
+    const timer = window.setInterval(() => void tick(), 2000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [joined]);
+
+
   function toggleCam() {
     const track = localStreamRef.current?.getVideoTracks()[0];
     if (!track) return;
