@@ -195,6 +195,21 @@ export function MultiCamMosaic({
       pc.onicecandidate = (e) => {
         if (e.candidate) send("ice", { to: peerId, candidate: e.candidate.toJSON() });
       };
+      pc.addEventListener("icecandidateerror", (event: any) => {
+        // 701 en TURN suele indicar bloqueo del relé por la red del participante.
+        peerErrorsRef.current.set(
+          peerId,
+          `ICE ${event?.errorCode ?? ""}: ${event?.errorText || "fallo al obtener candidatos"} (${event?.url ?? "sin URL"})`,
+        );
+      });
+      pc.oniceconnectionstatechange = () => {
+        if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
+          peerErrorsRef.current.delete(peerId);
+        }
+      };
+
+        if (e.candidate) send("ice", { to: peerId, candidate: e.candidate.toJSON() });
+      };
       pc.ontrack = (e) => {
         const [remoteStream] = e.streams;
         const stream = remoteStream ?? new MediaStream([e.track]);
