@@ -85,10 +85,61 @@ export function generateComparisonPdf(data: ComparisonPdfData): jsPDF {
   doc.setTextColor(60);
 
   heading(data.headline);
-  body(data.summary, { color: 30 });
+  const trim = (t: string, max: number) =>
+    t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t;
+  body(data.executiveSummary ? trim(data.summary, 620) : data.summary, { color: 30 });
   if (data.focus) body(`Foco solicitado: ${data.focus}`, { size: 9, color: 120 });
 
+  // Resumen ejecutivo: conclusiones y recomendaciones clave en 1 página
+  if (data.executiveSummary) {
+    const topPatterns = [...data.patterns]
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, 4);
+
+    heading("Conclusiones clave");
+    topPatterns.forEach((p, i) => {
+      const a = p.sessionAEvidence[0];
+      const b = p.sessionBEvidence[0];
+      body(`${i + 1}.  ${trim(p.pattern, 120)}  ·  similitud ${p.similarity}/5  ·  ${p.kind}`, {
+        size: 9.5,
+        color: 30,
+        bold: true,
+      });
+      if (a && b)
+        body(
+          `A ${formatSec(a.startSec)}–${formatSec(a.endSec)} «${trim(a.sceneTitle, 40)}»   ·   B ${formatSec(
+            b.startSec,
+          )}–${formatSec(b.endSec)} «${trim(b.sceneTitle, 40)}»`,
+          { size: 8.5, color: 120, indent: 12 },
+        );
+      y += 2;
+    });
+
+    if (data.differences.length) {
+      heading("Diferencias destacadas");
+      data.differences.slice(0, 3).forEach((d) => {
+        body(`•  ${trim(d.aspect, 110)}`, { size: 9.5, color: 30, indent: 4 });
+      });
+    }
+
+    heading("Recomendaciones clave");
+    data.recommendations.slice(0, 5).forEach((r, i) => {
+      body(`${i + 1}.  ${trim(r, 180)}`, { size: 9.5, color: 30, indent: 4 });
+    });
+
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text("El detalle con todas las evidencias temporales continúa en las páginas siguientes.", M, H - 46);
+
+    doc.addPage();
+    y = M + 8;
+    doc.setTextColor(60);
+    heading("Detalle de patrones y evidencias");
+  }
+
   // Patrones
+
   data.patterns.forEach((p, i) => {
     heading(`Patrón ${i + 1} · ${p.pattern}`);
     body(`Tipo de momento: ${p.kind}  ·  Similitud ${p.similarity}/5`, { size: 9, color: 120 });
