@@ -331,7 +331,7 @@ function ScenesPage() {
               <li className="flex items-start gap-2">
                 <span className="font-semibold">2.</span>
                 <span>
-                  <strong>Transcribe</strong> la grabación en Analyze (aún no hay intervenciones).
+                  <strong>Transcribe</strong> la grabación en Analizar (aún no hay intervenciones).
                 </span>
               </li>
               <li className="flex items-start gap-2">
@@ -364,7 +364,7 @@ function ScenesPage() {
           </CardTitle>
           <CardDescription>
             {segments.length === 0
-              ? "Primero transcribe la sesión en Analyze."
+              ? "Primero transcribe la sesión en Analizar."
               : `${segments.length} intervenciones disponibles para detectar momentos clave.`}
           </CardDescription>
         </CardHeader>
