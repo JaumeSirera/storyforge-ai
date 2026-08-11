@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
 import type { MediaDeviceSelection } from "@/components/MediaDeviceSelector";
+import {
+  clearRecovery,
+  getRecoverable,
+  loadRecoveredBlobs,
+  persistChunk,
+  persistMeta,
+  type RecoveryMeta,
+} from "@/lib/capture-recovery";
+
 
 export type CapturePhase = "idle" | "recording" | "paused" | "uploading";
 
