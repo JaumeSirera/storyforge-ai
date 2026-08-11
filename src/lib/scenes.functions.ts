@@ -139,17 +139,22 @@ Selecciona los momentos más relevantes y devuélvelos como escenas de la "pelí
       });
     } catch (err: any) {
       console.error("[scenes] generación fallida", err?.message ?? err);
-      throw new Error(
-        "El modelo no devolvió escenas válidas. Vuelve a intentarlo (puedes acotar el foco para ayudarle).",
-      );
+      result = null;
     }
 
-    const raw = (result.experimental_output as z.infer<typeof ScenesGenSchema> | undefined)?.scenes ?? [];
+    const raw =
+      (result?.experimental_output as z.infer<typeof ScenesGenSchema> | undefined)?.scenes ?? [];
     const normalizedScenes = normalizeScenes(raw, spanSec);
     const scenes =
       normalizedScenes.length > 0
         ? normalizedScenes
         : buildFallbackScenes(segments, spanSec, nameOf);
+    if (scenes.length === 0) {
+      throw new Error(
+        "No hay suficiente transcripción para construir escenas. Vuelve a transcribir la sesión en Analizar.",
+      );
+    }
+
 
     const generatedAt = new Date().toISOString();
     const { error: saveErr } = await context.supabase.from("capture_analyses").upsert(
