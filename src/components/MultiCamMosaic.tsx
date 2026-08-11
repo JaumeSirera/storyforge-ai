@@ -428,6 +428,26 @@ export function MultiCamMosaic({
   const cols =
     total <= 1 ? "grid-cols-1" : total <= 4 ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-3";
 
+  const diagnosticsRows: DiagnosticsRow[] = joined
+    ? [
+        {
+          id: "self",
+          name: displayName,
+          isSelf: true,
+          connectionState: "connected",
+          hasVideo: Boolean(localStreamRef.current),
+        },
+        ...peers.map((p) => ({
+          id: p.id,
+          name: p.name,
+          connectionState: p.connectionState,
+          hasVideo: Boolean(p.stream),
+          diagnostics: p.diagnostics,
+        })),
+      ]
+    : [];
+
+
   return (
     <Card>
       <CardHeader>
