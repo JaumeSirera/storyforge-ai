@@ -252,8 +252,10 @@ export function RecordingPlayer({
         />
         {pipSrc && pipOn && (
           <div
-            className={`absolute ${CORNER_CLASS[corner]} ${SIZE_CLASS[size]} overflow-hidden rounded-md border-2 border-background shadow-lg`}
+            style={{ width: SIZE_STYLE[size] }}
+            className={`absolute ${CORNER_CLASS[corner]} min-w-[90px] max-w-[340px] overflow-hidden rounded-md border-2 border-background shadow-lg`}
           >
+
             <video
               ref={pipRef}
               src={pipSrc}
