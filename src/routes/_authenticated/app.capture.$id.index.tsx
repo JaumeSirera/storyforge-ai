@@ -678,36 +678,89 @@ function CaptureSessionPage() {
       </Dialog>
 
       {/* Control sincronizado de la grabación en todos los dispositivos */}
-      {consentsOk && (session.mode === "group" || session.captureMode === "per_participant") && (
-        <CaptureHostControls captureSessionId={id} />
-      )}
+      <Dialog open={open === "host"} onOpenChange={(v) => setOpen(v ? "host" : null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Radio className="h-4 w-4" /> Control del anfitrión
+            </DialogTitle>
+            <DialogDescription>
+              Inicia, pausa o finaliza la grabación en todos los dispositivos conectados.
+            </DialogDescription>
+          </DialogHeader>
+          {consentsOk ? (
+            <CaptureHostControls captureSessionId={id} />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Activa el consentimiento de grabación para habilitar el control remoto.
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Mosaico multicámara en directo */}
-      {consentsOk && (session.mode === "group" || session.captureMode === "per_participant") && (
-        <MultiCamMosaic captureSessionId={id} displayName={myName} />
-      )}
+      <Dialog open={open === "mosaic"} onOpenChange={(v) => setOpen(v ? "mosaic" : null)}>
+        <DialogContent className="sm:max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Grid2x2 className="h-4 w-4" /> Mosaico multicámara en directo
+            </DialogTitle>
+            <DialogDescription>
+              Todas las cámaras de la sala a la vez, sin pasar por el servidor de grabación.
+            </DialogDescription>
+          </DialogHeader>
+          {consentsOk ? (
+            <MultiCamMosaic captureSessionId={id} displayName={myName} />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Activa el consentimiento de grabación para entrar en la sala.
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Grabación */}
-      {!consentsOk ? (
-        <Card>
-          <CardContent className="p-4 text-sm text-muted-foreground">
-            Activa el consentimiento de grabación para habilitar la captura.
-          </CardContent>
-        </Card>
-      ) : !mediaSelection ? (
-        <MediaDeviceSelector
-          storageKey={`pn-devices-host-${id}`}
-          onSelected={setMediaSelection}
-          title="Dispositivos de captura del anfitrión"
-        />
-      ) : session.captureMode === "per_participant" && participants.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          {participants.map((p) => (
+      <Dialog open={open === "record"} onOpenChange={(v) => setOpen(v ? "record" : null)}>
+        <DialogContent className="sm:max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Video className="h-4 w-4" /> Grabación
+            </DialogTitle>
+            <DialogDescription>
+              Puedes cerrar esta ventana: la grabación continúa y se controla desde el indicador
+              flotante.
+            </DialogDescription>
+          </DialogHeader>
+          {!consentsOk ? (
+            <p className="text-sm text-muted-foreground">
+              Activa el consentimiento de grabación para habilitar la captura.
+            </p>
+          ) : !mediaSelection ? (
+            <MediaDeviceSelector
+              storageKey={`pn-devices-host-${id}`}
+              onSelected={setMediaSelection}
+              title="Dispositivos de captura del anfitrión"
+            />
+          ) : session.captureMode === "per_participant" && participants.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {participants.map((p) => (
+                <CaptureRecorder
+                  key={p.id}
+                  captureSessionId={id}
+                  participantId={p.id}
+                  participantName={p.name}
+                  recordScreen={session.recordScreen}
+                  mediaSelection={mediaSelection}
+                  onUploaded={() => {
+                    qc.invalidateQueries({ queryKey: ["capture-session", id] });
+                    patch({ status: "recorded", endedAt: new Date().toISOString() });
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
             <CaptureRecorder
-              key={p.id}
               captureSessionId={id}
-              participantId={p.id}
-              participantName={p.name}
               recordScreen={session.recordScreen}
               mediaSelection={mediaSelection}
               onUploaded={() => {
@@ -715,19 +768,10 @@ function CaptureSessionPage() {
                 patch({ status: "recorded", endedAt: new Date().toISOString() });
               }}
             />
-          ))}
-        </div>
-      ) : (
-        <CaptureRecorder
-          captureSessionId={id}
-          recordScreen={session.recordScreen}
-          mediaSelection={mediaSelection}
-          onUploaded={() => {
-            qc.invalidateQueries({ queryKey: ["capture-session", id] });
-            patch({ status: "recorded", endedAt: new Date().toISOString() });
-          }}
-        />
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
+
 
       {/* Grabaciones */}
       <Dialog open={open === "recordings"} onOpenChange={(v) => setOpen(v ? "recordings" : null)}>
