@@ -510,19 +510,26 @@ function CaptureSessionPage() {
               onCheckedChange={(v) => patch({ recordScreen: v })}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Participantes */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Participantes</CardTitle>
-          <CardDescription>
-            Cada persona tiene fotografía, nombre, identificador y rol. Puedes incorporar a alguien
-            que llegue tarde en cualquier momento.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <Dialog
+        open={open === "participants"}
+        onOpenChange={(v) => setOpen(v ? "participants" : null)}
+      >
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-4 w-4" /> Participantes
+            </DialogTitle>
+            <DialogDescription>
+              Cada persona tiene fotografía, nombre, identificador y rol. Puedes incorporar a alguien
+              que llegue tarde en cualquier momento.
+            </DialogDescription>
+          </DialogHeader>
+        <div className="space-y-4">
           {participants.length === 0 && (
             <p className="text-sm text-muted-foreground">Aún no hay participantes.</p>
           )}
