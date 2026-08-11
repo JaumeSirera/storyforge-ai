@@ -77,6 +77,13 @@ function AnalyzePage() {
     queryKey: ["capture-analysis", id],
     queryFn: () => getAnalysis({ data: { captureSessionId: id } }),
   });
+  const annotationsQ = useQuery({
+    queryKey: ["scene-annotations", id],
+    queryFn: () => listAnnotations({ data: { captureSessionId: id } }),
+  });
+  const annotations = annotationsQ.data?.annotations ?? [];
+
+
 
   const [busy, setBusy] = useState<string | null>(null);
 
