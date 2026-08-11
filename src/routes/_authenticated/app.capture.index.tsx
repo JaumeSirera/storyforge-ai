@@ -250,12 +250,12 @@ function CaptureIndex() {
                     </Button>
                     <Button asChild size="sm" variant="secondary" className="gap-2">
                       <Link to="/app/capture/$id/analyze" params={{ id: s.id }}>
-                        <BarChart3 className="h-3.5 w-3.5" /> Analyze
+                        <BarChart3 className="h-3.5 w-3.5" /> Analizar
                       </Link>
                     </Button>
                     <Button asChild size="sm" className="gap-2">
                       <Link to="/app/capture/$id/insights" params={{ id: s.id }}>
-                        <Sparkles className="h-3.5 w-3.5" /> Insights
+                        <Sparkles className="h-3.5 w-3.5" /> Conclusiones
                       </Link>
                     </Button>
                   </div>
