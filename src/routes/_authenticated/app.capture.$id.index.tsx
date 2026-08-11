@@ -68,6 +68,9 @@ import {
   Radio,
   Grid2x2,
   Video,
+  Search,
+  Filter,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -128,6 +131,9 @@ function CaptureSessionPage() {
   } | null>(null);
   const [mediaSelection, setMediaSelection] = useState<MediaDeviceSelection | null>(null);
   const [myName, setMyName] = useState("Yo");
+  const [pSearch, setPSearch] = useState("");
+  const [pRoleFilter, setPRoleFilter] = useState<ParticipantRole | "all">("all");
+  const [pStatusFilter, setPStatusFilter] = useState<"all" | "active" | "late">("all");
   const [open, setOpen] = useState<
     | null
     | "config"
