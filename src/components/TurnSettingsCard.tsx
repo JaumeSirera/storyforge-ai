@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Wifi } from "lucide-react";
+import { Wifi, ExternalLink } from "lucide-react";
 
 export function TurnSettingsCard() {
   const qc = useQueryClient();
