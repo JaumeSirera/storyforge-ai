@@ -2,8 +2,15 @@ import { jsPDF } from "jspdf";
 import { formatSec } from "./analyze-metrics";
 import type { ScenesComparison } from "./compare-scenes.functions";
 
+export type ComparisonPdfData = ScenesComparison & {
+  focus?: string | null;
+  /** Empieza el informe con una página de conclusiones y recomendaciones clave. */
+  executiveSummary?: boolean;
+};
+
 /** Exporta la comparativa de sesiones: patrones, evidencias por sesión, diferencias y recomendaciones. */
-export function generateComparisonPdf(data: ScenesComparison & { focus?: string | null }): jsPDF {
+export function generateComparisonPdf(data: ComparisonPdfData): jsPDF {
+
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
@@ -65,7 +72,14 @@ export function generateComparisonPdf(data: ScenesComparison & { focus?: string 
   doc.text(titleLines.slice(0, 2), M, 50);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
-  doc.text("Comparativa de sesiones · Playnalyze", M, 50 + titleLines.slice(0, 2).length * 20);
+  doc.text(
+    data.executiveSummary
+      ? "Comparativa de sesiones · Resumen ejecutivo · Playnalyze"
+      : "Comparativa de sesiones · Playnalyze",
+    M,
+    50 + titleLines.slice(0, 2).length * 20,
+  );
+
   doc.setFontSize(9);
   const meta = [
     `Sesión A: ${data.sessionA.sceneCount} escenas`,
@@ -78,10 +92,61 @@ export function generateComparisonPdf(data: ScenesComparison & { focus?: string 
   doc.setTextColor(60);
 
   heading(data.headline);
-  body(data.summary, { color: 30 });
+  const trim = (t: string, max: number) =>
+    t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t;
+  body(data.executiveSummary ? trim(data.summary, 620) : data.summary, { color: 30 });
   if (data.focus) body(`Foco solicitado: ${data.focus}`, { size: 9, color: 120 });
 
+  // Resumen ejecutivo: conclusiones y recomendaciones clave en 1 página
+  if (data.executiveSummary) {
+    const topPatterns = [...data.patterns]
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, 4);
+
+    heading("Conclusiones clave");
+    topPatterns.forEach((p, i) => {
+      const a = p.sessionAEvidence[0];
+      const b = p.sessionBEvidence[0];
+      body(`${i + 1}.  ${trim(p.pattern, 120)}  ·  similitud ${p.similarity}/5  ·  ${p.kind}`, {
+        size: 9.5,
+        color: 30,
+        bold: true,
+      });
+      if (a && b)
+        body(
+          `A ${formatSec(a.startSec)}–${formatSec(a.endSec)} «${trim(a.sceneTitle, 40)}»   ·   B ${formatSec(
+            b.startSec,
+          )}–${formatSec(b.endSec)} «${trim(b.sceneTitle, 40)}»`,
+          { size: 8.5, color: 120, indent: 12 },
+        );
+      y += 2;
+    });
+
+    if (data.differences.length) {
+      heading("Diferencias destacadas");
+      data.differences.slice(0, 3).forEach((d) => {
+        body(`•  ${trim(d.aspect, 110)}`, { size: 9.5, color: 30, indent: 4 });
+      });
+    }
+
+    heading("Recomendaciones clave");
+    data.recommendations.slice(0, 5).forEach((r, i) => {
+      body(`${i + 1}.  ${trim(r, 180)}`, { size: 9.5, color: 30, indent: 4 });
+    });
+
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text("El detalle con todas las evidencias temporales continúa en las páginas siguientes.", M, H - 46);
+
+    doc.addPage();
+    y = M + 8;
+    doc.setTextColor(60);
+    heading("Detalle de patrones y evidencias");
+  }
+
   // Patrones
+
   data.patterns.forEach((p, i) => {
     heading(`Patrón ${i + 1} · ${p.pattern}`);
     body(`Tipo de momento: ${p.kind}  ·  Similitud ${p.similarity}/5`, { size: 9, color: 120 });
@@ -146,8 +211,11 @@ function slug(s: string) {
   );
 }
 
-export function downloadComparisonPdf(data: ScenesComparison & { focus?: string | null }) {
+export function downloadComparisonPdf(data: ComparisonPdfData) {
   generateComparisonPdf(data).save(
-    `comparativa-${slug(data.sessionA.title)}-vs-${slug(data.sessionB.title)}.pdf`,
+    `comparativa${data.executiveSummary ? "-ejecutiva" : ""}-${slug(data.sessionA.title)}-vs-${slug(
+      data.sessionB.title,
+    )}.pdf`,
   );
 }
+
