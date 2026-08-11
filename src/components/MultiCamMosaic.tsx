@@ -208,8 +208,7 @@ export function MultiCamMosaic({
         }
       };
 
-        if (e.candidate) send("ice", { to: peerId, candidate: e.candidate.toJSON() });
-      };
+
       pc.ontrack = (e) => {
         const [remoteStream] = e.streams;
         const stream = remoteStream ?? new MediaStream([e.track]);
