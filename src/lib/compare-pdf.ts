@@ -204,8 +204,11 @@ function slug(s: string) {
   );
 }
 
-export function downloadComparisonPdf(data: ScenesComparison & { focus?: string | null }) {
+export function downloadComparisonPdf(data: ComparisonPdfData) {
   generateComparisonPdf(data).save(
-    `comparativa-${slug(data.sessionA.title)}-vs-${slug(data.sessionB.title)}.pdf`,
+    `comparativa${data.executiveSummary ? "-ejecutiva" : ""}-${slug(data.sessionA.title)}-vs-${slug(
+      data.sessionB.title,
+    )}.pdf`,
   );
 }
+
