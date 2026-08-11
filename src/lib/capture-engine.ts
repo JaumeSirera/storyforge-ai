@@ -257,31 +257,8 @@ export async function startRecording(key: string, opts: CaptureStartOptions, lab
   e.camRecorder = rec;
 
   if (opts.recordScreen) {
-    try {
-      const screen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
-      e.streams.push(screen);
-      e.screenStream = screen;
-      void attachScreen(e);
-      screen.getVideoTracks().forEach((t) => {
-        t.addEventListener("ended", () => {
-          e.screenStream = null;
-          void attachScreen(e);
-          emit();
-        });
-      });
-      e.screenChunks = [];
-      const srec = new MediaRecorder(screen, mime ? { mimeType: mime } : undefined);
-      srec.ondataavailable = (ev) => {
-        if (ev.data.size > 0) {
-          e.screenChunks.push(ev.data);
-          void persistChunk(key, "screen", ev.data);
-        }
-      };
-      e.screenRecorder = srec;
-      srec.start(2000);
-    } catch {
-      throw new Error("__screen_cancelled__");
-    }
+    const ok = await startScreenCapture(key, mime);
+    if (!ok) throw new Error("__screen_cancelled__");
   }
 
   e.uploader = opts.uploader;
@@ -293,6 +270,57 @@ export async function startRecording(key: string, opts: CaptureStartOptions, lab
   e.phase = "recording";
   void saveMeta(e, mime);
   emit();
+}
+
+/**
+ * Añade la pista de pantalla a la grabación (al empezar o ya en marcha).
+ * Devuelve false si el usuario cancela o el navegador la bloquea.
+ */
+export async function startScreenCapture(key: string, mimeHint?: string): Promise<boolean> {
+  const e = getEntry(key);
+  if (e.screenStream) return true;
+  const mime = mimeHint ?? pickMime();
+  try {
+    const screen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+    e.streams.push(screen);
+    e.screenStream = screen;
+    void attachScreen(e);
+    screen.getVideoTracks().forEach((t) => {
+      t.addEventListener("ended", () => {
+        e.screenStream = null;
+        try {
+          if (e.screenRecorder && e.screenRecorder.state !== "inactive") e.screenRecorder.stop();
+        } catch {
+          /* ignore */
+        }
+        void attachScreen(e);
+        emit();
+      });
+    });
+    if (e.screenChunks.length === 0) e.screenChunks = [];
+    const srec = new MediaRecorder(screen, mime ? { mimeType: mime } : undefined);
+    srec.ondataavailable = (ev) => {
+      if (ev.data.size > 0) {
+        e.screenChunks.push(ev.data);
+        void persistChunk(key, "screen", ev.data);
+      }
+    };
+    e.screenRecorder = srec;
+    srec.start(2000);
+    if (e.phase === "paused") srec.pause();
+    emit();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** ¿El navegador/contexto actual permite compartir pantalla? */
+export function canCaptureScreen(): boolean {
+  return (
+    typeof navigator !== "undefined" &&
+    typeof navigator.mediaDevices?.getDisplayMedia === "function"
+  );
 }
 
 function saveMeta(e: Entry, mimeType: string) {

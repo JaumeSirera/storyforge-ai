@@ -10,6 +10,8 @@ import { joinCaptureControlChannel } from "@/lib/capture-control";
 import {
   attachVideoElement,
   attachScreenElement,
+  startScreenCapture,
+  canCaptureScreen,
   captureKey,
   discardRecovery,
   ensurePreview,
@@ -406,6 +408,29 @@ export function CaptureRecorder({
                   : "Se activará al iniciar la grabación"}
               </span>
             </div>
+            {!screenSharing && (phase === "recording" || phase === "paused") && (
+              <Button
+                size="sm"
+                variant="secondary"
+                className="gap-2"
+                onClick={async () => {
+                  if (!canCaptureScreen()) {
+                    toast.error(
+                      "Este navegador o vista no permite compartir pantalla. Abre la app en una pestaña propia.",
+                    );
+                    return;
+                  }
+                  const ok = await startScreenCapture(key);
+                  toast[ok ? "success" : "error"](
+                    ok
+                      ? "Pantalla añadida a la grabación en curso."
+                      : "No se pudo compartir la pantalla (cancelada o bloqueada por el navegador).",
+                  );
+                }}
+              >
+                <MonitorUp className="h-4 w-4" /> Compartir pantalla ahora
+              </Button>
+            )}
             <div className="relative aspect-video overflow-hidden rounded-lg border bg-muted">
               <video
                 ref={screenRef}
@@ -417,8 +442,9 @@ export function CaptureRecorder({
               />
               {!screenSharing && (
                 <div className="absolute inset-0 grid place-items-center px-4 text-center text-xs text-muted-foreground">
-                  Sin pantalla compartida todavía. Al iniciar la grabación el navegador te pedirá
-                  elegir la pantalla o pestaña a capturar.
+                  Sin pantalla compartida todavía. Sí se pueden grabar cámara y pantalla a la vez:
+                  el navegador pide permiso aparte y, si se cancela o la vista previa lo bloquea,
+                  puedes añadirla con el botón de arriba (o abre la app en su propia pestaña).
                 </div>
               )}
             </div>
