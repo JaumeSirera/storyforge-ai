@@ -58,6 +58,60 @@ const waitForIceGathering = (pc: RTCPeerConnection) =>
     }, 5000);
   });
 
+type InboundSample = { bytes: number; at: number };
+
+/** Lee las estadísticas reales de la conexión (ICE/TURN, latencia, pérdida, vídeo). */
+async function collectDiagnostics(
+  pc: RTCPeerConnection,
+  prevSample: InboundSample | undefined,
+  lastError: string | undefined,
+): Promise<{ diagnostics: PeerDiagnostics; sample?: InboundSample }> {
+  const diagnostics: PeerDiagnostics = {
+    iceConnectionState: pc.iceConnectionState,
+    iceGatheringState: pc.iceGatheringState,
+    signalingState: pc.signalingState,
+    usingTurn: false,
+    lastError,
+  };
+  let sample: InboundSample | undefined;
+  try {
+    const stats = await pc.getStats();
+    const byId = new Map<string, any>();
+    stats.forEach((report: any) => byId.set(report.id, report));
+    stats.forEach((report: any) => {
+      if (report.type === "candidate-pair" && (report.selected || report.state === "succeeded")) {
+        const local = report.localCandidateId ? byId.get(report.localCandidateId) : undefined;
+        const remote = report.remoteCandidateId ? byId.get(report.remoteCandidateId) : undefined;
+        if (local?.candidateType) diagnostics.localCandidateType = local.candidateType;
+        if (remote?.candidateType) diagnostics.remoteCandidateType = remote.candidateType;
+        diagnostics.transport = local?.relayProtocol ?? local?.protocol ?? report.protocol;
+        diagnostics.usingTurn =
+          local?.candidateType === "relay" || remote?.candidateType === "relay";
+        if (typeof report.currentRoundTripTime === "number")
+          diagnostics.roundTripMs = report.currentRoundTripTime * 1000;
+      }
+      if (report.type === "inbound-rtp" && report.kind === "video") {
+        const received = (report.packetsReceived ?? 0) + (report.packetsLost ?? 0);
+        if (received > 0)
+          diagnostics.packetsLostPct = ((report.packetsLost ?? 0) / received) * 100;
+        if (typeof report.frameWidth === "number") diagnostics.frameWidth = report.frameWidth;
+        if (typeof report.frameHeight === "number") diagnostics.frameHeight = report.frameHeight;
+        if (typeof report.framesPerSecond === "number") diagnostics.fps = report.framesPerSecond;
+        const bytes = report.bytesReceived ?? 0;
+        const at = report.timestamp ?? Date.now();
+        sample = { bytes, at };
+        if (prevSample && at > prevSample.at) {
+          diagnostics.inboundKbps =
+            ((bytes - prevSample.bytes) * 8) / ((at - prevSample.at) / 1000) / 1000;
+        }
+      }
+    });
+  } catch {
+    diagnostics.lastError = lastError ?? "No se pudieron leer las estadísticas de la conexión.";
+  }
+  return { diagnostics, sample };
+}
+
 
 /**
  * Mosaico multicámara en tiempo real (malla WebRTC).
