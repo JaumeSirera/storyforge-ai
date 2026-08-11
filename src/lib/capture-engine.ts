@@ -93,6 +93,8 @@ function getEntry(key: string, label = ""): Entry {
       camRecorder: null,
       screenRecorder: null,
       camChunks: [],
+      camSegments: [],
+      cameraLost: false,
       screenChunks: [],
       uploader: null,
       videoEl: null,
