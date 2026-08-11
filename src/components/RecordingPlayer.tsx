@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { PictureInPicture2, X } from "lucide-react";
 
 type Corner = "br" | "bl" | "tr" | "tl";
+type PipSize = "sm" | "md" | "lg";
 
 interface Props {
   src: string;
@@ -14,6 +15,8 @@ interface Props {
   pipOffsetMs?: number;
   /** Etiqueta del recuadro. */
   pipLabel?: string;
+  /** Identificador para recordar posición/tamaño del recuadro (p. ej. id de sesión). */
+  pipPrefsKey?: string;
 }
 
 const CORNER_CLASS: Record<Corner, string> = {
@@ -22,6 +25,32 @@ const CORNER_CLASS: Record<Corner, string> = {
   tr: "top-3 right-3",
   tl: "top-3 left-3",
 };
+
+const SIZE_CLASS: Record<PipSize, string> = {
+  sm: "w-1/6 min-w-[90px] max-w-[150px]",
+  md: "w-1/4 min-w-[110px] max-w-[220px]",
+  lg: "w-1/3 min-w-[150px] max-w-[320px]",
+};
+
+const SIZE_LABEL: Record<PipSize, string> = { sm: "S", md: "M", lg: "L" };
+const SIZES: PipSize[] = ["sm", "md", "lg"];
+
+type PipPrefs = { corner: Corner; size: PipSize; on: boolean };
+
+function prefsStorageKey(key?: string) {
+  return `playnalyze:pip:${key ?? "default"}`;
+}
+
+function loadPipPrefs(key?: string): Partial<PipPrefs> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(prefsStorageKey(key));
+    return raw ? (JSON.parse(raw) as Partial<PipPrefs>) : {};
+  } catch {
+    return {};
+  }
+}
+
 
 /**
  * Reproductor de grabaciones MediaRecorder (WebM). Los archivos generados por
