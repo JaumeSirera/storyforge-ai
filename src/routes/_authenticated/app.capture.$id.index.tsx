@@ -760,3 +760,44 @@ function CaptureSessionPage() {
     </div>
   );
 }
+
+type RecTrack = {
+  id: string;
+  kind: string;
+  durationSec?: number | null;
+  syncOffsetMs: number;
+  participantId?: string | null;
+  createdAt: string;
+};
+
+type Take = {
+  key: string;
+  participantId?: string | null;
+  tracks: RecTrack[];
+};
+
+/**
+ * Agrupa las pistas de una misma toma (pantalla + cámara del mismo participante
+ * grabadas casi a la vez) para mostrarlas en una única línea.
+ */
+function buildTakes<T extends RecTrack>(recordings: T[]): Take[] {
+  const WINDOW_MS = 120_000;
+  const takes: Take[] = [];
+  for (const r of [...recordings].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  )) {
+    const t = new Date(r.createdAt).getTime();
+    const target = takes.find(
+      (g) =>
+        g.participantId === (r.participantId ?? null) &&
+        !g.tracks.some((x) => x.kind === r.kind) &&
+        Math.abs(new Date(g.tracks[0]!.createdAt).getTime() - t) < WINDOW_MS,
+    );
+    if (target) target.tracks.push(r);
+    else takes.push({ key: r.id, participantId: r.participantId ?? null, tracks: [r] });
+  }
+  // Pantalla primero dentro de cada toma, tomas más recientes arriba.
+  const order: Record<string, number> = { screen: 0, camera: 1, audio: 2 };
+  for (const g of takes) g.tracks.sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9));
+  return takes.reverse();
+}
