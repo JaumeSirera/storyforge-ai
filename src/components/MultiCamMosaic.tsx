@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Grid2x2, Mic, MicOff, Video, VideoOff, Users, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { PreviewViewControls, usePreviewView } from "./PreviewViewControls";
+import { getIceConfig } from "@/lib/ice.functions";
 import {
   MosaicDiagnosticsPanel,
   type DiagnosticsRow,
@@ -24,21 +25,14 @@ type PeerState = {
 
 /**
  * STUN descubre la IP pública; TURN reenvía el vídeo cuando los dispositivos
- * están en redes distintas (móvil 4G ↔ PC con router/NAT estricto), que es el
- * caso en el que antes las cámaras se quedaban en negro.
+ * están en redes distintas (móvil 4G ↔ PC con router/NAT estricto). Los relés
+ * públicos gratuitos ya no funcionan (error ICE 701), así que la lista real se
+ * pide al servidor y este usa las credenciales TURN configuradas.
  */
-const ICE_SERVERS: RTCIceServer[] = [
+const FALLBACK_ICE_SERVERS: RTCIceServer[] = [
   { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
-  {
-    urls: [
-      "turn:openrelay.metered.ca:80",
-      "turn:openrelay.metered.ca:443",
-      "turn:openrelay.metered.ca:443?transport=tcp",
-    ],
-    username: "openrelayproject",
-    credential: "openrelayproject",
-  },
 ];
+
 
 const waitForIceGathering = (pc: RTCPeerConnection) =>
   new Promise<void>((resolve) => {
@@ -144,6 +138,27 @@ export function MultiCamMosaic({
   const restartAttemptsRef = useRef<Map<string, number>>(new Map());
   const statsSampleRef = useRef<Map<string, InboundSample>>(new Map());
   const peerErrorsRef = useRef<Map<string, string>>(new Map());
+  const iceServersRef = useRef<RTCIceServer[]>(FALLBACK_ICE_SERVERS);
+  const [turnAvailable, setTurnAvailable] = useState<boolean | null>(null);
+
+  // Las credenciales TURN se resuelven en el servidor (son de corta duración).
+  useEffect(() => {
+    let cancelled = false;
+    void getIceConfig()
+      .then((cfg) => {
+        if (cancelled) return;
+        if (cfg.iceServers?.length) iceServersRef.current = cfg.iceServers;
+        setTurnAvailable(cfg.hasTurn);
+      })
+      .catch(() => {
+        if (!cancelled) setTurnAvailable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+
 
 
   const upsertPeer = useCallback((id: string, patch: Partial<PeerState>) => {
@@ -186,7 +201,7 @@ export function MultiCamMosaic({
     (peerId: string, initiator: boolean) => {
       const existing = pcsRef.current.get(peerId);
       if (existing) return existing;
-      const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+      const pc = new RTCPeerConnection({ iceServers: iceServersRef.current });
       pcsRef.current.set(peerId, pc);
 
       const localStream = localStreamRef.current;
@@ -460,6 +475,20 @@ export function MultiCamMosaic({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {turnAvailable === false && (
+          <div
+            role="status"
+            className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive-foreground"
+          >
+            <p className="font-medium text-destructive">Sin servidor de retransmisión (TURN)</p>
+            <p className="mt-1 text-muted-foreground">
+              Solo hay STUN disponible: la conexión funcionará si ambos dispositivos están en la
+              misma red, pero fallará entre móvil (4G) y PC con el error ICE 701. Configura
+              credenciales TURN para que el mosaico conecte siempre.
+            </p>
+          </div>
+        )}
+
         <div className="flex flex-wrap items-center gap-2">
           {joined ? (
             <>
