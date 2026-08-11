@@ -35,7 +35,8 @@ const SIZE_CLASS: Record<PipSize, string> = {
 const SIZE_LABEL: Record<PipSize, string> = { sm: "S", md: "M", lg: "L" };
 const SIZES: PipSize[] = ["sm", "md", "lg"];
 
-type PipPrefs = { corner: Corner; size: PipSize; on: boolean };
+type AudioSource = "main" | "pip";
+type PipPrefs = { corner: Corner; size: PipSize; on: boolean; audio?: AudioSource; trimMs?: number };
 
 function prefsStorageKey(key?: string) {
   return `playnalyze:pip:${key ?? "default"}`;
@@ -50,6 +51,11 @@ function loadPipPrefs(key?: string): Partial<PipPrefs> {
     return {};
   }
 }
+
+/** Umbrales de deriva: por debajo se corrige suavemente con la velocidad. */
+const SOFT_DRIFT = 0.04; // 40 ms: imperceptible, no tocamos nada
+const HARD_DRIFT = 0.35; // 350 ms: salto duro
+
 
 
 /**
@@ -76,6 +82,9 @@ export function RecordingPlayer({
   const [pipOn, setPipOn] = useState(!!pipSrc);
   const [corner, setCorner] = useState<Corner>("br");
   const [size, setSize] = useState<PipSize>("md");
+  const [audioSource, setAudioSource] = useState<AudioSource>("main");
+  const [trimMs, setTrimMs] = useState(0);
+  const [drift, setDrift] = useState(0);
   const loadedRef = useRef(false);
 
   useEffect(() => {
@@ -87,6 +96,8 @@ export function RecordingPlayer({
     const prefs = loadPipPrefs(pipPrefsKey);
     if (prefs.corner) setCorner(prefs.corner);
     if (prefs.size) setSize(prefs.size);
+    if (prefs.audio) setAudioSource(prefs.audio);
+    if (typeof prefs.trimMs === "number") setTrimMs(prefs.trimMs);
     if (typeof prefs.on === "boolean") setPipOn(!!pipSrc && prefs.on);
     loadedRef.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -98,57 +109,121 @@ export function RecordingPlayer({
     try {
       window.localStorage.setItem(
         prefsStorageKey(pipPrefsKey),
-        JSON.stringify({ corner, size, on: pipOn } satisfies PipPrefs),
+        JSON.stringify({ corner, size, on: pipOn, audio: audioSource, trimMs } satisfies PipPrefs),
       );
     } catch {
       /* ignorar */
     }
-  }, [corner, size, pipOn, pipPrefsKey]);
+  }, [corner, size, pipOn, audioSource, trimMs, pipPrefsKey]);
 
   useEffect(() => {
     if (!pipSrc) setPipOn(false);
   }, [pipSrc]);
 
+  // Enruta el audio a una sola pista para que no se oigan dos veces desfasadas.
+  useEffect(() => {
+    const main = ref.current;
+    const p = pipRef.current;
+    const usePip = pipOn && !!pipSrc && audioSource === "pip";
+    if (main) {
+      main.muted = usePip;
+      main.volume = usePip ? 0 : 1;
+    }
+    if (p) {
+      p.muted = !usePip;
+      p.volume = usePip ? 1 : 0;
+    }
+  }, [audioSource, pipOn, pipSrc]);
 
-  // Sincroniza la pista PIP con la principal.
+  // Sincroniza la pista PIP con la principal (vídeo y audio) corrigiendo deriva.
   useEffect(() => {
     const main = ref.current;
     if (!main || !pipOn || !pipSrc) return;
-    const target = () => Math.max(0, main.currentTime - pipOffsetMs / 1000);
-    const sync = (force = false) => {
+    let raf = 0;
+    let hardSeekAt = 0;
+    const offset = () => (pipOffsetMs + trimMs) / 1000;
+    const target = () => Math.max(0, main.currentTime - offset());
+
+    const hardSync = () => {
       const p = pipRef.current;
       if (!p) return;
       const t = target();
-      if (force || Math.abs(p.currentTime - t) > 0.35) {
-        try {
-          p.currentTime = t;
-        } catch {
-          /* ignorar */
-        }
+      try {
+        p.currentTime = t;
+      } catch {
+        /* ignorar */
       }
       p.playbackRate = main.playbackRate;
+      hardSeekAt = performance.now();
+      setDrift(0);
     };
+
+    // Bucle de corrección continua: deriva pequeña → ajuste fino de velocidad,
+    // deriva grande → salto. Evita que el audio se separe con el tiempo.
+    const loop = () => {
+      raf = requestAnimationFrame(loop);
+      const p = pipRef.current;
+      if (!p) return;
+      const d = p.currentTime - target();
+      setDrift(d);
+      if (main.paused || main.seeking || p.seeking) return;
+      if (Math.abs(d) > HARD_DRIFT) {
+        if (performance.now() - hardSeekAt > 400) hardSync();
+        return;
+      }
+      if (Math.abs(d) > SOFT_DRIFT) {
+        // Aceleramos o frenamos ligeramente la pista secundaria hasta alinearla.
+        const nudge = Math.max(-0.08, Math.min(0.08, -d * 0.5));
+        p.playbackRate = Math.max(0.25, main.playbackRate * (1 + nudge));
+      } else if (p.playbackRate !== main.playbackRate) {
+        p.playbackRate = main.playbackRate;
+      }
+      if (p.paused) void p.play().catch(() => {});
+    };
+
     const onPlay = () => {
-      sync(true);
+      hardSync();
       void pipRef.current?.play().catch(() => {});
     };
     const onPause = () => pipRef.current?.pause();
-    const onSeeked = () => sync(true);
-    const onTime = () => sync();
-    main.addEventListener("play", onPlay);
-    main.addEventListener("pause", onPause);
-    main.addEventListener("seeked", onSeeked);
-    main.addEventListener("timeupdate", onTime);
-    main.addEventListener("ratechange", onTime);
-    if (!main.paused) onPlay();
-    return () => {
-      main.removeEventListener("play", onPlay);
-      main.removeEventListener("pause", onPause);
-      main.removeEventListener("seeked", onSeeked);
-      main.removeEventListener("timeupdate", onTime);
-      main.removeEventListener("ratechange", onTime);
+    let autoPaused = false;
+    // Si la secundaria se queda sin datos, pausamos la principal para no perder el sincronismo.
+    const onPipWaiting = () => {
+      if (!main.paused) {
+        autoPaused = true;
+        main.pause();
+      }
     };
-  }, [pipOn, pipSrc, pipOffsetMs]);
+    const onPipPlayable = () => {
+      if (autoPaused) {
+        autoPaused = false;
+        void main.play().catch(() => {});
+      }
+    };
+
+
+    main.addEventListener("play", onPlay);
+    main.addEventListener("playing", onPlay);
+    main.addEventListener("pause", onPause);
+    main.addEventListener("seeked", hardSync);
+    main.addEventListener("ratechange", hardSync);
+    const p0 = pipRef.current;
+    p0?.addEventListener("waiting", onPipWaiting);
+    p0?.addEventListener("canplay", onPipPlayable);
+    if (!main.paused) onPlay();
+    raf = requestAnimationFrame(loop);
+    return () => {
+      cancelAnimationFrame(raf);
+      main.removeEventListener("play", onPlay);
+      main.removeEventListener("playing", onPlay);
+      main.removeEventListener("pause", onPause);
+      main.removeEventListener("seeked", hardSync);
+      main.removeEventListener("ratechange", hardSync);
+      p0?.removeEventListener("waiting", onPipWaiting);
+      p0?.removeEventListener("canplay", onPipPlayable);
+    };
+  }, [pipOn, pipSrc, pipOffsetMs, trimMs]);
+
 
   function fixDuration() {
     const v = ref.current;
@@ -198,7 +273,8 @@ export function RecordingPlayer({
             <video
               ref={pipRef}
               src={pipSrc}
-              muted
+              muted={audioSource !== "pip"}
+
               playsInline
               preload="auto"
               aria-label={`${pipLabel} en recuadro sincronizado`}
@@ -252,9 +328,65 @@ export function RecordingPlayer({
                 </Button>
               ))}
             </div>
+            <div className="flex items-center gap-1" role="group" aria-label="Fuente de audio">
+              <span className="text-xs text-muted-foreground">Audio:</span>
+              <Button
+                size="sm"
+                variant={audioSource === "main" ? "default" : "outline"}
+                className="h-7 px-2 text-xs"
+                onClick={() => setAudioSource("main")}
+                aria-pressed={audioSource === "main"}
+              >
+                Pantalla
+              </Button>
+              <Button
+                size="sm"
+                variant={audioSource === "pip" ? "default" : "outline"}
+                className="h-7 px-2 text-xs"
+                onClick={() => setAudioSource("pip")}
+                aria-pressed={audioSource === "pip"}
+              >
+                {pipLabel}
+              </Button>
+            </div>
+            <div className="flex items-center gap-1" role="group" aria-label="Ajuste fino de sincronía">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 px-2 text-xs"
+                onClick={() => setTrimMs((v) => v - 100)}
+                aria-label="Adelantar cámara 100 ms"
+              >
+                −100 ms
+              </Button>
+              <span className="min-w-[64px] text-center text-xs text-muted-foreground" aria-live="polite">
+                {trimMs > 0 ? `+${trimMs}` : trimMs} ms
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 px-2 text-xs"
+                onClick={() => setTrimMs((v) => v + 100)}
+                aria-label="Retrasar cámara 100 ms"
+              >
+                +100 ms
+              </Button>
+              {trimMs !== 0 && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setTrimMs(0)}
+                >
+                  Reiniciar
+                </Button>
+              )}
+            </div>
             <span className="text-xs text-muted-foreground">
-              Toca el recuadro para moverlo de esquina. Se recuerda su posición y tamaño.
+              Desfase actual: {Math.round(drift * 1000)} ms. Toca el recuadro para moverlo de esquina;
+              se recuerdan posición, tamaño, audio y ajuste.
             </span>
+
           </>
         )}
       </div>
