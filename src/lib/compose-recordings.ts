@@ -3,7 +3,12 @@
  * (pantalla a pantalla completa + cámara como recuadro), todo en el navegador:
  * se reproducen ambas pistas, se dibujan en un canvas y se graba el resultado
  * junto al audio mezclado. Así el usuario puede compartir un solo archivo.
+ *
+ * El recuadro se dibuja en la misma esquina y con el mismo tamaño relativo que
+ * el usuario ha elegido en el reproductor (preferencias PIP de la sesión).
  */
+
+import { pipRect, type Corner, type PipSize } from "./pip-prefs";
 
 export interface ComposeInput {
   screenUrl: string;
@@ -13,8 +18,14 @@ export interface ComposeInput {
   cameraOffsetMs?: number;
   /** Duración conocida (s) para estimar el progreso. */
   durationSec?: number | null;
+  /** Layout del recuadro tal como se ve en el reproductor. */
+  pipCorner?: Corner;
+  pipSize?: PipSize;
+  /** Si el recuadro está oculto en el reproductor, se exporta solo la pantalla. */
+  pipVisible?: boolean;
   onProgress?: (ratio: number) => void;
 }
+
 
 function loadVideo(url: string): Promise<HTMLVideoElement> {
   return new Promise((resolve, reject) => {
