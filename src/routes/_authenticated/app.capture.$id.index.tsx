@@ -23,6 +23,7 @@ import { CaptureInvitationsCard } from "@/components/CaptureInvitationsCard";
 import { CaptureConsentAudit } from "@/components/CaptureConsentAudit";
 import { CaptureHostControls } from "@/components/CaptureHostControls";
 import { MediaDeviceSelector, type MediaDeviceSelection } from "@/components/MediaDeviceSelector";
+import { RecordingPlayer } from "@/components/RecordingPlayer";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -677,7 +678,7 @@ function CaptureSessionPage() {
                   </div>
                 </div>
                 {playing?.id === r.id && (
-                  <video src={playing.url} controls className="w-full rounded-md bg-black" />
+                  <RecordingPlayer src={playing.url} durationSec={r.durationSec} />
                 )}
               </div>
             );
