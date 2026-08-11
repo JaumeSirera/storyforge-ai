@@ -727,6 +727,7 @@ function CaptureSessionPage() {
                     pipSrc={playing.pipUrl}
                     pipOffsetMs={playing.pipOffsetMs}
                     pipLabel={p ? `Cámara · ${p.name}` : "Cámara"}
+                    pipPrefsKey={id}
                   />
                 )}
               </div>
