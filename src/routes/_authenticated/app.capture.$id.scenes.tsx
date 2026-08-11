@@ -94,6 +94,12 @@ function ScenesPage() {
     queryKey: ["capture-scenes", id],
     queryFn: () => getScenes({ data: { captureSessionId: id } }),
   });
+  const annotationsQ = useQuery({
+    queryKey: ["scene-annotations", id],
+    queryFn: () => listAnnotations({ data: { captureSessionId: id } }),
+  });
+
+
 
   const [focus, setFocus] = useState("");
   const [busy, setBusy] = useState(false);
