@@ -677,7 +677,7 @@ function CaptureSessionPage() {
                   </div>
                 </div>
                 {playing?.id === r.id && (
-                  <video src={playing.url} controls className="w-full rounded-md bg-black" />
+                  <RecordingPlayer src={playing.url} durationSec={r.durationSec} />
                 )}
               </div>
             );
