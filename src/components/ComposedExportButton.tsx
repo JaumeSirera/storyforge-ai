@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { composeCameraAndScreen } from "@/lib/compose-recordings";
+import { loadPipPrefs, DEFAULT_PIP_PREFS } from "@/lib/pip-prefs";
 
 interface Track {
   id: string;
@@ -18,13 +19,16 @@ interface Props {
   fileBase: string;
   /** Resuelve la URL firmada de una grabación. */
   getUrl: (id: string) => Promise<string>;
+  /** Clave de preferencias PIP (id de sesión) para respetar el layout visto. */
+  pipPrefsKey?: string;
 }
+
 
 /**
  * Exporta la cámara y la pantalla de la sesión como un único vídeo sincronizado
  * (pantalla completa + cámara en recuadro) listo para compartir.
  */
-export function ComposedExportButton({ recordings, fileBase, getUrl }: Props) {
+export function ComposedExportButton({ recordings, fileBase, getUrl, pipPrefsKey }: Props) {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -36,13 +40,18 @@ export function ComposedExportButton({ recordings, fileBase, getUrl }: Props) {
     setBusy(true);
     setProgress(0);
     try {
+      const prefs = { ...DEFAULT_PIP_PREFS, ...loadPipPrefs(pipPrefsKey) };
       const [screenUrl, cameraUrl] = await Promise.all([getUrl(screen!.id), getUrl(camera!.id)]);
       const blob = await composeCameraAndScreen({
         screenUrl,
         cameraUrl,
         screenOffsetMs: screen!.syncOffsetMs,
-        cameraOffsetMs: camera!.syncOffsetMs,
+        // Incluye el ajuste fino de sincronía aplicado durante la reproducción.
+        cameraOffsetMs: camera!.syncOffsetMs + (prefs.trimMs ?? 0),
         durationSec: Math.max(screen!.durationSec ?? 0, camera!.durationSec ?? 0) || null,
+        pipCorner: prefs.corner,
+        pipSize: prefs.size,
+        pipVisible: prefs.on,
         onProgress: setProgress,
       });
       const url = URL.createObjectURL(blob);
@@ -66,10 +75,12 @@ export function ComposedExportButton({ recordings, fileBase, getUrl }: Props) {
         <div className="min-w-0">
           <p className="text-sm font-medium">Exportar cámara + pantalla en un solo vídeo</p>
           <p className="text-xs text-muted-foreground">
-            Se combinan sincronizadas (pantalla completa y cámara en recuadro). El proceso ocurre en
-            tu navegador y dura aproximadamente lo que la grabación.
+            Se combinan sincronizadas respetando la esquina, el tamaño y el ajuste del recuadro que
+            ves en el reproductor. El proceso ocurre en tu navegador y dura aproximadamente lo que la
+            grabación.
           </p>
         </div>
+
         <Button size="sm" className="gap-1" onClick={run} disabled={busy}>
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
           {busy ? `Combinando… ${Math.round(progress * 100)}%` : "Exportar vídeo combinado"}

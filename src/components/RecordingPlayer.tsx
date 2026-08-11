@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PictureInPicture2, X } from "lucide-react";
-
-type Corner = "br" | "bl" | "tr" | "tl";
-type PipSize = "sm" | "md" | "lg";
+import {
+  loadPipPrefs,
+  savePipPrefs,
+  PIP_WIDTH_RATIO,
+  type AudioSource,
+  type Corner,
+  type PipSize,
+} from "@/lib/pip-prefs";
 
 interface Props {
   src: string;
@@ -26,31 +31,16 @@ const CORNER_CLASS: Record<Corner, string> = {
   tl: "top-3 left-3",
 };
 
-const SIZE_CLASS: Record<PipSize, string> = {
-  sm: "w-1/6 min-w-[90px] max-w-[150px]",
-  md: "w-1/4 min-w-[110px] max-w-[220px]",
-  lg: "w-1/3 min-w-[150px] max-w-[320px]",
+/** Anchura del recuadro: mismos ratios que usa la exportación combinada. */
+const SIZE_STYLE: Record<PipSize, string> = {
+  sm: `${PIP_WIDTH_RATIO.sm * 100}%`,
+  md: `${PIP_WIDTH_RATIO.md * 100}%`,
+  lg: `${PIP_WIDTH_RATIO.lg * 100}%`,
 };
 
 const SIZE_LABEL: Record<PipSize, string> = { sm: "S", md: "M", lg: "L" };
 const SIZES: PipSize[] = ["sm", "md", "lg"];
 
-type AudioSource = "main" | "pip";
-type PipPrefs = { corner: Corner; size: PipSize; on: boolean; audio?: AudioSource; trimMs?: number };
-
-function prefsStorageKey(key?: string) {
-  return `playnalyze:pip:${key ?? "default"}`;
-}
-
-function loadPipPrefs(key?: string): Partial<PipPrefs> {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(prefsStorageKey(key));
-    return raw ? (JSON.parse(raw) as Partial<PipPrefs>) : {};
-  } catch {
-    return {};
-  }
-}
 
 /** Umbrales de deriva: por debajo se corrige suavemente con la velocidad. */
 const SOFT_DRIFT = 0.04; // 40 ms: imperceptible, no tocamos nada
@@ -105,16 +95,10 @@ export function RecordingPlayer({
 
   // Guarda las preferencias cuando cambian.
   useEffect(() => {
-    if (!loadedRef.current || typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(
-        prefsStorageKey(pipPrefsKey),
-        JSON.stringify({ corner, size, on: pipOn, audio: audioSource, trimMs } satisfies PipPrefs),
-      );
-    } catch {
-      /* ignorar */
-    }
+    if (!loadedRef.current) return;
+    savePipPrefs(pipPrefsKey, { corner, size, on: pipOn, audio: audioSource, trimMs });
   }, [corner, size, pipOn, audioSource, trimMs, pipPrefsKey]);
+
 
   useEffect(() => {
     if (!pipSrc) setPipOn(false);
@@ -268,8 +252,10 @@ export function RecordingPlayer({
         />
         {pipSrc && pipOn && (
           <div
-            className={`absolute ${CORNER_CLASS[corner]} ${SIZE_CLASS[size]} overflow-hidden rounded-md border-2 border-background shadow-lg`}
+            style={{ width: SIZE_STYLE[size] }}
+            className={`absolute ${CORNER_CLASS[corner]} min-w-[90px] max-w-[340px] overflow-hidden rounded-md border-2 border-background shadow-lg`}
           >
+
             <video
               ref={pipRef}
               src={pipSrc}
