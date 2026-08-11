@@ -22,8 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, GitCompare, Info, Loader2, Scale, Sparkles } from "lucide-react";
+import { ArrowLeft, FileDown, GitCompare, Info, Loader2, Scale, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/_authenticated/app/capture/$id/compare")({
   head: () => ({
@@ -221,18 +222,39 @@ function ComparePage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Scale className="h-4 w-4" /> {result.headline}
-              </CardTitle>
-              <CardDescription>
-                {result.sessionA.title} ({result.sessionA.sceneCount} escenas) ·{" "}
-                {result.sessionB.title} ({result.sessionB.sceneCount} escenas)
-              </CardDescription>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Scale className="h-4 w-4" /> {result.headline}
+                  </CardTitle>
+                  <CardDescription>
+                    {result.sessionA.title} ({result.sessionA.sceneCount} escenas) ·{" "}
+                    {result.sessionB.title} ({result.sessionB.sceneCount} escenas)
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={async () => {
+                    try {
+                      const { downloadComparisonPdf } = await import("@/lib/compare-pdf");
+                      downloadComparisonPdf({ ...result, focus: focus.trim() || null });
+                      toast.success("PDF de la comparativa descargado");
+                    } catch (e: any) {
+                      toast.error(e?.message ?? "No se pudo generar el PDF");
+                    }
+                  }}
+                >
+                  <FileDown className="h-4 w-4" /> Exportar PDF
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <p className="text-sm leading-relaxed">{result.summary}</p>
             </CardContent>
           </Card>
+
 
           <section className="space-y-4">
             <h2 className="text-lg font-semibold">Patrones similares</h2>
