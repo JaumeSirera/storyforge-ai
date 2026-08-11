@@ -490,6 +490,9 @@ export function MultiCamMosaic({
 
         <PreviewViewControls view={preview.view} onChange={preview.update} />
 
+        <MosaicDiagnosticsPanel rows={diagnosticsRows} />
+
+
         <div className={`grid gap-3 ${cols}`}>
           <figure
             className={`relative overflow-hidden rounded-lg border border-border bg-muted ${preview.frameClass}`}
