@@ -110,9 +110,10 @@ export const generateSessionScenes = createServerFn({ method: "POST" })
     const userKeys = await loadUserKeys(context.supabase, context.userId);
     const { model, provider, nativeId } = resolveUserTextModel(userKeys);
 
-    let result: Awaited<ReturnType<typeof generateText>>;
+    let result: Awaited<ReturnType<typeof generateText>> | null = null;
     try {
       result = await generateText({
+
         model,
         experimental_output: Output.object({ schema: ScenesGenSchema }),
         system: `Eres un copiloto experto que selecciona los momentos más significativos de una sesión grabada para que un profesional (selección, formación, terapia, mediación) los revise sin ver la grabación completa.
