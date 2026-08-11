@@ -40,6 +40,38 @@ export const ScenesSchema = z.object({
   scenes: z.array(SceneSchema).min(1).max(12),
 });
 
+export const SCENE_KINDS = [
+  "decision",
+  "desacuerdo",
+  "colaboracion",
+  "liderazgo",
+  "interrupciones",
+  "silencio",
+  "cambio_de_tema",
+  "aportacion_clave",
+] as const;
+
+/**
+ * Esquema laxo para la generación: los modelos fallan a menudo con enums,
+ * mínimos y máximos. Normalizamos después en el servidor.
+ */
+const ScenesGenSchema = z.object({
+  scenes: z.array(
+    z.object({
+      title: z.string().describe("Título corto y descriptivo del momento, sin juicios de valor"),
+      startSec: z.number().describe("Segundo de inicio del fragmento"),
+      endSec: z.number().describe("Segundo de fin del fragmento"),
+      kind: z.string().describe(`Tipo de momento: uno de ${SCENE_KINDS.join(", ")}`),
+      relevance: z.number().describe("Relevancia de 1 (baja) a 5 (alta)"),
+      why: z.string().describe("Por qué es relevante, en términos observables"),
+      observations: z
+        .array(z.string())
+        .describe("Observaciones objetivas: turnos, tiempos, solapamientos, frases citadas"),
+      speakers: z.array(z.string()).describe("Nombres de las personas que intervienen"),
+    }),
+  ),
+});
+
 export type SessionScene = z.infer<typeof SceneSchema>;
 export type SessionScenes = { scenes: SessionScene[]; generatedAt: string | null };
 
