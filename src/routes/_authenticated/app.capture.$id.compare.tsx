@@ -232,22 +232,39 @@ function ComparePage() {
                     {result.sessionB.title} ({result.sessionB.sceneCount} escenas)
                   </CardDescription>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  onClick={async () => {
-                    try {
-                      const { downloadComparisonPdf } = await import("@/lib/compare-pdf");
-                      downloadComparisonPdf({ ...result, focus: focus.trim() || null });
-                      toast.success("PDF de la comparativa descargado");
-                    } catch (e: any) {
-                      toast.error(e?.message ?? "No se pudo generar el PDF");
-                    }
-                  }}
-                >
-                  <FileDown className="h-4 w-4" /> Exportar PDF
-                </Button>
+                <div className="flex flex-col items-start gap-2 sm:items-end">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="exec-summary"
+                      checked={execSummary}
+                      onCheckedChange={setExecSummary}
+                    />
+                    <Label htmlFor="exec-summary" className="text-xs font-normal text-muted-foreground">
+                      Resumen ejecutivo (1ª página)
+                    </Label>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={async () => {
+                      try {
+                        const { downloadComparisonPdf } = await import("@/lib/compare-pdf");
+                        downloadComparisonPdf({
+                          ...result,
+                          focus: focus.trim() || null,
+                          executiveSummary: execSummary,
+                        });
+                        toast.success("PDF de la comparativa descargado");
+                      } catch (e: any) {
+                        toast.error(e?.message ?? "No se pudo generar el PDF");
+                      }
+                    }}
+                  >
+                    <FileDown className="h-4 w-4" /> Exportar PDF
+                  </Button>
+                </div>
+
               </div>
             </CardHeader>
             <CardContent>
