@@ -18,6 +18,7 @@ import {
   pauseRecording,
   pendingRecovery,
   recoverRecording,
+  restartCamera,
   resumeRecording,
   startRecording,
   stopRecording,
