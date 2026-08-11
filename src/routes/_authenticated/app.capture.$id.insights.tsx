@@ -29,6 +29,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
+import { IntegratedReportButton } from "@/components/IntegratedReportButton";
 
 export const Route = createFileRoute("/_authenticated/app/capture/$id/insights")({
   head: () => ({

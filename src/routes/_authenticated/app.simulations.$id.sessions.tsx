@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Star, Save, Plus, Trash2, MessageSquare, CheckCircle2, Download, Mail, Search, FilterX } from "lucide-react";
 import { downloadReportPdf } from "@/lib/report-pdf";
+import { IntegratedReportButton } from "@/components/IntegratedReportButton";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -568,6 +569,7 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
             <Button size="sm" variant="outline" className="gap-2" onClick={() => void downloadPdf()}>
               <Download className="h-4 w-4" /> Descargar informe PDF
             </Button>
+            <IntegratedReportButton sessionId={sessionId} logoUrl={settingsQ.data?.logoUrl ?? null} />
             <Button size="sm" className="gap-2" onClick={() => setPreviewOpen(true)}>
               <Mail className="h-4 w-4" /> Ver y enviar email
             </Button>
