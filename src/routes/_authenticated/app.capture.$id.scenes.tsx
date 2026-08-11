@@ -38,6 +38,7 @@ import {
   MessageSquare,
   Eye,
   FileDown,
+  GitCompare,
 } from "lucide-react";
 import { toast } from "sonner";
 
