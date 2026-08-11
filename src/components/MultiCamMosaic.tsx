@@ -12,7 +12,9 @@ type PeerState = {
   name: string;
   stream: MediaStream | null;
   connectionState: RTCPeerConnectionState;
+  diagnostics?: PeerDiagnostics;
 };
+
 
 /**
  * STUN descubre la IP pública; TURN reenvía el vídeo cuando los dispositivos
