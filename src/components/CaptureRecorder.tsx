@@ -104,6 +104,26 @@ export function CaptureRecorder({
     return () => attachVideoElement(key, null);
   }, [key, mediaSelection]);
 
+  // Reanudación: si la página se recargó o se cerró con una grabación en marcha,
+  // los fragmentos siguen guardados en local y se pueden recuperar.
+  const [recovery, setRecovery] = useState<RecoveryMeta | null>(null);
+  const [recovering, setRecovering] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    if (phase !== "idle") {
+      setRecovery(null);
+      return;
+    }
+    void pendingRecovery(key).then((meta) => {
+      if (alive) setRecovery(meta);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [key, phase]);
+
+
   async function upload({ blob, kind, durationSec, syncOffsetMs }: CaptureUploadPayload) {
     const ext0 = blob.type.includes("mp4") ? "mp4" : "webm";
 
