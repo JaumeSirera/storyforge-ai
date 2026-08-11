@@ -9,7 +9,11 @@ import {
 } from "./analyze-metrics";
 
 const TRANSCRIPTION_MODEL = "scribe_v2";
-const MAX_AUDIO_BYTES = 24 * 1024 * 1024;
+// Límite del proveedor de transcripción (1 GB por archivo).
+const MAX_AUDIO_BYTES = 1024 * 1024 * 1024;
+// Por encima de este tamaño no descargamos el fichero en el servidor:
+// enviamos una URL firmada para que el proveedor lo lea directamente.
+const INLINE_UPLOAD_BYTES = 20 * 1024 * 1024;
 
 export interface CaptureAnalysis {
   id: string;
