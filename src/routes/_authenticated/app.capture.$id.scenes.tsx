@@ -9,7 +9,7 @@ import {
   type SessionScene,
 } from "@/lib/scenes.functions";
 import { getSessionAnalysis } from "@/lib/analyze.functions";
-import { listSceneAnnotations } from "@/lib/scene-annotations.functions";
+import { listSceneAnnotations, type SceneAnnotation } from "@/lib/scene-annotations.functions";
 import { SceneAnnotationEditor } from "@/components/SceneAnnotationEditor";
 import { getCaptureSession, getRecordingUrl } from "@/lib/capture.functions";
 import { formatSec } from "@/lib/analyze-metrics";
