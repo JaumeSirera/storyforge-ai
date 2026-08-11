@@ -39,9 +39,14 @@ export const saveMyTurnSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => SaveTurn.parse(input))
   .handler(async ({ data, context }) => {
-    const patch: Record<string, string | null> & { user_id: string } = {
-      user_id: context.userId,
-    };
+    const patch: {
+      user_id: string;
+      turn_key_id?: string | null;
+      turn_api_token?: string | null;
+      turn_urls?: string | null;
+      turn_username?: string | null;
+      turn_credential?: string | null;
+    } = { user_id: context.userId };
     // "" = no cambiar, null = borrar
     if (data.turnKeyId !== undefined && data.turnKeyId !== "") patch.turn_key_id = data.turnKeyId;
     if (data.turnKeyId === null) patch.turn_key_id = null;
