@@ -82,6 +82,9 @@ export function RecordingPlayer({
   const [pipOn, setPipOn] = useState(!!pipSrc);
   const [corner, setCorner] = useState<Corner>("br");
   const [size, setSize] = useState<PipSize>("md");
+  const [audioSource, setAudioSource] = useState<AudioSource>("main");
+  const [trimMs, setTrimMs] = useState(0);
+  const [drift, setDrift] = useState(0);
   const loadedRef = useRef(false);
 
   useEffect(() => {
@@ -93,6 +96,8 @@ export function RecordingPlayer({
     const prefs = loadPipPrefs(pipPrefsKey);
     if (prefs.corner) setCorner(prefs.corner);
     if (prefs.size) setSize(prefs.size);
+    if (prefs.audio) setAudioSource(prefs.audio);
+    if (typeof prefs.trimMs === "number") setTrimMs(prefs.trimMs);
     if (typeof prefs.on === "boolean") setPipOn(!!pipSrc && prefs.on);
     loadedRef.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -104,57 +109,113 @@ export function RecordingPlayer({
     try {
       window.localStorage.setItem(
         prefsStorageKey(pipPrefsKey),
-        JSON.stringify({ corner, size, on: pipOn } satisfies PipPrefs),
+        JSON.stringify({ corner, size, on: pipOn, audio: audioSource, trimMs } satisfies PipPrefs),
       );
     } catch {
       /* ignorar */
     }
-  }, [corner, size, pipOn, pipPrefsKey]);
+  }, [corner, size, pipOn, audioSource, trimMs, pipPrefsKey]);
 
   useEffect(() => {
     if (!pipSrc) setPipOn(false);
   }, [pipSrc]);
 
+  // Enruta el audio a una sola pista para que no se oigan dos veces desfasadas.
+  useEffect(() => {
+    const main = ref.current;
+    const p = pipRef.current;
+    const usePip = pipOn && !!pipSrc && audioSource === "pip";
+    if (main) {
+      main.muted = usePip;
+      main.volume = usePip ? 0 : 1;
+    }
+    if (p) {
+      p.muted = !usePip;
+      p.volume = usePip ? 1 : 0;
+    }
+  }, [audioSource, pipOn, pipSrc]);
 
-  // Sincroniza la pista PIP con la principal.
+  // Sincroniza la pista PIP con la principal (vídeo y audio) corrigiendo deriva.
   useEffect(() => {
     const main = ref.current;
     if (!main || !pipOn || !pipSrc) return;
-    const target = () => Math.max(0, main.currentTime - pipOffsetMs / 1000);
-    const sync = (force = false) => {
+    let raf = 0;
+    let hardSeekAt = 0;
+    const offset = () => (pipOffsetMs + trimMs) / 1000;
+    const target = () => Math.max(0, main.currentTime - offset());
+
+    const hardSync = () => {
       const p = pipRef.current;
       if (!p) return;
       const t = target();
-      if (force || Math.abs(p.currentTime - t) > 0.35) {
-        try {
-          p.currentTime = t;
-        } catch {
-          /* ignorar */
-        }
+      try {
+        p.currentTime = t;
+      } catch {
+        /* ignorar */
       }
       p.playbackRate = main.playbackRate;
+      hardSeekAt = performance.now();
+      setDrift(0);
     };
+
+    // Bucle de corrección continua: deriva pequeña → ajuste fino de velocidad,
+    // deriva grande → salto. Evita que el audio se separe con el tiempo.
+    const loop = () => {
+      raf = requestAnimationFrame(loop);
+      const p = pipRef.current;
+      if (!p) return;
+      const d = p.currentTime - target();
+      setDrift(d);
+      if (main.paused || main.seeking || p.seeking) return;
+      if (Math.abs(d) > HARD_DRIFT) {
+        if (performance.now() - hardSeekAt > 400) hardSync();
+        return;
+      }
+      if (Math.abs(d) > SOFT_DRIFT) {
+        // Aceleramos o frenamos ligeramente la pista secundaria hasta alinearla.
+        const nudge = Math.max(-0.08, Math.min(0.08, -d * 0.5));
+        p.playbackRate = Math.max(0.25, main.playbackRate * (1 + nudge));
+      } else if (p.playbackRate !== main.playbackRate) {
+        p.playbackRate = main.playbackRate;
+      }
+      if (p.paused) void p.play().catch(() => {});
+    };
+
     const onPlay = () => {
-      sync(true);
+      hardSync();
       void pipRef.current?.play().catch(() => {});
     };
     const onPause = () => pipRef.current?.pause();
-    const onSeeked = () => sync(true);
-    const onTime = () => sync();
-    main.addEventListener("play", onPlay);
-    main.addEventListener("pause", onPause);
-    main.addEventListener("seeked", onSeeked);
-    main.addEventListener("timeupdate", onTime);
-    main.addEventListener("ratechange", onTime);
-    if (!main.paused) onPlay();
-    return () => {
-      main.removeEventListener("play", onPlay);
-      main.removeEventListener("pause", onPause);
-      main.removeEventListener("seeked", onSeeked);
-      main.removeEventListener("timeupdate", onTime);
-      main.removeEventListener("ratechange", onTime);
+    // Si la secundaria se queda sin datos, pausamos la principal para no perder el sincronismo.
+    const onPipWaiting = () => {
+      if (!main.paused) main.pause();
     };
-  }, [pipOn, pipSrc, pipOffsetMs]);
+    const onPipPlayable = () => {
+      if (main.paused && main.dataset["pnAutoPause"] === "1") void main.play().catch(() => {});
+    };
+
+    main.addEventListener("play", onPlay);
+    main.addEventListener("playing", onPlay);
+    main.addEventListener("pause", onPause);
+    main.addEventListener("seeked", hardSync);
+    main.addEventListener("ratechange", hardSync);
+    const p0 = pipRef.current;
+    p0?.addEventListener("waiting", onPipWaiting);
+    p0?.addEventListener("canplay", onPipPlayable);
+    if (!main.paused) onPlay();
+    raf = requestAnimationFrame(loop);
+    return () => {
+      cancelAnimationFrame(raf);
+      main.removeEventListener("play", onPlay);
+      main.removeEventListener("playing", onPlay);
+      main.removeEventListener("pause", onPause);
+      main.removeEventListener("seeked", hardSync);
+      main.removeEventListener("ratechange", hardSync);
+      p0?.removeEventListener("waiting", onPipWaiting);
+      p0?.removeEventListener("canplay", onPipPlayable);
+    };
+  }, [pipOn, pipSrc, pipOffsetMs, trimMs]);
+
 
   function fixDuration() {
     const v = ref.current;
