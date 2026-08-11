@@ -68,6 +68,9 @@ import {
   Radio,
   Grid2x2,
   Video,
+  Search,
+  Filter,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -128,6 +131,9 @@ function CaptureSessionPage() {
   } | null>(null);
   const [mediaSelection, setMediaSelection] = useState<MediaDeviceSelection | null>(null);
   const [myName, setMyName] = useState("Yo");
+  const [pSearch, setPSearch] = useState("");
+  const [pRoleFilter, setPRoleFilter] = useState<ParticipantRole | "all">("all");
+  const [pStatusFilter, setPStatusFilter] = useState<"all" | "active" | "late">("all");
   const [open, setOpen] = useState<
     | null
     | "config"
@@ -155,6 +161,20 @@ function CaptureSessionPage() {
   const participants = q.data?.participants ?? [];
   const recordings = q.data?.recordings ?? [];
   const text = consentText ?? session?.consentText ?? DEFAULT_CONSENT;
+
+  const filteredParticipants = participants.filter((p) => {
+    const q = pSearch.trim().toLowerCase();
+    const matchesSearch =
+      q === "" ||
+      p.name.toLowerCase().includes(q) ||
+      (p.identifier?.toLowerCase() || "").includes(q);
+    const matchesRole = pRoleFilter === "all" || p.role === pRoleFilter;
+    const matchesStatus =
+      pStatusFilter === "all" ||
+      (pStatusFilter === "late" && p.isLate) ||
+      (pStatusFilter === "active" && !p.isLate);
+    return matchesSearch && matchesRole && matchesStatus;
+  });
 
   async function patch(data: Record<string, unknown>) {
     await update({ data: { id, ...data } as any });
@@ -574,43 +594,109 @@ function CaptureSessionPage() {
           {participants.length === 0 && (
             <p className="text-sm text-muted-foreground">Aún no hay participantes.</p>
           )}
-          <ul className="space-y-2">
-            {participants.map((p) => (
-              <li
-                key={p.id}
-                className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <span
-                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white"
-                    style={{ backgroundColor: p.color ?? "#475569" }}
-                    aria-hidden="true"
-                  >
-                    {p.name.slice(0, 2).toUpperCase()}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="font-medium truncate">{p.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {PARTICIPANT_ROLE_LABELS[p.role]}
-                      {p.identifier ? ` · ${p.identifier}` : ""}
-                      {p.isLate ? " · incorporación tardía" : ""}
-                    </p>
-                  </div>
+
+          {participants.length > 0 && (
+            <div className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                  <Input
+                    id="p-search"
+                    placeholder="Buscar por nombre o identificador…"
+                    value={pSearch}
+                    onChange={(e) => setPSearch(e.target.value)}
+                    className="pl-9"
+                    aria-label="Buscar participantes"
+                  />
+                  {pSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setPSearch("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm text-muted-foreground hover:text-foreground"
+                      aria-label="Limpiar búsqueda"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  aria-label={`Quitar ${p.name}`}
-                  onClick={async () => {
-                    await delPart({ data: { id: p.id } });
-                    qc.invalidateQueries({ queryKey: ["capture-session", id] });
-                  }}
+                <Select
+                  value={pRoleFilter}
+                  onValueChange={(v) => setPRoleFilter(v as ParticipantRole | "all")}
+                  aria-label="Filtrar por rol"
                 >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </li>
-            ))}
-          </ul>
+                  <SelectTrigger className="w-full sm:w-40">
+                    <Filter className="h-4 w-4 mr-1 text-muted-foreground" aria-hidden="true" />
+                    <SelectValue placeholder="Rol" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los roles</SelectItem>
+                    {PARTICIPANT_ROLES.map((r) => (
+                      <SelectItem key={r} value={r}>
+                        {PARTICIPANT_ROLE_LABELS[r]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={pStatusFilter}
+                  onValueChange={(v) => setPStatusFilter(v as "all" | "active" | "late")}
+                  aria-label="Filtrar por estado"
+                >
+                  <SelectTrigger className="w-full sm:w-40">
+                    <SelectValue placeholder="Estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los estados</SelectItem>
+                    <SelectItem value="active">Activos</SelectItem>
+                    <SelectItem value="late">Incorporación tardía</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Mostrando {filteredParticipants.length} de {participants.length} participantes
+              </p>
+              <ul className="space-y-2">
+                {filteredParticipants.map((p) => (
+                  <li
+                    key={p.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white"
+                        style={{ backgroundColor: p.color ?? "#475569" }}
+                        aria-hidden="true"
+                      >
+                        {p.name.slice(0, 2).toUpperCase()}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{p.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {PARTICIPANT_ROLE_LABELS[p.role]}
+                          {p.identifier ? ` · ${p.identifier}` : ""}
+                          {p.isLate ? " · incorporación tardía" : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      aria-label={`Quitar ${p.name}`}
+                      onClick={async () => {
+                        await delPart({ data: { id: p.id } });
+                        qc.invalidateQueries({ queryKey: ["capture-session", id] });
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+              {filteredParticipants.length === 0 && (
+                <p className="text-sm text-muted-foreground">Ningún participante coincide con los filtros.</p>
+              )}
+            </div>
+          )}
 
           <div className="rounded-lg border border-dashed border-border p-3 space-y-3">
             <div className="grid gap-3 sm:grid-cols-3">
