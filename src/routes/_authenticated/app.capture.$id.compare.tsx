@@ -131,7 +131,7 @@ function ComparePage() {
 
       <div>
         <h1 className="text-2xl font-bold tracking-tight">
-          Comparar escenas {session ? `· ${session.title}` : ""}
+          Comparar escenas {session?.session ? `· ${session.session.title}` : ""}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Compara esta sesión con otra ya analizada: la IA destaca patrones de comportamiento
