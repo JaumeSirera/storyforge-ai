@@ -327,9 +327,65 @@ export function RecordingPlayer({
                 </Button>
               ))}
             </div>
+            <div className="flex items-center gap-1" role="group" aria-label="Fuente de audio">
+              <span className="text-xs text-muted-foreground">Audio:</span>
+              <Button
+                size="sm"
+                variant={audioSource === "main" ? "default" : "outline"}
+                className="h-7 px-2 text-xs"
+                onClick={() => setAudioSource("main")}
+                aria-pressed={audioSource === "main"}
+              >
+                Pantalla
+              </Button>
+              <Button
+                size="sm"
+                variant={audioSource === "pip" ? "default" : "outline"}
+                className="h-7 px-2 text-xs"
+                onClick={() => setAudioSource("pip")}
+                aria-pressed={audioSource === "pip"}
+              >
+                {pipLabel}
+              </Button>
+            </div>
+            <div className="flex items-center gap-1" role="group" aria-label="Ajuste fino de sincronía">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 px-2 text-xs"
+                onClick={() => setTrimMs((v) => v - 100)}
+                aria-label="Adelantar cámara 100 ms"
+              >
+                −100 ms
+              </Button>
+              <span className="min-w-[64px] text-center text-xs text-muted-foreground" aria-live="polite">
+                {trimMs > 0 ? `+${trimMs}` : trimMs} ms
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 px-2 text-xs"
+                onClick={() => setTrimMs((v) => v + 100)}
+                aria-label="Retrasar cámara 100 ms"
+              >
+                +100 ms
+              </Button>
+              {trimMs !== 0 && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setTrimMs(0)}
+                >
+                  Reiniciar
+                </Button>
+              )}
+            </div>
             <span className="text-xs text-muted-foreground">
-              Toca el recuadro para moverlo de esquina. Se recuerda su posición y tamaño.
+              Desfase actual: {Math.round(drift * 1000)} ms. Toca el recuadro para moverlo de esquina;
+              se recuerdan posición, tamaño, audio y ajuste.
             </span>
+
           </>
         )}
       </div>
