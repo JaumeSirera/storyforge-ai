@@ -33,7 +33,7 @@ import {
   MessageSquare,
   Info,
   Sparkles,
-  Film,
+  NotebookPen,
 
 } from "lucide-react";
 import { toast } from "sonner";
