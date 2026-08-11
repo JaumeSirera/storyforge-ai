@@ -654,7 +654,9 @@ function CaptureSessionPage() {
             recordings={recordings}
             fileBase={`sesion-${(session.title || id).slice(0, 40)}`}
             getUrl={async (rid) => (await recUrl({ data: { id: rid } })).url}
+            pipPrefsKey={id}
           />
+
 
           {recordings.map((r) => {
             const p = participants.find((x) => x.id === r.participantId);
