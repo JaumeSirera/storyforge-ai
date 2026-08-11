@@ -74,8 +74,8 @@ export function ComposedExportButton({ recordings, fileBase, getUrl, pipPrefsKey
     }
   }
 
-  return (
   if (compact) {
+
     return (
       <Button
         size="sm"
