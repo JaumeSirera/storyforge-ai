@@ -125,6 +125,9 @@ function CaptureSessionPage() {
   } | null>(null);
   const [mediaSelection, setMediaSelection] = useState<MediaDeviceSelection | null>(null);
   const [myName, setMyName] = useState("Yo");
+  const [open, setOpen] = useState<
+    null | "config" | "consent" | "participants" | "audit" | "invites" | "recordings"
+  >(null);
 
   useEffect(() => {
     void supabase.auth.getUser().then(({ data }) => {
