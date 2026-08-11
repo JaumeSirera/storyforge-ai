@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getPublicSimulation } from "@/lib/public.functions";
 import { startCandidateSession } from "@/lib/candidate.functions";
+import { linkCaptureGameSession } from "@/lib/integrated-report.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ function PrePlayPage() {
   const navigate = useNavigate();
   const get = useServerFn(getPublicSimulation);
   const start = useServerFn(startCandidateSession);
+  const linkCapture = useServerFn(linkCaptureGameSession);
   const sim = useQuery({ queryKey: ["public-sim", id], queryFn: () => get({ data: { id } }) });
 
   const [name, setName] = useState("");
@@ -70,6 +72,16 @@ function PrePlayPage() {
           fieldsData: fields,
         },
       });
+      // Si el candidato llegó desde una grabación, vincula ambas para el informe integrado.
+      try {
+        const pending = localStorage.getItem("pn-pending-capture-link");
+        if (pending) {
+          localStorage.removeItem("pn-pending-capture-link");
+          await linkCapture({ data: { captureSessionId: pending, gameSessionId: r.id } });
+        }
+      } catch {
+        /* el vínculo es opcional: el informe integrado también se infiere por horario */
+      }
       navigate({ to: "/app/sessions/$id", params: { id: r.id } });
     } catch (e: any) {
       toast.error(e.message || "No se pudo empezar la simulación");

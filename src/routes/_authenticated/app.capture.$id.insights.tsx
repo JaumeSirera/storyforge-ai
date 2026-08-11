@@ -29,6 +29,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
+import { IntegratedReportButton } from "@/components/IntegratedReportButton";
 
 export const Route = createFileRoute("/_authenticated/app/capture/$id/insights")({
   head: () => ({
@@ -170,6 +171,8 @@ function InsightsPage() {
               >
                 <Download className="h-4 w-4" /> Descargar PDF
               </Button>
+              <IntegratedReportButton captureSessionId={id} variant="outline" />
+
               <Button
                 variant="ghost"
                 size="sm"

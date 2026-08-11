@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Trophy, Star, Loader2, CheckCircle2, XCircle, Sparkles, Award, ArrowRight, Home, Maximize2, Minimize2, PanelTopOpen, Square, Download } from "lucide-react";
 import { downloadReportPdf } from "@/lib/report-pdf";
+import { IntegratedReportButton } from "@/components/IntegratedReportButton";
 import { computeSceneOrder } from "@/lib/scene-order";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
@@ -931,6 +932,7 @@ function FinalReport({ sessionId, sess, sim }: { sessionId: string; sess: any; s
         >
           <Download className="h-4 w-4" /> Descargar informe PDF
         </Button>
+        <IntegratedReportButton sessionId={sessionId} />
         <Button variant="outline" onClick={() => navigate({ to: "/app/dashboard" })} className="gap-2">
           <Home className="h-4 w-4" /> Volver al inicio
         </Button>
