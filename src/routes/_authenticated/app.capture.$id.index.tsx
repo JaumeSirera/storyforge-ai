@@ -93,9 +93,9 @@ export const Route = createFileRoute("/_authenticated/app/capture/$id/")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>) => ({
-    edit: search['edit'] === "config" ? ("config" as const) : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { edit?: "config" } =>
+    search['edit'] === "config" ? { edit: "config" } : {},
+
   component: CaptureSessionPage,
 });
 
