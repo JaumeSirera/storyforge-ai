@@ -5,82 +5,17 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveUserTextModel } from "./ai-gateway.server";
 import { loadUserKeys } from "./user-keys.functions";
 import { formatSec, type SessionMetrics } from "./analyze-metrics";
+import {
+  SCENE_COLUMNS,
+  SCENE_KINDS,
+  ScenesGenSchema,
+  buildFallbackScenes,
+  mapScenes,
+  normalizeScenes,
+  type SessionScenes,
+} from "./scenes.helpers";
 
-/** Motor de Escenas Inteligentes: momentos relevantes detectados sobre la transcripción. */
-export const SceneSchema = z.object({
-  title: z.string().describe("Título corto y descriptivo del momento, sin juicios de valor"),
-  startSec: z.number().min(0).describe("Segundo de inicio del fragmento"),
-  endSec: z.number().min(0).describe("Segundo de fin del fragmento"),
-  kind: z
-    .enum([
-      "decision",
-      "desacuerdo",
-      "colaboracion",
-      "liderazgo",
-      "interrupciones",
-      "silencio",
-      "cambio_de_tema",
-      "aportacion_clave",
-    ])
-    .describe("Tipo de momento observado"),
-  relevance: z
-    .number()
-    .min(1)
-    .max(5)
-    .describe("Relevancia del momento para el profesional (1 baja, 5 alta)"),
-  why: z.string().describe("Por qué es relevante, en términos observables y trazables"),
-  observations: z
-    .array(z.string())
-    .min(1)
-    .describe("Observaciones objetivas: turnos, tiempos, solapamientos, frases citadas"),
-  speakers: z.array(z.string()).default([]).describe("Nombres de las personas que intervienen"),
-});
-
-export const ScenesSchema = z.object({
-  scenes: z.array(SceneSchema).min(1).max(12),
-});
-
-export const SCENE_KINDS = [
-  "decision",
-  "desacuerdo",
-  "colaboracion",
-  "liderazgo",
-  "interrupciones",
-  "silencio",
-  "cambio_de_tema",
-  "aportacion_clave",
-] as const;
-
-/**
- * Esquema laxo para la generación: los modelos fallan a menudo con enums,
- * mínimos y máximos. Normalizamos después en el servidor.
- */
-const ScenesGenSchema = z.object({
-  scenes: z.array(
-    z.object({
-      title: z.string().describe("Título corto y descriptivo del momento, sin juicios de valor"),
-      startSec: z.number().describe("Segundo de inicio del fragmento"),
-      endSec: z.number().describe("Segundo de fin del fragmento"),
-      kind: z.string().describe(`Tipo de momento: uno de ${SCENE_KINDS.join(", ")}`),
-      relevance: z.number().describe("Relevancia de 1 (baja) a 5 (alta)"),
-      why: z.string().describe("Por qué es relevante, en términos observables"),
-      observations: z
-        .array(z.string())
-        .describe("Observaciones objetivas: turnos, tiempos, solapamientos, frases citadas"),
-      speakers: z.array(z.string()).describe("Nombres de las personas que intervienen"),
-    }),
-  ),
-});
-
-export type SessionScene = z.infer<typeof SceneSchema>;
-export type SessionScenes = { scenes: SessionScene[]; generatedAt: string | null };
-
-const SCENE_COLUMNS = "scenes, scenes_generated_at, metrics";
-
-function mapScenes(row: any): SessionScenes {
-  const raw = Array.isArray(row?.scenes) ? (row.scenes as SessionScene[]) : [];
-  return { scenes: raw, generatedAt: row?.scenes_generated_at ?? null };
-}
+export type { SessionScene, SessionScenes } from "./scenes.helpers";
 
 /** Lee las escenas guardadas de la sesión. */
 export const getSessionScenes = createServerFn({ method: "GET" })
@@ -208,32 +143,12 @@ Selecciona los momentos más relevantes y devuélvelos como escenas de la "pelí
       );
     }
 
-    const raw = (result.experimental_output as z.infer<typeof ScenesGenSchema>).scenes ?? [];
-    const scenes: SessionScene[] = raw
-      .map((s) => {
-        const start = Math.max(0, Math.min(Number(s.startSec) || 0, spanSec));
-        const endRaw = Number(s.endSec) || start + 15;
-        const end = Math.max(start + 3, Math.min(endRaw, spanSec || endRaw));
-        const kind = (SCENE_KINDS as readonly string[]).includes(s.kind)
-          ? (s.kind as SessionScene["kind"])
-          : "aportacion_clave";
-        return {
-          title: s.title || "Momento relevante",
-          why: s.why || "",
-          kind,
-          relevance: Math.min(5, Math.max(1, Math.round(Number(s.relevance) || 3))),
-          observations: (s.observations ?? []).filter(Boolean),
-          speakers: (s.speakers ?? []).filter(Boolean),
-          startSec: Math.round(start),
-          endSec: Math.round(end),
-        } satisfies SessionScene;
-      })
-      .sort((a, b) => a.startSec - b.startSec)
-      .slice(0, 12);
-
-    if (scenes.length === 0) {
-      throw new Error("El modelo no detectó escenas relevantes. Vuelve a intentarlo.");
-    }
+    const raw = (result.experimental_output as z.infer<typeof ScenesGenSchema> | undefined)?.scenes ?? [];
+    const normalizedScenes = normalizeScenes(raw, spanSec);
+    const scenes =
+      normalizedScenes.length > 0
+        ? normalizedScenes
+        : buildFallbackScenes(segments, spanSec, nameOf);
 
     const generatedAt = new Date().toISOString();
     const { error: saveErr } = await context.supabase.from("capture_analyses").upsert(
