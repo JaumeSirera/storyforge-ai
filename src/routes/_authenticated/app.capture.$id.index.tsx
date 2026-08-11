@@ -645,14 +645,37 @@ function CaptureSessionPage() {
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Auditoría de consentimientos */}
-      <CaptureConsentAudit captureSessionId={id} />
+      <Dialog open={open === "audit"} onOpenChange={(v) => setOpen(v ? "audit" : null)}>
+        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardCheck className="h-4 w-4" /> Auditoría de consentimientos
+            </DialogTitle>
+            <DialogDescription>Registro de aceptaciones con fecha y versión.</DialogDescription>
+          </DialogHeader>
+          <CaptureConsentAudit captureSessionId={id} />
+        </DialogContent>
+      </Dialog>
 
       {/* Invitaciones para que cada participante entre desde su dispositivo */}
-      <CaptureInvitationsCard captureSessionId={id} participants={participants} />
+      <Dialog open={open === "invites"} onOpenChange={(v) => setOpen(v ? "invites" : null)}>
+        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-4 w-4" /> Invitaciones
+            </DialogTitle>
+            <DialogDescription>
+              Genera enlaces privados para que cada participante entre desde su dispositivo.
+            </DialogDescription>
+          </DialogHeader>
+          <CaptureInvitationsCard captureSessionId={id} participants={participants} />
+        </DialogContent>
+      </Dialog>
 
       {/* Control sincronizado de la grabación en todos los dispositivos */}
       {consentsOk && (session.mode === "group" || session.captureMode === "per_participant") && (
