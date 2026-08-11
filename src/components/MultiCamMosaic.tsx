@@ -387,14 +387,41 @@ export function MultiCamMosaic({
 
 function PeerTile({ peer, frameClass }: { peer: PeerState; frameClass: string }) {
   const ref = useRef<HTMLVideoElement | null>(null);
+  const [mutedForAutoplay, setMutedForAutoplay] = useState(false);
   useEffect(() => {
-    if (ref.current) ref.current.srcObject = peer.stream ?? null;
+    const video = ref.current;
+    if (!video) return;
+    video.srcObject = peer.stream ?? null;
+    if (!peer.stream) return;
+    video.muted = false;
+    setMutedForAutoplay(false);
+    void video.play().catch(() => {
+      // Móvil y Safari suelen bloquear autoplay cuando el flujo incluye audio.
+      video.muted = true;
+      setMutedForAutoplay(true);
+      void video.play();
+    });
   }, [peer.stream]);
+
+  function enableSound() {
+    const video = ref.current;
+    if (!video) return;
+    video.muted = false;
+    void video.play();
+    setMutedForAutoplay(false);
+  }
+
   return (
     <figure
       className={`relative overflow-hidden rounded-lg border border-border bg-muted ${frameClass}`}
     >
-      <video ref={ref} autoPlay playsInline className="h-full w-full object-cover" />
+      <video
+        ref={ref}
+        autoPlay
+        playsInline
+        onLoadedMetadata={(event) => void event.currentTarget.play().catch(() => undefined)}
+        className="h-full w-full object-cover"
+      />
       {!peer.stream && (
         <span className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">
           {peer.connectionState === "failed"
@@ -407,6 +434,18 @@ function PeerTile({ peer, frameClass }: { peer: PeerState; frameClass: string })
       <figcaption className="absolute bottom-1 left-1 rounded bg-background/80 px-2 py-0.5 text-xs">
         {peer.name}
       </figcaption>
+      {mutedForAutoplay && (
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={enableSound}
+          className="absolute right-2 top-2 h-8 gap-1.5"
+          aria-label={`Activar sonido de ${peer.name}`}
+        >
+          <MicOff className="h-3.5 w-3.5" /> Activar sonido
+        </Button>
+      )}
     </figure>
   );
 }
