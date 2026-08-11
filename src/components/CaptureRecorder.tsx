@@ -393,6 +393,37 @@ export function CaptureRecorder({
             </div>
           )}
         </div>
+
+        {recordScreen && (
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                <MonitorUp className="h-3 w-3" /> Captura de pantalla
+              </span>
+              <span>
+                {screenSharing
+                  ? "Compartiendo: esto es lo que se está grabando"
+                  : "Se activará al iniciar la grabación"}
+              </span>
+            </div>
+            <div className="relative aspect-video overflow-hidden rounded-lg border bg-muted">
+              <video
+                ref={screenRef}
+                playsInline
+                autoPlay
+                muted
+                aria-label="Vista previa de la pantalla compartida"
+                className="h-full w-full object-contain"
+              />
+              {!screenSharing && (
+                <div className="absolute inset-0 grid place-items-center px-4 text-center text-xs text-muted-foreground">
+                  Sin pantalla compartida todavía. Al iniciar la grabación el navegador te pedirá
+                  elegir la pantalla o pestaña a capturar.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           {phase === "idle" || phase === "uploading" ? (
             <Button onClick={start} disabled={phase === "uploading"} className="gap-2">
