@@ -6,13 +6,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Grid2x2, Mic, MicOff, Video, VideoOff, Users, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { PreviewViewControls, usePreviewView } from "./PreviewViewControls";
+import {
+  MosaicDiagnosticsPanel,
+  type DiagnosticsRow,
+  type PeerDiagnostics,
+} from "./MosaicDiagnosticsPanel";
+
 
 type PeerState = {
   id: string;
   name: string;
   stream: MediaStream | null;
   connectionState: RTCPeerConnectionState;
+  diagnostics?: PeerDiagnostics;
 };
+
 
 /**
  * STUN descubre la IP pública; TURN reenvía el vídeo cuando los dispositivos
@@ -50,6 +58,60 @@ const waitForIceGathering = (pc: RTCPeerConnection) =>
     }, 5000);
   });
 
+type InboundSample = { bytes: number; at: number };
+
+/** Lee las estadísticas reales de la conexión (ICE/TURN, latencia, pérdida, vídeo). */
+async function collectDiagnostics(
+  pc: RTCPeerConnection,
+  prevSample: InboundSample | undefined,
+  lastError: string | undefined,
+): Promise<{ diagnostics: PeerDiagnostics; sample?: InboundSample }> {
+  const diagnostics: PeerDiagnostics = {
+    iceConnectionState: pc.iceConnectionState,
+    iceGatheringState: pc.iceGatheringState,
+    signalingState: pc.signalingState,
+    usingTurn: false,
+    lastError,
+  };
+  let sample: InboundSample | undefined;
+  try {
+    const stats = await pc.getStats();
+    const byId = new Map<string, any>();
+    stats.forEach((report: any) => byId.set(report.id, report));
+    stats.forEach((report: any) => {
+      if (report.type === "candidate-pair" && (report.selected || report.state === "succeeded")) {
+        const local = report.localCandidateId ? byId.get(report.localCandidateId) : undefined;
+        const remote = report.remoteCandidateId ? byId.get(report.remoteCandidateId) : undefined;
+        if (local?.candidateType) diagnostics.localCandidateType = local.candidateType;
+        if (remote?.candidateType) diagnostics.remoteCandidateType = remote.candidateType;
+        diagnostics.transport = local?.relayProtocol ?? local?.protocol ?? report.protocol;
+        diagnostics.usingTurn =
+          local?.candidateType === "relay" || remote?.candidateType === "relay";
+        if (typeof report.currentRoundTripTime === "number")
+          diagnostics.roundTripMs = report.currentRoundTripTime * 1000;
+      }
+      if (report.type === "inbound-rtp" && report.kind === "video") {
+        const received = (report.packetsReceived ?? 0) + (report.packetsLost ?? 0);
+        if (received > 0)
+          diagnostics.packetsLostPct = ((report.packetsLost ?? 0) / received) * 100;
+        if (typeof report.frameWidth === "number") diagnostics.frameWidth = report.frameWidth;
+        if (typeof report.frameHeight === "number") diagnostics.frameHeight = report.frameHeight;
+        if (typeof report.framesPerSecond === "number") diagnostics.fps = report.framesPerSecond;
+        const bytes = report.bytesReceived ?? 0;
+        const at = report.timestamp ?? Date.now();
+        sample = { bytes, at };
+        if (prevSample && at > prevSample.at) {
+          diagnostics.inboundKbps =
+            ((bytes - prevSample.bytes) * 8) / ((at - prevSample.at) / 1000) / 1000;
+        }
+      }
+    });
+  } catch {
+    diagnostics.lastError = lastError ?? "No se pudieron leer las estadísticas de la conexión.";
+  }
+  return { diagnostics, sample };
+}
+
 
 /**
  * Mosaico multicámara en tiempo real (malla WebRTC).
@@ -80,6 +142,9 @@ export function MultiCamMosaic({
   const namesRef = useRef<Map<string, string>>(new Map());
   const pendingIceRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const restartAttemptsRef = useRef<Map<string, number>>(new Map());
+  const statsSampleRef = useRef<Map<string, InboundSample>>(new Map());
+  const peerErrorsRef = useRef<Map<string, string>>(new Map());
+
 
   const upsertPeer = useCallback((id: string, patch: Partial<PeerState>) => {
     setPeers((prev) => {
@@ -130,6 +195,20 @@ export function MultiCamMosaic({
       pc.onicecandidate = (e) => {
         if (e.candidate) send("ice", { to: peerId, candidate: e.candidate.toJSON() });
       };
+      pc.addEventListener("icecandidateerror", (event: any) => {
+        // 701 en TURN suele indicar bloqueo del relé por la red del participante.
+        peerErrorsRef.current.set(
+          peerId,
+          `ICE ${event?.errorCode ?? ""}: ${event?.errorText || "fallo al obtener candidatos"} (${event?.url ?? "sin URL"})`,
+        );
+      });
+      pc.oniceconnectionstatechange = () => {
+        if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
+          peerErrorsRef.current.delete(peerId);
+        }
+      };
+
+
       pc.ontrack = (e) => {
         const [remoteStream] = e.streams;
         const stream = remoteStream ?? new MediaStream([e.track]);
@@ -296,6 +375,42 @@ export function MultiCamMosaic({
 
   useEffect(() => leave, [leave]);
 
+  // Sondeo de estadísticas reales para el panel de diagnóstico.
+  useEffect(() => {
+    if (!joined) {
+      statsSampleRef.current.clear();
+      peerErrorsRef.current.clear();
+      return;
+    }
+    let cancelled = false;
+    const tick = async () => {
+      const entries = Array.from(pcsRef.current.entries());
+      const results = await Promise.all(
+        entries.map(async ([id, pc]) => {
+          const { diagnostics, sample } = await collectDiagnostics(
+            pc,
+            statsSampleRef.current.get(id),
+            peerErrorsRef.current.get(id),
+          );
+          if (sample) statsSampleRef.current.set(id, sample);
+          return [id, diagnostics] as const;
+        }),
+      );
+      if (cancelled || results.length === 0) return;
+      const map = new Map(results);
+      setPeers((prev) =>
+        prev.map((p) => (map.has(p.id) ? { ...p, diagnostics: map.get(p.id) } : p)),
+      );
+    };
+    void tick();
+    const timer = window.setInterval(() => void tick(), 2000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [joined]);
+
+
   function toggleCam() {
     const track = localStreamRef.current?.getVideoTracks()[0];
     if (!track) return;
@@ -312,6 +427,26 @@ export function MultiCamMosaic({
   const total = peers.length + (joined ? 1 : 0);
   const cols =
     total <= 1 ? "grid-cols-1" : total <= 4 ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-3";
+
+  const diagnosticsRows: DiagnosticsRow[] = joined
+    ? [
+        {
+          id: "self",
+          name: displayName,
+          isSelf: true,
+          connectionState: "connected",
+          hasVideo: Boolean(localStreamRef.current),
+        },
+        ...peers.map((p) => ({
+          id: p.id,
+          name: p.name,
+          connectionState: p.connectionState,
+          hasVideo: Boolean(p.stream),
+          diagnostics: p.diagnostics,
+        })),
+      ]
+    : [];
+
 
   return (
     <Card>
@@ -354,6 +489,9 @@ export function MultiCamMosaic({
         </div>
 
         <PreviewViewControls view={preview.view} onChange={preview.update} />
+
+        <MosaicDiagnosticsPanel rows={diagnosticsRows} />
+
 
         <div className={`grid gap-3 ${cols}`}>
           <figure
