@@ -223,14 +223,14 @@ function JoinCapturePage() {
                   <Gamepad2 className="h-4 w-4" /> Tu simulación
                 </CardTitle>
                 <CardDescription>
-                  Inicia la grabación y después abre la simulación: la juegas a tu propio ritmo, con
-                  todos los controles de vídeo.
+                  Al iniciar la grabación abriremos automáticamente la simulación asociada. La
+                  grabación sigue activa mientras juegas.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Button asChild variant="secondary" className="gap-2">
                   <a href={`/app/play/${session.simulationId}`} target="_blank" rel="noreferrer">
-                    <Gamepad2 className="h-4 w-4" /> Abrir simulación en otra pestaña
+                    <Gamepad2 className="h-4 w-4" /> Abrir simulación ahora
                   </a>
                 </Button>
               </CardContent>
@@ -262,6 +262,16 @@ function JoinCapturePage() {
                 recordScreen={session.recordScreen && mediaScopes.screen}
                 inviteToken={token}
                 mediaSelection={mediaSelection}
+                onStarted={() => {
+                  if (!session.simulationId) return;
+                  toast.success("Grabando: abrimos tu simulación…");
+                  setTimeout(() => {
+                    navigate({
+                      to: "/app/play/$id",
+                      params: { id: session.simulationId! },
+                    });
+                  }, 600);
+                }}
               />
 
               {(session.mode === "group" || session.captureMode === "per_participant") && (

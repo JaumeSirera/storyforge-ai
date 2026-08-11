@@ -67,6 +67,8 @@ interface Props {
   /** Obedecer las órdenes de inicio/pausa/parada del anfitrión (por defecto sí). */
   followHost?: boolean;
   onUploaded?: () => void;
+  /** Se ejecuta justo después de arrancar la grabación (p. ej. abrir la simulación asociada). */
+  onStarted?: () => void;
   /** Dispositivos preseleccionados. Si no se pasan, el selector se muestra internamente. */
   mediaSelection?: MediaDeviceSelection | null;
   /** Clave para recordar la selección de dispositivos en sessionStorage. */
@@ -82,6 +84,7 @@ export function CaptureRecorder({
   getGameOffsetMs,
   followHost = true,
   onUploaded,
+  onStarted,
   mediaSelection: externalMediaSelection,
   deviceStorageKey,
 }: Props) {
@@ -211,6 +214,7 @@ export function CaptureRecorder({
         },
         participantName ?? "Sesión",
       );
+      onStarted?.();
     } catch (err: any) {
       if (err?.message === "__screen_cancelled__") {
         toast.info("Grabación de pantalla cancelada; se graba solo la cámara.");
@@ -220,6 +224,7 @@ export function CaptureRecorder({
             { recordScreen: false, uploader: upload, getGameOffsetMs, selection: mediaSelection },
             participantName ?? "Sesión",
           );
+          onStarted?.();
         } catch (e: any) {
           toast.error(e?.message || "No se pudo iniciar la grabación");
         }

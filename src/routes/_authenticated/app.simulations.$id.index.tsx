@@ -9,13 +9,14 @@ import {
   revokeInvitation,
   deleteInvitation,
 } from "@/lib/invitations.functions";
+import { listCaptureSessionsBySimulation, createCaptureSession } from "@/lib/capture.functions";
 import { computeSceneOrder, sortNodesByOrder } from "@/lib/scene-order";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Play, ArrowLeft, GitBranch, HelpCircle, Loader2, Pencil, CheckCircle2, Lock, ClipboardCheck, Users, Share2, Link2, Copy, Trash2, Ban } from "lucide-react";
+import { Play, ArrowLeft, GitBranch, HelpCircle, Loader2, Pencil, CheckCircle2, Lock, ClipboardCheck, Users, Share2, Link2, Copy, Trash2, Ban, Video, Plus, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -112,6 +113,8 @@ function SimulationDetail() {
           </div>
         </CardContent>
       </Card>
+
+      <CapturesCard simulationId={id} simulationTitle={sim.data.title} />
 
       <InvitationsCard simulationId={id} published={sim.data.status === "published"} />
 
@@ -316,6 +319,81 @@ function InvitationsCard({ simulationId, published }: { simulationId: string; pu
                 </div>
               );
             })
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CapturesCard({ simulationId, simulationTitle }: { simulationId: string; simulationTitle: string }) {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const list = useServerFn(listCaptureSessionsBySimulation);
+  const create = useServerFn(createCaptureSession);
+  const [creating, setCreating] = useState(false);
+
+  const q = useQuery({
+    queryKey: ["sim-captures", simulationId],
+    queryFn: () => list({ data: { simulationId } }),
+  });
+
+  async function onCreate() {
+    setCreating(true);
+    try {
+      const r = await create({
+        data: { title: `Captura · ${simulationTitle}`, simulationId },
+      });
+      qc.invalidateQueries({ queryKey: ["sim-captures", simulationId] });
+      navigate({ to: "/app/capture/$id", params: { id: r.id } });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><Video className="h-4 w-4" /> Capturas de esta simulación</CardTitle>
+        <CardDescription>
+          Sesiones de grabación asociadas. Al invitar a un candidato e iniciar la grabación, la simulación se abre automáticamente.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Button onClick={onCreate} disabled={creating} className="gap-2">
+          {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          Nueva captura
+        </Button>
+
+        <div className="divide-y divide-border rounded-lg border border-border">
+          {q.isLoading ? (
+            <p className="p-4 text-sm text-muted-foreground">Cargando…</p>
+          ) : (q.data?.length ?? 0) === 0 ? (
+            <p className="p-4 text-sm text-muted-foreground">Aún no hay capturas para esta simulación.</p>
+          ) : (
+            q.data!.map((c) => (
+              <Link
+                key={c.id}
+                to="/app/capture/$id"
+                params={{ id: c.id }}
+                className="flex items-center justify-between gap-3 p-3 hover:bg-muted/50"
+              >
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{c.title}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {new Date(c.createdAt).toLocaleString()} ·{" "}
+                    {c.mode === "group" ? "Grupal" : "Individual"} ·{" "}
+                    {c.captureMode === "per_participant" ? "Un dispositivo por participante" : "Un dispositivo"}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge variant="secondary">{c.status}</Badge>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </Link>
+            ))
           )}
         </div>
       </CardContent>
