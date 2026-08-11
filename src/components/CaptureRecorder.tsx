@@ -333,6 +333,33 @@ export function CaptureRecorder({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
+        {recovery && (
+          <div
+            role="status"
+            className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
+          >
+            <p className="font-medium">Grabación interrumpida detectada</p>
+            <p className="mt-1 text-xs">
+              Se recuperaron {fmt(recovery.durationSec)} de grabación de{" "}
+              {new Date(recovery.startedAt).toLocaleString("es-ES")}. Puedes guardarla o descartarla
+              antes de empezar una nueva toma.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button size="sm" onClick={recoverAndSave} disabled={recovering} className="gap-2">
+                {recovering ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-4 w-4" />
+                )}
+                Recuperar y guardar
+              </Button>
+              <Button size="sm" variant="ghost" onClick={discard} disabled={recovering} className="gap-2">
+                <Trash2 className="h-4 w-4" /> Descartar
+              </Button>
+            </div>
+          </div>
+        )}
+
         <PreviewViewControls view={preview.view} onChange={preview.update} />
         <div className={`relative overflow-hidden rounded-lg bg-muted ${preview.frameClass}`}>
           <video ref={videoRef} playsInline autoPlay muted className={preview.videoClass} />
