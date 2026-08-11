@@ -26,12 +26,12 @@ import { Route as AuthenticatedAppAdminPricingRouteImport } from './routes/_auth
 import { Route as AuthenticatedAppAdminSimulationsRouteImport } from './routes/_authenticated/app.admin.simulations'
 import { Route as AuthenticatedAppAdminUsersRouteImport } from './routes/_authenticated/app.admin.users'
 import { Route as AuthenticatedAppCaptureIndexRouteImport } from './routes/_authenticated/app.capture.index'
-import { Route as AuthenticatedAppCaptureIdRouteImport } from './routes/_authenticated/app.capture.$id'
 import { Route as AuthenticatedAppPlayIdRouteImport } from './routes/_authenticated/app.play.$id'
 import { Route as AuthenticatedAppSessionsIdRouteImport } from './routes/_authenticated/app.sessions.$id'
 import { Route as AuthenticatedAppSimulationsIndexRouteImport } from './routes/_authenticated/app.simulations.index'
 import { Route as ApiPublicRedsysChargeRecurringRouteImport } from './routes/api/public/redsys/charge-recurring'
 import { Route as ApiPublicRedsysNotificationRouteImport } from './routes/api/public/redsys/notification'
+import { Route as AuthenticatedAppCaptureIdIndexRouteImport } from './routes/_authenticated/app.capture.$id.index'
 import { Route as AuthenticatedAppCaptureIdAnalyzeRouteImport } from './routes/_authenticated/app.capture.$id.analyze'
 import { Route as AuthenticatedAppCaptureIdCompareRouteImport } from './routes/_authenticated/app.capture.$id.compare'
 import { Route as AuthenticatedAppCaptureIdInsightsRouteImport } from './routes/_authenticated/app.capture.$id.insights'
@@ -131,12 +131,6 @@ const AuthenticatedAppCaptureIndexRoute =
     path: '/app/capture/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAppCaptureIdRoute =
-  AuthenticatedAppCaptureIdRouteImport.update({
-    id: '/app/capture/$id',
-    path: '/app/capture/$id',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedAppPlayIdRoute = AuthenticatedAppPlayIdRouteImport.update({
   id: '/app/play/$id',
   path: '/app/play/$id',
@@ -166,29 +160,35 @@ const ApiPublicRedsysNotificationRoute =
     path: '/api/public/redsys/notification',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedAppCaptureIdIndexRoute =
+  AuthenticatedAppCaptureIdIndexRouteImport.update({
+    id: '/app/capture/$id/',
+    path: '/app/capture/$id/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppCaptureIdAnalyzeRoute =
   AuthenticatedAppCaptureIdAnalyzeRouteImport.update({
-    id: '/analyze',
-    path: '/analyze',
-    getParentRoute: () => AuthenticatedAppCaptureIdRoute,
+    id: '/app/capture/$id/analyze',
+    path: '/app/capture/$id/analyze',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppCaptureIdCompareRoute =
   AuthenticatedAppCaptureIdCompareRouteImport.update({
-    id: '/compare',
-    path: '/compare',
-    getParentRoute: () => AuthenticatedAppCaptureIdRoute,
+    id: '/app/capture/$id/compare',
+    path: '/app/capture/$id/compare',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppCaptureIdInsightsRoute =
   AuthenticatedAppCaptureIdInsightsRouteImport.update({
-    id: '/insights',
-    path: '/insights',
-    getParentRoute: () => AuthenticatedAppCaptureIdRoute,
+    id: '/app/capture/$id/insights',
+    path: '/app/capture/$id/insights',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppCaptureIdScenesRoute =
   AuthenticatedAppCaptureIdScenesRouteImport.update({
-    id: '/scenes',
-    path: '/scenes',
-    getParentRoute: () => AuthenticatedAppCaptureIdRoute,
+    id: '/app/capture/$id/scenes',
+    path: '/app/capture/$id/scenes',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppSimulationsIdIndexRoute =
   AuthenticatedAppSimulationsIdIndexRouteImport.update({
@@ -231,7 +231,6 @@ export interface FileRoutesByFullPath {
   '/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
-  '/app/capture/$id': typeof AuthenticatedAppCaptureIdRouteWithChildren
   '/app/play/$id': typeof AuthenticatedAppPlayIdRoute
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
@@ -245,6 +244,7 @@ export interface FileRoutesByFullPath {
   '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
   '/app/simulations/$id/sessions': typeof AuthenticatedAppSimulationsIdSessionsRoute
+  '/app/capture/$id/': typeof AuthenticatedAppCaptureIdIndexRoute
   '/app/simulations/$id/': typeof AuthenticatedAppSimulationsIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -263,7 +263,6 @@ export interface FileRoutesByTo {
   '/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
-  '/app/capture/$id': typeof AuthenticatedAppCaptureIdRouteWithChildren
   '/app/play/$id': typeof AuthenticatedAppPlayIdRoute
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
@@ -277,6 +276,7 @@ export interface FileRoutesByTo {
   '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
   '/app/simulations/$id/sessions': typeof AuthenticatedAppSimulationsIdSessionsRoute
+  '/app/capture/$id': typeof AuthenticatedAppCaptureIdIndexRoute
   '/app/simulations/$id': typeof AuthenticatedAppSimulationsIdIndexRoute
 }
 export interface FileRoutesById {
@@ -297,7 +297,6 @@ export interface FileRoutesById {
   '/_authenticated/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/_authenticated/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/_authenticated/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
-  '/_authenticated/app/capture/$id': typeof AuthenticatedAppCaptureIdRouteWithChildren
   '/_authenticated/app/play/$id': typeof AuthenticatedAppPlayIdRoute
   '/_authenticated/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
@@ -311,6 +310,7 @@ export interface FileRoutesById {
   '/_authenticated/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/_authenticated/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
   '/_authenticated/app/simulations/$id/sessions': typeof AuthenticatedAppSimulationsIdSessionsRoute
+  '/_authenticated/app/capture/$id/': typeof AuthenticatedAppCaptureIdIndexRoute
   '/_authenticated/app/simulations/$id/': typeof AuthenticatedAppSimulationsIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -331,7 +331,6 @@ export interface FileRouteTypes {
     | '/app/admin/pricing'
     | '/app/admin/simulations'
     | '/app/admin/users'
-    | '/app/capture/$id'
     | '/app/play/$id'
     | '/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
@@ -345,6 +344,7 @@ export interface FileRouteTypes {
     | '/app/simulations/$id/edit'
     | '/app/simulations/$id/review'
     | '/app/simulations/$id/sessions'
+    | '/app/capture/$id/'
     | '/app/simulations/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -363,7 +363,6 @@ export interface FileRouteTypes {
     | '/app/admin/pricing'
     | '/app/admin/simulations'
     | '/app/admin/users'
-    | '/app/capture/$id'
     | '/app/play/$id'
     | '/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
@@ -377,6 +376,7 @@ export interface FileRouteTypes {
     | '/app/simulations/$id/edit'
     | '/app/simulations/$id/review'
     | '/app/simulations/$id/sessions'
+    | '/app/capture/$id'
     | '/app/simulations/$id'
   id:
     | '__root__'
@@ -396,7 +396,6 @@ export interface FileRouteTypes {
     | '/_authenticated/app/admin/pricing'
     | '/_authenticated/app/admin/simulations'
     | '/_authenticated/app/admin/users'
-    | '/_authenticated/app/capture/$id'
     | '/_authenticated/app/play/$id'
     | '/_authenticated/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
@@ -410,6 +409,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/simulations/$id/edit'
     | '/_authenticated/app/simulations/$id/review'
     | '/_authenticated/app/simulations/$id/sessions'
+    | '/_authenticated/app/capture/$id/'
     | '/_authenticated/app/simulations/$id/'
   fileRoutesById: FileRoutesById
 }
@@ -547,13 +547,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppCaptureIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/capture/$id': {
-      id: '/_authenticated/app/capture/$id'
-      path: '/app/capture/$id'
-      fullPath: '/app/capture/$id'
-      preLoaderRoute: typeof AuthenticatedAppCaptureIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/app/play/$id': {
       id: '/_authenticated/app/play/$id'
       path: '/app/play/$id'
@@ -589,33 +582,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicRedsysNotificationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/app/capture/$id/': {
+      id: '/_authenticated/app/capture/$id/'
+      path: '/app/capture/$id'
+      fullPath: '/app/capture/$id/'
+      preLoaderRoute: typeof AuthenticatedAppCaptureIdIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/capture/$id/analyze': {
       id: '/_authenticated/app/capture/$id/analyze'
-      path: '/analyze'
+      path: '/app/capture/$id/analyze'
       fullPath: '/app/capture/$id/analyze'
       preLoaderRoute: typeof AuthenticatedAppCaptureIdAnalyzeRouteImport
-      parentRoute: typeof AuthenticatedAppCaptureIdRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/capture/$id/compare': {
       id: '/_authenticated/app/capture/$id/compare'
-      path: '/compare'
+      path: '/app/capture/$id/compare'
       fullPath: '/app/capture/$id/compare'
       preLoaderRoute: typeof AuthenticatedAppCaptureIdCompareRouteImport
-      parentRoute: typeof AuthenticatedAppCaptureIdRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/capture/$id/insights': {
       id: '/_authenticated/app/capture/$id/insights'
-      path: '/insights'
+      path: '/app/capture/$id/insights'
       fullPath: '/app/capture/$id/insights'
       preLoaderRoute: typeof AuthenticatedAppCaptureIdInsightsRouteImport
-      parentRoute: typeof AuthenticatedAppCaptureIdRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/capture/$id/scenes': {
       id: '/_authenticated/app/capture/$id/scenes'
-      path: '/scenes'
+      path: '/app/capture/$id/scenes'
       fullPath: '/app/capture/$id/scenes'
       preLoaderRoute: typeof AuthenticatedAppCaptureIdScenesRouteImport
-      parentRoute: typeof AuthenticatedAppCaptureIdRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/simulations/$id/': {
       id: '/_authenticated/app/simulations/$id/'
@@ -665,43 +665,24 @@ const AuthenticatedAppAdminRouteWithChildren =
     AuthenticatedAppAdminRouteChildren,
   )
 
-interface AuthenticatedAppCaptureIdRouteChildren {
-  AuthenticatedAppCaptureIdAnalyzeRoute: typeof AuthenticatedAppCaptureIdAnalyzeRoute
-  AuthenticatedAppCaptureIdCompareRoute: typeof AuthenticatedAppCaptureIdCompareRoute
-  AuthenticatedAppCaptureIdInsightsRoute: typeof AuthenticatedAppCaptureIdInsightsRoute
-  AuthenticatedAppCaptureIdScenesRoute: typeof AuthenticatedAppCaptureIdScenesRoute
-}
-
-const AuthenticatedAppCaptureIdRouteChildren: AuthenticatedAppCaptureIdRouteChildren =
-  {
-    AuthenticatedAppCaptureIdAnalyzeRoute:
-      AuthenticatedAppCaptureIdAnalyzeRoute,
-    AuthenticatedAppCaptureIdCompareRoute:
-      AuthenticatedAppCaptureIdCompareRoute,
-    AuthenticatedAppCaptureIdInsightsRoute:
-      AuthenticatedAppCaptureIdInsightsRoute,
-    AuthenticatedAppCaptureIdScenesRoute: AuthenticatedAppCaptureIdScenesRoute,
-  }
-
-const AuthenticatedAppCaptureIdRouteWithChildren =
-  AuthenticatedAppCaptureIdRoute._addFileChildren(
-    AuthenticatedAppCaptureIdRouteChildren,
-  )
-
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppAdminRoute: typeof AuthenticatedAppAdminRouteWithChildren
   AuthenticatedAppBillingRoute: typeof AuthenticatedAppBillingRoute
   AuthenticatedAppDashboardRoute: typeof AuthenticatedAppDashboardRoute
   AuthenticatedAppNewRoute: typeof AuthenticatedAppNewRoute
   AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
-  AuthenticatedAppCaptureIdRoute: typeof AuthenticatedAppCaptureIdRouteWithChildren
   AuthenticatedAppPlayIdRoute: typeof AuthenticatedAppPlayIdRoute
   AuthenticatedAppSessionsIdRoute: typeof AuthenticatedAppSessionsIdRoute
   AuthenticatedAppCaptureIndexRoute: typeof AuthenticatedAppCaptureIndexRoute
   AuthenticatedAppSimulationsIndexRoute: typeof AuthenticatedAppSimulationsIndexRoute
+  AuthenticatedAppCaptureIdAnalyzeRoute: typeof AuthenticatedAppCaptureIdAnalyzeRoute
+  AuthenticatedAppCaptureIdCompareRoute: typeof AuthenticatedAppCaptureIdCompareRoute
+  AuthenticatedAppCaptureIdInsightsRoute: typeof AuthenticatedAppCaptureIdInsightsRoute
+  AuthenticatedAppCaptureIdScenesRoute: typeof AuthenticatedAppCaptureIdScenesRoute
   AuthenticatedAppSimulationsIdEditRoute: typeof AuthenticatedAppSimulationsIdEditRoute
   AuthenticatedAppSimulationsIdReviewRoute: typeof AuthenticatedAppSimulationsIdReviewRoute
   AuthenticatedAppSimulationsIdSessionsRoute: typeof AuthenticatedAppSimulationsIdSessionsRoute
+  AuthenticatedAppCaptureIdIndexRoute: typeof AuthenticatedAppCaptureIdIndexRoute
   AuthenticatedAppSimulationsIdIndexRoute: typeof AuthenticatedAppSimulationsIdIndexRoute
 }
 
@@ -711,17 +692,22 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppDashboardRoute: AuthenticatedAppDashboardRoute,
   AuthenticatedAppNewRoute: AuthenticatedAppNewRoute,
   AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
-  AuthenticatedAppCaptureIdRoute: AuthenticatedAppCaptureIdRouteWithChildren,
   AuthenticatedAppPlayIdRoute: AuthenticatedAppPlayIdRoute,
   AuthenticatedAppSessionsIdRoute: AuthenticatedAppSessionsIdRoute,
   AuthenticatedAppCaptureIndexRoute: AuthenticatedAppCaptureIndexRoute,
   AuthenticatedAppSimulationsIndexRoute: AuthenticatedAppSimulationsIndexRoute,
+  AuthenticatedAppCaptureIdAnalyzeRoute: AuthenticatedAppCaptureIdAnalyzeRoute,
+  AuthenticatedAppCaptureIdCompareRoute: AuthenticatedAppCaptureIdCompareRoute,
+  AuthenticatedAppCaptureIdInsightsRoute:
+    AuthenticatedAppCaptureIdInsightsRoute,
+  AuthenticatedAppCaptureIdScenesRoute: AuthenticatedAppCaptureIdScenesRoute,
   AuthenticatedAppSimulationsIdEditRoute:
     AuthenticatedAppSimulationsIdEditRoute,
   AuthenticatedAppSimulationsIdReviewRoute:
     AuthenticatedAppSimulationsIdReviewRoute,
   AuthenticatedAppSimulationsIdSessionsRoute:
     AuthenticatedAppSimulationsIdSessionsRoute,
+  AuthenticatedAppCaptureIdIndexRoute: AuthenticatedAppCaptureIdIndexRoute,
   AuthenticatedAppSimulationsIdIndexRoute:
     AuthenticatedAppSimulationsIdIndexRoute,
 }

@@ -53,7 +53,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/app/capture/$id")({
+export const Route = createFileRoute("/_authenticated/app/capture/$id/")({
   head: () => ({
     meta: [
       { title: "Sesión de grabación — Capture | Playnalyze" },
@@ -222,7 +222,7 @@ function CaptureSessionPage() {
         </div>
         <Button asChild variant="outline" className="gap-2">
           <Link to="/app/capture/$id/analyze" params={{ id }}>
-            <BarChart3 className="h-4 w-4" /> Analyze
+            <BarChart3 className="h-4 w-4" /> Analizar
           </Link>
         </Button>
       </div>

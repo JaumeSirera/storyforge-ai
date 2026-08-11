@@ -42,13 +42,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/app/capture/$id/analyze")({
   head: () => ({
     meta: [
-      { title: "Analyze — métricas de interacción | Playnalyze" },
+      { title: "Analizar — métricas de interacción | Playnalyze" },
       {
         name: "description",
         content:
           "Transcripción por hablante y métricas objetivas: turnos de palabra, tiempo hablando, interrupciones, silencios y red de interacción.",
       },
-      { property: "og:title", content: "Analyze — métricas de interacción | Playnalyze" },
+      { property: "og:title", content: "Analizar — métricas de interacción | Playnalyze" },
       {
         property: "og:description",
         content: "Evidencias observables de la sesión, trazables al minuto exacto de la grabación.",
@@ -139,7 +139,7 @@ function AnalyzePage() {
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Analyze · {session.title}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Analizar · {session.title}</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Métricas objetivas de la interacción. Cada dato es trazable al minuto exacto de la
             grabación.
@@ -153,7 +153,7 @@ function AnalyzePage() {
           </Button>
           <Button asChild size="sm" className="gap-2">
             <Link to="/app/capture/$id/insights" params={{ id }}>
-              <Sparkles className="h-4 w-4" /> Insights
+              <Sparkles className="h-4 w-4" /> Conclusiones
             </Link>
           </Button>
 

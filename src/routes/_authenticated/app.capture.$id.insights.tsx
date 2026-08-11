@@ -33,13 +33,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/app/capture/$id/insights")({
   head: () => ({
     meta: [
-      { title: "Insights — informe de interacción | Playnalyze" },
+      { title: "Conclusiones — informe de interacción | Playnalyze" },
       {
         name: "description",
         content:
           "Informe profesional con hechos observables, hipótesis trazables y recomendaciones a partir de las métricas de la sesión.",
       },
-      { property: "og:title", content: "Insights — informe de interacción | Playnalyze" },
+      { property: "og:title", content: "Conclusiones — informe de interacción | Playnalyze" },
       {
         property: "og:description",
         content:
@@ -118,12 +118,12 @@ function InsightsPage() {
         params={{ id }}
         className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="mr-1 h-4 w-4" /> Volver a Analyze
+        <ArrowLeft className="mr-1 h-4 w-4" /> Volver a Analizar
       </Link>
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Insights · {session.title}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Conclusiones · {session.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Informe profesional a partir de las métricas y la transcripción de la sesión.
             {insights?.generatedAt
@@ -176,7 +176,7 @@ function InsightsPage() {
                 className="gap-2 text-destructive"
                 disabled={busy !== null}
                 onClick={() => {
-                  if (!confirm("¿Borrar el informe Insights de esta sesión?")) return;
+                  if (!confirm("¿Borrar el informe de conclusiones de esta sesión?")) return;
                   run("wipe", () => wipe({ data: { captureSessionId: id } }), "Informe eliminado");
                 }}
               >
@@ -200,12 +200,12 @@ function InsightsPage() {
         <Card>
           <CardContent className="space-y-3 p-6 text-sm text-muted-foreground">
             <p>
-              Todavía no hay transcripción para esta sesión. Transcribe las grabaciones en Analyze y
+              Todavía no hay transcripción para esta sesión. Transcribe las grabaciones en Analizar y
               vuelve aquí para generar el informe.
             </p>
             <Button asChild variant="outline" size="sm">
               <Link to="/app/capture/$id/analyze" params={{ id }}>
-                Ir a Analyze
+                Ir a Analizar
               </Link>
             </Button>
           </CardContent>
