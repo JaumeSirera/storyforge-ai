@@ -234,6 +234,31 @@ export function CaptureRecorder({
     }
   }
 
+  async function recoverAndSave() {
+    setRecovering(true);
+    try {
+      const ok = await recoverRecording(key, upload);
+      if (ok) {
+        toast.success("Grabación recuperada y guardada");
+        onUploaded?.();
+      } else {
+        toast.info("La grabación interrumpida no tenía contenido utilizable.");
+      }
+      setRecovery(null);
+    } catch (err: any) {
+      toast.error(err?.message || "No se pudo recuperar la grabación");
+    } finally {
+      setRecovering(false);
+    }
+  }
+
+  async function discard() {
+    await discardRecovery(key);
+    setRecovery(null);
+    toast.success("Grabación interrumpida descartada");
+  }
+
+
   // Órdenes del anfitrión: inicio, pausa, reanudación y parada sincronizadas.
   const actions = useRef({ start, pause: () => pauseRecording(key), resume: () => resumeRecording(key), stop });
   actions.current = { start, pause: () => pauseRecording(key), resume: () => resumeRecording(key), stop };
