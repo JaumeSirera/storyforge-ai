@@ -273,7 +273,8 @@ export function RecordingPlayer({
             <video
               ref={pipRef}
               src={pipSrc}
-              muted
+              muted={audioSource !== "pip"}
+
               playsInline
               preload="auto"
               aria-label={`${pipLabel} en recuadro sincronizado`}
