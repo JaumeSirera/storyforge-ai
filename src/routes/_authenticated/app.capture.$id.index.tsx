@@ -317,7 +317,36 @@ function CaptureSessionPage() {
           }
           onClick={() => setOpen("recordings")}
         />
+        {(session.mode === "group" || session.captureMode === "per_participant") && (
+          <>
+            <SectionCard
+              icon={Radio}
+              title="Control del anfitrión"
+              summary="Inicia, pausa o detén la grabación en todos los dispositivos"
+              onClick={() => setOpen("host")}
+            />
+            <SectionCard
+              icon={Grid2x2}
+              title="Mosaico multicámara"
+              summary="Ver todas las cámaras de la sala en directo"
+              onClick={() => setOpen("mosaic")}
+            />
+          </>
+        )}
+        <SectionCard
+          icon={Video}
+          title="Grabar"
+          summary={
+            !consentsOk
+              ? "Pendiente: acepta el consentimiento para grabar"
+              : session.captureMode === "per_participant" && participants.length > 0
+                ? `Grabación por participante (${participants.length})`
+                : "Grabación del anfitrión (cámara y pantalla)"
+          }
+          onClick={() => setOpen("record")}
+        />
       </div>
+
 
       {/* Configuración de la sesión */}
       <Dialog open={open === "config"} onOpenChange={(v) => setOpen(v ? "config" : null)}>
