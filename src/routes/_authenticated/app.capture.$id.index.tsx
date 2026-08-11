@@ -162,6 +162,20 @@ function CaptureSessionPage() {
   const recordings = q.data?.recordings ?? [];
   const text = consentText ?? session?.consentText ?? DEFAULT_CONSENT;
 
+  const filteredParticipants = participants.filter((p) => {
+    const q = pSearch.trim().toLowerCase();
+    const matchesSearch =
+      q === "" ||
+      p.name.toLowerCase().includes(q) ||
+      (p.identifier?.toLowerCase() || "").includes(q);
+    const matchesRole = pRoleFilter === "all" || p.role === pRoleFilter;
+    const matchesStatus =
+      pStatusFilter === "all" ||
+      (pStatusFilter === "late" && p.isLate) ||
+      (pStatusFilter === "active" && !p.isLate);
+    return matchesSearch && matchesRole && matchesStatus;
+  });
+
   async function patch(data: Record<string, unknown>) {
     await update({ data: { id, ...data } as any });
     qc.invalidateQueries({ queryKey: ["capture-session", id] });
