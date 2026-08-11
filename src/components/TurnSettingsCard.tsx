@@ -63,7 +63,7 @@ export function TurnSettingsCard() {
   });
 
   const check = useMutation({
-    mutationFn: () => test({ data: {} }),
+    mutationFn: () => test(),
     onSuccess: (res) => {
       if (res.hasTurn) {
         toast.success(
