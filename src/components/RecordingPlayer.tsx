@@ -68,20 +68,47 @@ export function RecordingPlayer({
   pipSrc,
   pipOffsetMs = 0,
   pipLabel = "Cámara",
+  pipPrefsKey,
 }: Props) {
   const ref = useRef<HTMLVideoElement | null>(null);
   const pipRef = useRef<HTMLVideoElement | null>(null);
   const fixedRef = useRef(false);
   const [pipOn, setPipOn] = useState(!!pipSrc);
   const [corner, setCorner] = useState<Corner>("br");
+  const [size, setSize] = useState<PipSize>("md");
+  const loadedRef = useRef(false);
 
   useEffect(() => {
     fixedRef.current = false;
   }, [src]);
 
+  // Restaura las preferencias guardadas del recuadro (tras hidratar).
   useEffect(() => {
-    setPipOn(!!pipSrc);
+    const prefs = loadPipPrefs(pipPrefsKey);
+    if (prefs.corner) setCorner(prefs.corner);
+    if (prefs.size) setSize(prefs.size);
+    if (typeof prefs.on === "boolean") setPipOn(!!pipSrc && prefs.on);
+    loadedRef.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pipPrefsKey]);
+
+  // Guarda las preferencias cuando cambian.
+  useEffect(() => {
+    if (!loadedRef.current || typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        prefsStorageKey(pipPrefsKey),
+        JSON.stringify({ corner, size, on: pipOn } satisfies PipPrefs),
+      );
+    } catch {
+      /* ignorar */
+    }
+  }, [corner, size, pipOn, pipPrefsKey]);
+
+  useEffect(() => {
+    if (!pipSrc) setPipOn(false);
   }, [pipSrc]);
+
 
   // Sincroniza la pista PIP con la principal.
   useEffect(() => {
