@@ -119,6 +119,13 @@ function ScenesPage() {
   const segments = analysisQ.data?.segments ?? [];
   const scenes = scenesQ.data?.scenes ?? [];
   const generatedAt = scenesQ.data?.generatedAt ?? null;
+  const annotationByIndex = useMemo(() => {
+    const map = new Map<number, (typeof annotations)[number]>();
+    const annotations = annotationsQ.data?.annotations ?? [];
+    for (const a of annotations) map.set(a.sceneIndex, a);
+    return map;
+  }, [annotationsQ.data]);
+
 
   const nameOf = (key: string | null) => {
     if (!key) return "Hablante sin identificar";
