@@ -2,8 +2,15 @@ import { jsPDF } from "jspdf";
 import { formatSec } from "./analyze-metrics";
 import type { ScenesComparison } from "./compare-scenes.functions";
 
+export type ComparisonPdfData = ScenesComparison & {
+  focus?: string | null;
+  /** Empieza el informe con una página de conclusiones y recomendaciones clave. */
+  executiveSummary?: boolean;
+};
+
 /** Exporta la comparativa de sesiones: patrones, evidencias por sesión, diferencias y recomendaciones. */
-export function generateComparisonPdf(data: ScenesComparison & { focus?: string | null }): jsPDF {
+export function generateComparisonPdf(data: ComparisonPdfData): jsPDF {
+
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
