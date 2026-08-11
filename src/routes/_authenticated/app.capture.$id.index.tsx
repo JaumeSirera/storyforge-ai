@@ -630,6 +630,19 @@ function CaptureSessionPage() {
           {recordings.length === 0 && (
             <p className="text-sm text-muted-foreground">Aún no hay grabaciones.</p>
           )}
+          {recordings.length > 0 &&
+            recordings.some((r) => r.kind === "screen") &&
+            !recordings.some((r) => r.kind === "camera") && (
+              <p
+                role="status"
+                className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
+              >
+                Esta sesión solo tiene pista de pantalla: la cámara no llegó a guardarse (se cortó
+                el permiso o la ocupó otra app durante la grabación). En la próxima toma verás un
+                aviso para reactivarla sin perder lo grabado.
+              </p>
+            )}
+
           {recordings.map((r) => {
             const p = participants.find((x) => x.id === r.participantId);
             return (
