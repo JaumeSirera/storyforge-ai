@@ -93,8 +93,12 @@ export const Route = createFileRoute("/_authenticated/app/capture/$id/")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    edit: search['edit'] === "config" ? ("config" as const) : undefined,
+  }),
   component: CaptureSessionPage,
 });
+
 
 const DEFAULT_CONSENT = `Se informa a las personas participantes de que esta sesión será grabada (imagen y voz) con la finalidad de analizar la interacción y elaborar un informe de apoyo al profesional. El análisis se limita a comportamientos observables y no emite diagnósticos ni conclusiones sobre la personalidad. La grabación se conserva 30 días y se elimina automáticamente. Puedes retirar tu consentimiento en cualquier momento.`;
 
@@ -146,6 +150,13 @@ function CaptureSessionPage() {
     | "mosaic"
     | "record"
   >(null);
+
+  const { edit } = Route.useSearch();
+  useEffect(() => {
+    if (edit === "config") setOpen("config");
+  }, [edit]);
+
+
 
   useEffect(() => {
     void supabase.auth.getUser().then(({ data }) => {
