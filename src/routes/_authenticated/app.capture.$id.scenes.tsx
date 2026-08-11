@@ -13,6 +13,7 @@ import { listSceneAnnotations, type SceneAnnotation } from "@/lib/scene-annotati
 import { SceneAnnotationEditor } from "@/components/SceneAnnotationEditor";
 import { getCaptureSession, getRecordingUrl } from "@/lib/capture.functions";
 import { formatSec } from "@/lib/analyze-metrics";
+import { downloadScenesPdf } from "@/lib/scenes-pdf";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
