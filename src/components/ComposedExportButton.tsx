@@ -75,7 +75,29 @@ export function ComposedExportButton({ recordings, fileBase, getUrl, pipPrefsKey
   }
 
   return (
+  if (compact) {
+    return (
+      <Button
+        size="sm"
+        variant="secondary"
+        className="gap-1"
+        onClick={run}
+        disabled={busy}
+        title="Exporta pantalla + cámara PIP en un solo vídeo, con la posición del recuadro guardada"
+      >
+        {busy ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Download className="h-3.5 w-3.5" />
+        )}
+        {busy ? `${Math.round(progress * 100)}%` : "Exportar PIP"}
+      </Button>
+    );
+  }
+
+  return (
     <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2">
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="text-sm font-medium">Exportar cámara + pantalla en un solo vídeo</p>
