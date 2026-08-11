@@ -95,12 +95,27 @@ export function MultiCamMosaic({
         if (stream) upsertPeer(peerId, { stream });
       };
       pc.onconnectionstatechange = () => {
-        if (pc.connectionState === "failed" || pc.connectionState === "closed") {
-          pc.close();
+        if (pc.connectionState === "failed") {
+          // Reintento: renegocia por relé (TURN) antes de descartar al participante.
+          if (initiator) {
+            void (async () => {
+              try {
+                const offer = await pc.createOffer({ iceRestart: true });
+                await pc.setLocalDescription(offer);
+                send("offer", { to: peerId, sdp: pc.localDescription?.sdp, name: displayName });
+              } catch {
+                /* se descartará abajo si sigue fallando */
+              }
+            })();
+            return;
+          }
+        }
+        if (pc.connectionState === "closed") {
           pcsRef.current.delete(peerId);
           setPeers((prev) => prev.filter((p) => p.id !== peerId));
         }
       };
+
 
       if (initiator) {
         void (async () => {
