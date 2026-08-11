@@ -21,6 +21,8 @@ interface Props {
   getUrl: (id: string) => Promise<string>;
   /** Clave de preferencias PIP (id de sesión) para respetar el layout visto. */
   pipPrefsKey?: string;
+  /** Variante compacta: solo el botón, para usar en la misma línea de la toma. */
+  compact?: boolean;
 }
 
 
@@ -28,13 +30,14 @@ interface Props {
  * Exporta la cámara y la pantalla de la sesión como un único vídeo sincronizado
  * (pantalla completa + cámara en recuadro) listo para compartir.
  */
-export function ComposedExportButton({ recordings, fileBase, getUrl, pipPrefsKey }: Props) {
+export function ComposedExportButton({ recordings, fileBase, getUrl, pipPrefsKey, compact }: Props) {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
 
   const screen = recordings.find((r) => r.kind === "screen");
   const camera = recordings.find((r) => r.kind === "camera");
   if (!screen || !camera) return null;
+
 
   async function run() {
     setBusy(true);
@@ -51,7 +54,9 @@ export function ComposedExportButton({ recordings, fileBase, getUrl, pipPrefsKey
         durationSec: Math.max(screen!.durationSec ?? 0, camera!.durationSec ?? 0) || null,
         pipCorner: prefs.corner,
         pipSize: prefs.size,
-        pipVisible: prefs.on,
+        // El vídeo combinado siempre incluye el recuadro PIP en su posición guardada.
+        pipVisible: true,
+
         onProgress: setProgress,
       });
       const url = URL.createObjectURL(blob);
@@ -69,8 +74,30 @@ export function ComposedExportButton({ recordings, fileBase, getUrl, pipPrefsKey
     }
   }
 
+  if (compact) {
+
+    return (
+      <Button
+        size="sm"
+        variant="secondary"
+        className="gap-1"
+        onClick={run}
+        disabled={busy}
+        title="Exporta pantalla + cámara PIP en un solo vídeo, con la posición del recuadro guardada"
+      >
+        {busy ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Download className="h-3.5 w-3.5" />
+        )}
+        {busy ? `${Math.round(progress * 100)}%` : "Exportar PIP"}
+      </Button>
+    );
+  }
+
   return (
     <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2">
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="text-sm font-medium">Exportar cámara + pantalla en un solo vídeo</p>
