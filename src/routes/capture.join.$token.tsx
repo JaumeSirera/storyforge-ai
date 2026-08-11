@@ -264,6 +264,11 @@ function JoinCapturePage() {
                 mediaSelection={mediaSelection}
                 onStarted={() => {
                   if (!session.simulationId) return;
+                  try {
+                    localStorage.setItem("pn-pending-capture-link", session.id);
+                  } catch {
+                    /* almacenamiento no disponible: se omite el vínculo automático */
+                  }
                   toast.success("Grabando: abrimos tu simulación…");
                   setTimeout(() => {
                     navigate({

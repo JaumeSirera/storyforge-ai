@@ -30,6 +30,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Star, Save, Plus, Trash2, MessageSquare, CheckCircle2, Download, Mail, Search, FilterX } from "lucide-react";
 import { downloadReportPdf } from "@/lib/report-pdf";
 import { IntegratedReportButton } from "@/components/IntegratedReportButton";
+import { getIntegratedReport } from "@/lib/integrated-report.functions";
+import { downloadIntegratedPdf } from "@/lib/integrated-pdf";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -346,6 +348,7 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
   const markSent = useServerFn(markReportEmailSent);
   const logSend = useServerFn(logReportEmail);
   const listLog = useServerFn(listReportEmailLog);
+  const fetchIntegrated = useServerFn(getIntegratedReport);
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["sim-session", sessionId],
@@ -354,6 +357,11 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
   const settingsQ = useQuery({
     queryKey: ["my-email-settings"],
     queryFn: () => loadEmailSettings(),
+  });
+  const integratedQ = useQuery({
+    queryKey: ["integrated-report", sessionId, null],
+    queryFn: () => fetchIntegrated({ data: { sessionId } }),
+    staleTime: 60_000,
   });
   const logQ = useQuery({
     queryKey: ["report-email-log", sessionId],
@@ -453,8 +461,13 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
     setSendingMail(true);
     try {
       const logo = await loadLogoDataUrl(cfg?.logoUrl || null);
-      // Descarga el PDF para adjuntarlo en el correo.
-      downloadReportPdf(pdfPayload(logo));
+      // Descarga el PDF para adjuntarlo en el correo: si la grabación está
+      // vinculada, se envía el informe integrado (decisiones + comportamiento).
+      if (integratedQ.data) {
+        downloadIntegratedPdf({ report: integratedQ.data, branding: { logoDataUrl: logo } });
+      } else {
+        downloadReportPdf(pdfPayload(logo));
+      }
 
       const opened = openMailClient({
         to,
