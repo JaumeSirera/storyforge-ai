@@ -432,6 +432,15 @@ function ScenesPage() {
                     <Play className="h-4 w-4" /> Reproducir
                   </Button>
                 </div>
+                <SceneAnnotationEditor
+                  captureSessionId={id}
+                  sceneIndex={i}
+                  sceneTitle={s.title}
+                  startSec={s.startSec}
+                  endSec={s.endSec}
+                  annotation={annotationByIndex.get(i) ?? null}
+                />
+
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm">{s.why}</p>
