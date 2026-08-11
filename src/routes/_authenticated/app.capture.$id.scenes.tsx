@@ -9,8 +9,11 @@ import {
   type SessionScene,
 } from "@/lib/scenes.functions";
 import { getSessionAnalysis } from "@/lib/analyze.functions";
+import { listSceneAnnotations } from "@/lib/scene-annotations.functions";
+import { SceneAnnotationEditor } from "@/components/SceneAnnotationEditor";
 import { getCaptureSession, getRecordingUrl } from "@/lib/capture.functions";
 import { formatSec } from "@/lib/analyze-metrics";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
