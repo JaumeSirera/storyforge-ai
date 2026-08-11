@@ -117,9 +117,10 @@ export const transcribeRecording = createServerFn({ method: "POST" })
       .eq("capture_session_id", data.captureSessionId)
       .single();
     if (recErr || !rec) throw new Error("Grabación no encontrada");
-    if ((rec.size_bytes ?? 0) > MAX_AUDIO_BYTES) {
+    const sizeBytes = rec.size_bytes ?? 0;
+    if (sizeBytes > MAX_AUDIO_BYTES) {
       throw new Error(
-        "La grabación es demasiado grande para transcribirla de una vez (máx. 24 MB). Divide la sesión en tramos más cortos.",
+        "La grabación supera 1 GB y el servicio de transcripción no la acepta. Divide la sesión en tramos más cortos.",
       );
     }
 
@@ -131,15 +132,27 @@ export const transcribeRecording = createServerFn({ method: "POST" })
     });
 
     try {
-      const file = await context.supabase.storage.from("recordings").download(rec.storage_path);
-      if (file.error || !file.data) throw new Error("No se pudo leer la grabación almacenada");
-
       const form = new FormData();
       form.append("model_id", TRANSCRIPTION_MODEL);
       form.append("diarize", "true");
       form.append("tag_audio_events", "true");
       if (data.languageCode) form.append("language_code", data.languageCode);
-      form.append("file", file.data, "recording.webm");
+
+      if (sizeBytes > INLINE_UPLOAD_BYTES) {
+        // Grabaciones grandes: el proveedor descarga el fichero desde una URL firmada
+        // (evita cargar cientos de MB en memoria del servidor).
+        const signed = await context.supabase.storage
+          .from("recordings")
+          .createSignedUrl(rec.storage_path, 60 * 60);
+        if (signed.error || !signed.data?.signedUrl) {
+          throw new Error("No se pudo preparar el acceso a la grabación almacenada");
+        }
+        form.append("cloud_storage_url", signed.data.signedUrl);
+      } else {
+        const file = await context.supabase.storage.from("recordings").download(rec.storage_path);
+        if (file.error || !file.data) throw new Error("No se pudo leer la grabación almacenada");
+        form.append("file", file.data, "recording.webm");
+      }
 
       const res = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
         method: "POST",
