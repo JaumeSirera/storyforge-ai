@@ -90,7 +90,9 @@ function ComparePage() {
 
   const [otherId, setOtherId] = useState<string>("");
   const [focus, setFocus] = useState("");
+  const [execSummary, setExecSummary] = useState(true);
   const [result, setResult] = useState<ScenesComparison | null>(null);
+
 
   const { data: session } = useQuery({
     queryKey: ["capture-session", id],
