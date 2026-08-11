@@ -650,82 +650,101 @@ function CaptureSessionPage() {
               </p>
             )}
 
-          <ComposedExportButton
-            recordings={recordings}
-            fileBase={`sesion-${(session.title || id).slice(0, 40)}`}
-            getUrl={async (rid) => (await recUrl({ data: { id: rid } })).url}
-            pipPrefsKey={id}
-          />
-
-
-          {recordings.map((r) => {
-            const p = participants.find((x) => x.id === r.participantId);
+          {buildTakes(recordings).map((take) => {
+            const p = participants.find((x) => x.id === take.participantId);
+            const screen = take.tracks.find((t) => t.kind === "screen");
+            const camera = take.tracks.find((t) => t.kind === "camera");
+            const main = screen ?? take.tracks[0]!;
+            const openTrack = async (r: (typeof take.tracks)[number]) => {
+              try {
+                const { url } = await recUrl({ data: { id: r.id } });
+                let pipUrl: string | null = null;
+                let pipOffsetMs = 0;
+                if (r.kind === "screen" && camera) {
+                  try {
+                    pipUrl = (await recUrl({ data: { id: camera.id } })).url;
+                    pipOffsetMs = camera.syncOffsetMs - r.syncOffsetMs;
+                  } catch {
+                    pipUrl = null;
+                  }
+                }
+                setPlaying({ id: r.id, url, pipUrl, pipOffsetMs });
+              } catch (e: any) {
+                toast.error(e?.message || "No se pudo abrir");
+              }
+            };
+            const playingTrack = take.tracks.find((t) => t.id === playing?.id);
             return (
-              <div key={r.id} className="rounded-lg border border-border p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2">
+              <div key={take.key} className="rounded-lg border border-border p-3 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-sm font-medium">
-                      {r.kind === "screen" ? "Pantalla" : r.kind === "audio" ? "Audio" : "Cámara"}
+                      {take.tracks
+                        .map((t) =>
+                          t.kind === "screen" ? "Pantalla" : t.kind === "audio" ? "Audio" : "Cámara",
+                        )
+                        .join(" + ")}
                       {p ? ` · ${p.name}` : ""}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {r.durationSec ? `${Math.round(r.durationSec)} s · ` : ""}
-                      sync +{Math.round(r.syncOffsetMs / 100) / 10}s ·{" "}
-                      {new Date(r.createdAt).toLocaleString("es-ES")}
+                      {main.durationSec ? `${Math.round(main.durationSec)} s · ` : ""}
+                      sync +{Math.round(main.syncOffsetMs / 100) / 10}s ·{" "}
+                      {new Date(main.createdAt).toLocaleString("es-ES")}
                     </p>
                   </div>
-                  <div className="flex gap-1">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1"
-                      onClick={async () => {
-                        try {
-                          const { url } = await recUrl({ data: { id: r.id } });
-                          let pipUrl: string | null = null;
-                          let pipOffsetMs = 0;
-                          if (r.kind === "screen") {
-                            const cam = recordings
-                              .filter(
-                                (x) => x.kind === "camera" && x.participantId === r.participantId,
-                              )
-                              .sort((a, b) => (b.durationSec ?? 0) - (a.durationSec ?? 0))[0];
-                            if (cam) {
-                              try {
-                                pipUrl = (await recUrl({ data: { id: cam.id } })).url;
-                                pipOffsetMs = cam.syncOffsetMs - r.syncOffsetMs;
-                              } catch {
-                                pipUrl = null;
-                              }
-                            }
-                          }
-                          setPlaying({ id: r.id, url, pipUrl, pipOffsetMs });
-                        } catch (e: any) {
-                          toast.error(e?.message || "No se pudo abrir");
-                        }
-                      }}
-                    >
-                      <Play className="h-3.5 w-3.5" /> Ver
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      aria-label="Eliminar grabación"
-                      onClick={async () => {
-                        if (!confirm("¿Eliminar esta grabación?")) return;
-                        await delRec({ data: { id: r.id } });
-                        if (playing?.id === r.id) setPlaying(null);
-                        qc.invalidateQueries({ queryKey: ["capture-session", id] });
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                  <div className="flex flex-wrap items-center gap-1">
+                    {take.tracks.map((t) => (
+                      <span key={t.id} className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1"
+                          onClick={() => openTrack(t)}
+                        >
+                          <Play className="h-3.5 w-3.5" />
+                          {take.tracks.length > 1
+                            ? t.kind === "screen"
+                              ? "Ver pantalla"
+                              : t.kind === "audio"
+                                ? "Ver audio"
+                                : "Ver cámara"
+                            : "Ver"}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          aria-label="Eliminar grabación"
+                          onClick={async () => {
+                            if (!confirm("¿Eliminar esta grabación?")) return;
+                            await delRec({ data: { id: t.id } });
+                            if (playing?.id === t.id) setPlaying(null);
+                            qc.invalidateQueries({ queryKey: ["capture-session", id] });
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </span>
+                    ))}
+                    {screen && camera && (
+                      <ComposedExportButton
+                        compact
+                        recordings={take.tracks}
+                        fileBase={`sesion-${(session.title || id).slice(0, 40)}-${new Date(
+                          main.createdAt,
+                        )
+                          .toISOString()
+                          .slice(11, 19)
+                          .replace(/:/g, "")}`}
+                        getUrl={async (rid) => (await recUrl({ data: { id: rid } })).url}
+                        pipPrefsKey={id}
+                      />
+                    )}
                   </div>
                 </div>
-                {playing?.id === r.id && (
+                {playingTrack && playing && (
                   <RecordingPlayer
                     src={playing.url}
-                    durationSec={r.durationSec}
+                    durationSec={playingTrack.durationSec}
                     pipSrc={playing.pipUrl}
                     pipOffsetMs={playing.pipOffsetMs}
                     pipLabel={p ? `Cámara · ${p.name}` : "Cámara"}
@@ -735,6 +754,7 @@ function CaptureSessionPage() {
               </div>
             );
           })}
+
         </CardContent>
       </Card>
     </div>
