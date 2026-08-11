@@ -258,6 +258,11 @@ function ScenesPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {scenes.length > 0 && (
+            <Button variant="outline" size="sm" className="gap-2" onClick={exportPdf}>
+              <FileDown className="h-4 w-4" /> Exportar PDF
+            </Button>
+          )}
           <Button asChild variant="outline" size="sm" className="gap-2">
             <Link to="/app/capture/$id/insights" params={{ id }}>
               <Sparkles className="h-4 w-4" /> Insights
