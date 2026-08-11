@@ -730,14 +730,17 @@ function CaptureSessionPage() {
       )}
 
       {/* Grabaciones */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Grabaciones de la sesión</CardTitle>
-          <CardDescription>
-            Cada pista guarda su desplazamiento de sincronización con el vídeo del juego.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <Dialog open={open === "recordings"} onOpenChange={(v) => setOpen(v ? "recordings" : null)}>
+        <DialogContent className="sm:max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Film className="h-4 w-4" /> Grabaciones de la sesión
+            </DialogTitle>
+            <DialogDescription>
+              Cada pista guarda su desplazamiento de sincronización con el vídeo del juego.
+            </DialogDescription>
+          </DialogHeader>
+        <div className="space-y-3">
           {recordings.length === 0 && (
             <p className="text-sm text-muted-foreground">Aún no hay grabaciones.</p>
           )}
