@@ -110,9 +110,10 @@ export const generateSessionScenes = createServerFn({ method: "POST" })
     const userKeys = await loadUserKeys(context.supabase, context.userId);
     const { model, provider, nativeId } = resolveUserTextModel(userKeys);
 
-    let result: Awaited<ReturnType<typeof generateText>>;
+    let result: Awaited<ReturnType<typeof generateText>> | null = null;
     try {
       result = await generateText({
+
         model,
         experimental_output: Output.object({ schema: ScenesGenSchema }),
         system: `Eres un copiloto experto que selecciona los momentos más significativos de una sesión grabada para que un profesional (selección, formación, terapia, mediación) los revise sin ver la grabación completa.
@@ -138,17 +139,22 @@ Selecciona los momentos más relevantes y devuélvelos como escenas de la "pelí
       });
     } catch (err: any) {
       console.error("[scenes] generación fallida", err?.message ?? err);
-      throw new Error(
-        "El modelo no devolvió escenas válidas. Vuelve a intentarlo (puedes acotar el foco para ayudarle).",
-      );
+      result = null;
     }
 
-    const raw = (result.experimental_output as z.infer<typeof ScenesGenSchema> | undefined)?.scenes ?? [];
+    const raw =
+      (result?.experimental_output as z.infer<typeof ScenesGenSchema> | undefined)?.scenes ?? [];
     const normalizedScenes = normalizeScenes(raw, spanSec);
     const scenes =
       normalizedScenes.length > 0
         ? normalizedScenes
         : buildFallbackScenes(segments, spanSec, nameOf);
+    if (scenes.length === 0) {
+      throw new Error(
+        "No hay suficiente transcripción para construir escenas. Vuelve a transcribir la sesión en Analizar.",
+      );
+    }
+
 
     const generatedAt = new Date().toISOString();
     const { error: saveErr } = await context.supabase.from("capture_analyses").upsert(
@@ -163,7 +169,7 @@ Selecciona los momentos más relevantes y devuélvelos como escenas de la "pelí
     if (saveErr) throw new Error(saveErr.message);
 
     try {
-      const usage = result.usage as
+      const usage = result?.usage as
         | { inputTokens?: number; outputTokens?: number; promptTokens?: number; completionTokens?: number }
         | undefined;
       const { recordUsage, userPaysPlatform } = await import("./usage.server");
