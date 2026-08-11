@@ -28,6 +28,13 @@ import { ComposedExportButton } from "@/components/ComposedExportButton";
 
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,6 +60,11 @@ import {
   UserPlus,
   BarChart3,
   Settings2,
+  Users,
+  ClipboardCheck,
+  Mail,
+  Film,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -113,6 +125,9 @@ function CaptureSessionPage() {
   } | null>(null);
   const [mediaSelection, setMediaSelection] = useState<MediaDeviceSelection | null>(null);
   const [myName, setMyName] = useState("Yo");
+  const [open, setOpen] = useState<
+    null | "config" | "consent" | "participants" | "audit" | "invites" | "recordings"
+  >(null);
 
   useEffect(() => {
     void supabase.auth.getUser().then(({ data }) => {
@@ -235,21 +250,79 @@ function CaptureSessionPage() {
         </Button>
       </div>
 
+      {/* Hub de secciones */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <SectionCard
+          icon={Settings2}
+          title="Configuración de la sesión"
+          summary={`${session.mode === "group" ? "Grupal" : "Individual"} · ${
+            session.captureMode === "per_participant" ? "Un dispositivo por persona" : "Un dispositivo"
+          } · ${session.retentionDays} días`}
+          onClick={() => setOpen("config")}
+        />
+        <SectionCard
+          icon={ShieldCheck}
+          title="Consentimientos"
+          summary={
+            consentsOk
+              ? `Grabación aceptada${session.consentFaceAnalysis ? " · análisis facial" : ""}`
+              : "Pendiente: sin consentimiento no se puede grabar"
+          }
+          onClick={() => setOpen("consent")}
+        />
+        <SectionCard
+          icon={Users}
+          title="Participantes"
+          summary={
+            participants.length === 0
+              ? "Aún no hay participantes"
+              : `${participants.length} persona${participants.length === 1 ? "" : "s"}: ${participants
+                  .map((p) => p.name)
+                  .slice(0, 3)
+                  .join(", ")}`
+          }
+          onClick={() => setOpen("participants")}
+        />
+        <SectionCard
+          icon={ClipboardCheck}
+          title="Auditoría de consentimientos"
+          summary="Quién aceptó, cuándo y con qué versión del texto"
+          onClick={() => setOpen("audit")}
+        />
+        <SectionCard
+          icon={Mail}
+          title="Invitaciones"
+          summary="Enlaces para que cada persona entre desde su dispositivo"
+          onClick={() => setOpen("invites")}
+        />
+        <SectionCard
+          icon={Film}
+          title="Grabaciones"
+          summary={
+            recordings.length === 0
+              ? "Aún no hay grabaciones"
+              : `${recordings.length} pista${recordings.length === 1 ? "" : "s"} · ver y exportar`
+          }
+          onClick={() => setOpen("recordings")}
+        />
+      </div>
+
       {/* Configuración de la sesión */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Settings2 className="h-4 w-4" /> Configuración de la sesión
-          </CardTitle>
-          <CardDescription>
-            Ajusta el tipo de sesión y la captura antes de empezar a grabar. Los cambios se guardan
-            en tu cuenta y se recuperan al volver a esta sesión.
-            {recordings.length > 0
-              ? " Ya hay grabaciones: los cambios no afectan a las pistas existentes."
-              : ""}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <Dialog open={open === "config"} onOpenChange={(v) => setOpen(v ? "config" : null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="h-4 w-4" /> Configuración de la sesión
+            </DialogTitle>
+            <DialogDescription>
+              Ajusta el tipo de sesión y la captura antes de empezar a grabar. Los cambios se guardan
+              en tu cuenta y se recuperan al volver a esta sesión.
+              {recordings.length > 0
+                ? " Ya hay grabaciones: los cambios no afectan a las pistas existentes."
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+        <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="s-title">Título</Label>
@@ -360,22 +433,23 @@ function CaptureSessionPage() {
               onCheckedChange={(v) => patch({ recordScreen: v })}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Consentimiento */}
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4" /> Consentimiento y gobernanza
-          </CardTitle>
-          <CardDescription>
-            Sin consentimiento de grabación no se puede iniciar la sesión. El análisis se limita a
-            comportamientos observables.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <Dialog open={open === "consent"} onOpenChange={(v) => setOpen(v ? "consent" : null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" /> Consentimiento y gobernanza
+            </DialogTitle>
+            <DialogDescription>
+              Sin consentimiento de grabación no se puede iniciar la sesión. El análisis se limita a
+              comportamientos observables.
+            </DialogDescription>
+          </DialogHeader>
+        <div className="space-y-4">
           <Textarea
             rows={5}
             value={text}
@@ -436,19 +510,26 @@ function CaptureSessionPage() {
               onCheckedChange={(v) => patch({ recordScreen: v })}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Participantes */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Participantes</CardTitle>
-          <CardDescription>
-            Cada persona tiene fotografía, nombre, identificador y rol. Puedes incorporar a alguien
-            que llegue tarde en cualquier momento.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <Dialog
+        open={open === "participants"}
+        onOpenChange={(v) => setOpen(v ? "participants" : null)}
+      >
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-4 w-4" /> Participantes
+            </DialogTitle>
+            <DialogDescription>
+              Cada persona tiene fotografía, nombre, identificador y rol. Puedes incorporar a alguien
+              que llegue tarde en cualquier momento.
+            </DialogDescription>
+          </DialogHeader>
+        <div className="space-y-4">
           {participants.length === 0 && (
             <p className="text-sm text-muted-foreground">Aún no hay participantes.</p>
           )}
@@ -564,14 +645,37 @@ function CaptureSessionPage() {
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Auditoría de consentimientos */}
-      <CaptureConsentAudit captureSessionId={id} />
+      <Dialog open={open === "audit"} onOpenChange={(v) => setOpen(v ? "audit" : null)}>
+        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardCheck className="h-4 w-4" /> Auditoría de consentimientos
+            </DialogTitle>
+            <DialogDescription>Registro de aceptaciones con fecha y versión.</DialogDescription>
+          </DialogHeader>
+          <CaptureConsentAudit captureSessionId={id} />
+        </DialogContent>
+      </Dialog>
 
       {/* Invitaciones para que cada participante entre desde su dispositivo */}
-      <CaptureInvitationsCard captureSessionId={id} participants={participants} />
+      <Dialog open={open === "invites"} onOpenChange={(v) => setOpen(v ? "invites" : null)}>
+        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-4 w-4" /> Invitaciones
+            </DialogTitle>
+            <DialogDescription>
+              Genera enlaces privados para que cada participante entre desde su dispositivo.
+            </DialogDescription>
+          </DialogHeader>
+          <CaptureInvitationsCard captureSessionId={id} participants={participants} />
+        </DialogContent>
+      </Dialog>
 
       {/* Control sincronizado de la grabación en todos los dispositivos */}
       {consentsOk && (session.mode === "group" || session.captureMode === "per_participant") && (
@@ -626,14 +730,17 @@ function CaptureSessionPage() {
       )}
 
       {/* Grabaciones */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Grabaciones de la sesión</CardTitle>
-          <CardDescription>
-            Cada pista guarda su desplazamiento de sincronización con el vídeo del juego.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <Dialog open={open === "recordings"} onOpenChange={(v) => setOpen(v ? "recordings" : null)}>
+        <DialogContent className="sm:max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Film className="h-4 w-4" /> Grabaciones de la sesión
+            </DialogTitle>
+            <DialogDescription>
+              Cada pista guarda su desplazamiento de sincronización con el vídeo del juego.
+            </DialogDescription>
+          </DialogHeader>
+        <div className="space-y-3">
           {recordings.length === 0 && (
             <p className="text-sm text-muted-foreground">Aún no hay grabaciones.</p>
           )}
@@ -755,9 +862,45 @@ function CaptureSessionPage() {
             );
           })}
 
-        </CardContent>
-      </Card>
+        </div>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+function SectionCard({
+  icon: Icon,
+  title,
+  summary,
+  onClick,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  summary: string;
+  onClick: () => void;
+}) {
+  return (
+    <Card className="transition-colors hover:border-primary/50">
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl"
+      >
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary/10 text-primary">
+              <Icon className="h-4 w-4" />
+            </span>
+            <span className="flex-1">{title}</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <CardDescription className="line-clamp-2">{summary}</CardDescription>
+        </CardContent>
+      </button>
+    </Card>
   );
 }
 
