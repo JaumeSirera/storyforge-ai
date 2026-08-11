@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { composeCameraAndScreen } from "@/lib/compose-recordings";
+import { loadPipPrefs, DEFAULT_PIP_PREFS } from "@/lib/pip-prefs";
 
 interface Track {
   id: string;
@@ -18,7 +19,10 @@ interface Props {
   fileBase: string;
   /** Resuelve la URL firmada de una grabación. */
   getUrl: (id: string) => Promise<string>;
+  /** Clave de preferencias PIP (id de sesión) para respetar el layout visto. */
+  pipPrefsKey?: string;
 }
+
 
 /**
  * Exporta la cámara y la pantalla de la sesión como un único vídeo sincronizado
