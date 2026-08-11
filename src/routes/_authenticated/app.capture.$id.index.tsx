@@ -53,7 +53,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/app/capture/$id")({
+export const Route = createFileRoute("/_authenticated/app/capture/$id/")({
   head: () => ({
     meta: [
       { title: "Sesión de grabación — Capture | Playnalyze" },
