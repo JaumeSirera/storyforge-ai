@@ -118,6 +118,8 @@ function SettingsPage() {
         onClear={() => save.mutate({ openaiKey: null })}
         placeholder="sk-..."
         saving={save.isPending}
+        signupUrl="https://platform.openai.com/signup"
+        keyUrl="https://platform.openai.com/api-keys"
       />
 
       <KeyCard
@@ -131,6 +133,8 @@ function SettingsPage() {
         onClear={() => save.mutate({ geminiKey: null })}
         placeholder="AIza..."
         saving={save.isPending}
+        signupUrl="https://aistudio.google.com/"
+        keyUrl="https://aistudio.google.com/app/apikey"
       />
 
       <KeyCard
@@ -144,6 +148,8 @@ function SettingsPage() {
         onClear={() => save.mutate({ replicateKey: null })}
         placeholder="r8_..."
         saving={save.isPending}
+        signupUrl="https://replicate.com/signin"
+        keyUrl="https://replicate.com/account/api-tokens"
       />
 
       <KeyCard
@@ -157,7 +163,10 @@ function SettingsPage() {
         onClear={() => save.mutate({ elevenlabsKey: null })}
         placeholder="sk_..."
         saving={save.isPending}
+        signupUrl="https://elevenlabs.io/app/sign-up"
+        keyUrl="https://elevenlabs.io/app/settings/api-keys"
       />
+
     </div>
   );
 }
