@@ -44,6 +44,8 @@ interface Entry {
   screenChunks: Blob[];
   uploader: CaptureUploader | null;
   videoEl: HTMLVideoElement | null;
+  screenStream: MediaStream | null;
+  screenVideoEl: HTMLVideoElement | null;
 }
 
 interface Store {
@@ -90,6 +92,8 @@ function getEntry(key: string, label = ""): Entry {
       screenChunks: [],
       uploader: null,
       videoEl: null,
+      screenStream: null,
+      screenVideoEl: null,
     };
     store.entries.set(key, e);
   }
@@ -103,6 +107,11 @@ export function getPhase(key: string): CapturePhase {
 
 export function isPreviewOn(key: string): boolean {
   return store.entries.get(key)?.previewOn ?? false;
+}
+
+export function isScreenSharing(key: string): boolean {
+  const e = store.entries.get(key);
+  return !!e?.screenStream?.getVideoTracks().some((t) => t.readyState === "live");
 }
 
 export function getElapsedSec(key: string): number {
@@ -159,6 +168,27 @@ export function attachVideoElement(key: string, el: HTMLVideoElement | null) {
   e.videoEl = el;
   const live = e.streams.find((s) => s.getVideoTracks().some((t) => t.readyState === "live"));
   if (el && live) void attach(e, live);
+}
+
+async function attachScreen(e: Entry) {
+  const el = e.screenVideoEl;
+  if (!el) return;
+  el.srcObject = e.screenStream;
+  if (!e.screenStream) return;
+  el.muted = true;
+  el.playsInline = true;
+  try {
+    await el.play();
+  } catch {
+    /* autoplay puede requerir gesto del usuario */
+  }
+}
+
+/** Vincula (o desvincula) el <video> que muestra la pantalla compartida. */
+export function attachScreenElement(key: string, el: HTMLVideoElement | null) {
+  const e = getEntry(key);
+  e.screenVideoEl = el;
+  if (el) void attachScreen(e);
 }
 
 export async function ensurePreview(
@@ -230,6 +260,15 @@ export async function startRecording(key: string, opts: CaptureStartOptions, lab
     try {
       const screen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
       e.streams.push(screen);
+      e.screenStream = screen;
+      void attachScreen(e);
+      screen.getVideoTracks().forEach((t) => {
+        t.addEventListener("ended", () => {
+          e.screenStream = null;
+          void attachScreen(e);
+          emit();
+        });
+      });
       e.screenChunks = [];
       const srec = new MediaRecorder(screen, mime ? { mimeType: mime } : undefined);
       srec.ondataavailable = (ev) => {
@@ -396,6 +435,8 @@ export async function stopRecording(key: string): Promise<boolean> {
     e.streams.forEach((s) => s.getTracks().forEach((t) => t.stop()));
     e.streams = [];
     void attach(e, null);
+    e.screenStream = null;
+    void attachScreen(e);
     e.previewOn = false;
 
     const camBlob = new Blob(e.camChunks, { type: e.camChunks[0]?.type || "video/webm" });
@@ -435,7 +476,7 @@ export function useCaptureState(key: string) {
     const t = setInterval(() => setElapsed(getElapsedSec(key)), 500);
     return () => clearInterval(t);
   }, [key, phase]);
-  return { phase, previewOn: isPreviewOn(key), elapsed };
+  return { phase, previewOn: isPreviewOn(key), elapsed, screenSharing: isScreenSharing(key) };
 }
 
 /** Lista reactiva de grabaciones activas (para el indicador global). */
