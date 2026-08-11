@@ -433,22 +433,23 @@ function CaptureSessionPage() {
               onCheckedChange={(v) => patch({ recordScreen: v })}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Consentimiento */}
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4" /> Consentimiento y gobernanza
-          </CardTitle>
-          <CardDescription>
-            Sin consentimiento de grabación no se puede iniciar la sesión. El análisis se limita a
-            comportamientos observables.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <Dialog open={open === "consent"} onOpenChange={(v) => setOpen(v ? "consent" : null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" /> Consentimiento y gobernanza
+            </DialogTitle>
+            <DialogDescription>
+              Sin consentimiento de grabación no se puede iniciar la sesión. El análisis se limita a
+              comportamientos observables.
+            </DialogDescription>
+          </DialogHeader>
+        <div className="space-y-4">
           <Textarea
             rows={5}
             value={text}
