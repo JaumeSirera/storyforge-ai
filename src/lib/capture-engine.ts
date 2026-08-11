@@ -112,7 +112,9 @@ export function getActiveRecordings() {
 /** Suscripción al estado global del motor (para hooks e indicadores). */
 export function subscribeCapture(listener: () => void) {
   store.listeners.add(listener);
-  return () => store.listeners.delete(listener);
+  return () => {
+    store.listeners.delete(listener);
+  };
 }
 
 function pickMime() {
