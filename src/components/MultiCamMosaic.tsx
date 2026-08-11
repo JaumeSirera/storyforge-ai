@@ -137,6 +137,27 @@ export function MultiCamMosaic({
   const restartAttemptsRef = useRef<Map<string, number>>(new Map());
   const statsSampleRef = useRef<Map<string, InboundSample>>(new Map());
   const peerErrorsRef = useRef<Map<string, string>>(new Map());
+  const iceServersRef = useRef<RTCIceServer[]>(FALLBACK_ICE_SERVERS);
+  const [turnAvailable, setTurnAvailable] = useState<boolean | null>(null);
+
+  // Las credenciales TURN se resuelven en el servidor (son de corta duración).
+  useEffect(() => {
+    let cancelled = false;
+    void getIceConfig()
+      .then((cfg) => {
+        if (cancelled) return;
+        if (cfg.iceServers?.length) iceServersRef.current = cfg.iceServers;
+        setTurnAvailable(cfg.hasTurn);
+      })
+      .catch(() => {
+        if (!cancelled) setTurnAvailable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+
 
 
   const upsertPeer = useCallback((id: string, patch: Partial<PeerState>) => {
