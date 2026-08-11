@@ -9,6 +9,7 @@ import {
 import { joinCaptureControlChannel } from "@/lib/capture-control";
 import {
   attachVideoElement,
+  attachScreenElement,
   captureKey,
   discardRecovery,
   ensurePreview,
@@ -85,9 +86,10 @@ export function CaptureRecorder({
   const createTicket = useServerFn(createParticipantUploadTicket);
   const registerInvited = useServerFn(registerParticipantRecording);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const screenRef = useRef<HTMLVideoElement>(null);
 
   const key = captureKey(captureSessionId, participantId);
-  const { phase, previewOn, elapsed } = useCaptureState(key);
+  const { phase, previewOn, elapsed, screenSharing } = useCaptureState(key);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [hostSynced, setHostSynced] = useState(false);
   const [mediaSelection, setMediaSelection] = useState<MediaDeviceSelection | null>(
@@ -103,6 +105,12 @@ export function CaptureRecorder({
     attachVideoElement(key, videoRef.current);
     return () => attachVideoElement(key, null);
   }, [key, mediaSelection]);
+
+  // Vincula el <video> que muestra lo que se está capturando de la pantalla.
+  useEffect(() => {
+    attachScreenElement(key, screenRef.current);
+    return () => attachScreenElement(key, null);
+  }, [key, screenSharing, phase]);
 
   // Reanudación: si la página se recargó o se cerró con una grabación en marcha,
   // los fragmentos siguen guardados en local y se pueden recuperar.
@@ -363,6 +371,11 @@ export function CaptureRecorder({
         <PreviewViewControls view={preview.view} onChange={preview.update} />
         <div className={`relative overflow-hidden rounded-lg bg-muted ${preview.frameClass}`}>
           <video ref={videoRef} playsInline autoPlay muted className={preview.videoClass} />
+          {previewOn && (
+            <span className="absolute left-2 top-2 rounded bg-background/80 px-2 py-0.5 text-[11px] font-medium">
+              Cámara
+            </span>
+          )}
           {!previewOn && (
             <div className="absolute inset-0 grid place-items-center gap-2 text-sm text-muted-foreground">
               <div className="flex flex-col items-center gap-2 text-center px-4">
