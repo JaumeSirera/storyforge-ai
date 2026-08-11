@@ -901,16 +901,36 @@ function CaptureSessionPage() {
 
 
       {/* Grabaciones */}
-      <Dialog open={open === "recordings"} onOpenChange={(v) => setOpen(v ? "recordings" : null)}>
+      <Dialog
+        open={open === "recordings"}
+        onOpenChange={(v) => {
+          setOpen(v ? "recordings" : null);
+          if (v) void q.refetch();
+        }}
+      >
         <DialogContent className="sm:max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Film className="h-4 w-4" /> Grabaciones de la sesión
             </DialogTitle>
             <DialogDescription>
-              Cada pista guarda su desplazamiento de sincronización con el vídeo del juego.
+              Cada pista guarda su desplazamiento de sincronización con el vídeo del juego. Las
+              tomas que suben los participantes desde su propio móvil aparecen aquí al terminar.
             </DialogDescription>
           </DialogHeader>
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void q.refetch()}
+              disabled={q.isFetching}
+              className="gap-2"
+            >
+              {q.isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              Actualizar lista
+            </Button>
+          </div>
+
         <div className="space-y-3">
           {recordings.length === 0 && (
             <p className="text-sm text-muted-foreground">Aún no hay grabaciones.</p>

@@ -13,9 +13,24 @@ type PeerState = {
   stream: MediaStream | null;
 };
 
+/**
+ * STUN descubre la IP pública; TURN reenvía el vídeo cuando los dispositivos
+ * están en redes distintas (móvil 4G ↔ PC con router/NAT estricto), que es el
+ * caso en el que antes las cámaras se quedaban en negro.
+ */
 const ICE_SERVERS: RTCIceServer[] = [
   { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
+  {
+    urls: [
+      "turn:openrelay.metered.ca:80",
+      "turn:openrelay.metered.ca:443",
+      "turn:openrelay.metered.ca:443?transport=tcp",
+    ],
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
 ];
+
 
 /**
  * Mosaico multicámara en tiempo real (malla WebRTC).
@@ -80,12 +95,27 @@ export function MultiCamMosaic({
         if (stream) upsertPeer(peerId, { stream });
       };
       pc.onconnectionstatechange = () => {
-        if (pc.connectionState === "failed" || pc.connectionState === "closed") {
-          pc.close();
+        if (pc.connectionState === "failed") {
+          // Reintento: renegocia por relé (TURN) antes de descartar al participante.
+          if (initiator) {
+            void (async () => {
+              try {
+                const offer = await pc.createOffer({ iceRestart: true });
+                await pc.setLocalDescription(offer);
+                send("offer", { to: peerId, sdp: pc.localDescription?.sdp, name: displayName });
+              } catch {
+                /* se descartará abajo si sigue fallando */
+              }
+            })();
+            return;
+          }
+        }
+        if (pc.connectionState === "closed") {
           pcsRef.current.delete(peerId);
           setPeers((prev) => prev.filter((p) => p.id !== peerId));
         }
       };
+
 
       if (initiator) {
         void (async () => {
