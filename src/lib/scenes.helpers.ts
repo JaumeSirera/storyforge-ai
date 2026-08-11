@@ -107,9 +107,10 @@ export function buildFallbackScenes(
   const targetCount = Math.min(4, Math.max(1, Math.ceil(segments.length / 8)));
   const bucketSize = Math.max(1, Math.ceil(segments.length / targetCount));
 
-  return Array.from({ length: targetCount }, (_, index) => {
+  const scenes: SessionScene[] = [];
+  for (let index = 0; index < targetCount; index += 1) {
     const bucket = segments.slice(index * bucketSize, (index + 1) * bucketSize);
-    if (bucket.length === 0) return null;
+    if (bucket.length === 0) continue;
     const first = bucket[0];
     const last = bucket[bucket.length - 1];
     const startSec = Math.max(0, Math.round(Number(first.start_sec) || 0));
@@ -121,7 +122,7 @@ export function buildFallbackScenes(
       .slice(0, 3)
       .map((item) => `${nameOf(item.participant_id ?? item.speaker_label)}: “${item.text?.trim()}”`);
 
-    return {
+    scenes.push({
       title: `Fragmento relevante ${index + 1}`,
       startSec,
       endSec,
@@ -130,6 +131,7 @@ export function buildFallbackScenes(
       why: "Fragmento representativo seleccionado por su posición en la conversación para facilitar la revisión profesional.",
       observations: observations.length > 0 ? observations : ["Intervención registrada en este tramo de la sesión."],
       speakers,
-    } satisfies SessionScene;
-  }).filter((scene): scene is SessionScene => scene !== null);
+    });
+  }
+  return scenes;
 }

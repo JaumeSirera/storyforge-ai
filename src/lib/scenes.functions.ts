@@ -15,7 +15,6 @@ import {
   type SessionScenes,
 } from "./scenes.helpers";
 
-export { SceneSchema, ScenesSchema, SCENE_KINDS } from "./scenes.helpers";
 export type { SessionScene, SessionScenes } from "./scenes.helpers";
 
 /** Lee las escenas guardadas de la sesión. */
