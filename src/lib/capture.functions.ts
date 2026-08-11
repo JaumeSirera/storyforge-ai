@@ -124,6 +124,25 @@ export const listCaptureSessions = createServerFn({ method: "GET" })
     return (data ?? []).map(mapSession);
   });
 
+export const listCaptureSessionsBySimulation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ simulationId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<CaptureSession[]> => {
+    const { data: rows, error } = await context.supabase
+      .from("capture_sessions")
+      .select(SESSION_COLUMNS)
+      .eq("owner_id", context.userId)
+      .eq("simulation_id", data.simulationId)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) throw new Error(error.message);
+    return (rows ?? []).map(mapSession);
+  });
+
+
+
 export const getCaptureSession = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
