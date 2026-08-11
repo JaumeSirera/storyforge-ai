@@ -200,7 +200,7 @@ export function MultiCamMosaic({
     (peerId: string, initiator: boolean) => {
       const existing = pcsRef.current.get(peerId);
       if (existing) return existing;
-      const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+      const pc = new RTCPeerConnection({ iceServers: iceServersRef.current });
       pcsRef.current.set(peerId, pc);
 
       const localStream = localStreamRef.current;
