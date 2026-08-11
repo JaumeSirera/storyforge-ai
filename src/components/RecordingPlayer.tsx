@@ -186,13 +186,21 @@ export function RecordingPlayer({
       void pipRef.current?.play().catch(() => {});
     };
     const onPause = () => pipRef.current?.pause();
+    let autoPaused = false;
     // Si la secundaria se queda sin datos, pausamos la principal para no perder el sincronismo.
     const onPipWaiting = () => {
-      if (!main.paused) main.pause();
+      if (!main.paused) {
+        autoPaused = true;
+        main.pause();
+      }
     };
     const onPipPlayable = () => {
-      if (main.paused && main.dataset["pnAutoPause"] === "1") void main.play().catch(() => {});
+      if (autoPaused) {
+        autoPaused = false;
+        void main.play().catch(() => {});
+      }
     };
+
 
     main.addEventListener("play", onPlay);
     main.addEventListener("playing", onPlay);
