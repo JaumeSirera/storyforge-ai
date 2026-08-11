@@ -24,21 +24,14 @@ type PeerState = {
 
 /**
  * STUN descubre la IP pública; TURN reenvía el vídeo cuando los dispositivos
- * están en redes distintas (móvil 4G ↔ PC con router/NAT estricto), que es el
- * caso en el que antes las cámaras se quedaban en negro.
+ * están en redes distintas (móvil 4G ↔ PC con router/NAT estricto). Los relés
+ * públicos gratuitos ya no funcionan (error ICE 701), así que la lista real se
+ * pide al servidor y este usa las credenciales TURN configuradas.
  */
-const ICE_SERVERS: RTCIceServer[] = [
+const FALLBACK_ICE_SERVERS: RTCIceServer[] = [
   { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
-  {
-    urls: [
-      "turn:openrelay.metered.ca:80",
-      "turn:openrelay.metered.ca:443",
-      "turn:openrelay.metered.ca:443?transport=tcp",
-    ],
-    username: "openrelayproject",
-    credential: "openrelayproject",
-  },
 ];
+
 
 const waitForIceGathering = (pc: RTCPeerConnection) =>
   new Promise<void>((resolve) => {
