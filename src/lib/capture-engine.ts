@@ -41,6 +41,10 @@ interface Entry {
   camRecorder: MediaRecorder | null;
   screenRecorder: MediaRecorder | null;
   camChunks: Blob[];
+  /** Tomas de cámara anteriores (si la cámara se cortó y se reactivó). */
+  camSegments: Blob[][];
+  /** La pista de cámara se cortó (permiso revocado, otra app la ocupó, etc.). */
+  cameraLost: boolean;
   screenChunks: Blob[];
   uploader: CaptureUploader | null;
   videoEl: HTMLVideoElement | null;
