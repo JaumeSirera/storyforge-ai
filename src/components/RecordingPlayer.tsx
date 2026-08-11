@@ -35,7 +35,8 @@ const SIZE_CLASS: Record<PipSize, string> = {
 const SIZE_LABEL: Record<PipSize, string> = { sm: "S", md: "M", lg: "L" };
 const SIZES: PipSize[] = ["sm", "md", "lg"];
 
-type PipPrefs = { corner: Corner; size: PipSize; on: boolean };
+type AudioSource = "main" | "pip";
+type PipPrefs = { corner: Corner; size: PipSize; on: boolean; audio?: AudioSource; trimMs?: number };
 
 function prefsStorageKey(key?: string) {
   return `playnalyze:pip:${key ?? "default"}`;
@@ -50,6 +51,11 @@ function loadPipPrefs(key?: string): Partial<PipPrefs> {
     return {};
   }
 }
+
+/** Umbrales de deriva: por debajo se corrige suavemente con la velocidad. */
+const SOFT_DRIFT = 0.04; // 40 ms: imperceptible, no tocamos nada
+const HARD_DRIFT = 0.35; // 350 ms: salto duro
+
 
 
 /**
