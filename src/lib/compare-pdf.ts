@@ -72,7 +72,14 @@ export function generateComparisonPdf(data: ComparisonPdfData): jsPDF {
   doc.text(titleLines.slice(0, 2), M, 50);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
-  doc.text("Comparativa de sesiones · Playnalyze", M, 50 + titleLines.slice(0, 2).length * 20);
+  doc.text(
+    data.executiveSummary
+      ? "Comparativa de sesiones · Resumen ejecutivo · Playnalyze"
+      : "Comparativa de sesiones · Playnalyze",
+    M,
+    50 + titleLines.slice(0, 2).length * 20,
+  );
+
   doc.setFontSize(9);
   const meta = [
     `Sesión A: ${data.sessionA.sceneCount} escenas`,
