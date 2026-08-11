@@ -680,7 +680,24 @@ function CaptureSessionPage() {
                       onClick={async () => {
                         try {
                           const { url } = await recUrl({ data: { id: r.id } });
-                          setPlaying({ id: r.id, url });
+                          let pipUrl: string | null = null;
+                          let pipOffsetMs = 0;
+                          if (r.kind === "screen") {
+                            const cam = recordings
+                              .filter(
+                                (x) => x.kind === "camera" && x.participantId === r.participantId,
+                              )
+                              .sort((a, b) => (b.durationSec ?? 0) - (a.durationSec ?? 0))[0];
+                            if (cam) {
+                              try {
+                                pipUrl = (await recUrl({ data: { id: cam.id } })).url;
+                                pipOffsetMs = cam.syncOffsetMs - r.syncOffsetMs;
+                              } catch {
+                                pipUrl = null;
+                              }
+                            }
+                          }
+                          setPlaying({ id: r.id, url, pipUrl, pipOffsetMs });
                         } catch (e: any) {
                           toast.error(e?.message || "No se pudo abrir");
                         }
@@ -704,7 +721,13 @@ function CaptureSessionPage() {
                   </div>
                 </div>
                 {playing?.id === r.id && (
-                  <RecordingPlayer src={playing.url} durationSec={r.durationSec} />
+                  <RecordingPlayer
+                    src={playing.url}
+                    durationSec={r.durationSec}
+                    pipSrc={playing.pipUrl}
+                    pipOffsetMs={playing.pipOffsetMs}
+                    pipLabel={p ? `Cámara · ${p.name}` : "Cámara"}
+                  />
                 )}
               </div>
             );
