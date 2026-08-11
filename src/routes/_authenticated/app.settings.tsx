@@ -173,6 +173,7 @@ function SettingsPage() {
 
 function KeyCard({
   title, description, masked, has, value, onChange, onSave, onClear, placeholder, saving,
+  signupUrl, keyUrl,
 }: {
   title: string;
   description: string;
@@ -184,13 +185,36 @@ function KeyCard({
   onClear: () => void;
   placeholder: string;
   saving: boolean;
+  signupUrl: string;
+  keyUrl: string;
 }) {
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+        <CardDescription>
+          {description}
+          <span className="mt-2 flex flex-wrap gap-3">
+            <a
+              href={keyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-primary underline underline-offset-2"
+            >
+              Obtener clave de {title} <ExternalLink className="h-3 w-3" aria-hidden="true" />
+            </a>
+            <a
+              href={signupUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-muted-foreground underline underline-offset-2"
+            >
+              Crear cuenta <ExternalLink className="h-3 w-3" aria-hidden="true" />
+            </a>
+          </span>
+        </CardDescription>
       </CardHeader>
+
       <CardContent className="space-y-3">
         <div className="text-sm">
           Estado:{" "}
