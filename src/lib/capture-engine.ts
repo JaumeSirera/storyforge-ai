@@ -242,6 +242,28 @@ export function stopPreview(key: string) {
   emit();
 }
 
+/** Crea (y arranca) un MediaRecorder de cámara, vigilando que la pista no muera. */
+function startCamRecorder(e: Entry, cam: MediaStream, mime: string) {
+  const rec = new MediaRecorder(cam, mime ? { mimeType: mime } : undefined);
+  rec.ondataavailable = (ev) => {
+    if (ev.data.size > 0) {
+      e.camChunks.push(ev.data);
+      void persistChunk(e.key, "camera", ev.data);
+      void saveMeta(e, ev.data.type || mime);
+    }
+  };
+  e.camRecorder = rec;
+  cam.getVideoTracks().forEach((t) => {
+    t.addEventListener("ended", () => {
+      if (e.phase !== "recording" && e.phase !== "paused") return;
+      e.cameraLost = true;
+      emit();
+    });
+  });
+  rec.start(2000);
+  return rec;
+}
+
 export async function startRecording(key: string, opts: CaptureStartOptions, label?: string) {
   const e = getEntry(key, label);
   if (e.phase === "recording" || e.phase === "paused") return;
@@ -252,15 +274,8 @@ export async function startRecording(key: string, opts: CaptureStartOptions, lab
   await clearRecovery(key);
 
   e.camChunks = [];
-  const rec = new MediaRecorder(cam, mime ? { mimeType: mime } : undefined);
-  rec.ondataavailable = (ev) => {
-    if (ev.data.size > 0) {
-      e.camChunks.push(ev.data);
-      void persistChunk(key, "camera", ev.data);
-      void saveMeta(e, ev.data.type || mime);
-    }
-  };
-  e.camRecorder = rec;
+  e.camSegments = [];
+  e.cameraLost = false;
 
   if (opts.recordScreen) {
     const ok = await startScreenCapture(key, mime);
@@ -272,10 +287,54 @@ export async function startRecording(key: string, opts: CaptureStartOptions, lab
   e.startedAt = Date.now();
   e.pausedMs = 0;
   e.pausedAt = 0;
-  rec.start(2000);
+  startCamRecorder(e, cam, mime);
   e.phase = "recording";
   void saveMeta(e, mime);
   emit();
+}
+
+/** ¿Se ha cortado la pista de cámara durante la grabación? */
+export function isCameraLost(key: string): boolean {
+  return !!store.entries.get(key)?.cameraLost;
+}
+
+/**
+ * Reactiva la cámara si se cortó a mitad de la grabación: guarda lo grabado
+ * hasta ahora como una toma y continúa en una nueva pista de cámara.
+ */
+export async function restartCamera(
+  key: string,
+  selection?: MediaDeviceSelection | null,
+): Promise<boolean> {
+  const e = store.entries.get(key);
+  if (!e || (e.phase !== "recording" && e.phase !== "paused")) return false;
+  try {
+    if (e.camRecorder && e.camRecorder.state !== "inactive") {
+      await new Promise<void>((resolve) => {
+        e.camRecorder!.onstop = () => resolve();
+        e.camRecorder!.stop();
+      });
+    }
+    if (e.camChunks.length > 0) e.camSegments.push(e.camChunks);
+    e.camChunks = [];
+    // Soltamos la pista muerta antes de pedir la cámara otra vez.
+    e.streams = e.streams.filter((s) => {
+      if (s === e.screenStream) return true;
+      const alive = s.getVideoTracks().some((t) => t.readyState === "live");
+      if (!alive) s.getTracks().forEach((t) => t.stop());
+      return alive;
+    });
+    e.previewOn = false;
+    const cam = await ensurePreview(key, selection);
+    startCamRecorder(e, cam, pickMime());
+    if (e.phase === "paused") e.camRecorder?.pause();
+    e.cameraLost = false;
+    emit();
+    return true;
+  } catch {
+    emit();
+    return false;
+  }
 }
 
 /**
