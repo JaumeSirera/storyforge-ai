@@ -92,7 +92,7 @@ export function CaptureRecorder({
   const screenRef = useRef<HTMLVideoElement>(null);
 
   const key = captureKey(captureSessionId, participantId);
-  const { phase, previewOn, elapsed, screenSharing } = useCaptureState(key);
+  const { phase, previewOn, elapsed, screenSharing, cameraLost } = useCaptureState(key);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [hostSynced, setHostSynced] = useState(false);
   const [mediaSelection, setMediaSelection] = useState<MediaDeviceSelection | null>(
