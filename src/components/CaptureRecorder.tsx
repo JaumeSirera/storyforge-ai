@@ -10,18 +10,36 @@ import { joinCaptureControlChannel } from "@/lib/capture-control";
 import {
   attachVideoElement,
   captureKey,
+  discardRecovery,
   ensurePreview,
   pauseRecording,
+  pendingRecovery,
+  recoverRecording,
   resumeRecording,
   startRecording,
   stopRecording,
   useCaptureState,
   type CaptureUploadPayload,
 } from "@/lib/capture-engine";
+import type { RecoveryMeta } from "@/lib/capture-recovery";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Circle, Square, Loader2, Video, MonitorUp, Mic, Pause, Play, Radio } from "lucide-react";
+import {
+  Circle,
+  Square,
+  Loader2,
+  Video,
+  MonitorUp,
+  Mic,
+  Pause,
+  Play,
+  Radio,
+  RotateCcw,
+  Trash2,
+} from "lucide-react";
+
 import { toast } from "sonner";
 import { MediaDeviceSelector, type MediaDeviceSelection } from "./MediaDeviceSelector";
 import { PreviewViewControls, usePreviewView } from "./PreviewViewControls";
@@ -85,6 +103,26 @@ export function CaptureRecorder({
     attachVideoElement(key, videoRef.current);
     return () => attachVideoElement(key, null);
   }, [key, mediaSelection]);
+
+  // Reanudación: si la página se recargó o se cerró con una grabación en marcha,
+  // los fragmentos siguen guardados en local y se pueden recuperar.
+  const [recovery, setRecovery] = useState<RecoveryMeta | null>(null);
+  const [recovering, setRecovering] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    if (phase !== "idle") {
+      setRecovery(null);
+      return;
+    }
+    void pendingRecovery(key).then((meta) => {
+      if (alive) setRecovery(meta);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [key, phase]);
+
 
   async function upload({ blob, kind, durationSec, syncOffsetMs }: CaptureUploadPayload) {
     const ext0 = blob.type.includes("mp4") ? "mp4" : "webm";
@@ -196,6 +234,31 @@ export function CaptureRecorder({
     }
   }
 
+  async function recoverAndSave() {
+    setRecovering(true);
+    try {
+      const ok = await recoverRecording(key, upload);
+      if (ok) {
+        toast.success("Grabación recuperada y guardada");
+        onUploaded?.();
+      } else {
+        toast.info("La grabación interrumpida no tenía contenido utilizable.");
+      }
+      setRecovery(null);
+    } catch (err: any) {
+      toast.error(err?.message || "No se pudo recuperar la grabación");
+    } finally {
+      setRecovering(false);
+    }
+  }
+
+  async function discard() {
+    await discardRecovery(key);
+    setRecovery(null);
+    toast.success("Grabación interrumpida descartada");
+  }
+
+
   // Órdenes del anfitrión: inicio, pausa, reanudación y parada sincronizadas.
   const actions = useRef({ start, pause: () => pauseRecording(key), resume: () => resumeRecording(key), stop });
   actions.current = { start, pause: () => pauseRecording(key), resume: () => resumeRecording(key), stop };
@@ -270,6 +333,33 @@ export function CaptureRecorder({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
+        {recovery && (
+          <div
+            role="status"
+            className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
+          >
+            <p className="font-medium">Grabación interrumpida detectada</p>
+            <p className="mt-1 text-xs">
+              Se recuperaron {fmt(recovery.durationSec)} de grabación de{" "}
+              {new Date(recovery.startedAt).toLocaleString("es-ES")}. Puedes guardarla o descartarla
+              antes de empezar una nueva toma.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button size="sm" onClick={recoverAndSave} disabled={recovering} className="gap-2">
+                {recovering ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-4 w-4" />
+                )}
+                Recuperar y guardar
+              </Button>
+              <Button size="sm" variant="ghost" onClick={discard} disabled={recovering} className="gap-2">
+                <Trash2 className="h-4 w-4" /> Descartar
+              </Button>
+            </div>
+          </div>
+        )}
+
         <PreviewViewControls view={preview.view} onChange={preview.update} />
         <div className={`relative overflow-hidden rounded-lg bg-muted ${preview.frameClass}`}>
           <video ref={videoRef} playsInline autoPlay muted className={preview.videoClass} />

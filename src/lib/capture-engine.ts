@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
 import type { MediaDeviceSelection } from "@/components/MediaDeviceSelector";
+import {
+  clearRecovery,
+  getRecoverable,
+  loadRecoveredBlobs,
+  persistChunk,
+  persistMeta,
+  type RecoveryMeta,
+} from "@/lib/capture-recovery";
+
 
 export type CapturePhase = "idle" | "recording" | "paused" | "uploading";
 
@@ -200,13 +209,20 @@ export function stopPreview(key: string) {
 export async function startRecording(key: string, opts: CaptureStartOptions, label?: string) {
   const e = getEntry(key, label);
   if (e.phase === "recording" || e.phase === "paused") return;
+  installLifecycleGuards();
   const cam = await ensurePreview(key, opts.selection, label);
   const mime = pickMime();
+  // Nueva toma: descartamos restos de una grabación anterior ya resuelta.
+  await clearRecovery(key);
 
   e.camChunks = [];
   const rec = new MediaRecorder(cam, mime ? { mimeType: mime } : undefined);
   rec.ondataavailable = (ev) => {
-    if (ev.data.size > 0) e.camChunks.push(ev.data);
+    if (ev.data.size > 0) {
+      e.camChunks.push(ev.data);
+      void persistChunk(key, "camera", ev.data);
+      void saveMeta(e, ev.data.type || mime);
+    }
   };
   e.camRecorder = rec;
 
@@ -217,7 +233,10 @@ export async function startRecording(key: string, opts: CaptureStartOptions, lab
       e.screenChunks = [];
       const srec = new MediaRecorder(screen, mime ? { mimeType: mime } : undefined);
       srec.ondataavailable = (ev) => {
-        if (ev.data.size > 0) e.screenChunks.push(ev.data);
+        if (ev.data.size > 0) {
+          e.screenChunks.push(ev.data);
+          void persistChunk(key, "screen", ev.data);
+        }
       };
       e.screenRecorder = srec;
       srec.start(2000);
@@ -233,8 +252,103 @@ export async function startRecording(key: string, opts: CaptureStartOptions, lab
   e.pausedAt = 0;
   rec.start(2000);
   e.phase = "recording";
+  void saveMeta(e, mime);
   emit();
 }
+
+function saveMeta(e: Entry, mimeType: string) {
+  const [captureSessionId, participant] = e.key.split("::");
+  return persistMeta({
+    key: e.key,
+    captureSessionId,
+    participantId: participant === "host" ? null : participant,
+    label: e.label,
+    startedAt: e.startedAt,
+    durationSec: getElapsedSec(e.key),
+    offsetMs: e.offsetMs,
+    mimeType: mimeType || "video/webm",
+    updatedAt: Date.now(),
+  });
+}
+
+/**
+ * Reanudación tras recargar la página o perder la pestaña: recupera los
+ * fragmentos guardados en IndexedDB y los sube como grabación de la sesión.
+ */
+export async function recoverRecording(key: string, uploader: CaptureUploader): Promise<boolean> {
+  const meta = await getRecoverable(key);
+  if (!meta) return false;
+  const { camera, screen } = await loadRecoveredBlobs(key);
+  const camBlob = new Blob(camera, { type: meta.mimeType || "video/webm" });
+  if (camBlob.size < 2048) {
+    await clearRecovery(key);
+    return false;
+  }
+  const syncOffsetMs = Math.round(meta.offsetMs);
+  const durationSec = Math.max(1, Math.round(meta.durationSec));
+  await uploader({ blob: camBlob, kind: "camera", durationSec, syncOffsetMs });
+  if (screen.length > 0) {
+    const sBlob = new Blob(screen, { type: meta.mimeType || "video/webm" });
+    if (sBlob.size > 2048)
+      await uploader({ blob: sBlob, kind: "screen", durationSec, syncOffsetMs });
+  }
+  await clearRecovery(key);
+  return true;
+}
+
+/** Metadatos de una grabación interrumpida pendiente de recuperar. */
+export async function pendingRecovery(key: string): Promise<RecoveryMeta | null> {
+  if (getPhase(key) !== "idle") return null;
+  return getRecoverable(key);
+}
+
+export async function discardRecovery(key: string) {
+  await clearRecovery(key);
+}
+
+/**
+ * Guardas de ciclo de vida: avisan antes de recargar/cerrar con una grabación en
+ * marcha y reanudan el recorder y la vista previa si el navegador los pausó al
+ * perder el foco (habitual en móvil al cambiar de app).
+ */
+function installLifecycleGuards() {
+  const g = globalThis as any;
+  if (typeof window === "undefined" || g.__pnCaptureGuards) return;
+  g.__pnCaptureGuards = true;
+
+  window.addEventListener("beforeunload", (ev: BeforeUnloadEvent) => {
+    const active = [...store.entries.values()].some(
+      (e) => e.phase === "recording" || e.phase === "paused" || e.phase === "uploading",
+    );
+    if (!active) return;
+    ev.preventDefault();
+    ev.returnValue = "";
+  });
+
+  const revive = () => {
+    if (document.visibilityState !== "visible") return;
+    store.entries.forEach((e) => {
+      if (e.phase !== "recording") return;
+      [e.camRecorder, e.screenRecorder].forEach((r) => {
+        if (r && r.state === "paused") {
+          try {
+            r.resume();
+          } catch {
+            /* ignore */
+          }
+        }
+      });
+      const live = e.streams.find((s) => s.getVideoTracks().some((t) => t.readyState === "live"));
+      if (live) void attach(e, live);
+    });
+    emit();
+  };
+
+  document.addEventListener("visibilitychange", revive);
+  window.addEventListener("focus", revive);
+  window.addEventListener("pageshow", revive);
+}
+
 
 export function pauseRecording(key: string) {
   const e = store.entries.get(key);
@@ -294,7 +408,9 @@ export async function stopRecording(key: string): Promise<boolean> {
       if (sBlob.size > 2048)
         await e.uploader?.({ blob: sBlob, kind: "screen", durationSec: duration, syncOffsetMs });
     }
+    await clearRecovery(key);
     return true;
+
   } finally {
     e.camChunks = [];
     e.screenChunks = [];
