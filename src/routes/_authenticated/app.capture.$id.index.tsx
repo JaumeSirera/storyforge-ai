@@ -862,9 +862,45 @@ function CaptureSessionPage() {
             );
           })}
 
-        </CardContent>
-      </Card>
+        </div>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+function SectionCard({
+  icon: Icon,
+  title,
+  summary,
+  onClick,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  summary: string;
+  onClick: () => void;
+}) {
+  return (
+    <Card className="transition-colors hover:border-primary/50">
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl"
+      >
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary/10 text-primary">
+              <Icon className="h-4 w-4" />
+            </span>
+            <span className="flex-1">{title}</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <CardDescription className="line-clamp-2">{summary}</CardDescription>
+        </CardContent>
+      </button>
+    </Card>
   );
 }
 
