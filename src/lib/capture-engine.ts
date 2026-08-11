@@ -600,7 +600,13 @@ export function useCaptureState(key: string) {
     const t = setInterval(() => setElapsed(getElapsedSec(key)), 500);
     return () => clearInterval(t);
   }, [key, phase]);
-  return { phase, previewOn: isPreviewOn(key), elapsed, screenSharing: isScreenSharing(key) };
+  return {
+    phase,
+    previewOn: isPreviewOn(key),
+    elapsed,
+    screenSharing: isScreenSharing(key),
+    cameraLost: isCameraLost(key),
+  };
 }
 
 /** Lista reactiva de grabaciones activas (para el indicador global). */
