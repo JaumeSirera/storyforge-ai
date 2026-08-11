@@ -151,6 +151,13 @@ function CaptureSessionPage() {
     | "record"
   >(null);
 
+  const { edit } = Route.useSearch();
+  useEffect(() => {
+    if (edit === "config") setOpen("config");
+  }, [edit]);
+
+
+
   useEffect(() => {
     void supabase.auth.getUser().then(({ data }) => {
       const u = data.user;
