@@ -60,6 +60,11 @@ import {
   UserPlus,
   BarChart3,
   Settings2,
+  Users,
+  ClipboardCheck,
+  Mail,
+  Film,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 
