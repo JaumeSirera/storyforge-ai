@@ -13,9 +13,24 @@ type PeerState = {
   stream: MediaStream | null;
 };
 
+/**
+ * STUN descubre la IP pública; TURN reenvía el vídeo cuando los dispositivos
+ * están en redes distintas (móvil 4G ↔ PC con router/NAT estricto), que es el
+ * caso en el que antes las cámaras se quedaban en negro.
+ */
 const ICE_SERVERS: RTCIceServer[] = [
   { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
+  {
+    urls: [
+      "turn:openrelay.metered.ca:80",
+      "turn:openrelay.metered.ca:443",
+      "turn:openrelay.metered.ca:443?transport=tcp",
+    ],
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
 ];
+
 
 /**
  * Mosaico multicámara en tiempo real (malla WebRTC).
