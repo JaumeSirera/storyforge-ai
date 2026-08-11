@@ -65,6 +65,9 @@ import {
   Mail,
   Film,
   ChevronRight,
+  Radio,
+  Grid2x2,
+  Video,
 } from "lucide-react";
 import { toast } from "sonner";
 
