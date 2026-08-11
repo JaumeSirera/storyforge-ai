@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { PictureInPicture2, X } from "lucide-react";
 
 type Corner = "br" | "bl" | "tr" | "tl";
+type PipSize = "sm" | "md" | "lg";
 
 interface Props {
   src: string;
@@ -14,6 +15,8 @@ interface Props {
   pipOffsetMs?: number;
   /** Etiqueta del recuadro. */
   pipLabel?: string;
+  /** Identificador para recordar posición/tamaño del recuadro (p. ej. id de sesión). */
+  pipPrefsKey?: string;
 }
 
 const CORNER_CLASS: Record<Corner, string> = {
@@ -22,6 +25,32 @@ const CORNER_CLASS: Record<Corner, string> = {
   tr: "top-3 right-3",
   tl: "top-3 left-3",
 };
+
+const SIZE_CLASS: Record<PipSize, string> = {
+  sm: "w-1/6 min-w-[90px] max-w-[150px]",
+  md: "w-1/4 min-w-[110px] max-w-[220px]",
+  lg: "w-1/3 min-w-[150px] max-w-[320px]",
+};
+
+const SIZE_LABEL: Record<PipSize, string> = { sm: "S", md: "M", lg: "L" };
+const SIZES: PipSize[] = ["sm", "md", "lg"];
+
+type PipPrefs = { corner: Corner; size: PipSize; on: boolean };
+
+function prefsStorageKey(key?: string) {
+  return `playnalyze:pip:${key ?? "default"}`;
+}
+
+function loadPipPrefs(key?: string): Partial<PipPrefs> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(prefsStorageKey(key));
+    return raw ? (JSON.parse(raw) as Partial<PipPrefs>) : {};
+  } catch {
+    return {};
+  }
+}
+
 
 /**
  * Reproductor de grabaciones MediaRecorder (WebM). Los archivos generados por
@@ -39,20 +68,47 @@ export function RecordingPlayer({
   pipSrc,
   pipOffsetMs = 0,
   pipLabel = "Cámara",
+  pipPrefsKey,
 }: Props) {
   const ref = useRef<HTMLVideoElement | null>(null);
   const pipRef = useRef<HTMLVideoElement | null>(null);
   const fixedRef = useRef(false);
   const [pipOn, setPipOn] = useState(!!pipSrc);
   const [corner, setCorner] = useState<Corner>("br");
+  const [size, setSize] = useState<PipSize>("md");
+  const loadedRef = useRef(false);
 
   useEffect(() => {
     fixedRef.current = false;
   }, [src]);
 
+  // Restaura las preferencias guardadas del recuadro (tras hidratar).
   useEffect(() => {
-    setPipOn(!!pipSrc);
+    const prefs = loadPipPrefs(pipPrefsKey);
+    if (prefs.corner) setCorner(prefs.corner);
+    if (prefs.size) setSize(prefs.size);
+    if (typeof prefs.on === "boolean") setPipOn(!!pipSrc && prefs.on);
+    loadedRef.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pipPrefsKey]);
+
+  // Guarda las preferencias cuando cambian.
+  useEffect(() => {
+    if (!loadedRef.current || typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        prefsStorageKey(pipPrefsKey),
+        JSON.stringify({ corner, size, on: pipOn } satisfies PipPrefs),
+      );
+    } catch {
+      /* ignorar */
+    }
+  }, [corner, size, pipOn, pipPrefsKey]);
+
+  useEffect(() => {
+    if (!pipSrc) setPipOn(false);
   }, [pipSrc]);
+
 
   // Sincroniza la pista PIP con la principal.
   useEffect(() => {
@@ -137,7 +193,7 @@ export function RecordingPlayer({
         />
         {pipSrc && pipOn && (
           <div
-            className={`absolute ${CORNER_CLASS[corner]} w-1/4 min-w-[110px] max-w-[220px] overflow-hidden rounded-md border-2 border-background shadow-lg`}
+            className={`absolute ${CORNER_CLASS[corner]} ${SIZE_CLASS[size]} overflow-hidden rounded-md border-2 border-background shadow-lg`}
           >
             <video
               ref={pipRef}
@@ -180,9 +236,26 @@ export function RecordingPlayer({
           </Button>
         )}
         {pipSrc && pipOn && (
-          <span className="text-xs text-muted-foreground">
-            Toca el recuadro para moverlo de esquina.
-          </span>
+          <>
+            <div className="flex items-center gap-1" role="group" aria-label="Tamaño del recuadro">
+              {SIZES.map((s) => (
+                <Button
+                  key={s}
+                  size="sm"
+                  variant={size === s ? "default" : "outline"}
+                  className="h-7 w-7 p-0 text-xs"
+                  onClick={() => setSize(s)}
+                  aria-pressed={size === s}
+                  aria-label={`Tamaño ${SIZE_LABEL[s]}`}
+                >
+                  {SIZE_LABEL[s]}
+                </Button>
+              ))}
+            </div>
+            <span className="text-xs text-muted-foreground">
+              Toca el recuadro para moverlo de esquina. Se recuerda su posición y tamaño.
+            </span>
+          </>
         )}
       </div>
     </div>
