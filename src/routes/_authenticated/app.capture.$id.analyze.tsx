@@ -10,6 +10,7 @@ import {
   deleteSessionAnalysis,
 } from "@/lib/analyze.functions";
 import { getCaptureSession, PARTICIPANT_ROLE_LABELS } from "@/lib/capture.functions";
+import { listSceneAnnotations } from "@/lib/scene-annotations.functions";
 import { formatSec, type SpeakerMetrics } from "@/lib/analyze-metrics";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
