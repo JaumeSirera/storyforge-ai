@@ -13,6 +13,7 @@ import { listSceneAnnotations, type SceneAnnotation } from "@/lib/scene-annotati
 import { SceneAnnotationEditor } from "@/components/SceneAnnotationEditor";
 import { getCaptureSession, getRecordingUrl } from "@/lib/capture.functions";
 import { formatSec } from "@/lib/analyze-metrics";
+import { downloadScenesPdf } from "@/lib/scenes-pdf";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ import {
   Trash2,
   MessageSquare,
   Eye,
+  FileDown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -195,6 +197,39 @@ function ScenesPage() {
     }
   }
 
+  /** Exporta la película resumen completa (escenas, timestamps, intervenciones y observaciones). */
+  function exportPdf() {
+    if (scenes.length === 0) {
+      toast.error("Primero detecta las escenas de la sesión");
+      return;
+    }
+    try {
+      downloadScenesPdf({
+        sessionTitle: sessionQ.data?.session?.title ?? "Sesión",
+        areaLabel: sessionQ.data?.session?.areaKey ?? null,
+        generatedAt,
+        kindLabel: (k) => KIND_LABELS[k] ?? k,
+        scenes: scenes.map((scene, i) => ({
+          scene,
+          annotation: annotationByIndex.get(i) ?? null,
+          segments: segments
+            .filter((s) => s.endSec >= scene.startSec && s.startSec <= scene.endSec)
+            .map((s) => ({
+              startSec: s.startSec,
+              endSec: s.endSec,
+              speaker: nameOf(s.participantId ?? s.speakerLabel),
+              text: s.text,
+            })),
+        })),
+      });
+      toast.success("Informe PDF descargado");
+    } catch (e: any) {
+      toast.error(e?.message || "No se pudo generar el PDF");
+    }
+  }
+
+
+
   if (sessionQ.isLoading) return <p className="text-muted-foreground">Cargando…</p>;
   if (!sessionQ.data?.session) return <p>Sesión no encontrada.</p>;
   const session = sessionQ.data.session;
@@ -223,6 +258,11 @@ function ScenesPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {scenes.length > 0 && (
+            <Button variant="outline" size="sm" className="gap-2" onClick={exportPdf}>
+              <FileDown className="h-4 w-4" /> Exportar PDF
+            </Button>
+          )}
           <Button asChild variant="outline" size="sm" className="gap-2">
             <Link to="/app/capture/$id/insights" params={{ id }}>
               <Sparkles className="h-4 w-4" /> Insights
