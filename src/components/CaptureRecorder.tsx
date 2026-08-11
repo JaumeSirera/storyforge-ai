@@ -92,7 +92,6 @@ export function CaptureRecorder({
     deviceStorageKey ?? `pn-devices-${captureSessionId}-${participantId ?? "host"}`;
   const preview = usePreviewView(`pn-preview-view-${participantId ?? "host"}`);
 
-
   async function attachStream(stream: MediaStream) {
     const el = videoRef.current;
     if (!el) return;

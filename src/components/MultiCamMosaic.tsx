@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Grid2x2, Mic, MicOff, Video, VideoOff, Users, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { PreviewViewControls, usePreviewView } from "./PreviewViewControls";
 
 type PeerState = {
   id: string;
@@ -32,6 +33,7 @@ export function MultiCamMosaic({
   const [camOn, setCamOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
   const [peers, setPeers] = useState<PeerState[]>([]);
+  const preview = usePreviewView("pn-preview-view-mosaic");
 
   const selfId = useMemo(
     () => (typeof crypto !== "undefined" ? crypto.randomUUID() : String(Math.random())),
@@ -47,13 +49,19 @@ export function MultiCamMosaic({
     setPeers((prev) => {
       const found = prev.find((p) => p.id === id);
       if (found) return prev.map((p) => (p.id === id ? { ...p, ...patch } : p));
-      return [...prev, { id, name: namesRef.current.get(id) ?? "Participante", stream: null, ...patch }];
+      return [
+        ...prev,
+        { id, name: namesRef.current.get(id) ?? "Participante", stream: null, ...patch },
+      ];
     });
   }, []);
 
-  const send = useCallback((event: string, payload: Record<string, unknown>) => {
-    channelRef.current?.send({ type: "broadcast", event, payload: { from: selfId, ...payload } });
-  }, [selfId]);
+  const send = useCallback(
+    (event: string, payload: Record<string, unknown>) => {
+      channelRef.current?.send({ type: "broadcast", event, payload: { from: selfId, ...payload } });
+    },
+    [selfId],
+  );
 
   const createPeer = useCallback(
     (peerId: string, initiator: boolean) => {
@@ -212,7 +220,8 @@ export function MultiCamMosaic({
   }
 
   const total = peers.length + (joined ? 1 : 0);
-  const cols = total <= 1 ? "grid-cols-1" : total <= 4 ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-3";
+  const cols =
+    total <= 1 ? "grid-cols-1" : total <= 4 ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-3";
 
   return (
     <Card>
@@ -221,8 +230,8 @@ export function MultiCamMosaic({
           <Grid2x2 className="h-4 w-4" /> Mosaico multicámara en directo
         </CardTitle>
         <CardDescription>
-          Cada participante abre esta sesión en su dispositivo y entra en la sala: las cámaras se ven
-          todas a la vez, sin pasar por el servidor de grabación.
+          Cada participante abre esta sesión en su dispositivo y entra en la sala: las cámaras se
+          ven todas a la vez, sin pasar por el servidor de grabación.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -244,21 +253,23 @@ export function MultiCamMosaic({
             </>
           ) : (
             <Button onClick={() => void join()} disabled={connecting} className="gap-2">
-              {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
+              {connecting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Video className="h-4 w-4" />
+              )}
               Entrar en la sala
             </Button>
           )}
         </div>
 
+        <PreviewViewControls view={preview.view} onChange={preview.update} />
+
         <div className={`grid gap-3 ${cols}`}>
-          <figure className="relative overflow-hidden rounded-lg border border-border bg-muted aspect-video">
-            <video
-              ref={localVideoRef}
-              autoPlay
-              playsInline
-              muted
-              className="h-full w-full object-cover"
-            />
+          <figure
+            className={`relative overflow-hidden rounded-lg border border-border bg-muted ${preview.frameClass}`}
+          >
+            <video ref={localVideoRef} autoPlay playsInline muted className={preview.videoClass} />
             {!joined && (
               <span className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">
                 Tu cámara
@@ -270,7 +281,7 @@ export function MultiCamMosaic({
           </figure>
 
           {peers.map((p) => (
-            <PeerTile key={p.id} peer={p} />
+            <PeerTile key={p.id} peer={p} frameClass={preview.frameClass} />
           ))}
         </div>
 
@@ -284,13 +295,15 @@ export function MultiCamMosaic({
   );
 }
 
-function PeerTile({ peer }: { peer: PeerState }) {
+function PeerTile({ peer, frameClass }: { peer: PeerState; frameClass: string }) {
   const ref = useRef<HTMLVideoElement | null>(null);
   useEffect(() => {
     if (ref.current) ref.current.srcObject = peer.stream ?? null;
   }, [peer.stream]);
   return (
-    <figure className="relative overflow-hidden rounded-lg border border-border bg-muted aspect-video">
+    <figure
+      className={`relative overflow-hidden rounded-lg border border-border bg-muted ${frameClass}`}
+    >
       <video ref={ref} autoPlay playsInline className="h-full w-full object-cover" />
       {!peer.stream && (
         <span className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">
