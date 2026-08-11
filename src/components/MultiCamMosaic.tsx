@@ -6,6 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Grid2x2, Mic, MicOff, Video, VideoOff, Users, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { PreviewViewControls, usePreviewView } from "./PreviewViewControls";
+import {
+  MosaicDiagnosticsPanel,
+  type DiagnosticsRow,
+  type PeerDiagnostics,
+} from "./MosaicDiagnosticsPanel";
+
 
 type PeerState = {
   id: string;
