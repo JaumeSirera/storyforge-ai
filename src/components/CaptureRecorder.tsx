@@ -26,7 +26,20 @@ import type { RecoveryMeta } from "@/lib/capture-recovery";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Circle, Square, Loader2, Video, MonitorUp, Mic, Pause, Play, Radio } from "lucide-react";
+import {
+  Circle,
+  Square,
+  Loader2,
+  Video,
+  MonitorUp,
+  Mic,
+  Pause,
+  Play,
+  Radio,
+  RotateCcw,
+  Trash2,
+} from "lucide-react";
+
 import { toast } from "sonner";
 import { MediaDeviceSelector, type MediaDeviceSelection } from "./MediaDeviceSelector";
 import { PreviewViewControls, usePreviewView } from "./PreviewViewControls";
