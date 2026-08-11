@@ -24,6 +24,8 @@ import { CaptureConsentAudit } from "@/components/CaptureConsentAudit";
 import { CaptureHostControls } from "@/components/CaptureHostControls";
 import { MediaDeviceSelector, type MediaDeviceSelection } from "@/components/MediaDeviceSelector";
 import { RecordingPlayer } from "@/components/RecordingPlayer";
+import { ComposedExportButton } from "@/components/ComposedExportButton";
+
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -642,6 +644,12 @@ function CaptureSessionPage() {
                 aviso para reactivarla sin perder lo grabado.
               </p>
             )}
+
+          <ComposedExportButton
+            recordings={recordings}
+            fileBase={`sesion-${(session.title || id).slice(0, 40)}`}
+            getUrl={async (rid) => (await recUrl({ data: { id: rid } })).url}
+          />
 
           {recordings.map((r) => {
             const p = participants.find((x) => x.id === r.participantId);
