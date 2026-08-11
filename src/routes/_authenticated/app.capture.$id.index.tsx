@@ -105,7 +105,12 @@ function CaptureSessionPage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [lateMode, setLateMode] = useState(false);
   const [consentText, setConsentText] = useState<string | null>(null);
-  const [playing, setPlaying] = useState<{ id: string; url: string } | null>(null);
+  const [playing, setPlaying] = useState<{
+    id: string;
+    url: string;
+    pipUrl?: string | null;
+    pipOffsetMs?: number;
+  } | null>(null);
   const [mediaSelection, setMediaSelection] = useState<MediaDeviceSelection | null>(null);
   const [myName, setMyName] = useState("Yo");
 
