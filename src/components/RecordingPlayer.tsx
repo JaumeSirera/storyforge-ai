@@ -236,9 +236,26 @@ export function RecordingPlayer({
           </Button>
         )}
         {pipSrc && pipOn && (
-          <span className="text-xs text-muted-foreground">
-            Toca el recuadro para moverlo de esquina.
-          </span>
+          <>
+            <div className="flex items-center gap-1" role="group" aria-label="Tamaño del recuadro">
+              {SIZES.map((s) => (
+                <Button
+                  key={s}
+                  size="sm"
+                  variant={size === s ? "default" : "outline"}
+                  className="h-7 w-7 p-0 text-xs"
+                  onClick={() => setSize(s)}
+                  aria-pressed={size === s}
+                  aria-label={`Tamaño ${SIZE_LABEL[s]}`}
+                >
+                  {SIZE_LABEL[s]}
+                </Button>
+              ))}
+            </div>
+            <span className="text-xs text-muted-foreground">
+              Toca el recuadro para moverlo de esquina. Se recuerda su posición y tamaño.
+            </span>
+          </>
         )}
       </div>
     </div>
