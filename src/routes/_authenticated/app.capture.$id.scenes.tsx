@@ -9,8 +9,11 @@ import {
   type SessionScene,
 } from "@/lib/scenes.functions";
 import { getSessionAnalysis } from "@/lib/analyze.functions";
+import { listSceneAnnotations, type SceneAnnotation } from "@/lib/scene-annotations.functions";
+import { SceneAnnotationEditor } from "@/components/SceneAnnotationEditor";
 import { getCaptureSession, getRecordingUrl } from "@/lib/capture.functions";
 import { formatSec } from "@/lib/analyze-metrics";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -78,6 +81,8 @@ function ScenesPage() {
   const generate = useServerFn(generateSessionScenes);
   const wipe = useServerFn(deleteSessionScenes);
   const recUrl = useServerFn(getRecordingUrl);
+  const listAnnotations = useServerFn(listSceneAnnotations);
+
 
   const sessionQ = useQuery({
     queryKey: ["capture-session", id],
@@ -91,6 +96,12 @@ function ScenesPage() {
     queryKey: ["capture-scenes", id],
     queryFn: () => getScenes({ data: { captureSessionId: id } }),
   });
+  const annotationsQ = useQuery({
+    queryKey: ["scene-annotations", id],
+    queryFn: () => listAnnotations({ data: { captureSessionId: id } }),
+  });
+
+
 
   const [focus, setFocus] = useState("");
   const [busy, setBusy] = useState(false);
@@ -108,6 +119,13 @@ function ScenesPage() {
   const segments = analysisQ.data?.segments ?? [];
   const scenes = scenesQ.data?.scenes ?? [];
   const generatedAt = scenesQ.data?.generatedAt ?? null;
+  const annotationByIndex = useMemo(() => {
+    const map = new Map<number, SceneAnnotation>();
+    for (const a of annotationsQ.data?.annotations ?? []) map.set(a.sceneIndex, a);
+    return map;
+  }, [annotationsQ.data]);
+
+
 
   const nameOf = (key: string | null) => {
     if (!key) return "Hablante sin identificar";
@@ -414,6 +432,7 @@ function ScenesPage() {
                     <Play className="h-4 w-4" /> Reproducir
                   </Button>
                 </div>
+
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm">{s.why}</p>
@@ -427,6 +446,15 @@ function ScenesPage() {
                     ))}
                   </ul>
                 </div>
+                <SceneAnnotationEditor
+                  captureSessionId={id}
+                  sceneIndex={i}
+                  sceneTitle={s.title}
+                  startSec={s.startSec}
+                  endSec={s.endSec}
+                  annotation={annotationByIndex.get(i) ?? null}
+                />
+
                 {activeIndex === i && sceneSegments.length > 0 && (
                   <div>
                     <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">

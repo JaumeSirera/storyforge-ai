@@ -360,6 +360,56 @@ export type Database = {
           },
         ]
       }
+      capture_scene_annotations: {
+        Row: {
+          capture_session_id: string
+          created_at: string
+          end_sec: number
+          id: string
+          note: string
+          owner_id: string
+          scene_index: number
+          scene_title: string | null
+          start_sec: number
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          capture_session_id: string
+          created_at?: string
+          end_sec?: number
+          id?: string
+          note?: string
+          owner_id: string
+          scene_index: number
+          scene_title?: string | null
+          start_sec?: number
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          capture_session_id?: string
+          created_at?: string
+          end_sec?: number
+          id?: string
+          note?: string
+          owner_id?: string
+          scene_index?: number
+          scene_title?: string | null
+          start_sec?: number
+          tags?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capture_scene_annotations_capture_session_id_fkey"
+            columns: ["capture_session_id"]
+            isOneToOne: false
+            referencedRelation: "capture_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       capture_sessions: {
         Row: {
           area_key: string | null

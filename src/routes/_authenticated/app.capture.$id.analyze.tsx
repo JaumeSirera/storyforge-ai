@@ -10,6 +10,7 @@ import {
   deleteSessionAnalysis,
 } from "@/lib/analyze.functions";
 import { getCaptureSession, PARTICIPANT_ROLE_LABELS } from "@/lib/capture.functions";
+import { listSceneAnnotations } from "@/lib/scene-annotations.functions";
 import { formatSec, type SpeakerMetrics } from "@/lib/analyze-metrics";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ import {
   Info,
   Sparkles,
   Film,
+  NotebookPen,
 
 } from "lucide-react";
 import { toast } from "sonner";
@@ -67,6 +69,7 @@ function AnalyzePage() {
   const assign = useServerFn(assignSpeaker);
   const recompute = useServerFn(recomputeSessionMetrics);
   const wipe = useServerFn(deleteSessionAnalysis);
+  const listAnnotations = useServerFn(listSceneAnnotations);
 
   const sessionQ = useQuery({
     queryKey: ["capture-session", id],
@@ -76,6 +79,13 @@ function AnalyzePage() {
     queryKey: ["capture-analysis", id],
     queryFn: () => getAnalysis({ data: { captureSessionId: id } }),
   });
+  const annotationsQ = useQuery({
+    queryKey: ["scene-annotations", id],
+    queryFn: () => listAnnotations({ data: { captureSessionId: id } }),
+  });
+  const annotations = annotationsQ.data?.annotations ?? [];
+
+
 
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -400,13 +410,50 @@ function AnalyzePage() {
               <MessageSquare className="h-4 w-4" /> Cronología de intervenciones
             </CardTitle>
             <CardDescription>
-              Transcripción ordenada por tiempo, con el minuto exacto de cada intervención.
+              Transcripción ordenada por tiempo, con el minuto exacto de cada intervención y tus
+              notas de escena asociadas.
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {annotations.length > 0 && (
+              <div className="mb-3 rounded-lg border border-border bg-muted/30 p-3">
+                <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <NotebookPen className="h-3.5 w-3.5" /> Anotaciones de escenas (
+                  {annotations.length})
+                </p>
+                <ul className="mt-2 space-y-2">
+                  {annotations.map((a) => (
+                    <li key={a.id} className="text-sm">
+                      <span className="font-medium">
+                        {formatSec(a.startSec)} – {formatSec(a.endSec)}
+                      </span>{" "}
+                      {a.sceneTitle && <span className="text-muted-foreground">· {a.sceneTitle}</span>}
+                      {a.tags.length > 0 && (
+                        <span className="ml-1 inline-flex flex-wrap gap-1 align-middle">
+                          {a.tags.map((t) => (
+                            <Badge key={t} variant="secondary">
+                              {t}
+                            </Badge>
+                          ))}
+                        </span>
+                      )}
+                      {a.note && <p className="whitespace-pre-wrap">{a.note}</p>}
+                    </li>
+                  ))}
+                </ul>
+                <Button asChild variant="ghost" size="sm" className="mt-2 gap-2">
+                  <Link to="/app/capture/$id/scenes" params={{ id }}>
+                    <Film className="h-4 w-4" /> Editar en Escenas
+                  </Link>
+                </Button>
+              </div>
+            )}
             <ol className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
               {segments.map((s) => {
                 const key = s.participantId ?? s.speakerLabel ?? "desconocido";
+                const notes = annotations.filter(
+                  (a) => a.endSec >= s.startSec && a.startSec <= s.endSec,
+                );
                 return (
                   <li key={s.id} className="rounded-lg border border-border p-2.5">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -421,10 +468,27 @@ function AnalyzePage() {
                       </span>
                     </div>
                     <p className="mt-1 text-sm">{s.text}</p>
+                    {notes.map((a) => (
+                      <div
+                        key={a.id}
+                        className="mt-2 rounded-md border-l-2 border-primary bg-primary/5 p-2"
+                      >
+                        <p className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                          <NotebookPen className="h-3 w-3" aria-hidden="true" /> Nota de escena
+                          {a.tags.map((t) => (
+                            <Badge key={t} variant="secondary">
+                              {t}
+                            </Badge>
+                          ))}
+                        </p>
+                        {a.note && <p className="mt-1 whitespace-pre-wrap text-sm">{a.note}</p>}
+                      </div>
+                    ))}
                   </li>
                 );
               })}
             </ol>
+
           </CardContent>
         </Card>
       )}
