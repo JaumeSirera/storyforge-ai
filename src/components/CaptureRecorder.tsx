@@ -7,6 +7,17 @@ import {
   registerParticipantRecording,
 } from "@/lib/capture-invitations.functions";
 import { joinCaptureControlChannel } from "@/lib/capture-control";
+import {
+  attachVideoElement,
+  captureKey,
+  ensurePreview,
+  pauseRecording,
+  resumeRecording,
+  startRecording,
+  stopRecording,
+  useCaptureState,
+  type CaptureUploadPayload,
+} from "@/lib/capture-engine";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,19 +30,6 @@ function fmt(sec: number) {
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60);
   return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-function pickMime() {
-  const candidates = [
-    "video/webm;codecs=vp9,opus",
-    "video/webm;codecs=vp8,opus",
-    "video/webm",
-    "video/mp4",
-  ];
-  for (const c of candidates) {
-    if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(c)) return c;
-  }
-  return "";
 }
 
 interface Props {
@@ -69,19 +67,9 @@ export function CaptureRecorder({
   const createTicket = useServerFn(createParticipantUploadTicket);
   const registerInvited = useServerFn(registerParticipantRecording);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const camRecorder = useRef<MediaRecorder | null>(null);
-  const screenRecorder = useRef<MediaRecorder | null>(null);
-  const camChunks = useRef<Blob[]>([]);
-  const screenChunks = useRef<Blob[]>([]);
-  const streams = useRef<MediaStream[]>([]);
-  const startedAt = useRef<number>(0);
-  const pausedMs = useRef<number>(0);
-  const pausedAt = useRef<number>(0);
-  const offsetMs = useRef<number>(0);
 
-  const [state, setState] = useState<"idle" | "recording" | "paused" | "uploading">("idle");
-  const [elapsed, setElapsed] = useState(0);
-  const [previewOn, setPreviewOn] = useState(false);
+  const key = captureKey(captureSessionId, participantId);
+  const { phase, previewOn, elapsed } = useCaptureState(key);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [hostSynced, setHostSynced] = useState(false);
   const [mediaSelection, setMediaSelection] = useState<MediaDeviceSelection | null>(
@@ -92,56 +80,65 @@ export function CaptureRecorder({
     deviceStorageKey ?? `pn-devices-${captureSessionId}-${participantId ?? "host"}`;
   const preview = usePreviewView(`pn-preview-view-${participantId ?? "host"}`);
 
-  async function attachStream(stream: MediaStream) {
-    const el = videoRef.current;
-    if (!el) return;
-    el.srcObject = stream;
-    el.muted = true;
-    el.playsInline = true;
-    try {
-      await el.play();
-    } catch {
-      /* autoplay puede requerir gesto del usuario */
-    }
-  }
+  // Vincula el <video> visible; la grabación vive en el motor y sigue activa al navegar.
+  useEffect(() => {
+    attachVideoElement(key, videoRef.current);
+    return () => attachVideoElement(key, null);
+  }, [key, mediaSelection]);
 
-  async function ensurePreview(): Promise<MediaStream> {
-    const existing = streams.current.find((s) =>
-      s.getVideoTracks().some((t) => t.readyState === "live"),
-    );
-    if (existing) {
-      await attachStream(existing);
-      setPreviewOn(true);
-      return existing;
+  async function upload({ blob, kind, durationSec, syncOffsetMs }: CaptureUploadPayload) {
+    const ext0 = blob.type.includes("mp4") ? "mp4" : "webm";
+
+    // Modo invitado: subida con URL firmada al espacio del anfitrión.
+    if (inviteToken) {
+      const ticket = await createTicket({ data: { token: inviteToken, kind, ext: ext0 } });
+      const { error } = await supabase.storage
+        .from("recordings")
+        .uploadToSignedUrl(ticket.path, ticket.uploadToken, blob, {
+          contentType: blob.type || "video/webm",
+        });
+      if (error) throw new Error(error.message);
+      await registerInvited({
+        data: {
+          token: inviteToken,
+          kind,
+          storagePath: ticket.path,
+          mimeType: blob.type || "video/webm",
+          sizeBytes: blob.size,
+          durationSec,
+          syncOffsetMs,
+        },
+      });
+      return;
     }
-    const videoConstraints: MediaTrackConstraints = mediaSelection?.videoDeviceId
-      ? {
-          deviceId: { exact: mediaSelection.videoDeviceId },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        }
-      : { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" };
-    const audioConstraints: MediaTrackConstraints | boolean = mediaSelection?.audioDeviceId
-      ? {
-          deviceId: { exact: mediaSelection.audioDeviceId },
-          echoCancellation: true,
-          noiseSuppression: true,
-        }
-      : { echoCancellation: true, noiseSuppression: true };
-    const cam = await navigator.mediaDevices.getUserMedia({
-      video: videoConstraints,
-      audio: audioConstraints,
+
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth.user?.id;
+    if (!uid) throw new Error("Sesión caducada");
+    const path = `${uid}/${captureSessionId}/${kind}-${participantId ?? "session"}-${Date.now()}.${ext0}`;
+    const { error } = await supabase.storage.from("recordings").upload(path, blob, {
+      contentType: blob.type || "video/webm",
+      upsert: false,
     });
-    streams.current.push(cam);
-    await attachStream(cam);
-    setPreviewOn(true);
-    return cam;
+    if (error) throw new Error(error.message);
+    await register({
+      data: {
+        captureSessionId,
+        participantId,
+        kind,
+        storagePath: path,
+        mimeType: blob.type || "video/webm",
+        sizeBytes: blob.size,
+        durationSec,
+        syncOffsetMs,
+      },
+    });
   }
 
   async function startPreview() {
     setPreviewLoading(true);
     try {
-      await ensurePreview();
+      await ensurePreview(key, mediaSelection, participantName ?? "Sesión");
     } catch (err: any) {
       toast.error(
         err?.name === "NotAllowedError"
@@ -153,24 +150,55 @@ export function CaptureRecorder({
     }
   }
 
-  useEffect(() => {
-    if (state !== "recording") return;
-    const t = setInterval(
-      () => setElapsed((Date.now() - startedAt.current - pausedMs.current) / 1000),
-      500,
-    );
-    return () => clearInterval(t);
-  }, [state]);
+  async function start() {
+    try {
+      await startRecording(
+        key,
+        {
+          recordScreen,
+          uploader: upload,
+          getGameOffsetMs,
+          selection: mediaSelection,
+        },
+        participantName ?? "Sesión",
+      );
+    } catch (err: any) {
+      if (err?.message === "__screen_cancelled__") {
+        toast.info("Grabación de pantalla cancelada; se graba solo la cámara.");
+        try {
+          await startRecording(
+            key,
+            { recordScreen: false, uploader: upload, getGameOffsetMs, selection: mediaSelection },
+            participantName ?? "Sesión",
+          );
+        } catch (e: any) {
+          toast.error(e?.message || "No se pudo iniciar la grabación");
+        }
+        return;
+      }
+      toast.error(
+        err?.name === "NotAllowedError"
+          ? "Necesitamos permiso de cámara y micrófono para grabar."
+          : err?.message || "No se pudo iniciar la grabación",
+      );
+    }
+  }
 
-  useEffect(() => {
-    return () => {
-      streams.current.forEach((s) => s.getTracks().forEach((t) => t.stop()));
-    };
-  }, []);
+  async function stop() {
+    try {
+      const saved = await stopRecording(key);
+      if (saved) {
+        toast.success("Grabación guardada");
+        onUploaded?.();
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "No se pudo guardar la grabación");
+    }
+  }
 
   // Órdenes del anfitrión: inicio, pausa, reanudación y parada sincronizadas.
-  const actions = useRef({ start, pause, resume, stop });
-  actions.current = { start, pause, resume, stop };
+  const actions = useRef({ start, pause: () => pauseRecording(key), resume: () => resumeRecording(key), stop });
+  actions.current = { start, pause: () => pauseRecording(key), resume: () => resumeRecording(key), stop };
 
   useEffect(() => {
     if (!followHost) return;
@@ -193,169 +221,6 @@ export function CaptureRecorder({
       void channel.unsubscribe();
     };
   }, [captureSessionId, followHost]);
-
-  async function upload(blob: Blob, kind: "camera" | "screen", durationSec: number) {
-    const ext0 = blob.type.includes("mp4") ? "mp4" : "webm";
-
-    // Modo invitado: subida con URL firmada al espacio del anfitrión.
-    if (inviteToken) {
-      const ticket = await createTicket({ data: { token: inviteToken, kind, ext: ext0 } });
-      const { error } = await supabase.storage
-        .from("recordings")
-        .uploadToSignedUrl(ticket.path, ticket.uploadToken, blob, {
-          contentType: blob.type || "video/webm",
-        });
-      if (error) throw new Error(error.message);
-      await registerInvited({
-        data: {
-          token: inviteToken,
-          kind,
-          storagePath: ticket.path,
-          mimeType: blob.type || "video/webm",
-          sizeBytes: blob.size,
-          durationSec,
-          syncOffsetMs: Math.round(offsetMs.current),
-        },
-      });
-      return;
-    }
-
-    const { data: auth } = await supabase.auth.getUser();
-    const uid = auth.user?.id;
-    if (!uid) throw new Error("Sesión caducada");
-    const ext = blob.type.includes("mp4") ? "mp4" : "webm";
-    const path = `${uid}/${captureSessionId}/${kind}-${participantId ?? "session"}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("recordings").upload(path, blob, {
-      contentType: blob.type || "video/webm",
-      upsert: false,
-    });
-    if (error) throw new Error(error.message);
-    await register({
-      data: {
-        captureSessionId,
-        participantId,
-        kind,
-        storagePath: path,
-        mimeType: blob.type || "video/webm",
-        sizeBytes: blob.size,
-        durationSec,
-        syncOffsetMs: Math.round(offsetMs.current),
-      },
-    });
-  }
-
-  async function start() {
-    try {
-      const cam = await ensurePreview();
-
-      const mime = pickMime();
-      camChunks.current = [];
-      const rec = new MediaRecorder(cam, mime ? { mimeType: mime } : undefined);
-      rec.ondataavailable = (e) => {
-        if (e.data.size > 0) camChunks.current.push(e.data);
-      };
-      camRecorder.current = rec;
-
-      if (recordScreen) {
-        try {
-          const screen = await navigator.mediaDevices.getDisplayMedia({
-            video: true,
-            audio: false,
-          });
-          streams.current.push(screen);
-          screenChunks.current = [];
-          const srec = new MediaRecorder(screen, mime ? { mimeType: mime } : undefined);
-          srec.ondataavailable = (e) => {
-            if (e.data.size > 0) screenChunks.current.push(e.data);
-          };
-          screenRecorder.current = srec;
-          srec.start(2000);
-        } catch {
-          toast.info("Grabación de pantalla cancelada; se graba solo la cámara.");
-        }
-      }
-
-      offsetMs.current = getGameOffsetMs?.() ?? 0;
-      startedAt.current = Date.now();
-      pausedMs.current = 0;
-      pausedAt.current = 0;
-      setElapsed(0);
-      rec.start(2000);
-      setState("recording");
-    } catch (err: any) {
-      toast.error(
-        err?.name === "NotAllowedError"
-          ? "Necesitamos permiso de cámara y micrófono para grabar."
-          : err?.message || "No se pudo iniciar la grabación",
-      );
-    }
-  }
-
-  function pause() {
-    if (state !== "recording") return;
-    [camRecorder.current, screenRecorder.current].forEach((r) => {
-      if (r && r.state === "recording") r.pause();
-    });
-    pausedAt.current = Date.now();
-    setState("paused");
-  }
-
-  function resume() {
-    if (state !== "paused") return;
-    if (pausedAt.current) pausedMs.current += Date.now() - pausedAt.current;
-    pausedAt.current = 0;
-    [camRecorder.current, screenRecorder.current].forEach((r) => {
-      if (r && r.state === "paused") r.resume();
-    });
-    setState("recording");
-  }
-
-  async function stop() {
-    if (state === "paused" && pausedAt.current) {
-      pausedMs.current += Date.now() - pausedAt.current;
-      pausedAt.current = 0;
-    }
-    const duration = (Date.now() - startedAt.current - pausedMs.current) / 1000;
-    setState("uploading");
-    try {
-      const waitFor = (rec: MediaRecorder | null) =>
-        new Promise<void>((resolve) => {
-          if (!rec || rec.state === "inactive") return resolve();
-          rec.onstop = () => resolve();
-          rec.stop();
-        });
-
-      await Promise.all([waitFor(camRecorder.current), waitFor(screenRecorder.current)]);
-      streams.current.forEach((s) => s.getTracks().forEach((t) => t.stop()));
-      streams.current = [];
-      if (videoRef.current) videoRef.current.srcObject = null;
-      setPreviewOn(false);
-
-      const camBlob = new Blob(camChunks.current, {
-        type: camChunks.current[0]?.type || "video/webm",
-      });
-      if (camBlob.size < 2048) throw new Error("La grabación quedó vacía; inténtalo de nuevo.");
-      await upload(camBlob, "camera", duration);
-
-      if (screenChunks.current.length > 0) {
-        const sBlob = new Blob(screenChunks.current, {
-          type: screenChunks.current[0]?.type || "video/webm",
-        });
-        if (sBlob.size > 2048) await upload(sBlob, "screen", duration);
-      }
-
-      camChunks.current = [];
-      screenChunks.current = [];
-      camRecorder.current = null;
-      screenRecorder.current = null;
-      toast.success("Grabación guardada");
-      onUploaded?.();
-    } catch (err: any) {
-      toast.error(err?.message || "No se pudo guardar la grabación");
-    } finally {
-      setState("idle");
-    }
-  }
 
   if (!mediaSelection) {
     return (
@@ -394,12 +259,12 @@ export function CaptureRecorder({
               )}
             </CardDescription>
           </div>
-          {(state === "recording" || state === "paused") && (
-            <Badge variant={state === "paused" ? "secondary" : "destructive"} className="gap-1">
+          {(phase === "recording" || phase === "paused") && (
+            <Badge variant={phase === "paused" ? "secondary" : "destructive"} className="gap-1">
               <Circle
-                className={`h-2.5 w-2.5 fill-current ${state === "recording" ? "animate-pulse" : ""}`}
+                className={`h-2.5 w-2.5 fill-current ${phase === "recording" ? "animate-pulse" : ""}`}
               />
-              {state === "paused" ? `En pausa · ${fmt(elapsed)}` : fmt(elapsed)}
+              {phase === "paused" ? `En pausa · ${fmt(elapsed)}` : fmt(elapsed)}
             </Badge>
           )}
         </div>
@@ -426,23 +291,23 @@ export function CaptureRecorder({
           )}
         </div>
         <div className="flex flex-wrap gap-2">
-          {state === "idle" || state === "uploading" ? (
-            <Button onClick={start} disabled={state === "uploading"} className="gap-2">
-              {state === "uploading" ? (
+          {phase === "idle" || phase === "uploading" ? (
+            <Button onClick={start} disabled={phase === "uploading"} className="gap-2">
+              {phase === "uploading" ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Circle className="h-4 w-4 fill-current" />
               )}
-              {state === "uploading" ? "Guardando…" : "Iniciar grabación"}
+              {phase === "uploading" ? "Guardando…" : "Iniciar grabación"}
             </Button>
           ) : (
             <>
-              {state === "recording" ? (
-                <Button onClick={pause} variant="secondary" className="gap-2">
+              {phase === "recording" ? (
+                <Button onClick={() => pauseRecording(key)} variant="secondary" className="gap-2">
                   <Pause className="h-4 w-4" /> Pausar
                 </Button>
               ) : (
-                <Button onClick={resume} variant="secondary" className="gap-2">
+                <Button onClick={() => resumeRecording(key)} variant="secondary" className="gap-2">
                   <Play className="h-4 w-4" /> Reanudar
                 </Button>
               )}
@@ -454,8 +319,9 @@ export function CaptureRecorder({
         </div>
 
         <p className="text-xs text-muted-foreground">
-          La grabación se guarda cifrada en tu almacenamiento privado y se elimina automáticamente
-          al cumplirse el plazo de conservación de la sesión.
+          La grabación continúa aunque navegues a la simulación u otra página: solo se detiene
+          cuando pulsas «Detener y guardar». Se guarda en tu almacenamiento privado y se elimina al
+          cumplirse el plazo de conservación de la sesión.
         </p>
       </CardContent>
     </Card>
