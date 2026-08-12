@@ -12,6 +12,12 @@ import {
   Play,
   Pause,
 } from "lucide-react";
+import tourCrear from "@/assets/tour-crear.jpg";
+import tourRamificar from "@/assets/tour-ramificar.jpg";
+import tourJugar from "@/assets/tour-jugar.jpg";
+import tourGrabar from "@/assets/tour-grabar.jpg";
+import tourAnalizar from "@/assets/tour-analizar.jpg";
+import tourInforme from "@/assets/tour-informe.jpg";
 
 type Step = {
   icon: typeof Sparkles;
@@ -19,6 +25,8 @@ type Step = {
   title: string;
   body: string;
   bullets: string[];
+  image: string;
+  alt: string;
 };
 
 const steps: Step[] = [
@@ -29,6 +37,8 @@ const steps: Step[] = [
     body:
       "Escribes lo que quieres evaluar y la IA redacta la historia, las escenas, las preguntas y los criterios de evaluación.",
     bullets: ["Un prompt basta", "Guion y preguntas automáticas", "Competencias y rúbrica listas"],
+    image: tourCrear,
+    alt: "Pantalla del generador: campo de prompt y escenas y preguntas creadas por la IA",
   },
   {
     icon: GitBranch,
@@ -37,6 +47,8 @@ const steps: Step[] = [
     body:
       "En el editor visual mueves, quitas o ajustas escenas y ramas con arrastrar y soltar hasta que el caso encaje.",
     bullets: ["Editor de ramificaciones", "Clips y retorno a la escena", "Voz y subtítulos"],
+    image: tourRamificar,
+    alt: "Editor visual con escenas conectadas y ramas del árbol de decisiones",
   },
   {
     icon: MonitorPlay,
@@ -45,6 +57,8 @@ const steps: Step[] = [
     body:
       "Cada respuesta lleva a otra escena o clip, con puntos, estrellas y feedback inmediato mientras juega.",
     bullets: ["Controles accesibles", "Puntuación por competencia", "Feedback al instante"],
+    image: tourJugar,
+    alt: "Reproductor de vídeo con una pregunta superpuesta, opciones de respuesta y marcador de estrellas",
   },
   {
     icon: Video,
@@ -53,6 +67,8 @@ const steps: Step[] = [
     body:
       "Cámara y pantalla a la vez, en individual o en grupo, con un dispositivo o uno por participante y aceptación registrada.",
     bullets: ["Grabación continua y recuperable", "Mosaico multicámara", "Auditoría de consentimientos"],
+    image: tourGrabar,
+    alt: "Sesión de grabación con pantalla compartida, cámara en recuadro y mosaico de participantes",
   },
   {
     icon: BarChart3,
@@ -61,6 +77,8 @@ const steps: Step[] = [
     body:
       "Transcripción con hablantes, participación, turnos e interrupciones, y escenas clave marcadas al segundo.",
     bullets: ["Película resumen", "Notas y etiquetas", "Comparativa entre sesiones"],
+    image: tourAnalizar,
+    alt: "Panel de análisis con transcripción por hablante, gráficas de participación y línea de tiempo",
   },
   {
     icon: FileText,
@@ -69,6 +87,8 @@ const steps: Step[] = [
     body:
       "Un documento cruza las decisiones del juego con la evidencia observable, con vista previa antes de enviarlo.",
     bullets: ["Decisiones + comportamiento", "PDF con tu marca", "Email automático al candidato"],
+    image: tourInforme,
+    alt: "Vista previa del informe en PDF junto al email con el archivo adjunto",
   },
 ];
 
@@ -146,10 +166,22 @@ export function GuidedTour() {
           </ol>
 
           <div
-            className="rounded-3xl border border-border bg-card p-8 shadow-soft"
+            className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft"
             role="group"
             aria-live="polite"
           >
+            <div className="border-b border-border/60 bg-secondary/30 p-3 sm:p-4">
+              <img
+                key={step.image}
+                src={step.image}
+                alt={step.alt}
+                width={1024}
+                height={640}
+                loading="lazy"
+                className="w-full rounded-2xl border border-border/60 shadow-soft"
+              />
+            </div>
+            <div className="p-8">
             <div className="flex items-center gap-3">
               <span className="grid h-12 w-12 place-items-center rounded-xl bg-accent text-accent-foreground">
                 <step.icon className="h-6 w-6" />
@@ -188,6 +220,7 @@ export function GuidedTour() {
                   Siguiente <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
+            </div>
             </div>
           </div>
         </div>
