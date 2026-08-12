@@ -237,27 +237,47 @@ const features = [
   {
     icon: Film,
     title: "Vídeo interactivo",
-    body: "Soporta YouTube, Vimeo y MP4 subido. Controles completos: pausa, avance, retroceso.",
+    body: "YouTube, Vimeo o MP4 propio. Pausa, avance, retroceso y subtítulos configurables.",
   },
   {
     icon: GitBranch,
     title: "Árbol de decisiones",
-    body: "Cada respuesta lleva a otro vídeo o escena. Cientos de caminos posibles por simulación.",
+    body: "Cada respuesta lleva a otra escena o clip. Cientos de caminos por simulación.",
   },
   {
-    icon: Sparkles,
-    title: "Generado por IA",
-    body: "Guion, diálogos, preguntas, opciones y criterios de evaluación a partir de un prompt.",
+    icon: Video,
+    title: "Cámara + pantalla",
+    body: "Graba las dos pistas a la vez y expórtalas en un único vídeo con cámara en recuadro (PIP).",
+  },
+  {
+    icon: Users,
+    title: "Multicámara en grupo",
+    body: "Cada participante desde su móvil o portátil, todos visibles en un mosaico en tiempo real.",
+  },
+  {
+    icon: Clock,
+    title: "Grabación a prueba de fallos",
+    body: "Sigue grabando al cambiar de página y se recupera sola si recargas o pierdes el foco.",
+  },
+  {
+    icon: Mic,
+    title: "Transcripción y voz",
+    body: "Quién habla, cuánto, turnos e interrupciones, con citas ancladas al segundo exacto.",
+  },
+  {
+    icon: Layers,
+    title: "Escenas y comparativas",
+    body: "Momentos clave con timestamps, notas del evaluador y comparación entre dos sesiones.",
   },
   {
     icon: Award,
     title: "Gamificación",
-    body: "Puntos, estrellas, logros y competencias para motivar y medir.",
+    body: "Puntos, estrellas y competencias para motivar y medir de forma objetiva.",
   },
   {
-    icon: BarChart3,
-    title: "Informe final IA",
-    body: "Veredicto, fortalezas, áreas de mejora y puntuación por competencia.",
+    icon: Mail,
+    title: "Informe y envío",
+    body: "Vista previa web del email y del PDF antes de enviarlo al candidato con tu marca.",
   },
 ];
 
@@ -266,12 +286,14 @@ function Features() {
     <section id="features" className="mx-auto max-w-7xl px-6 py-24">
       <div className="max-w-2xl">
         <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-          Todo lo que necesitas para evaluar y formar
+          Todo lo que necesitas para evaluar, grabar y formar
         </h2>
         <p className="mt-3 text-muted-foreground">
-          Una plataforma para crear assessments interactivos sin necesidad de equipo técnico.
+          Una plataforma para crear assessments interactivos y medir el comportamiento real, sin
+          equipo técnico.
         </p>
       </div>
+
       <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {features.map((f) => (
           <div
