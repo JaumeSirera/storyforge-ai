@@ -166,10 +166,22 @@ export function GuidedTour() {
           </ol>
 
           <div
-            className="rounded-3xl border border-border bg-card p-8 shadow-soft"
+            className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft"
             role="group"
             aria-live="polite"
           >
+            <div className="border-b border-border/60 bg-secondary/30 p-3 sm:p-4">
+              <img
+                key={step.image}
+                src={step.image}
+                alt={step.alt}
+                width={1024}
+                height={640}
+                loading="lazy"
+                className="w-full rounded-2xl border border-border/60 shadow-soft"
+              />
+            </div>
+            <div className="p-8">
             <div className="flex items-center gap-3">
               <span className="grid h-12 w-12 place-items-center rounded-xl bg-accent text-accent-foreground">
                 <step.icon className="h-6 w-6" />
