@@ -70,10 +70,12 @@ function Header() {
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
           <Link to="/explore" className="hover:text-foreground">Galería</Link>
+          <a href="#modules" className="hover:text-foreground">Módulos</a>
           <a href="#features" className="hover:text-foreground">Funciones</a>
           <a href="#how" className="hover:text-foreground">Cómo funciona</a>
           <a href="#use-cases" className="hover:text-foreground">Casos de uso</a>
         </nav>
+
         <div className="flex items-center gap-2">
           <Link to="/explore">
             <Button variant="ghost" size="sm">Explorar</Button>
