@@ -12,6 +12,12 @@ import {
   Play,
   Pause,
 } from "lucide-react";
+import tourCrear from "@/assets/tour-crear.jpg";
+import tourRamificar from "@/assets/tour-ramificar.jpg";
+import tourJugar from "@/assets/tour-jugar.jpg";
+import tourGrabar from "@/assets/tour-grabar.jpg";
+import tourAnalizar from "@/assets/tour-analizar.jpg";
+import tourInforme from "@/assets/tour-informe.jpg";
 
 type Step = {
   icon: typeof Sparkles;
