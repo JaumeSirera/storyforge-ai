@@ -28,10 +28,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Star, Save, Plus, Trash2, MessageSquare, CheckCircle2, Download, Mail, Search, FilterX } from "lucide-react";
-import { downloadReportPdf } from "@/lib/report-pdf";
+import { downloadReportPdf, generateReportPdf } from "@/lib/report-pdf";
 import { IntegratedReportButton } from "@/components/IntegratedReportButton";
 import { getIntegratedReport } from "@/lib/integrated-report.functions";
-import { downloadIntegratedPdf } from "@/lib/integrated-pdf";
+import { downloadIntegratedPdf, generateIntegratedPdf } from "@/lib/integrated-pdf";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
