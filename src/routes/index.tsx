@@ -1,16 +1,40 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Film, GitBranch, BarChart3, Award, ArrowRight } from "lucide-react";
+import {
+  Sparkles,
+  Film,
+  GitBranch,
+  BarChart3,
+  Award,
+  ArrowRight,
+  Video,
+  Users,
+  Mic,
+  Clock,
+  ShieldCheck,
+  FileText,
+  Layers,
+  Mail,
+  MonitorPlay,
+} from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Playnalyze — Interacción humana impulsada por IA" },
+      { title: "Playnalyze — Simulaciones con IA y análisis de comportamiento" },
       {
         name: "description",
         content:
-          "Convierte vídeos en juegos de evaluación con preguntas ramificadas, puntuación y feedback IA. Listo en minutos.",
+          "Crea simulaciones en vídeo con IA, graba al candidato (cámara, pantalla y multicámara) y obtén un informe integrado de decisiones y comportamiento.",
       },
+      { property: "og:title", content: "Playnalyze — Simulaciones con IA y análisis de comportamiento" },
+      {
+        property: "og:description",
+        content:
+          "Simulaciones profesionales generadas por IA, grabación multicámara con consentimiento y análisis de comportamiento con evidencias temporales.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Landing,
@@ -22,6 +46,7 @@ function Landing() {
       <Header />
       <main>
         <Hero />
+        <Modules />
         <Features />
         <HowItWorks />
         <UseCases />
@@ -31,6 +56,7 @@ function Landing() {
     </div>
   );
 }
+
 
 function Header() {
   return (
@@ -44,10 +70,12 @@ function Header() {
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
           <Link to="/explore" className="hover:text-foreground">Galería</Link>
+          <a href="#modules" className="hover:text-foreground">Módulos</a>
           <a href="#features" className="hover:text-foreground">Funciones</a>
           <a href="#how" className="hover:text-foreground">Cómo funciona</a>
           <a href="#use-cases" className="hover:text-foreground">Casos de uso</a>
         </nav>
+
         <div className="flex items-center gap-2">
           <Link to="/explore">
             <Button variant="ghost" size="sm">Explorar</Button>
@@ -71,17 +99,18 @@ function Hero() {
       <div className="mx-auto max-w-7xl px-6 py-24 md:py-32 text-center">
         <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-soft">
           <Sparkles className="h-3.5 w-3.5 text-primary" />
-          Generador de simulaciones con IA
+          Simulaciones con IA + análisis de comportamiento
         </div>
         <h1 className="mt-6 text-balance text-5xl md:text-7xl font-bold tracking-tight">
-          Convierte vídeos en{" "}
+          Simula, graba y{" "}
           <span className="bg-gradient-to-r from-primary to-chart-4 bg-clip-text text-transparent">
-            simulaciones gamificadas
+            evalúa con evidencias
           </span>
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-balance text-lg text-muted-foreground">
-          Describe un objetivo profesional, sube o enlaza vídeos, y la IA genera la historia,
-          las preguntas ramificadas, la puntuación y el informe final de evaluación.
+          La IA crea la simulación en vídeo con preguntas ramificadas. Playnalyze graba al
+          participante (cámara, pantalla y multicámara), analiza su comportamiento y entrega un
+          informe integrado: qué decidió y cómo lo hizo.
         </p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
           <Link to="/auth">
@@ -89,40 +118,166 @@ function Hero() {
               Crear mi primera simulación <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
-          <a href="#how">
-            <Button size="lg" variant="outline">Ver cómo funciona</Button>
+          <a href="#modules">
+            <Button size="lg" variant="outline">Ver qué hace la app</Button>
           </a>
+        </div>
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5"><Video className="h-3.5 w-3.5 text-primary" /> Grabación cámara + pantalla</span>
+          <span className="inline-flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-primary" /> Sesiones grupales multicámara</span>
+          <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-primary" /> Consentimiento y auditoría</span>
+          <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-primary" /> Informe integrado en PDF</span>
         </div>
       </div>
     </section>
   );
 }
 
+const modules = [
+  {
+    icon: Sparkles,
+    tag: "Crear",
+    title: "Generador de simulaciones",
+    body:
+      "A partir de un prompt la IA escribe la historia, las escenas, las preguntas, el árbol de decisiones y los criterios de evaluación.",
+    points: ["Guion y preguntas automáticas", "Editor visual de ramificaciones", "Voz, subtítulos y clips IA"],
+  },
+  {
+    icon: MonitorPlay,
+    tag: "Jugar",
+    title: "Vídeo interactivo gamificado",
+    body:
+      "El participante decide dentro del vídeo: cada respuesta lo lleva a otra escena o clip, con puntos, estrellas y feedback inmediato.",
+    points: ["Controles completos y accesibles", "Retorno automático tras cada clip", "Puntuación por competencia"],
+  },
+  {
+    icon: Video,
+    tag: "Grabar",
+    title: "Capture: grabación de la sesión",
+    body:
+      "Graba cámara y pantalla a la vez mientras juega, en individual o en grupo, con un dispositivo o uno por participante.",
+    points: [
+      "Grabación continua aunque cambies de página",
+      "Recuperación automática si se recarga",
+      "Mosaico multicámara en tiempo real",
+    ],
+  },
+  {
+    icon: BarChart3,
+    tag: "Analizar",
+    title: "Análisis del comportamiento",
+    body:
+      "Transcripción con hablantes, métricas de participación, turnos e interrupciones, y escenas clave con marca de tiempo.",
+    points: ["Película resumen de momentos clave", "Notas y etiquetas del evaluador", "Comparativa entre sesiones"],
+  },
+  {
+    icon: FileText,
+    tag: "Concluir",
+    title: "Informe integrado",
+    body:
+      "Un solo documento que cruza las decisiones de la simulación con la evidencia observable de la grabación.",
+    points: ["Vista previa web antes de enviar", "PDF con tu logo y marca", "Envío por email al candidato"],
+  },
+  {
+    icon: ShieldCheck,
+    tag: "Cumplir",
+    title: "Consentimiento y control",
+    body:
+      "Los participantes entran por invitación, aceptan la grabación y el análisis, y todo queda registrado con fecha y versión.",
+    points: ["Invitaciones con enlace seguro", "Auditoría de aceptaciones", "Control del anfitrión sincronizado"],
+  },
+];
+
+function Modules() {
+  return (
+    <section id="modules" className="border-y border-border/60 bg-secondary/30">
+      <div className="mx-auto max-w-7xl px-6 py-24">
+        <div className="max-w-2xl">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+            Qué hace exactamente Playnalyze
+          </h2>
+          <p className="mt-3 text-muted-foreground">
+            Seis funciones encadenadas: crear, jugar, grabar, analizar, concluir y cumplir.
+          </p>
+        </div>
+        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {modules.map((m) => (
+            <div
+              key={m.title}
+              className="flex flex-col rounded-2xl border border-border bg-card p-6 shadow-soft transition hover:shadow-glow"
+            >
+              <div className="flex items-center gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-lg bg-accent text-accent-foreground">
+                  <m.icon className="h-5 w-5" />
+                </span>
+                <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+                  {m.tag}
+                </span>
+              </div>
+              <h3 className="mt-4 text-lg font-semibold">{m.title}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{m.body}</p>
+              <ul className="mt-4 space-y-1.5 text-sm text-muted-foreground">
+                {m.points.map((p) => (
+                  <li key={p} className="flex gap-2">
+                    <span aria-hidden className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                    {p}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
 const features = [
   {
     icon: Film,
     title: "Vídeo interactivo",
-    body: "Soporta YouTube, Vimeo y MP4 subido. Controles completos: pausa, avance, retroceso.",
+    body: "YouTube, Vimeo o MP4 propio. Pausa, avance, retroceso y subtítulos configurables.",
   },
   {
     icon: GitBranch,
     title: "Árbol de decisiones",
-    body: "Cada respuesta lleva a otro vídeo o escena. Cientos de caminos posibles por simulación.",
+    body: "Cada respuesta lleva a otra escena o clip. Cientos de caminos por simulación.",
   },
   {
-    icon: Sparkles,
-    title: "Generado por IA",
-    body: "Guion, diálogos, preguntas, opciones y criterios de evaluación a partir de un prompt.",
+    icon: Video,
+    title: "Cámara + pantalla",
+    body: "Graba las dos pistas a la vez y expórtalas en un único vídeo con cámara en recuadro (PIP).",
+  },
+  {
+    icon: Users,
+    title: "Multicámara en grupo",
+    body: "Cada participante desde su móvil o portátil, todos visibles en un mosaico en tiempo real.",
+  },
+  {
+    icon: Clock,
+    title: "Grabación a prueba de fallos",
+    body: "Sigue grabando al cambiar de página y se recupera sola si recargas o pierdes el foco.",
+  },
+  {
+    icon: Mic,
+    title: "Transcripción y voz",
+    body: "Quién habla, cuánto, turnos e interrupciones, con citas ancladas al segundo exacto.",
+  },
+  {
+    icon: Layers,
+    title: "Escenas y comparativas",
+    body: "Momentos clave con timestamps, notas del evaluador y comparación entre dos sesiones.",
   },
   {
     icon: Award,
     title: "Gamificación",
-    body: "Puntos, estrellas, logros y competencias para motivar y medir.",
+    body: "Puntos, estrellas y competencias para motivar y medir de forma objetiva.",
   },
   {
-    icon: BarChart3,
-    title: "Informe final IA",
-    body: "Veredicto, fortalezas, áreas de mejora y puntuación por competencia.",
+    icon: Mail,
+    title: "Informe y envío",
+    body: "Vista previa web del email y del PDF antes de enviarlo al candidato con tu marca.",
   },
 ];
 
@@ -131,12 +286,14 @@ function Features() {
     <section id="features" className="mx-auto max-w-7xl px-6 py-24">
       <div className="max-w-2xl">
         <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-          Todo lo que necesitas para evaluar y formar
+          Todo lo que necesitas para evaluar, grabar y formar
         </h2>
         <p className="mt-3 text-muted-foreground">
-          Una plataforma para crear assessments interactivos sin necesidad de equipo técnico.
+          Una plataforma para crear assessments interactivos y medir el comportamiento real, sin
+          equipo técnico.
         </p>
       </div>
+
       <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {features.map((f) => (
           <div
@@ -163,18 +320,23 @@ const steps = [
   },
   {
     n: "02",
-    title: "Aporta el guion y vídeos",
-    body: "Pega el contexto y enlaza o sube los vídeos que ilustran las escenas.",
-  },
-  {
-    n: "03",
     title: "La IA genera el juego",
     body: "Historia, escenas, preguntas con feedback, ramas y criterios de evaluación.",
   },
   {
+    n: "03",
+    title: "Invita y graba",
+    body: "El participante entra por enlace, acepta el consentimiento y al grabar arranca la simulación.",
+  },
+  {
     n: "04",
-    title: "Juega y evalúa",
-    body: "El participante avanza por las decisiones y al final recibe su informe.",
+    title: "Analiza el comportamiento",
+    body: "Transcripción, métricas, escenas clave y anotaciones sobre la grabación.",
+  },
+  {
+    n: "05",
+    title: "Entrega el informe",
+    body: "Informe integrado en PDF (decisiones + evidencias) revisado y enviado por email.",
   },
 ];
 
@@ -184,9 +346,12 @@ function HowItWorks() {
       <div className="mx-auto max-w-7xl px-6 py-24">
         <div className="max-w-2xl">
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Cómo funciona</h2>
-          <p className="mt-3 text-muted-foreground">De un prompt a una simulación lista en minutos.</p>
+          <p className="mt-3 text-muted-foreground">
+            De un prompt a una simulación grabada y evaluada, de principio a fin.
+          </p>
         </div>
-        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+
+        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-5">
           {steps.map((s) => (
             <div key={s.n} className="rounded-2xl bg-card p-6 border border-border shadow-soft">
               <div className="text-sm font-bold text-primary">{s.n}</div>
