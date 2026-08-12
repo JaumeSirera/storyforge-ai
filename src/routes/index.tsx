@@ -1,16 +1,40 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Film, GitBranch, BarChart3, Award, ArrowRight } from "lucide-react";
+import {
+  Sparkles,
+  Film,
+  GitBranch,
+  BarChart3,
+  Award,
+  ArrowRight,
+  Video,
+  Users,
+  Mic,
+  Clock,
+  ShieldCheck,
+  FileText,
+  Layers,
+  Mail,
+  MonitorPlay,
+} from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Playnalyze — Interacción humana impulsada por IA" },
+      { title: "Playnalyze — Simulaciones con IA y análisis de comportamiento" },
       {
         name: "description",
         content:
-          "Convierte vídeos en juegos de evaluación con preguntas ramificadas, puntuación y feedback IA. Listo en minutos.",
+          "Crea simulaciones en vídeo con IA, graba al candidato (cámara, pantalla y multicámara) y obtén un informe integrado de decisiones y comportamiento.",
       },
+      { property: "og:title", content: "Playnalyze — Simulaciones con IA y análisis de comportamiento" },
+      {
+        property: "og:description",
+        content:
+          "Simulaciones profesionales generadas por IA, grabación multicámara con consentimiento y análisis de comportamiento con evidencias temporales.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Landing,
@@ -22,6 +46,7 @@ function Landing() {
       <Header />
       <main>
         <Hero />
+        <Modules />
         <Features />
         <HowItWorks />
         <UseCases />
@@ -31,6 +56,7 @@ function Landing() {
     </div>
   );
 }
+
 
 function Header() {
   return (
