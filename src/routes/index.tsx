@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
+import { GuidedTour } from "@/components/GuidedTour";
 import {
   Sparkles,
   Film,
@@ -46,6 +47,7 @@ function Landing() {
       <Header />
       <main>
         <Hero />
+        <GuidedTour />
         <Modules />
         <Features />
         <HowItWorks />
