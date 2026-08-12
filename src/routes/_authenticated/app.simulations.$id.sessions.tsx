@@ -372,6 +372,8 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
   const [saving, setSaving] = useState(false);
   const [sendingMail, setSendingMail] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+  const [pdfPreviewLoading, setPdfPreviewLoading] = useState(false);
   const [mailTo, setMailTo] = useState("");
 
 
