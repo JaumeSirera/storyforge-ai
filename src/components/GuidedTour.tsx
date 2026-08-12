@@ -221,6 +221,7 @@ export function GuidedTour() {
                 </Button>
               </div>
             </div>
+            </div>
           </div>
         </div>
       </div>
