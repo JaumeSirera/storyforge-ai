@@ -320,18 +320,23 @@ const steps = [
   },
   {
     n: "02",
-    title: "Aporta el guion y vídeos",
-    body: "Pega el contexto y enlaza o sube los vídeos que ilustran las escenas.",
-  },
-  {
-    n: "03",
     title: "La IA genera el juego",
     body: "Historia, escenas, preguntas con feedback, ramas y criterios de evaluación.",
   },
   {
+    n: "03",
+    title: "Invita y graba",
+    body: "El participante entra por enlace, acepta el consentimiento y al grabar arranca la simulación.",
+  },
+  {
     n: "04",
-    title: "Juega y evalúa",
-    body: "El participante avanza por las decisiones y al final recibe su informe.",
+    title: "Analiza el comportamiento",
+    body: "Transcripción, métricas, escenas clave y anotaciones sobre la grabación.",
+  },
+  {
+    n: "05",
+    title: "Entrega el informe",
+    body: "Informe integrado en PDF (decisiones + evidencias) revisado y enviado por email.",
   },
 ];
 
@@ -341,8 +346,11 @@ function HowItWorks() {
       <div className="mx-auto max-w-7xl px-6 py-24">
         <div className="max-w-2xl">
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Cómo funciona</h2>
-          <p className="mt-3 text-muted-foreground">De un prompt a una simulación lista en minutos.</p>
+          <p className="mt-3 text-muted-foreground">
+            De un prompt a una simulación grabada y evaluada, de principio a fin.
+          </p>
         </div>
+
         <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {steps.map((s) => (
             <div key={s.n} className="rounded-2xl bg-card p-6 border border-border shadow-soft">
