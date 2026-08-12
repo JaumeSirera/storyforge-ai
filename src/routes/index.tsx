@@ -351,7 +351,7 @@ function HowItWorks() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-5">
           {steps.map((s) => (
             <div key={s.n} className="rounded-2xl bg-card p-6 border border-border shadow-soft">
               <div className="text-sm font-bold text-primary">{s.n}</div>
