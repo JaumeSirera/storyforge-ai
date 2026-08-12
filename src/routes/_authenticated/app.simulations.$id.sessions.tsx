@@ -616,42 +616,74 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
             </Button>
           </div>
 
-          <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-            <DialogContent className="max-w-lg">
+          <Dialog open={previewOpen} onOpenChange={(o) => (o ? setPreviewOpen(true) : closePreview())}>
+            <DialogContent className="max-w-3xl">
               <DialogHeader>
-                <DialogTitle>Vista previa del email</DialogTitle>
+                <DialogTitle>Vista previa del envío</DialogTitle>
                 <DialogDescription>
-                  Revisa el asunto y el mensaje antes de enviarlo al candidato.
+                  Revisa el email y el informe adjunto antes de enviarlo al candidato.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-3 text-sm">
-                <div className="rounded-md border border-border p-3 space-y-1">
-                  <div>
-                    <span className="text-muted-foreground">De:</span>{" "}
-                    {cfg?.fromName || "(sin nombre)"} &lt;{cfg?.fromEmail || "sin remitente"}&gt;
-                  </div>
-                  {cfg?.replyTo && (
+              <Tabs defaultValue="email">
+                <TabsList>
+                  <TabsTrigger value="email">Email</TabsTrigger>
+                  <TabsTrigger value="pdf" onClick={() => void buildPdfPreview()}>
+                    Informe adjunto
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="email" className="space-y-3 text-sm">
+                  <div className="rounded-md border border-border p-3 space-y-1">
                     <div>
-                      <span className="text-muted-foreground">Responder a:</span> {cfg.replyTo}
+                      <span className="text-muted-foreground">De:</span>{" "}
+                      {cfg?.fromName || "(sin nombre)"} &lt;{cfg?.fromEmail || "sin remitente"}&gt;
+                    </div>
+                    {cfg?.replyTo && (
+                      <div>
+                        <span className="text-muted-foreground">Responder a:</span> {cfg.replyTo}
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-muted-foreground">Para:</span>{" "}
+                      {mailTo || s.candidate_email || "—"}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Asunto:</span> {previewSubject}
+                    </div>
+                  </div>
+                  <div className="rounded-md border border-border p-3 whitespace-pre-wrap max-h-64 overflow-y-auto">
+                    {previewBody}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Se adjunta el informe PDF (se descarga al confirmar) con tu logo y marca.
+                  </p>
+                </TabsContent>
+                <TabsContent value="pdf" className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    {integratedQ.data
+                      ? "Informe integrado (decisiones + comportamiento observable)."
+                      : "Informe de la simulación (decisiones y puntuación)."}
+                  </p>
+                  {pdfPreviewLoading && !pdfPreviewUrl ? (
+                    <div className="h-[60vh] grid place-items-center text-sm text-muted-foreground">
+                      Generando informe…
+                    </div>
+                  ) : pdfPreviewUrl ? (
+                    <iframe
+                      src={pdfPreviewUrl}
+                      title="Vista previa del informe PDF"
+                      className="w-full h-[60vh] rounded-md border border-border bg-background"
+                    />
+                  ) : (
+                    <div className="h-[60vh] grid place-items-center">
+                      <Button size="sm" variant="outline" onClick={() => void buildPdfPreview()}>
+                        Ver informe
+                      </Button>
                     </div>
                   )}
-                  <div>
-                    <span className="text-muted-foreground">Para:</span>{" "}
-                    {mailTo || s.candidate_email || "—"}
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Asunto:</span> {previewSubject}
-                  </div>
-                </div>
-                <div className="rounded-md border border-border p-3 whitespace-pre-wrap max-h-64 overflow-y-auto">
-                  {previewBody}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Se adjunta el informe PDF (se descarga al confirmar) con tu logo y marca.
-                </p>
-              </div>
+                </TabsContent>
+              </Tabs>
               <DialogFooter>
-                <Button variant="outline" size="sm" onClick={() => setPreviewOpen(false)}>
+                <Button variant="outline" size="sm" onClick={closePreview}>
                   Cancelar
                 </Button>
                 <Button size="sm" disabled={sendingMail} onClick={() => void sendReportByEmail()}>
@@ -660,6 +692,7 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
 
           <div className="space-y-1">
             <div className="text-xs font-medium">Historial de envíos</div>
