@@ -445,6 +445,31 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
     downloadReportPdf(pdfPayload(logo));
   }
 
+  /** Genera el PDF en memoria y lo muestra dentro del modal antes de enviarlo. */
+  async function buildPdfPreview() {
+    if (pdfPreviewUrl || pdfPreviewLoading) return;
+    setPdfPreviewLoading(true);
+    try {
+      const logo = await loadLogoDataUrl(settingsQ.data?.logoUrl || null);
+      const doc = integratedQ.data
+        ? generateIntegratedPdf({ report: integratedQ.data, branding: { logoDataUrl: logo } })
+        : generateReportPdf(pdfPayload(logo));
+      setPdfPreviewUrl(doc.output("bloburl").toString());
+    } catch (e: any) {
+      toast.error(e?.message || "No se pudo generar la vista previa del informe");
+    } finally {
+      setPdfPreviewLoading(false);
+    }
+  }
+
+  function closePreview() {
+    setPreviewOpen(false);
+    if (pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl);
+    setPdfPreviewUrl(null);
+  }
+
+
+
   const cfg = settingsQ.data;
   const mailVars = { candidato: s.candidate_name, simulacion: s.simulation?.title };
   const previewSubject = renderTemplate(
