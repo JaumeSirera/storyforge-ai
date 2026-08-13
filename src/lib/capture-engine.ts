@@ -537,13 +537,22 @@ export async function stopRecording(key: string): Promise<boolean> {
     let uploaded = 0;
     const errors: string[] = [];
 
+    const uploader = e.uploader;
+    if (!uploader) {
+      // Sin uploader no hay forma de subir: conservamos los fragmentos locales
+      // para poder reintentar o descargar la copia desde el indicador.
+      throw new Error(
+        "La grabación no se pudo enviar (se perdió la conexión con la sesión). La copia local se conserva: reinténtalo o descárgala.",
+      );
+    }
+
     // Cada pista se sube por separado: si una falla (o la cámara se cortó),
     // no se pierde el resto de la grabación.
     for (const chunks of segments) {
       const blob = new Blob(chunks, { type: chunks[0]?.type || "video/webm" });
       if (blob.size < 2048) continue;
       try {
-        await e.uploader?.({ blob, kind: "camera", durationSec: duration, syncOffsetMs });
+        await uploader({ blob, kind: "camera", durationSec: duration, syncOffsetMs });
         uploaded += 1;
       } catch (err) {
         errors.push(`cámara: ${err instanceof Error ? err.message : "error al subir"}`);
@@ -554,7 +563,7 @@ export async function stopRecording(key: string): Promise<boolean> {
       const sBlob = new Blob(e.screenChunks, { type: e.screenChunks[0]?.type || "video/webm" });
       if (sBlob.size > 2048) {
         try {
-          await e.uploader?.({ blob: sBlob, kind: "screen", durationSec: duration, syncOffsetMs });
+          await uploader({ blob: sBlob, kind: "screen", durationSec: duration, syncOffsetMs });
           uploaded += 1;
         } catch (err) {
           errors.push(`pantalla: ${err instanceof Error ? err.message : "error al subir"}`);
@@ -565,13 +574,14 @@ export async function stopRecording(key: string): Promise<boolean> {
     if (uploaded === 0) {
       throw new Error(
         errors.length > 0
-          ? `No se pudo guardar la grabación (${errors.join("; ")}).`
+          ? `No se pudo guardar la grabación (${errors.join("; ")}). La copia local se conserva: reinténtalo o descárgala.`
           : "La grabación quedó vacía; inténtalo de nuevo.",
       );
     }
     await clearRecovery(key);
     if (errors.length > 0) throw new Error(`Se guardó parcialmente (${errors.join("; ")}).`);
     return true;
+
 
 
   } finally {
