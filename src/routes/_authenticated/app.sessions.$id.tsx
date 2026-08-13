@@ -788,6 +788,7 @@ function ScenePlayback({
         activeClipId={activeClipId}
         onActiveClipChange={setActiveClipId}
         pauseAtSec={pauseAtSec}
+        resumeSignal={resumeSignal}
         onPauseAtTime={() => setQuestionReady(true)}
         onTriggerReset={() => {
           if (!feedback && !(forcedQId && q?.id === forcedQId)) setQuestionReady(false);
