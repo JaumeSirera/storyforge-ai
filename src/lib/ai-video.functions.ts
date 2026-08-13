@@ -99,9 +99,13 @@ export const startAiVideoGeneration = createServerFn({ method: "POST" })
     }
 
     const model = imageUrl ? I2V_MODEL : T2V_MODEL;
+    // Los modelos wan-2.2-*-fast limitan num_frames (81..100). Para 10 s no se
+    // pueden pedir 161 fotogramas: se usa el máximo y se baja el frame rate.
+    const isLong = data.durationSec === 10;
     const input: Record<string, unknown> = {
       prompt: data.prompt,
-      num_frames: data.durationSec === 10 ? 161 : 81,
+      num_frames: isLong ? 100 : 81,
+      frames_per_second: isLong ? 10 : 16,
     };
     if (imageUrl) {
       input.image = imageUrl;
@@ -109,18 +113,25 @@ export const startAiVideoGeneration = createServerFn({ method: "POST" })
       input.aspect_ratio = data.aspectRatio;
     }
 
-    const res = await fetch(
-      `${auth.base}/models/${model.owner}/${model.name}/predictions`,
-      {
+    const post = (payload: Record<string, unknown>) =>
+      fetch(`${auth.base}/models/${model.owner}/${model.name}/predictions`, {
         method: "POST",
         headers: { ...auth.headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ input }),
-      },
-    );
-    const body = await res.text();
+        body: JSON.stringify({ input: payload }),
+      });
+
+    let res = await post(input);
+    let body = await res.text();
+    if (!res.ok && isLong) {
+      // Reintento seguro con los valores por defecto del modelo (~5 s).
+      const fallback = { ...input, num_frames: 81, frames_per_second: 16 };
+      res = await post(fallback);
+      body = await res.text();
+    }
     if (!res.ok) {
       throw new Error(`Replicate error ${res.status}: ${body.slice(0, 400)}`);
     }
+
     const json = JSON.parse(body) as { id: string; status: string };
     return {
       predictionId: json.id,
