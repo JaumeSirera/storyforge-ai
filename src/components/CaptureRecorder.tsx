@@ -516,13 +516,11 @@ export function CaptureRecorder({
               {!screenSharing && (
                 <div className="absolute inset-0 grid place-items-center px-4 text-center text-xs text-muted-foreground">
                   {!screenSupported
-                    ? "La grabación de pantalla no está disponible en este dispositivo."
-                    : null}
-                  Sin pantalla compartida todavía. Sí se pueden grabar cámara y pantalla a la vez:
-                  el navegador pide permiso aparte y, si se cancela o la vista previa lo bloquea,
-                  puedes añadirla con el botón de arriba (o abre la app en su propia pestaña).
+                    ? "La grabación de pantalla no está disponible en móviles ni tablets; se grabará solo la cámara con su audio."
+                    : "Sin pantalla compartida todavía. Sí se pueden grabar cámara y pantalla a la vez: el navegador pide permiso aparte y, si se cancela o la vista previa lo bloquea, puedes añadirla con el botón de arriba (o abre la app en su propia pestaña)."}
                 </div>
               )}
+
             </div>
           </div>
         )}
