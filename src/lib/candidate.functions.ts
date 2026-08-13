@@ -16,12 +16,13 @@ export const startCandidateSession = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: sim, error: simErr } = await context.supabase
       .from("simulations")
-      .select("id, story, is_public, status")
+      .select("id, story, is_public, status, owner_id")
       .eq("id", data.simulationId)
       .maybeSingle();
     if (simErr) throw new Error(simErr.message);
     if (!sim) throw new Error("Simulación no encontrada");
-    if (!(sim as any).is_public || (sim as any).status !== "published") {
+    const isOwner = (sim as any).owner_id === context.userId;
+    if (!isOwner && (!(sim as any).is_public || (sim as any).status !== "published")) {
       throw new Error("Esta simulación aún no está publicada");
     }
     const startId = (sim.story as { startNodeId?: string })?.startNodeId;

@@ -31,11 +31,9 @@ function PrePlayPage() {
     queryFn: async () => {
       // La simulación puede no ser pública (borrador o privada): en ese caso
       // intentamos leerla como usuario autenticado (propietario/invitado).
-      try {
-        return await get({ data: { id } });
-      } catch {
-        return await getOwn({ data: { id } });
-      }
+      const pub = await get({ data: { id } }).catch(() => null);
+      if (pub) return pub;
+      return await getOwn({ data: { id } });
     },
   });
 
