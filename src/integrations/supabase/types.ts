@@ -1312,6 +1312,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_session_for_simulation: {
+        Args: { _simulation_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

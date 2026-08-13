@@ -12,7 +12,10 @@ export const startSession = createServerFn({ method: "POST" })
     z.object({ simulationId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: sim, error: simErr } = await context.supabase
+    // Modo pruebas: cualquier participante autenticado puede jugar, incluso
+    // borradores (RLS los oculta a quien no es propietario).
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: sim, error: simErr } = await supabaseAdmin
       .from("simulations")
       .select("id, story")
       .eq("id", data.simulationId)

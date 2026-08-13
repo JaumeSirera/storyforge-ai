@@ -14,17 +14,17 @@ export const startCandidateSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v: unknown) => StartInput.parse(v))
   .handler(async ({ data, context }) => {
-    const { data: sim, error: simErr } = await context.supabase
+    // Cualquier participante autenticado puede jugar la simulación, incluso si
+    // aún es borrador o no es pública (modo pruebas). Leemos con privilegios de
+    // servidor porque RLS oculta los borradores a quien no es propietario.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: sim, error: simErr } = await supabaseAdmin
       .from("simulations")
-      .select("id, story, is_public, status, owner_id")
+      .select("id, story")
       .eq("id", data.simulationId)
       .maybeSingle();
     if (simErr) throw new Error(simErr.message);
     if (!sim) throw new Error("Simulación no encontrada");
-    const isOwner = (sim as any).owner_id === context.userId;
-    if (!isOwner && (!(sim as any).is_public || (sim as any).status !== "published")) {
-      throw new Error("Esta simulación aún no está publicada");
-    }
     const startId = (sim.story as { startNodeId?: string })?.startNodeId;
     if (!startId) throw new Error("La simulación no tiene nodo inicial");
 
@@ -167,4 +167,23 @@ export const updateCandidateFields = createServerFn({ method: "POST" })
       .eq("owner_id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+/** Datos mínimos de una simulación para la pantalla previa al juego.
+ * Accesible a cualquier usuario autenticado (incluye borradores, para pruebas). */
+export const getPlayableSimulation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v: unknown) => z.object({ id: z.string().uuid() }).parse(v))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: sim, error } = await supabaseAdmin
+      .from("simulations")
+      .select(
+        "id, title, objective, topic, duration_min, cover_image_url, candidate_fields, status, is_public",
+      )
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!sim) throw new Error("Simulación no encontrada");
+    return sim;
   });
