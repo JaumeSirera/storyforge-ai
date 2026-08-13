@@ -64,7 +64,7 @@ async function uploadReferenceImage(
 
 const StartInput = z.object({
   prompt: z.string().min(5).max(2000),
-  durationSec: z.union([z.literal(5), z.literal(10)]).default(5),
+  durationSec: z.number().int().min(4).max(10).default(5),
   aspectRatio: z.enum(["16:9", "9:16", "1:1"]).default("16:9"),
   /** Optional: character whose image is used as the first frame. */
   characterId: z.string().uuid().optional(),
@@ -101,11 +101,15 @@ export const startAiVideoGeneration = createServerFn({ method: "POST" })
     const model = imageUrl ? I2V_MODEL : T2V_MODEL;
     // Los modelos wan-2.2-*-fast limitan num_frames (81..100). Para 10 s no se
     // pueden pedir 161 fotogramas: se usa el máximo y se baja el frame rate.
-    const isLong = data.durationSec === 10;
+    const isLong = data.durationSec > 5;
+    // num_frames debe estar entre 81 y 100; el frame rate se ajusta para
+    // aproximar la duración pedida (p. ej. 100 frames a 14 fps ≈ 7 s).
+    const numFrames = isLong ? 100 : 81;
+    const fps = Math.max(5, Math.min(24, Math.round(numFrames / data.durationSec)));
     const input: Record<string, unknown> = {
       prompt: data.prompt,
-      num_frames: isLong ? 100 : 81,
-      frames_per_second: isLong ? 10 : 16,
+      num_frames: numFrames,
+      frames_per_second: fps,
     };
     if (imageUrl) {
       input.image = imageUrl;
