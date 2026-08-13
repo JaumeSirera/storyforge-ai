@@ -121,7 +121,7 @@ export function CaptureConsentGate({
           <li className="flex items-center gap-2 rounded-md border p-2">
             <Mic className="h-4 w-4 text-muted-foreground" /> Audio de tu micrófono
           </li>
-          {recordScreen && (
+          {recordScreen && screenCaptureAvailable && (
             <li className="flex items-center gap-2 rounded-md border p-2">
               <MonitorUp className="h-4 w-4 text-muted-foreground" /> Tu pantalla compartida
             </li>
