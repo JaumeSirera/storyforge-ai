@@ -198,6 +198,33 @@ export const returnToNode = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Aborta la simulación en curso (por ejemplo, al detener y guardar la grabación):
+// la marca como finalizada para poder generar el informe con lo respondido.
+export const abortSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ sessionId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: sess, error } = await context.supabase
+      .from("sessions")
+      .select("id, completed_at")
+      .eq("id", data.sessionId)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!sess) throw new Error("Sesión no encontrada");
+    if (sess.completed_at) return { ok: true, alreadyCompleted: true };
+
+    const { error: updErr } = await context.supabase
+      .from("sessions")
+      .update({ completed_at: new Date().toISOString(), current_node_id: null })
+      .eq("id", data.sessionId)
+      .eq("user_id", context.userId);
+    if (updErr) throw new Error(updErr.message);
+    return { ok: true, alreadyCompleted: false };
+  });
+
 
 
 
