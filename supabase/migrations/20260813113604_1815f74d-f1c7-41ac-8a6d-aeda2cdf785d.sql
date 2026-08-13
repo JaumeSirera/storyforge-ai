@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.protect_capture_participant_fields() FROM PUBLIC, anon, authenticated;
