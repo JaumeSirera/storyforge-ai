@@ -57,6 +57,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
   const [commentText, setCommentText] = useState("");
   const [answeredIds, setAnsweredIds] = useState<Set<string>>(new Set());
   const [forcedQId, setForcedQId] = useState<string | undefined>(undefined);
+  const [resumeNonce, setResumeNonce] = useState(0);
   // Branch return: when a choice jumps to a specific clip, remember the origin
   // so we can return once the branched clip finishes.
   const [branchReturn, setBranchReturn] = useState<{
@@ -269,6 +270,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
       if (q?.id) setAnsweredIds((s) => new Set(s).add(q.id!));
       setForcedQId(undefined);
       setQuestionReady(false);
+      setResumeNonce((n) => n + 1);
       return;
     }
     if (dest.kind === "question") {
@@ -368,6 +370,7 @@ export function StoryPreview({ story, criteria, onSaveDraft, savingDraft }: Prop
             setResumeAt(undefined);
           }}
           pauseAtSec={pauseAtSec}
+          resumeSignal={resumeNonce}
           onPauseAtTime={() => setQuestionReady(true)}
           onTriggerReset={() => {
             if (!(forcedQId && q?.id === forcedQId)) setQuestionReady(false);
