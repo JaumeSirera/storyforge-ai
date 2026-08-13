@@ -227,13 +227,6 @@ function JoinCapturePage() {
                   grabación sigue activa mientras juegas.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <Button asChild variant="secondary" className="gap-2">
-                  <a href={`/app/play/${session.simulationId}`} target="_blank" rel="noreferrer">
-                    <Gamepad2 className="h-4 w-4" /> Abrir simulación ahora
-                  </a>
-                </Button>
-              </CardContent>
             </Card>
           )}
 
