@@ -22,9 +22,22 @@ function PrePlayPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const get = useServerFn(getPublicSimulation);
+  const getOwn = useServerFn(getSimulation);
   const start = useServerFn(startCandidateSession);
   const linkCapture = useServerFn(linkCaptureGameSession);
-  const sim = useQuery({ queryKey: ["public-sim", id], queryFn: () => get({ data: { id } }) });
+  const sim = useQuery({
+    queryKey: ["play-sim", id],
+    retry: false,
+    queryFn: async () => {
+      // La simulación puede no ser pública (borrador o privada): en ese caso
+      // intentamos leerla como usuario autenticado (propietario/invitado).
+      try {
+        return await get({ data: { id } });
+      } catch {
+        return await getOwn({ data: { id } });
+      }
+    },
+  });
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
