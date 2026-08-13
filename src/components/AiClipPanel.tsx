@@ -125,7 +125,9 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
 
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState(source.prompt ?? "");
-  const [durationSec, setDurationSec] = useState<5 | 10>((source.durationSec as 5 | 10) ?? 5);
+  const [durationSec, setDurationSec] = useState<number>(
+    typeof source.durationSec === "number" ? source.durationSec : 5,
+  );
   const [characterIds, setCharacterIds] = useState<string[]>(
     source.characterId ? [source.characterId] : [],
   );
@@ -917,11 +919,12 @@ export function AiClipPanel({ simulationId, source, onChange }: Props) {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Duración</Label>
-                <Select value={String(durationSec)} onValueChange={(v) => setDurationSec(Number(v) as 5 | 10)}>
+                <Select value={String(durationSec)} onValueChange={(v) => setDurationSec(Number(v))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="5">5 segundos</SelectItem>
-                    <SelectItem value="10">10 segundos</SelectItem>
+                    {[5, 6, 7, 8, 9, 10].map((s) => (
+                      <SelectItem key={s} value={String(s)}>{s} segundos</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
