@@ -439,6 +439,36 @@ export async function discardRecovery(key: string) {
 }
 
 /**
+ * Reintenta subir la copia local guardada en IndexedDB usando el uploader con
+ * el que se inició la grabación (sigue disponible aunque se haya navegado).
+ */
+export async function retryPendingUpload(key: string): Promise<boolean> {
+  const e = store.entries.get(key);
+  if (!e?.uploader) throw new Error("Vuelve a la página de la sesión de grabación para guardarla.");
+  return recoverRecording(key, e.uploader);
+}
+
+/** Descarga la copia local de la grabación (rescate manual si falla la subida). */
+export async function downloadRecovery(key: string): Promise<boolean> {
+  const meta = await getRecoverable(key);
+  if (!meta) return false;
+  const { camera, screen } = await loadRecoveredBlobs(key);
+  const parts = camera.length > 0 ? camera : screen;
+  if (parts.length === 0) return false;
+  const blob = new Blob(parts, { type: meta.mimeType || "video/webm" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `grabacion-${meta.label || "sesion"}-${new Date(meta.startedAt).toISOString().slice(0, 19).replace(/[:T]/g, "-")}.webm`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  return true;
+}
+
+
+/**
  * Guardas de ciclo de vida: avisan antes de recargar/cerrar con una grabación en
  * marcha y reanudan el recorder y la vista previa si el navegador los pausó al
  * perder el foco (habitual en móvil al cambiar de app).
