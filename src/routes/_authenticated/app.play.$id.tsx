@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getPublicSimulation } from "@/lib/public.functions";
+import { getSimulation } from "@/lib/simulations.functions";
 import { startCandidateSession } from "@/lib/candidate.functions";
 import { linkCaptureGameSession } from "@/lib/integrated-report.functions";
 import { supabase } from "@/integrations/supabase/client";
