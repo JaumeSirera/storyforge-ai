@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getPublicSimulation } from "@/lib/public.functions";
 import { getSimulation } from "@/lib/simulations.functions";
-import { startCandidateSession } from "@/lib/candidate.functions";
+import { startCandidateSession, getPlayableSimulation } from "@/lib/candidate.functions";
 import { linkCaptureGameSession } from "@/lib/integrated-report.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,7 @@ function PrePlayPage() {
   const navigate = useNavigate();
   const get = useServerFn(getPublicSimulation);
   const getOwn = useServerFn(getSimulation);
+  const getPlayable = useServerFn(getPlayableSimulation);
   const start = useServerFn(startCandidateSession);
   const linkCapture = useServerFn(linkCaptureGameSession);
   const sim = useQuery({
@@ -33,7 +34,10 @@ function PrePlayPage() {
       // intentamos leerla como usuario autenticado (propietario/invitado).
       const pub = await get({ data: { id } }).catch(() => null);
       if (pub) return pub;
-      return await getOwn({ data: { id } });
+      const own = await getOwn({ data: { id } }).catch(() => null);
+      if (own) return own;
+      // Borrador o simulación de otro usuario: modo pruebas.
+      return await getPlayable({ data: { id } });
     },
   });
 
