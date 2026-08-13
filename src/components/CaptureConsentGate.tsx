@@ -47,6 +47,13 @@ export function CaptureConsentGate({
   const [faceAnalysis, setFaceAnalysis] = useState(initial?.faceAnalysis ?? false);
   const [voiceAnalysis, setVoiceAnalysis] = useState(initial?.voiceAnalysis ?? false);
   const [screen, setScreen] = useState(recordScreen ? (initial?.screen ?? false) : false);
+  // En navegadores móviles no existe getDisplayMedia: la pantalla no puede grabarse.
+  const [screenCaptureAvailable, setScreenCaptureAvailable] = useState(true);
+  useEffect(() => {
+    const ok = canCaptureScreen();
+    setScreenCaptureAvailable(ok);
+    if (!ok) setScreen(false);
+  }, []);
   const [busy, setBusy] = useState(false);
   const [denied, setDenied] = useState(false);
 
@@ -153,7 +160,13 @@ export function CaptureConsentGate({
             />
             <span>Autorizo el análisis de voz: tono, ritmo y transcripción (opcional).</span>
           </label>
-          {recordScreen && (
+          {recordScreen && !screenCaptureAvailable && (
+            <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
+              Tu dispositivo (móvil o tablet) no permite grabar la pantalla: se grabará solo tu
+              cámara y tu voz.
+            </p>
+          )}
+          {recordScreen && screenCaptureAvailable && (
             <label className="flex items-start gap-2 text-sm">
               <Checkbox
                 checked={screen}
