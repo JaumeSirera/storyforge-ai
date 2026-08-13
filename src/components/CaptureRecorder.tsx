@@ -7,6 +7,9 @@ import {
   registerParticipantRecording,
 } from "@/lib/capture-invitations.functions";
 import { joinCaptureControlChannel } from "@/lib/capture-control";
+import { abortSession } from "@/lib/sessions.functions";
+import { clearActiveGameSession, getActiveGameSession } from "@/lib/active-game-session";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   attachVideoElement,
   attachScreenElement,
@@ -89,6 +92,8 @@ export function CaptureRecorder({
   deviceStorageKey,
 }: Props) {
   const register = useServerFn(registerRecording);
+  const abort = useServerFn(abortSession);
+  const qc = useQueryClient();
   const createTicket = useServerFn(createParticipantUploadTicket);
   const registerInvited = useServerFn(registerParticipantRecording);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -247,8 +252,21 @@ export function CaptureRecorder({
       }
     } catch (err: any) {
       toast.error(err?.message || "No se pudo guardar la grabación");
+    } finally {
+      // Al guardar la grabación se aborta también la simulación en curso.
+      const sessionId = getActiveGameSession();
+      if (sessionId) {
+        clearActiveGameSession(sessionId);
+        try {
+          await abort({ data: { sessionId } });
+          await qc.invalidateQueries({ queryKey: ["session", sessionId] });
+        } catch {
+          /* la simulación puede haber terminado ya */
+        }
+      }
     }
   }
+
 
   async function recoverAndSave() {
     setRecovering(true);

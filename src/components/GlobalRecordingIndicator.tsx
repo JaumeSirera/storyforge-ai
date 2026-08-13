@@ -9,6 +9,10 @@ import {
   useActiveRecordings,
 } from "@/lib/capture-engine";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
+import { abortSession } from "@/lib/sessions.functions";
+import { clearActiveGameSession, getActiveGameSession } from "@/lib/active-game-session";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -29,12 +33,28 @@ export function GlobalRecordingIndicator() {
   const [busy, setBusy] = useState<string | null>(null);
   /** Grabaciones detenidas cuya subida falló: se conserva la copia local. */
   const [failed, setFailed] = useState<{ key: string; message: string }[]>([]);
+  const abort = useServerFn(abortSession);
+  const qc = useQueryClient();
 
   useEffect(() => {
     if (active.length === 0) return;
     const t = setInterval(() => setTick((n) => n + 1), 1000);
     return () => clearInterval(t);
   }, [active.length]);
+
+  /** Al guardar la grabación se aborta también la simulación en curso. */
+  async function abortRunningSimulation() {
+    const sessionId = getActiveGameSession();
+    if (!sessionId) return;
+    clearActiveGameSession(sessionId);
+    try {
+      const r = await abort({ data: { sessionId } });
+      await qc.invalidateQueries({ queryKey: ["session", sessionId] });
+      if (!r.alreadyCompleted) toast.info("Simulación finalizada al detener la grabación");
+    } catch {
+      /* la simulación puede haber terminado ya */
+    }
+  }
 
   async function onStop(key: string) {
     setBusy(key);
@@ -51,9 +71,11 @@ export function GlobalRecordingIndicator() {
       setFailed((f) => [...f.filter((x) => x.key !== key), { key, message }]);
       toast.error(message);
     } finally {
+      await abortRunningSimulation();
       setBusy(null);
     }
   }
+
 
   async function onRetry(key: string) {
     setBusy(key);

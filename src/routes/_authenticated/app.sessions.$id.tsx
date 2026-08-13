@@ -17,6 +17,7 @@ import { Trophy, Star, Loader2, CheckCircle2, XCircle, Sparkles, Award, ArrowRig
 import { downloadReportPdf } from "@/lib/report-pdf";
 import { IntegratedReportButton } from "@/components/IntegratedReportButton";
 import { computeSceneOrder } from "@/lib/scene-order";
+import { clearActiveGameSession, setActiveGameSession } from "@/lib/active-game-session";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -29,6 +30,21 @@ function PlayerPage() {
   const get = useServerFn(getSession);
   const session = useQuery({ queryKey: ["session", id], queryFn: () => get({ data: { id } }) });
 
+  const sessData = session.data as any;
+  const completed = !!sessData && (!!sessData.completed_at || !sessData.current_node_id);
+
+  // Registro de la simulación en curso: si el usuario detiene y guarda la
+  // grabación, el indicador global puede abortar esta simulación.
+  useEffect(() => {
+    if (!sessData) return;
+    if (completed) {
+      clearActiveGameSession(id);
+      return;
+    }
+    setActiveGameSession(id);
+    return () => clearActiveGameSession(id);
+  }, [id, sessData, completed]);
+
   if (session.isLoading) {
     return <div className="grid place-items-center py-20"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   }
@@ -39,11 +55,12 @@ function PlayerPage() {
   const story = sim.story as { nodes: Record<string, any>; startNodeId: string };
   const totalNodes = Object.keys(story.nodes).length;
   const answered = (sess.answers as any[]).length;
-  const isComplete = !!sess.completed_at || !sess.current_node_id;
+  const isComplete = completed;
 
   if (isComplete) {
     return <FinalReport sessionId={id} sess={sess} sim={sim} />;
   }
+
 
   const node = story.nodes[sess.current_node_id!];
   if (!node) return <p>Nodo no encontrado.</p>;
