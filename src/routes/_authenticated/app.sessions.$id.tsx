@@ -17,6 +17,7 @@ import { Trophy, Star, Loader2, CheckCircle2, XCircle, Sparkles, Award, ArrowRig
 import { downloadReportPdf } from "@/lib/report-pdf";
 import { IntegratedReportButton } from "@/components/IntegratedReportButton";
 import { computeSceneOrder } from "@/lib/scene-order";
+import { clearActiveGameSession, setActiveGameSession } from "@/lib/active-game-session";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 
