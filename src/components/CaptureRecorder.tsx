@@ -7,6 +7,9 @@ import {
   registerParticipantRecording,
 } from "@/lib/capture-invitations.functions";
 import { joinCaptureControlChannel } from "@/lib/capture-control";
+import { abortSession } from "@/lib/sessions.functions";
+import { clearActiveGameSession, getActiveGameSession } from "@/lib/active-game-session";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   attachVideoElement,
   attachScreenElement,
@@ -89,6 +92,8 @@ export function CaptureRecorder({
   deviceStorageKey,
 }: Props) {
   const register = useServerFn(registerRecording);
+  const abort = useServerFn(abortSession);
+  const qc = useQueryClient();
   const createTicket = useServerFn(createParticipantUploadTicket);
   const registerInvited = useServerFn(registerParticipantRecording);
   const videoRef = useRef<HTMLVideoElement>(null);
