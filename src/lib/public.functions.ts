@@ -33,6 +33,7 @@ export const getPublicSimulation = createServerFn({ method: "POST" })
       .eq("status", "published")
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!sim) throw new Error("Simulación no disponible");
-    return sim;
+    // No lanzamos error: devolvemos null para que el llamador pueda
+    // intentar la carga autenticada (propietario/borrador).
+    return sim ?? null;
   });
