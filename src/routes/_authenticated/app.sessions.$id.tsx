@@ -104,7 +104,6 @@ function RecordingCompletionGate({ sessionId, sess, sim }: { sessionId: string; 
   useEffect(() => {
     if (startedRef.current || pendingKeys.length === 0) return;
     startedRef.current = true;
-    let cancelled = false;
 
     void (async () => {
       const failures: { key: string; message: string }[] = [];
@@ -119,15 +118,10 @@ function RecordingCompletionGate({ sessionId, sess, sim }: { sessionId: string; 
           });
         }
       }
-      if (cancelled) return;
       setFailed(failures);
       setSaving(false);
       if (failures.length === 0) setReady(true);
     })();
-
-    return () => {
-      cancelled = true;
-    };
   }, [pendingKeys]);
 
   async function retry(key: string) {
