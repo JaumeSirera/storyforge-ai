@@ -102,6 +102,11 @@ export function CaptureRecorder({
   const key = captureKey(captureSessionId, participantId);
   const { phase, previewOn, elapsed, screenSharing, cameraLost } = useCaptureState(key);
   const [previewLoading, setPreviewLoading] = useState(false);
+  // Los navegadores móviles (iOS Safari y Chrome/Android) no exponen
+  // getDisplayMedia: en esos dispositivos la pantalla no se puede grabar
+  // aunque se hayan concedido todos los permisos.
+  const [screenSupported, setScreenSupported] = useState(true);
+  useEffect(() => setScreenSupported(canCaptureScreen()), []);
   const [hostSynced, setHostSynced] = useState(false);
   const [mediaSelection, setMediaSelection] = useState<MediaDeviceSelection | null>(
     externalMediaSelection ?? null,
@@ -208,6 +213,11 @@ export function CaptureRecorder({
   }
 
   async function start() {
+    if (recordScreen && !screenSupported) {
+      toast.warning(
+        "Este dispositivo no permite grabar la pantalla (los navegadores móviles no lo soportan). Se grabará solo la cámara y el micrófono.",
+      );
+    }
     try {
       await startRecording(
         key,
@@ -463,7 +473,15 @@ export function CaptureRecorder({
                   : "Se activará al iniciar la grabación"}
               </span>
             </div>
-            {!screenSharing && (phase === "recording" || phase === "paused") && (
+            {!screenSupported && (
+              <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
+                Este dispositivo no puede compartir pantalla: los navegadores de móvil y tablet no
+                permiten grabar la pantalla, aunque los permisos de cámara y micrófono estén
+                concedidos. Para grabar pantalla usa un ordenador; en el móvil se grabará solo la
+                cámara con el audio.
+              </p>
+            )}
+            {screenSupported && !screenSharing && (phase === "recording" || phase === "paused") && (
               <Button
                 size="sm"
                 variant="secondary"
@@ -497,6 +515,9 @@ export function CaptureRecorder({
               />
               {!screenSharing && (
                 <div className="absolute inset-0 grid place-items-center px-4 text-center text-xs text-muted-foreground">
+                  {!screenSupported
+                    ? "La grabación de pantalla no está disponible en este dispositivo."
+                    : null}
                   Sin pantalla compartida todavía. Sí se pueden grabar cámara y pantalla a la vez:
                   el navegador pide permiso aparte y, si se cancela o la vista previa lo bloquea,
                   puedes añadirla con el botón de arriba (o abre la app en su propia pestaña).
