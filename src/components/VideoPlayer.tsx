@@ -642,6 +642,7 @@ export function VideoPlayer({
   onTimeUpdate,
   startAt,
   fill,
+  resumeSignal,
 }: {
   video?: VideoSource;
   videos?: VideoClip[];
@@ -654,6 +655,8 @@ export function VideoPlayer({
   onTimeUpdate?: (t: number) => void;
   startAt?: number;
   fill?: boolean;
+  /** Cada incremento reanuda la reproducción (p. ej. tras responder). */
+  resumeSignal?: number;
 }) {
   const clips: VideoClip[] = useMemo(() => {
     if (videos && videos.length > 0) return videos;
@@ -671,6 +674,14 @@ export function VideoPlayer({
   };
 
   const controllerRef = useRef<PlayerController | null>(null);
+
+  // Reanuda el vídeo cuando el juego lo pide (comentario enviado, etc.).
+  useEffect(() => {
+    if (!resumeSignal) return;
+    const t = window.setTimeout(() => controllerRef.current?.play(), 60);
+    return () => window.clearTimeout(t);
+  }, [resumeSignal]);
+
   const liveRef = useRef<HTMLDivElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
 

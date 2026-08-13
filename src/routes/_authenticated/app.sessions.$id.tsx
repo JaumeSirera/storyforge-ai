@@ -310,6 +310,7 @@ function Player({
   // Target clip id when a choice jumps to a specific clip (may be same scene).
   const [pendingClipId, setPendingClipId] = useState<string | undefined>(undefined);
   const [clipJumpNonce, setClipJumpNonce] = useState(0);
+  const [resumeNonce, setResumeNonce] = useState(0);
   // When set, we branched to a clip and must return to the calling scene when it ends.
   const [branchReturn, setBranchReturn] = useState<{
     returnNodeId: string;
@@ -389,6 +390,8 @@ function Player({
       if (stay) {
         if (answeredQId) setSceneAnsweredIds((s) => new Set(s).add(answeredQId));
         setForcedQId(forced ?? undefined);
+        // Sin pregunta forzada seguimos el vídeo donde estaba.
+        if (!forced) setResumeNonce((n) => n + 1);
         setTimeout(() => {
           setSelected(null);
           setFeedback(null);
@@ -462,7 +465,7 @@ function Player({
           initialClipId={pendingClipId}
           branchClipId={branchReturn?.branchClipId}
           onBranchClipEnded={() => setBranchClipEnded(true)}
-          onSceneEnded={() => void advanceToNextScene()}
+          onSceneEnded={() => void advanceToNextScene()} resumeSignal={resumeNonce}
         />
 
         {branchReturn && branchClipEnded && (
@@ -598,7 +601,7 @@ function Player({
       <Progress value={progress} className="h-1.5" />
 
       <div className="relative">
-        <ScenePlayback key={`${node.id}:${clipJumpNonce}`} node={node} submitting={submitting} feedback={feedback} selected={selected} onPick={pick} nextNodes={nextNodes} answeredIds={sceneAnsweredIds} forcedQId={forcedQId} initialClipId={pendingClipId} branchClipId={branchReturn?.branchClipId} onBranchClipEnded={() => setBranchClipEnded(true)} onSceneEnded={() => void advanceToNextScene()} />
+        <ScenePlayback key={`${node.id}:${clipJumpNonce}`} node={node} submitting={submitting} feedback={feedback} selected={selected} onPick={pick} nextNodes={nextNodes} answeredIds={sceneAnsweredIds} forcedQId={forcedQId} initialClipId={pendingClipId} branchClipId={branchReturn?.branchClipId} onBranchClipEnded={() => setBranchClipEnded(true)} onSceneEnded={() => void advanceToNextScene()} resumeSignal={resumeNonce} />
         {branchReturn && branchClipEnded && (
           <BranchReturnOverlay countdown={branchCountdown} onContinue={() => void resolveBranchReturn()} />
         )}
@@ -609,7 +612,7 @@ function Player({
 }
 
 function ScenePlayback({
-  node, submitting, feedback, selected, onPick, nextNodes, immersive, answeredIds, forcedQId, initialClipId, branchClipId, onBranchClipEnded, onSceneEnded,
+  node, submitting, feedback, selected, onPick, nextNodes, immersive, answeredIds, forcedQId, initialClipId, branchClipId, onBranchClipEnded, onSceneEnded, resumeSignal,
 }: {
   node: any;
   submitting: boolean;
@@ -624,6 +627,7 @@ function ScenePlayback({
   branchClipId?: string;
   onBranchClipEnded?: () => void;
   onSceneEnded?: () => void;
+  resumeSignal?: number;
 }) {
   const clips = nodeClips(node);
   const initialActiveClipId =
@@ -699,6 +703,7 @@ function ScenePlayback({
           activeClipId={activeClipId}
           onActiveClipChange={setActiveClipId}
           pauseAtSec={pauseAtSec}
+          resumeSignal={resumeSignal}
           onPauseAtTime={() => setQuestionReady(true)}
           onTriggerReset={() => {
             if (!feedback && !(forcedQId && q?.id === forcedQId)) setQuestionReady(false);
@@ -783,6 +788,7 @@ function ScenePlayback({
         activeClipId={activeClipId}
         onActiveClipChange={setActiveClipId}
         pauseAtSec={pauseAtSec}
+        resumeSignal={resumeSignal}
         onPauseAtTime={() => setQuestionReady(true)}
         onTriggerReset={() => {
           if (!feedback && !(forcedQId && q?.id === forcedQId)) setQuestionReady(false);
