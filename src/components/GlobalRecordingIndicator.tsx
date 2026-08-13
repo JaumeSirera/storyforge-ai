@@ -1,8 +1,10 @@
-import { Circle, Loader2, Pause, Play, Square } from "lucide-react";
+import { AlertTriangle, Circle, Download, Loader2, Pause, Play, RotateCcw, Square } from "lucide-react";
 import {
+  downloadRecovery,
   getElapsedSec,
   pauseRecording,
   resumeRecording,
+  retryPendingUpload,
   stopRecording,
   useActiveRecordings,
 } from "@/lib/capture-engine";
@@ -25,6 +27,8 @@ export function GlobalRecordingIndicator() {
   const active = useActiveRecordings();
   const [tick, setTick] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
+  /** Grabaciones detenidas cuya subida falló: se conserva la copia local. */
+  const [failed, setFailed] = useState<{ key: string; message: string }[]>([]);
 
   useEffect(() => {
     if (active.length === 0) return;
@@ -32,20 +36,48 @@ export function GlobalRecordingIndicator() {
     return () => clearInterval(t);
   }, [active.length]);
 
-  if (active.length === 0) return null;
-
   async function onStop(key: string) {
     setBusy(key);
     try {
       const saved = await stopRecording(key);
-      if (saved) toast.success("Grabación guardada");
-      else toast.error("No se pudo guardar la grabación");
+      if (saved) {
+        setFailed((f) => f.filter((x) => x.key !== key));
+        toast.success("Grabación guardada");
+      } else {
+        toast.error("No se pudo guardar la grabación");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "No se pudo guardar la grabación";
+      setFailed((f) => [...f.filter((x) => x.key !== key), { key, message }]);
+      toast.error(message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function onRetry(key: string) {
+    setBusy(key);
+    try {
+      const ok = await retryPendingUpload(key);
+      if (ok) {
+        setFailed((f) => f.filter((x) => x.key !== key));
+        toast.success("Grabación guardada");
+      } else {
+        toast.info("No hay copia local utilizable para esta grabación.");
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "No se pudo guardar la grabación");
     } finally {
       setBusy(null);
     }
   }
+
+  async function onDownload(key: string) {
+    const ok = await downloadRecovery(key);
+    if (!ok) toast.info("No hay copia local disponible.");
+  }
+
+  if (active.length === 0 && failed.length === 0) return null;
 
   return (
     <div
@@ -55,7 +87,40 @@ export function GlobalRecordingIndicator() {
       data-tick={tick}
     >
       <div className="flex w-64 flex-col gap-2 rounded-lg border border-border bg-card/95 px-3 py-2 shadow-lg backdrop-blur">
+        {failed.map((f) => (
+          <div key={`failed-${f.key}`} className="flex flex-col gap-2 rounded-md border border-destructive/40 p-2">
+            <div className="flex items-start gap-2 text-xs font-medium text-destructive">
+              <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+              <span>{f.message}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-7 flex-1 gap-1 px-2 text-xs"
+                onClick={() => onRetry(f.key)}
+                disabled={busy === f.key}
+              >
+                {busy === f.key ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-3 w-3" />
+                )}
+                Reintentar
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 flex-1 gap-1 px-2 text-xs"
+                onClick={() => onDownload(f.key)}
+              >
+                <Download className="h-3 w-3" /> Descargar
+              </Button>
+            </div>
+          </div>
+        ))}
         {active.map((r) => (
+
           <div key={r.key} className="flex flex-col gap-2">
             <div className="flex items-center gap-2 text-xs font-medium">
               {r.phase === "uploading" ? (
