@@ -1,4 +1,4 @@
-import { AlertTriangle, Circle, Download, Loader2, Pause, Play, RotateCcw, Square } from "lucide-react";
+import { AlertTriangle, Circle, Download, GripHorizontal, Loader2, Pause, Play, RotateCcw, Square } from "lucide-react";
 import {
   downloadRecovery,
   getElapsedSec,
@@ -8,13 +8,15 @@ import {
   stopRecording,
   useActiveRecordings,
 } from "@/lib/capture-engine";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient } from "@tanstack/react-query";
 import { abortSession } from "@/lib/sessions.functions";
 import { clearActiveGameSession, getActiveGameSession } from "@/lib/active-game-session";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+
+const POS_KEY = "pn-recording-indicator-pos";
 
 function fmt(sec: number) {
   const m = Math.floor(sec / 60);
@@ -34,6 +36,71 @@ export function GlobalRecordingIndicator() {
   /** Grabaciones detenidas cuya subida falló: se conserva la copia local. */
   const [failed, setFailed] = useState<{ key: string; message: string }[]>([]);
   const abort = useServerFn(abortSession);
+  /** Posición libre del panel, arrastrable y recordada entre páginas. */
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = window.localStorage.getItem(POS_KEY);
+      const p = raw ? JSON.parse(raw) : null;
+      return p && typeof p.x === "number" && typeof p.y === "number" ? p : null;
+    } catch {
+      return null;
+    }
+  });
+  const boxRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{ dx: number; dy: number } | null>(null);
+
+  const move = useCallback((x: number, y: number) => {
+    const el = boxRef.current;
+    const w = el?.offsetWidth ?? 256;
+    const h = el?.offsetHeight ?? 120;
+    const next = {
+      x: Math.max(4, Math.min(window.innerWidth - w - 4, x)),
+      y: Math.max(4, Math.min(window.innerHeight - h - 4, y)),
+    };
+    setPos(next);
+    try {
+      window.localStorage.setItem(POS_KEY, JSON.stringify(next));
+    } catch {
+      /* sin almacenamiento no persistimos la posición */
+    }
+  }, []);
+
+  function onDragStart(e: React.PointerEvent<HTMLDivElement>) {
+    const rect = boxRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    e.preventDefault();
+    dragRef.current = { dx: e.clientX - rect.left, dy: e.clientY - rect.top };
+    const onMove = (ev: PointerEvent) => {
+      const d = dragRef.current;
+      if (!d) return;
+      move(ev.clientX - d.dx, ev.clientY - d.dy);
+    };
+    const onUp = () => {
+      dragRef.current = null;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
+  function onHandleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    const rect = boxRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const step = e.shiftKey ? 40 : 12;
+    const deltas: Record<string, [number, number]> = {
+      ArrowLeft: [-step, 0],
+      ArrowRight: [step, 0],
+      ArrowUp: [0, -step],
+      ArrowDown: [0, step],
+    };
+    const d = deltas[e.key];
+    if (!d) return;
+    e.preventDefault();
+    move(rect.left + d[0], rect.top + d[1]);
+  }
+
   const qc = useQueryClient();
 
   useEffect(() => {
