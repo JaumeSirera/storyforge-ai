@@ -9,6 +9,10 @@ import {
   useActiveRecordings,
 } from "@/lib/capture-engine";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
+import { abortSession } from "@/lib/sessions.functions";
+import { clearActiveGameSession, getActiveGameSession } from "@/lib/active-game-session";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
