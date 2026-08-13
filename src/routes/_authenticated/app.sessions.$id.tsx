@@ -13,11 +13,17 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, Star, Loader2, CheckCircle2, XCircle, Sparkles, Award, ArrowRight, Home, Maximize2, Minimize2, PanelTopOpen, Square, Download } from "lucide-react";
+import { Trophy, Star, Loader2, CheckCircle2, XCircle, Sparkles, Award, ArrowRight, Home, Maximize2, Minimize2, PanelTopOpen, Square, Download, AlertTriangle, RotateCcw } from "lucide-react";
 import { downloadReportPdf } from "@/lib/report-pdf";
 import { IntegratedReportButton } from "@/components/IntegratedReportButton";
 import { computeSceneOrder } from "@/lib/scene-order";
 import { clearActiveGameSession, setActiveGameSession } from "@/lib/active-game-session";
+import {
+  downloadRecovery,
+  retryPendingUpload,
+  stopRecording,
+  useActiveRecordings,
+} from "@/lib/capture-engine";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -58,7 +64,7 @@ function PlayerPage() {
   const isComplete = completed;
 
   if (isComplete) {
-    return <FinalReport sessionId={id} sess={sess} sim={sim} />;
+    return <RecordingCompletionGate sessionId={id} sess={sess} sim={sim} />;
   }
 
 
@@ -84,6 +90,113 @@ function PlayerPage() {
       nextSceneId={nextSceneId}
       nextNodes={nextNodes}
     />
+  );
+}
+
+function RecordingCompletionGate({ sessionId, sess, sim }: { sessionId: string; sess: any; sim: any }) {
+  const active = useActiveRecordings();
+  const [pendingKeys] = useState(() => active.map((recording) => recording.key));
+  const [saving, setSaving] = useState(pendingKeys.length > 0);
+  const [failed, setFailed] = useState<{ key: string; message: string }[]>([]);
+  const [ready, setReady] = useState(pendingKeys.length === 0);
+  const startedRef = useRef(false);
+
+  useEffect(() => {
+    if (startedRef.current || pendingKeys.length === 0) return;
+    startedRef.current = true;
+
+    void (async () => {
+      const failures: { key: string; message: string }[] = [];
+      for (const key of pendingKeys) {
+        try {
+          const saved = await stopRecording(key);
+          if (!saved) failures.push({ key, message: "No se encontró una grabación activa para guardar." });
+        } catch (error) {
+          failures.push({
+            key,
+            message: error instanceof Error ? error.message : "No se pudo guardar la grabación.",
+          });
+        }
+      }
+      setFailed(failures);
+      setSaving(false);
+      if (failures.length === 0) setReady(true);
+    })();
+  }, [pendingKeys]);
+
+  async function retry(key: string) {
+    setSaving(true);
+    try {
+      const saved = await retryPendingUpload(key);
+      if (!saved) throw new Error("No hay una copia local utilizable para esta grabación.");
+      const remaining = failed.filter((item) => item.key !== key);
+      setFailed(remaining);
+      if (remaining.length === 0) setReady(true);
+      toast.success("Grabación guardada");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo guardar la grabación.";
+      setFailed((items) => items.map((item) => (item.key === key ? { ...item, message } : item)));
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (ready) return <FinalReport sessionId={sessionId} sess={sess} sim={sim} />;
+
+  return (
+    <div className="mx-auto grid min-h-[60vh] max-w-xl place-items-center py-10">
+      <Card className="w-full">
+        <CardContent className="space-y-5 pt-6">
+          {saving ? (
+            <div className="space-y-3 text-center" role="status" aria-live="polite">
+              <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+              <div>
+                <h1 className="text-xl font-semibold">Guardando la grabación…</h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  La simulación ha terminado. Espera mientras detenemos y guardamos la sesión antes de generar el informe.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4" role="alert">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+                <div>
+                  <h1 className="font-semibold">La simulación terminó, pero la grabación no se ha guardado</h1>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    No abriremos el informe hasta que reintentes la subida o descargues una copia local.
+                  </p>
+                </div>
+              </div>
+              {failed.map((item) => (
+                <div key={item.key} className="space-y-3 rounded-md border border-destructive/40 p-3">
+                  <p className="text-sm text-destructive">{item.message}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => retry(item.key)} className="gap-2">
+                      <RotateCcw className="h-4 w-4" /> Reintentar guardado
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      onClick={async () => {
+                        const downloaded = await downloadRecovery(item.key);
+                        if (!downloaded) toast.error("No hay una copia local disponible.");
+                      }}
+                    >
+                      <Download className="h-4 w-4" /> Descargar copia
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              <Button variant="ghost" onClick={() => setReady(true)}>
+                Continuar al informe sin guardar
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

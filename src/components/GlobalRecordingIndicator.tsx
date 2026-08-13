@@ -58,9 +58,11 @@ export function GlobalRecordingIndicator() {
 
   async function onStop(key: string) {
     setBusy(key);
+    let savedSuccessfully = false;
     try {
       const saved = await stopRecording(key);
       if (saved) {
+        savedSuccessfully = true;
         setFailed((f) => f.filter((x) => x.key !== key));
         toast.success("Grabación guardada");
       } else {
@@ -71,7 +73,7 @@ export function GlobalRecordingIndicator() {
       setFailed((f) => [...f.filter((x) => x.key !== key), { key, message }]);
       toast.error(message);
     } finally {
-      await abortRunningSimulation();
+      if (savedSuccessfully) await abortRunningSimulation();
       setBusy(null);
     }
   }

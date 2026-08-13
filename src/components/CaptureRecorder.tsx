@@ -244,24 +244,28 @@ export function CaptureRecorder({
   }
 
   async function stop() {
+    let savedSuccessfully = false;
     try {
       const saved = await stopRecording(key);
       if (saved) {
+        savedSuccessfully = true;
         toast.success("Grabación guardada");
         onUploaded?.();
       }
     } catch (err: any) {
       toast.error(err?.message || "No se pudo guardar la grabación");
     } finally {
-      // Al guardar la grabación se aborta también la simulación en curso.
-      const sessionId = getActiveGameSession();
-      if (sessionId) {
-        clearActiveGameSession(sessionId);
-        try {
-          await abort({ data: { sessionId } });
-          await qc.invalidateQueries({ queryKey: ["session", sessionId] });
-        } catch {
-          /* la simulación puede haber terminado ya */
+      // Solo se finaliza la simulación cuando la grabación quedó guardada.
+      if (savedSuccessfully) {
+        const sessionId = getActiveGameSession();
+        if (sessionId) {
+          clearActiveGameSession(sessionId);
+          try {
+            await abort({ data: { sessionId } });
+            await qc.invalidateQueries({ queryKey: ["session", sessionId] });
+          } catch {
+            /* la simulación puede haber terminado ya */
+          }
         }
       }
     }

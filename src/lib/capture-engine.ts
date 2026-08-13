@@ -608,8 +608,12 @@ export async function stopRecording(key: string): Promise<boolean> {
           : "La grabación quedó vacía; inténtalo de nuevo.",
       );
     }
+    if (errors.length > 0) {
+      throw new Error(
+        `Se guardó parcialmente (${errors.join("; ")}). La copia local se conserva para reintentar o descargar.`,
+      );
+    }
     await clearRecovery(key);
-    if (errors.length > 0) throw new Error(`Se guardó parcialmente (${errors.join("; ")}).`);
     return true;
 
 
