@@ -105,12 +105,30 @@ export function GlobalRecordingIndicator() {
 
   return (
     <div
-      className="fixed bottom-20 right-3 z-50 sm:bottom-4"
+      className="fixed z-50"
+      style={
+        pos
+          ? { left: pos.x, top: pos.y, right: "auto", bottom: "auto" }
+          : { right: 12, bottom: 80 }
+      }
       role="status"
       aria-live="polite"
       data-tick={tick}
+      ref={boxRef}
     >
       <div className="flex w-64 flex-col gap-2 rounded-lg border border-border bg-card/95 px-3 py-2 shadow-lg backdrop-blur">
+        <div
+          className="-mx-1 -mt-1 flex cursor-grab touch-none items-center justify-center rounded-md py-1 text-muted-foreground hover:bg-accent active:cursor-grabbing"
+          onPointerDown={onDragStart}
+          role="button"
+          tabIndex={0}
+          aria-label="Mover el panel de grabación (usa las flechas del teclado)"
+          onKeyDown={onHandleKeyDown}
+          title="Arrastra para mover"
+        >
+          <GripHorizontal className="h-4 w-4" />
+        </div>
+
         {failed.map((f) => (
           <div key={`failed-${f.key}`} className="flex flex-col gap-2 rounded-md border border-destructive/40 p-2">
             <div className="flex items-start gap-2 text-xs font-medium text-destructive">
