@@ -50,8 +50,11 @@ export function CaptureConsentGate({
   const [screen, setScreen] = useState(recordScreen ? (initial?.screen ?? false) : false);
   // En navegadores móviles no existe getDisplayMedia: la pantalla no puede grabarse.
   const [screenCaptureAvailable, setScreenCaptureAvailable] = useState(true);
+  const [screenMode, setScreenMode] = useState<"display" | "game" | "none">("display");
   useEffect(() => {
-    const ok = screenCaptureMode() !== "none";
+    const mode = screenCaptureMode();
+    setScreenMode(mode);
+    const ok = mode !== "none";
     setScreenCaptureAvailable(ok);
     if (!ok) setScreen(false);
   }, []);
@@ -173,7 +176,11 @@ export function CaptureConsentGate({
                 onCheckedChange={(v) => setScreen(v === true)}
                 aria-label="Autorizo la grabación de mi pantalla"
               />
-              <span>Autorizo la grabación de mi pantalla mientras juego (opcional).</span>
+              <span>
+                {screenMode === "game"
+                  ? "Autorizo la grabación de la vista del juego mientras juego (opcional)."
+                  : "Autorizo la grabación de mi pantalla mientras juego (opcional)."}
+              </span>
             </label>
           )}
         </fieldset>
