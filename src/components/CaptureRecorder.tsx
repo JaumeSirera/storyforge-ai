@@ -15,6 +15,7 @@ import {
   attachScreenElement,
   startScreenCapture,
   canCaptureScreen,
+  screenCaptureMode,
   captureKey,
   discardRecovery,
   ensurePreview,
@@ -105,8 +106,9 @@ export function CaptureRecorder({
   // Los navegadores móviles (iOS Safari y Chrome/Android) no exponen
   // getDisplayMedia: en esos dispositivos la pantalla no se puede grabar
   // aunque se hayan concedido todos los permisos.
-  const [screenSupported, setScreenSupported] = useState(true);
-  useEffect(() => setScreenSupported(canCaptureScreen()), []);
+  const [screenMode, setScreenMode] = useState<"display" | "game" | "none">("display");
+  useEffect(() => setScreenMode(screenCaptureMode()), []);
+  const screenSupported = screenMode !== "none";
   const [hostSynced, setHostSynced] = useState(false);
   const [mediaSelection, setMediaSelection] = useState<MediaDeviceSelection | null>(
     externalMediaSelection ?? null,
@@ -213,9 +215,13 @@ export function CaptureRecorder({
   }
 
   async function start() {
-    if (recordScreen && !screenSupported) {
+    if (recordScreen && screenMode === "game") {
+      toast.info(
+        "Este dispositivo no permite compartir la pantalla del sistema: se grabará la vista del juego (vídeo y textos en pantalla) junto a la cámara.",
+      );
+    } else if (recordScreen && screenMode === "none") {
       toast.warning(
-        "Este dispositivo no permite grabar la pantalla (los navegadores móviles no lo soportan). Se grabará solo la cámara y el micrófono.",
+        "Este dispositivo no permite grabar la pantalla. Se grabará solo la cámara y el micrófono.",
       );
     }
     try {
@@ -465,7 +471,8 @@ export function CaptureRecorder({
           <div className="space-y-1">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1">
-                <MonitorUp className="h-3 w-3" /> Captura de pantalla
+                <MonitorUp className="h-3 w-3" />{" "}
+                {screenMode === "game" ? "Captura de la vista del juego" : "Captura de pantalla"}
               </span>
               <span>
                 {screenSharing
@@ -473,12 +480,17 @@ export function CaptureRecorder({
                   : "Se activará al iniciar la grabación"}
               </span>
             </div>
-            {!screenSupported && (
+            {screenMode === "game" && (
               <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
-                Este dispositivo no puede compartir pantalla: los navegadores de móvil y tablet no
-                permiten grabar la pantalla, aunque los permisos de cámara y micrófono estén
-                concedidos. Para grabar pantalla usa un ordenador; en el móvil se grabará solo la
-                cámara con el audio.
+                En móvil y tablet el navegador no permite compartir la pantalla del sistema. En su
+                lugar se graba la vista del juego: el vídeo de la escena con los textos, preguntas y
+                subtítulos sobreimpresos, sincronizado con tu cámara.
+              </p>
+            )}
+            {screenMode === "none" && (
+              <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
+                Este navegador no permite ninguna grabación de pantalla; se grabará solo la cámara
+                con su audio.
               </p>
             )}
             {screenSupported && !screenSharing && (phase === "recording" || phase === "paused") && (
@@ -487,7 +499,7 @@ export function CaptureRecorder({
                 variant="secondary"
                 className="gap-2"
                 onClick={async () => {
-                  if (!canCaptureScreen()) {
+                  if (!canCaptureScreen() && screenMode !== "game") {
                     toast.error(
                       "Este navegador o vista no permite compartir pantalla. Abre la app en una pestaña propia.",
                     );
@@ -501,7 +513,8 @@ export function CaptureRecorder({
                   );
                 }}
               >
-                <MonitorUp className="h-4 w-4" /> Compartir pantalla ahora
+                <MonitorUp className="h-4 w-4" />{" "}
+                {screenMode === "game" ? "Grabar la vista del juego" : "Compartir pantalla ahora"}
               </Button>
             )}
             <div className="relative aspect-video overflow-hidden rounded-lg border bg-muted">
@@ -515,9 +528,11 @@ export function CaptureRecorder({
               />
               {!screenSharing && (
                 <div className="absolute inset-0 grid place-items-center px-4 text-center text-xs text-muted-foreground">
-                  {!screenSupported
-                    ? "La grabación de pantalla no está disponible en móviles ni tablets; se grabará solo la cámara con su audio."
-                    : "Sin pantalla compartida todavía. Sí se pueden grabar cámara y pantalla a la vez: el navegador pide permiso aparte y, si se cancela o la vista previa lo bloquea, puedes añadirla con el botón de arriba (o abre la app en su propia pestaña)."}
+                  {screenMode === "none"
+                    ? "Este navegador no permite grabar pantalla; se grabará solo la cámara con su audio."
+                    : screenMode === "game"
+                      ? "Aquí se verá la vista del juego que se está grabando (vídeo de la escena + textos)."
+                      : "Sin pantalla compartida todavía. Sí se pueden grabar cámara y pantalla a la vez: el navegador pide permiso aparte y, si se cancela o la vista previa lo bloquea, puedes añadirla con el botón de arriba (o abre la app en su propia pestaña)."}
                 </div>
               )}
 

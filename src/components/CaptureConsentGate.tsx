@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { recordInvitedConsent } from "@/lib/capture-invitations.functions";
-import { canCaptureScreen } from "@/lib/capture-engine";
+import { screenCaptureMode } from "@/lib/capture-engine";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -51,7 +51,7 @@ export function CaptureConsentGate({
   // En navegadores móviles no existe getDisplayMedia: la pantalla no puede grabarse.
   const [screenCaptureAvailable, setScreenCaptureAvailable] = useState(true);
   useEffect(() => {
-    const ok = canCaptureScreen();
+    const ok = screenCaptureMode() !== "none";
     setScreenCaptureAvailable(ok);
     if (!ok) setScreen(false);
   }, []);
@@ -163,8 +163,7 @@ export function CaptureConsentGate({
           </label>
           {recordScreen && !screenCaptureAvailable && (
             <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
-              Tu dispositivo (móvil o tablet) no permite grabar la pantalla: se grabará solo tu
-              cámara y tu voz.
+              Tu navegador no permite grabar la pantalla: se grabará solo tu cámara y tu voz.
             </p>
           )}
           {recordScreen && screenCaptureAvailable && (
