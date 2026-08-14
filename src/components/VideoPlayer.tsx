@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { registerGameVideo, setGameCaption } from "@/lib/game-canvas-capture";
 import { Pause, Play, RotateCcw, RotateCw, Subtitles } from "lucide-react";
 import type { VideoClip, VideoSource } from "@/lib/story-types";
 import { cueAt, parseCaptions } from "@/lib/captions";
@@ -134,6 +135,12 @@ function MediaWithDialogue({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const seekedRef = useRef(false);
+
+  // Registra el <video> para la captura interna del juego (móvil/tablet).
+  useEffect(() => {
+    registerGameVideo(videoRef.current);
+    return () => registerGameVideo(null);
+  }, [src]);
 
   // Publish imperative controls for the accessible toolbar / keyboard shortcuts.
   useEffect(() => {
@@ -613,6 +620,10 @@ function CaptionsToggle({
 }
 
 function CaptionOverlay({ text, overlay }: { text: string; overlay?: boolean }) {
+  // El texto visible también se sobreimprime en la pista grabada del juego.
+  useEffect(() => {
+    setGameCaption(text);
+  }, [text]);
   if (!text) return null;
   const wrap = overlay
     ? "absolute bottom-16 left-1/2 -translate-x-1/2 z-30 w-[min(90%,52rem)] px-2 text-center pointer-events-none"

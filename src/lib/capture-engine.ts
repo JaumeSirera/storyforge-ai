@@ -8,6 +8,7 @@ import {
   persistMeta,
   type RecoveryMeta,
 } from "@/lib/capture-recovery";
+import { canCaptureGameCanvas, createGameCaptureStream } from "@/lib/game-canvas-capture";
 
 
 export type CapturePhase = "idle" | "recording" | "paused" | "uploading";
