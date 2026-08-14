@@ -8,6 +8,7 @@ import {
   persistMeta,
   type RecoveryMeta,
 } from "@/lib/capture-recovery";
+import { canCaptureGameCanvas, createGameCaptureStream } from "@/lib/game-canvas-capture";
 
 
 export type CapturePhase = "idle" | "recording" | "paused" | "uploading";
@@ -346,7 +347,13 @@ export async function startScreenCapture(key: string, mimeHint?: string): Promis
   if (e.screenStream) return true;
   const mime = mimeHint ?? pickMime();
   try {
-    const screen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+    // En móvil y tablet no existe getDisplayMedia: grabamos la vista del juego
+    // (vídeo + textos en pantalla) compuesta en un canvas.
+    const screen =
+      typeof navigator.mediaDevices?.getDisplayMedia === "function"
+        ? await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
+        : createGameCaptureStream();
+    if (!screen) return false;
     e.streams.push(screen);
     e.screenStream = screen;
     void attachScreen(e);
@@ -380,12 +387,24 @@ export async function startScreenCapture(key: string, mimeHint?: string): Promis
   }
 }
 
-/** ¿El navegador/contexto actual permite compartir pantalla? */
+/** ¿El navegador/contexto actual permite compartir la pantalla del sistema? */
 export function canCaptureScreen(): boolean {
   return (
     typeof navigator !== "undefined" &&
     typeof navigator.mediaDevices?.getDisplayMedia === "function"
   );
+}
+
+/**
+ * Qué tipo de pista "pantalla" se puede grabar aquí:
+ * - "display": compartir pantalla real del sistema (escritorio).
+ * - "game": composición interna del juego vía canvas (móvil y tablet).
+ * - "none": nada disponible.
+ */
+export function screenCaptureMode(): "display" | "game" | "none" {
+  if (canCaptureScreen()) return "display";
+  if (canCaptureGameCanvas()) return "game";
+  return "none";
 }
 
 function saveMeta(e: Entry, mimeType: string) {
