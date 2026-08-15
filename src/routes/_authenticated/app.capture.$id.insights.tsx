@@ -30,6 +30,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { IntegratedReportButton } from "@/components/IntegratedReportButton";
+import { GroupInsightsPanel } from "@/components/GroupInsightsPanel";
+
 
 export const Route = createFileRoute("/_authenticated/app/capture/$id/insights")({
   head: () => ({
@@ -250,6 +252,14 @@ function InsightsPage() {
           />
         </div>
       )}
+
+      <GroupInsightsPanel
+        sessionTitle={session.title}
+        metrics={metrics}
+        interactions={analysisQ.data?.analysis?.interactions ?? null}
+        speakerName={nameOf}
+      />
+
 
       {insights && (
         <>
