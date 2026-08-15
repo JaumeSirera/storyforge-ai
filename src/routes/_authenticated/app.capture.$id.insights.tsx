@@ -251,6 +251,14 @@ function InsightsPage() {
         </div>
       )}
 
+      <GroupInsightsPanel
+        sessionTitle={session.title}
+        metrics={metrics}
+        interactions={analysisQ.data?.analysis?.interactions ?? null}
+        speakerName={nameOf}
+      />
+
+
       {insights && (
         <>
           <Card>
