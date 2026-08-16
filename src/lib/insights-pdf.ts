@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import type { SessionInsights } from "./insights.functions";
+import { ROLE_GUIDES, type SessionInsights } from "./insights.functions";
 import { formatSec, type SessionMetrics } from "./analyze-metrics";
 
 export interface InsightsPdfData {
@@ -10,6 +10,7 @@ export interface InsightsPdfData {
   metrics?: SessionMetrics | null;
   speakerName?: (key: string) => string;
 }
+
 
 /** Informe Insights descargable: hechos observables e hipótesis trazables. */
 export function generateInsightsPdf(data: InsightsPdfData): jsPDF {
