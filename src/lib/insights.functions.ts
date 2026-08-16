@@ -135,6 +135,8 @@ export const generateSessionInsights = createServerFn({ method: "POST" })
       .object({
         captureSessionId: z.string().uuid(),
         focus: z.string().trim().max(500).optional(),
+        role: z.enum(REPORT_ROLES).default("entrevistador"),
+
       })
       .parse(input),
   )
