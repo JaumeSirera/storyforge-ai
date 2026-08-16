@@ -283,7 +283,7 @@ Cada sección debe tener entre 2 y 5 puntos, todos anclados en evidencia observa
       console.error("[insights] usage:", e);
     }
 
-    return { insights: { ...insights, generatedAt } as SessionInsights };
+    return { insights: { ...insights, role: data.role, generatedAt } as SessionInsights };
   });
 
 /** Borra el informe Insights guardado (derecho de supresión). */
