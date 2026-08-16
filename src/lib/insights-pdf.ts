@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import type { SessionInsights } from "./insights.functions";
+import { ROLE_GUIDES, type SessionInsights } from "./insights.functions";
 import { formatSec, type SessionMetrics } from "./analyze-metrics";
 
 export interface InsightsPdfData {
@@ -10,6 +10,7 @@ export interface InsightsPdfData {
   metrics?: SessionMetrics | null;
   speakerName?: (key: string) => string;
 }
+
 
 /** Informe Insights descargable: hechos observables e hipótesis trazables. */
 export function generateInsightsPdf(data: InsightsPdfData): jsPDF {
@@ -66,7 +67,9 @@ export function generateInsightsPdf(data: InsightsPdfData): jsPDF {
   doc.setFontSize(11);
   doc.text("Informe Insights · Playnalyze", M, 54 + titleLines.slice(0, 2).length * 22);
   doc.setFontSize(9);
+  const roleLabel = data.insights.role ? ROLE_GUIDES[data.insights.role]?.label : null;
   const meta = [
+    roleLabel ? `Informe para: ${roleLabel}` : null,
     data.areaLabel ? `Área: ${data.areaLabel}` : null,
     data.generatedAt ? `Generado: ${new Date(data.generatedAt).toLocaleString("es-ES")}` : null,
   ]
@@ -130,6 +133,13 @@ export function generateInsightsPdf(data: InsightsPdfData): jsPDF {
       body(`${p.name} — ${p.role}`, { color: 30, bold: true });
       p.behaviours.forEach((b) => body(`•  ${b}`, { indent: 10 }));
       y += 4;
+    });
+  }
+
+  if (ins.roleSections?.length) {
+    ins.roleSections.forEach((sec) => {
+      heading(sec.title);
+      sec.points.forEach((pt) => body(`•  ${pt}`, { indent: 6 }));
     });
   }
 

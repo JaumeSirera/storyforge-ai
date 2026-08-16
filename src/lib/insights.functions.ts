@@ -6,6 +6,50 @@ import { resolveUserTextModel } from "./ai-gateway.server";
 import { loadUserKeys } from "./user-keys.functions";
 import { formatSec, type SessionMetrics, type InteractionNetwork } from "./analyze-metrics";
 
+/** Roles profesionales para los que se adapta el lenguaje y las secciones del informe. */
+export const REPORT_ROLES = ["entrevistador", "terapeuta", "coordinador"] as const;
+export type ReportRole = (typeof REPORT_ROLES)[number];
+
+export const ROLE_GUIDES: Record<
+  ReportRole,
+  { label: string; audience: string; language: string; sections: string[] }
+> = {
+  entrevistador: {
+    label: "Entrevistador / selección",
+    audience:
+      "responsable de selección que debe decidir sobre la idoneidad de una persona para un puesto",
+    language:
+      "Lenguaje de evaluación por competencias: evidencias conductuales, indicadores, ejemplos STAR. Nunca rasgos de personalidad ni datos sensibles.",
+    sections: [
+      "Competencias observadas con evidencia",
+      "Señales a verificar en la siguiente entrevista",
+      "Encaje con el rol: qué apoya y qué queda por comprobar",
+    ],
+  },
+  terapeuta: {
+    label: "Terapeuta / acompañamiento",
+    audience: "profesional de acompañamiento psicológico o coaching que trabaja con la persona o el grupo",
+    language:
+      "Lenguaje descriptivo, no patologizante, centrado en patrones de interacción y recursos observados. Sin diagnósticos, etiquetas clínicas ni inferencias de salud.",
+    sections: [
+      "Patrones de interacción observados",
+      "Recursos y estrategias que la persona o el grupo ya utiliza",
+      "Temas a explorar en la próxima sesión",
+    ],
+  },
+  coordinador: {
+    label: "Coordinador / dinámica de equipo",
+    audience: "responsable de equipo o formación que necesita mejorar la dinámica del grupo",
+    language:
+      "Lenguaje operativo de equipo: reparto de la palabra, toma de decisiones, gestión de desacuerdos, acuerdos de funcionamiento.",
+    sections: [
+      "Reparto de la palabra y de la iniciativa",
+      "Cómo se toman las decisiones y se gestionan los desacuerdos",
+      "Acuerdos de funcionamiento propuestos para la próxima reunión",
+    ],
+  },
+};
+
 /** Informe Insights: hechos observables + hipótesis trazables (copiloto experto, nunca diagnóstico). */
 export const InsightsSchema = z.object({
   headline: z.string().describe("Titular de una frase con la dinámica principal observada"),
@@ -36,6 +80,15 @@ export const InsightsSchema = z.object({
       }),
     )
     .default([]),
+  roleSections: z
+    .array(
+      z.object({
+        title: z.string().describe("Título de la sección propia del rol profesional solicitado"),
+        points: z.array(z.string()).min(1).describe("Puntos concretos con evidencia observable"),
+      }),
+    )
+    .default([])
+    .describe("Secciones específicas del rol profesional para el que se redacta el informe"),
   recommendations: z.array(z.string()).min(1).describe("Siguientes pasos para el profesional"),
   followUpQuestions: z
     .array(z.string())
@@ -43,7 +96,11 @@ export const InsightsSchema = z.object({
     .describe("Preguntas que el profesional podría explorar en la siguiente sesión"),
 });
 
-export type SessionInsights = z.infer<typeof InsightsSchema> & { generatedAt: string | null };
+export type SessionInsights = z.infer<typeof InsightsSchema> & {
+  generatedAt: string | null;
+  role?: ReportRole | null;
+};
+
 
 const INSIGHT_COLUMNS = "insights, insights_generated_at, metrics, interactions, status";
 
@@ -78,6 +135,8 @@ export const generateSessionInsights = createServerFn({ method: "POST" })
       .object({
         captureSessionId: z.string().uuid(),
         focus: z.string().trim().max(500).optional(),
+        role: z.enum(REPORT_ROLES).default("entrevistador"),
+
       })
       .parse(input),
   )
@@ -160,10 +219,14 @@ export const generateSessionInsights = createServerFn({ method: "POST" })
     const userKeys = await loadUserKeys(context.supabase, context.userId);
     const { model, provider, nativeId } = resolveUserTextModel(userKeys);
 
+    const guide = ROLE_GUIDES[data.role];
+
     const result = await generateText({
       model,
       experimental_output: Output.object({ schema: InsightsSchema }),
       system: `Eres un copiloto experto en análisis de interacción humana para profesionales (selección, formación, terapia, mediación).
+Escribes para un ${guide.audience}.
+Registro y vocabulario: ${guide.language}
 Reglas estrictas:
 - Describe SOLO hechos observables y trazables (minutos, turnos, tiempos, interrupciones, silencios, frases citadas).
 - Las interpretaciones se presentan como HIPÓTESIS de trabajo, con su base observable y un nivel de confianza.
@@ -172,6 +235,7 @@ Reglas estrictas:
       prompt: `Sesión: ${sessionRes.data.title}
 Modo: ${sessionRes.data.mode} · Área: ${sessionRes.data.area_key ?? "general"}
 Participantes: ${participants.map((p) => `${p.name} (${p.role})`).join(", ") || "sin identificar"}
+Rol del lector del informe: ${guide.label}
 ${data.focus ? `Foco solicitado por el profesional: ${data.focus}` : ""}
 
 Métricas objetivas:
@@ -180,7 +244,10 @@ ${JSON.stringify(metricsBrief, null, 2)}
 Transcripción con marcas de tiempo:
 ${transcript}
 
-Genera el informe Insights: titular, resumen, observaciones con evidencia temporal, hipótesis trazables con nivel de confianza, comportamientos por participante, recomendaciones y preguntas de seguimiento.`,
+Genera el informe Insights: titular, resumen, observaciones con evidencia temporal, hipótesis trazables con nivel de confianza, comportamientos por participante, recomendaciones y preguntas de seguimiento.
+Además, en "roleSections" incluye EXACTAMENTE estas secciones adaptadas al rol ${guide.label}, en este orden y con estos títulos:
+${guide.sections.map((s, i) => `${i + 1}. ${s}`).join("\n")}
+Cada sección debe tener entre 2 y 5 puntos, todos anclados en evidencia observable (minutos o cifras).`,
     });
 
     const insights = result.experimental_output;
@@ -190,12 +257,13 @@ Genera el informe Insights: titular, resumen, observaciones con evidencia tempor
       {
         capture_session_id: data.captureSessionId,
         owner_id: context.userId,
-        insights: insights as any,
+        insights: { ...insights, role: data.role } as any,
         insights_generated_at: generatedAt,
       },
       { onConflict: "capture_session_id" },
     );
     if (saveErr) throw new Error(saveErr.message);
+
 
     try {
       const usage = result.usage as
@@ -215,7 +283,7 @@ Genera el informe Insights: titular, resumen, observaciones con evidencia tempor
       console.error("[insights] usage:", e);
     }
 
-    return { insights: { ...insights, generatedAt } as SessionInsights };
+    return { insights: { ...insights, role: data.role, generatedAt } as SessionInsights };
   });
 
 /** Borra el informe Insights guardado (derecho de supresión). */
