@@ -1,12 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   getSessionInsights,
   generateSessionInsights,
   deleteSessionInsights,
+  REPORT_ROLES,
+  ROLE_GUIDES,
+  type ReportRole,
 } from "@/lib/insights.functions";
+import { getSessionScenes } from "@/lib/scenes.functions";
+import { listSceneAnnotations } from "@/lib/scene-annotations.functions";
 import { getSessionAnalysis } from "@/lib/analyze.functions";
 import { getCaptureSession } from "@/lib/capture.functions";
 import { downloadInsightsPdf } from "@/lib/insights-pdf";
@@ -31,6 +36,14 @@ import {
 import { toast } from "sonner";
 import { IntegratedReportButton } from "@/components/IntegratedReportButton";
 import { GroupInsightsPanel } from "@/components/GroupInsightsPanel";
+import { InsightsTimeline } from "@/components/InsightsTimeline";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 
 export const Route = createFileRoute("/_authenticated/app/capture/$id/insights")({
@@ -69,8 +82,11 @@ function InsightsPage() {
   const getInsights = useServerFn(getSessionInsights);
   const generate = useServerFn(generateSessionInsights);
   const wipe = useServerFn(deleteSessionInsights);
+  const getScenes = useServerFn(getSessionScenes);
+  const getAnnotations = useServerFn(listSceneAnnotations);
 
   const [focus, setFocus] = useState("");
+  const [role, setRole] = useState<ReportRole>("entrevistador");
   const [busy, setBusy] = useState<string | null>(null);
 
   const sessionQ = useQuery({
@@ -85,11 +101,22 @@ function InsightsPage() {
     queryKey: ["capture-insights", id],
     queryFn: () => getInsights({ data: { captureSessionId: id } }),
   });
+  const scenesQ = useQuery({
+    queryKey: ["capture-scenes", id],
+    queryFn: () => getScenes({ data: { captureSessionId: id } }),
+  });
+  const annotationsQ = useQuery({
+    queryKey: ["capture-scene-annotations", id],
+    queryFn: () => getAnnotations({ data: { captureSessionId: id } }),
+  });
 
   const participants = sessionQ.data?.participants ?? [];
   const metrics = analysisQ.data?.analysis?.metrics ?? null;
   const hasTranscript = (analysisQ.data?.segments ?? []).length > 0;
   const insights = insightsQ.data?.insights ?? null;
+  useEffect(() => {
+    if (insights?.role) setRole(insights.role);
+  }, [insights?.role]);
 
   const nameOf = (key: string) => {
     const p = participants.find((x) => x.id === key);
@@ -142,7 +169,10 @@ function InsightsPage() {
             onClick={() =>
               run(
                 "generate",
-                () => generate({ data: { captureSessionId: id, focus: focus.trim() || undefined } }),
+                () =>
+                  generate({
+                    data: { captureSessionId: id, focus: focus.trim() || undefined, role },
+                  }),
                 "Informe generado",
               )
             }
@@ -220,6 +250,38 @@ function InsightsPage() {
       {hasTranscript && (
         <Card>
           <CardHeader>
+            <CardTitle className="text-base">Modo de informe por rol</CardTitle>
+            <CardDescription>
+              Adapta las secciones y el lenguaje del informe al profesional que lo va a leer.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Label htmlFor="role">Rol del lector</Label>
+            <Select value={role} onValueChange={(v) => setRole(v as ReportRole)}>
+              <SelectTrigger id="role" className="sm:w-[320px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {REPORT_ROLES.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {ROLE_GUIDES[r].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">{ROLE_GUIDES[role].language}</p>
+            <ul className="space-y-1 text-xs text-muted-foreground">
+              {ROLE_GUIDES[role].sections.map((sec) => (
+                <li key={sec}>· {sec}</li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {hasTranscript && (
+        <Card>
+          <CardHeader>
             <CardTitle className="text-base">Foco del informe (opcional)</CardTitle>
             <CardDescription>
               Indica qué te interesa observar: liderazgo del grupo, gestión del conflicto, escucha
@@ -260,13 +322,26 @@ function InsightsPage() {
         speakerName={nameOf}
       />
 
+      <InsightsTimeline
+        segments={analysisQ.data?.segments ?? []}
+        metrics={metrics}
+        scenes={scenesQ.data?.scenes ?? []}
+        annotations={annotationsQ.data?.annotations ?? []}
+        insights={insights}
+        recordings={sessionQ.data?.recordings ?? []}
+        speakerName={nameOf}
+      />
+
 
       {insights && (
         <>
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
+              <CardTitle className="flex flex-wrap items-center gap-2 text-base">
                 <Lightbulb className="h-4 w-4" /> {insights.headline}
+                {insights.role && (
+                  <Badge variant="secondary">{ROLE_GUIDES[insights.role]?.label}</Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -334,6 +409,31 @@ function InsightsPage() {
                         <li key={j} className="text-muted-foreground">
                           · {b}
                         </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {insights.roleSections?.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  Secciones para {insights.role ? ROLE_GUIDES[insights.role]?.label : "el profesional"}
+                </CardTitle>
+                <CardDescription>
+                  Apartados propios del rol, con puntos anclados en evidencia observable.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {insights.roleSections.map((sec, i) => (
+                  <div key={i} className="rounded-lg border border-border p-3">
+                    <p className="text-sm font-semibold">{sec.title}</p>
+                    <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                      {sec.points.map((pt, j) => (
+                        <li key={j}>· {pt}</li>
                       ))}
                     </ul>
                   </div>
