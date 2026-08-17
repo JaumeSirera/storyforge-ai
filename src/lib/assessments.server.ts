@@ -690,6 +690,8 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
             .join("\n")}`
         : "";
 
+    const toneRule = `\nESTILO DEL FEEDBACK: ${FEEDBACK_TONE_INSTRUCTIONS[assessment.feedbackTone]}\nAplica ese tono en explanation, feedback y nextStep de TODAS las preguntas, y también en summary, recommendations y conclusion. No cambies por ello la puntuación ni los hechos.`;
+
     const fileParts = pages.length > 0 ? await buildFileParts(pages) : [];
     const result = await generateText({
       model,
