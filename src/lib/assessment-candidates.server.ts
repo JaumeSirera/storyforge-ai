@@ -191,6 +191,7 @@ export async function getExamHandler(data: { token: string }): Promise<ExamPaylo
       identifier: candidate.identifier ?? null,
       status: (candidate.status ?? "invited") as CandidateStatus,
       startedAt: candidate.started_at ?? null,
+      submittedAt: candidate.submitted_at ?? null,
       timeExpired: Boolean((candidate as any).time_expired),
     },
     serverNow: new Date().toISOString(),
