@@ -504,7 +504,7 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
       annotations.length > 0
         ? `\nCorrecciones marcadas manualmente por el evaluador sobre las páginas (tienen PRIORIDAD sobre tu propia lectura; aplícalas en la transcripción y en el grafismo):\n${annotations
             .map(
-              (a, i) =>
+              (a: any, i: number) =>
                 `${i + 1}. página ${a.pageIndex + 1} · ${a.kind === "transcription" ? "transcripción" : a.kind === "handwriting" ? "grafismo" : "contenido"}${
                   a.correction ? ` · texto correcto: "${a.correction}"` : ""
                 }${a.comment ? ` · comentario: "${a.comment}"` : ""}`,
@@ -519,7 +519,7 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
       messages: [
         {
           role: "user",
-          content: [{ type: "text", text: instructions }, ...fileParts],
+          content: [{ type: "text", text: instructions + annotationBrief }, ...fileParts],
         } as any,
       ],
     });
