@@ -149,20 +149,6 @@ function ExamPage() {
         </p>
       </header>
 
-      {assessment.instructions && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Instrucciones</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-              {assessment.instructions}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-
       <ol className="space-y-4">
         {assessment.questions.map((question, index) => {
           const state = answers[question.id] ?? { text: "", optionIds: [] };
