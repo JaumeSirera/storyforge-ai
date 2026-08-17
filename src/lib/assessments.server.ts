@@ -824,7 +824,6 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
         graded_at: gradedAt,
       })
       .eq("id", row.id)
-      .eq("owner_id", context.userId)
       .select(SUBMISSION_COLUMNS)
       .single();
     if (saveErr) throw new Error(saveErr.message);
@@ -852,7 +851,6 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
       .from("assessment_submissions")
       .update({ status: "failed", error_message: message })
       .eq("id", row.id)
-      .eq("owner_id", context.userId);
     throw new Error(message);
   }
 }
