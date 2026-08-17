@@ -348,6 +348,7 @@ export async function regenerateAssessmentHandler(
     subject?: string | null;
     questionTypes?: string[];
     sourceText?: string | null;
+    allowOutsideSource?: boolean;
   },
   context: any,
 ) {
