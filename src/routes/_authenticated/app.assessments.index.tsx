@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileText, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
+import { Database, FileText, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/assessments/")({
@@ -109,12 +109,19 @@ function AssessmentsIndex() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Evaluaciones escritas</h1>
-        <p className="text-muted-foreground">
-          Igual que las simulaciones, pero sobre texto: define la prueba con IA, escanea las respuestas
-          (manuscritas o digitales) y obtén nota, métricas, análisis del grafismo e informe.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight">Evaluaciones escritas</h1>
+          <p className="text-muted-foreground">
+            Igual que las simulaciones, pero sobre texto: define la prueba con IA, escanea las respuestas
+            (manuscritas o digitales) y obtén nota, métricas, análisis del grafismo e informe.
+          </p>
+        </div>
+        <Button asChild variant="secondary">
+          <Link to="/app/assessments/bank">
+            <Database className="h-4 w-4 mr-2" /> Banco de preguntas
+          </Link>
+        </Button>
       </header>
 
       <Card>
