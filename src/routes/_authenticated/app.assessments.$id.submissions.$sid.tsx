@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getSubmission, gradeSubmission } from "@/lib/assessments.functions";
 import { gradeLabel } from "@/lib/assessments-shared";
 import { generateAssessmentPdf } from "@/lib/assessment-pdf";
+import { SubmissionPageAnnotator } from "@/components/SubmissionPageAnnotator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +59,7 @@ function SubmissionReport() {
   const submission = q.data?.submission;
   const assessment = q.data?.assessment;
   const pageUrls = q.data?.pageUrls ?? [];
+  const annotations = q.data?.annotations ?? [];
   const evaluation = submission?.evaluation ?? null;
 
   const regrade = useMutation({
@@ -71,7 +73,7 @@ function SubmissionReport() {
 
   const download = () => {
     if (!assessment || !submission || !evaluation) return;
-    const doc = generateAssessmentPdf({ assessment, submission, evaluation });
+    const doc = generateAssessmentPdf({ assessment, submission, evaluation, annotations });
     doc.save(`informe-${submission.candidateName.replace(/\s+/g, "-").toLowerCase()}.pdf`);
   };
 

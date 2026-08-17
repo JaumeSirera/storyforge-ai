@@ -1,15 +1,23 @@
 import { jsPDF } from "jspdf";
-import { gradeLabel, type AssessmentEvaluation, type AssessmentRecord, type SubmissionRecord } from "./assessments-shared";
+import {
+  ANNOTATION_KIND_LABELS,
+  gradeLabel,
+  type AssessmentEvaluation,
+  type AssessmentRecord,
+  type SubmissionAnnotation,
+  type SubmissionRecord,
+} from "./assessments-shared";
 
 export interface AssessmentPdfData {
   assessment: AssessmentRecord;
   submission: SubmissionRecord;
   evaluation: AssessmentEvaluation;
+  annotations?: SubmissionAnnotation[];
 }
 
 /** Informe de evaluación escrita: nota, rúbrica, competencias y grafismo. */
 export function generateAssessmentPdf(data: AssessmentPdfData): jsPDF {
-  const { assessment, submission, evaluation } = data;
+  const { assessment, submission, evaluation, annotations = [] } = data;
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
@@ -171,6 +179,21 @@ export function generateAssessmentPdf(data: AssessmentPdfData): jsPDF {
   if (evaluation.conclusion) {
     heading("Conclusión");
     body(evaluation.conclusion);
+  }
+
+  if (annotations.length > 0) {
+    heading("Marcas y comentarios del evaluador");
+    body(
+      "Áreas marcadas manualmente sobre las páginas de la entrega. Se han tenido en cuenta en la corrección.",
+      { size: 9 },
+    );
+    annotations.forEach((annotation, index) => {
+      body(`${index + 1}. Página ${annotation.pageIndex + 1} — ${ANNOTATION_KIND_LABELS[annotation.kind]}`, {
+        bold: true,
+      });
+      if (annotation.correction) body(`Texto correcto: ${annotation.correction}`, { indent: 12 });
+      if (annotation.comment) body(annotation.comment, { indent: 12 });
+    });
   }
 
   if (submission.extractedText) {
