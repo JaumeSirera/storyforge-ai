@@ -237,6 +237,10 @@ function AssessmentsIndex() {
               Permitir preguntas fuera del texto base. Desactivado (recomendado), la IA se ciñe al
               texto: nada de datos inventados y cada respuesta se justifica con un fragmento del texto.
             </label>
+            <p className="text-xs text-muted-foreground">
+              {sourceText.length.toLocaleString("es-ES")} / 200.000 caracteres
+              {sourceText.length > 200000 ? " · se recortará el exceso" : ""}
+            </p>
           </div>
 
 
