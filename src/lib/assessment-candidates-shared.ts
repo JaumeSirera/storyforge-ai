@@ -41,7 +41,7 @@ export interface ExamPayload {
     id: string;
     title: string;
     instructions: string | null;
-    sourceText: string | null;
+    
     maxScore: number;
     questions: ExamQuestion[];
   };

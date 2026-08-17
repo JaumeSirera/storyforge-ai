@@ -167,6 +167,21 @@ async function loadByToken(token: string) {
   return { supabaseAdmin, candidate, assessment: mapAssessment(assessment) };
 }
 
+/**
+ * El candidato NO debe ver el texto base ni referencias a él: los enunciados
+ * se limpian de expresiones tipo "según el texto" antes de enviarlos.
+ */
+function stripSourceReferences(value: string): string {
+  return value
+    .replace(/\s*(seg[uú]n|de acuerdo con|conforme a|a partir de|bas[aá]ndose en|con base en)\s+(el|dicho)?\s*texto( base| proporcionado| anterior| adjunto| le[ií]do)?\s*(,|:)?\s*/gi, " ")
+    .replace(/\s*\((?:seg[uú]n|ver)[^)]*texto[^)]*\)\s*/gi, " ")
+    .replace(/\s*(en|del|en el|dentro del)\s+texto( base| proporcionado| anterior| adjunto)?\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/^\s*[,:;]\s*/, "")
+    .replace(/^([a-záéíóúñ])/, (m) => m.toUpperCase())
+    .trim();
+}
+
 export async function getExamHandler(data: { token: string }): Promise<ExamPayload> {
   const { candidate, assessment } = await loadByToken(data.token);
   return {
@@ -178,10 +193,12 @@ export async function getExamHandler(data: { token: string }): Promise<ExamPaylo
     assessment: {
       id: assessment.id,
       title: assessment.title,
-      instructions: assessment.instructions,
-      sourceText: assessment.sourceText,
+      instructions: assessment.instructions ? stripSourceReferences(assessment.instructions) : null,
       maxScore: assessment.maxScore,
-      questions: assessment.questions.map(toExamQuestion),
+      questions: assessment.questions.map(toExamQuestion).map((q) => ({
+        ...q,
+        prompt: stripSourceReferences(q.prompt),
+      })),
     },
   };
 }

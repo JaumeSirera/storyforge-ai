@@ -162,22 +162,6 @@ function ExamPage() {
         </Card>
       )}
 
-      {assessment.sourceText && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <FileText className="h-4 w-4 text-primary" aria-hidden="true" />
-              Texto base
-            </CardTitle>
-            <CardDescription>Lee el texto antes de responder.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded-md border border-border/60 p-3 text-sm">
-              {assessment.sourceText}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       <ol className="space-y-4">
         {assessment.questions.map((question, index) => {
