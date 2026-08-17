@@ -492,9 +492,25 @@ function AnalyzePage() {
           </CardContent>
         </Card>
       )}
+
+      <AnalysisExportCard
+        source={{
+          sessionId: id,
+          sessionTitle: session.title,
+          areaKey: session.areaKey ?? null,
+          startedAt: session.startedAt ?? null,
+          endedAt: session.endedAt ?? null,
+          segments,
+          metrics,
+          interactions: analysis?.interactions ?? null,
+          annotations,
+          speakerName: nameOf,
+        }}
+      />
     </div>
   );
 }
+
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
