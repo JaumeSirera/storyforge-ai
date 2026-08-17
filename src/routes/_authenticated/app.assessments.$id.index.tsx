@@ -13,6 +13,7 @@ import { gradeLabel } from "@/lib/assessments-shared";
 import { AssessmentCollaboratorsCard } from "@/components/AssessmentCollaboratorsCard";
 import { AssessmentCandidatesCard } from "@/components/AssessmentCandidatesCard";
 import { ExamAuditLogCard } from "@/components/ExamAuditLogCard";
+import { CandidateAttemptsCard } from "@/components/CandidateAttemptsCard";
 import { RubricEditor } from "@/components/RubricEditor";
 import { SourceValidationCard } from "@/components/SourceValidationCard";
 
@@ -268,6 +269,8 @@ function AssessmentDetail() {
       )}
 
       <AssessmentCandidatesCard assessmentId={id} canManage={permissions?.isOwner !== false} />
+
+      {permissions?.isOwner !== false && <CandidateAttemptsCard assessmentId={id} />}
 
       {permissions?.isOwner !== false && <ExamAuditLogCard assessmentId={id} />}
 
