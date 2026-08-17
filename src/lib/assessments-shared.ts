@@ -190,10 +190,38 @@ export const EvaluationSchema = z.object({
 });
 export type AssessmentEvaluation = z.infer<typeof EvaluationSchema>;
 
+/** Tono/estilo con el que la IA redacta explicaciones y feedback por pregunta. */
+export const FEEDBACK_TONES = ["formativo", "breve", "motivacional", "tecnico"] as const;
+export type FeedbackTone = (typeof FEEDBACK_TONES)[number];
+
+export const FEEDBACK_TONE_LABELS: Record<FeedbackTone, string> = {
+  formativo: "Formativo (didáctico y detallado)",
+  breve: "Breve (directo, una o dos frases)",
+  motivacional: "Motivacional (cercano y alentador)",
+  tecnico: "Técnico (preciso y profesional)",
+};
+
+export const FEEDBACK_TONE_INSTRUCTIONS: Record<FeedbackTone, string> = {
+  formativo:
+    "Tono FORMATIVO: explica paso a paso el razonamiento correcto, con lenguaje didáctico y ejemplos breves; 3-5 frases por pregunta.",
+  breve:
+    "Tono BREVE: máximo 2 frases por campo, sin rodeos ni preámbulos, directo al error o al acierto.",
+  motivacional:
+    "Tono MOTIVACIONAL: cercano y en segunda persona, reconoce primero lo logrado y plantea la mejora como reto alcanzable, sin exagerar ni ser condescendiente.",
+  tecnico:
+    "Tono TÉCNICO: preciso y profesional, con terminología del ámbito, referencias a la regla, norma o fórmula aplicable y sin lenguaje emocional.",
+};
+
+export function normalizeFeedbackTone(value: unknown): FeedbackTone {
+  const v = String(value ?? "").toLowerCase();
+  return (FEEDBACK_TONES as readonly string[]).includes(v) ? (v as FeedbackTone) : "formativo";
+}
+
 export interface AssessmentRecord {
   id: string;
   title: string;
   areaKey: string | null;
+  feedbackTone: FeedbackTone;
   prompt: string | null;
   instructions: string | null;
   questions: AssessmentQuestion[];

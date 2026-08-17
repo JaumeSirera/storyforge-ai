@@ -36,7 +36,7 @@ function normalizeVerdict(raw: unknown, score: number, maxPoints: number): Answe
 }
 
 const ASSESSMENT_COLUMNS =
-  "id, title, area_key, prompt, instructions, questions, rubric, max_score, handwriting_weight_pct, status, created_at, updated_at";
+  "id, title, area_key, prompt, instructions, questions, rubric, max_score, handwriting_weight_pct, feedback_tone, status, created_at, updated_at";
 const SUBMISSION_COLUMNS =
   "id, assessment_id, candidate_name, candidate_identifier, source_kind, pages, extracted_text, handwriting, evaluation, score, max_score, status, error_message, graded_at, created_at";
 
@@ -51,6 +51,7 @@ export function mapAssessment(row: any): AssessmentRecord {
     rubric: Array.isArray(row.rubric) ? row.rubric : [],
     maxScore: Number(row.max_score ?? 10),
     handwritingWeightPct: Number(row.handwriting_weight_pct ?? 15),
+    feedbackTone: normalizeFeedbackTone(row.feedback_tone),
     status: row.status ?? "draft",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
