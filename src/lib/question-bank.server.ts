@@ -117,7 +117,7 @@ async function insertItems(
     .select(ITEM_COLUMNS);
   if (error) throw new Error(error.message);
 
-  const items = (rows ?? []).map(mapItem);
+  const items: BankItem[] = (rows ?? []).map(mapItem);
   const { error: vError } = await context.supabase.from("question_bank_versions").insert(
     items.map((item) => ({
       item_id: item.id,
@@ -279,7 +279,7 @@ export async function createAssessmentFromBankHandler(
     .in("id", data.itemIds);
   if (error) throw new Error(error.message);
 
-  const items = (rows ?? []).map(mapItem);
+  const items: BankItem[] = (rows ?? []).map(mapItem);
   if (items.length === 0) throw new Error("Selecciona al menos una pregunta del banco.");
 
   const ordered = data.itemIds
