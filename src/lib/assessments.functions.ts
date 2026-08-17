@@ -11,7 +11,9 @@ import {
   gradeSubmissionHandler,
   listAssessmentsHandler,
   regenerateAssessmentHandler,
+  updateAssessmentBlueprintHandler,
   validateFiles,
+
 } from "./assessments.server";
 
 export const listAssessments = createServerFn({ method: "GET" })
