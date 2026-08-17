@@ -11,6 +11,7 @@ import {
 } from "@/lib/assessments.functions";
 import { gradeLabel } from "@/lib/assessments-shared";
 import { AssessmentCollaboratorsCard } from "@/components/AssessmentCollaboratorsCard";
+import { AssessmentCandidatesCard } from "@/components/AssessmentCandidatesCard";
 import { RubricEditor } from "@/components/RubricEditor";
 import { SourceValidationCard } from "@/components/SourceValidationCard";
 
@@ -264,6 +265,8 @@ function AssessmentDetail() {
           questionCount={assessment.questions.length}
         />
       )}
+
+      <AssessmentCandidatesCard assessmentId={id} canManage={permissions?.isOwner !== false} />
 
       {permissions?.isOwner !== false && <RubricEditor assessment={assessment} onSaved={invalidate} />}
 
