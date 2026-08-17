@@ -379,6 +379,7 @@ export async function regenerateAssessmentHandler(
       subject,
       questionTypes,
       sourceText,
+      allowOutsideSource: data.allowOutsideSource ?? false,
     },
     context,
   );
