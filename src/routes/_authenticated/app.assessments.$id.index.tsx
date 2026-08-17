@@ -328,7 +328,7 @@ function AssessmentDetail() {
           </Card>
         ) : (
           <div className="space-y-2">
-            {submissions.map((submission) => (
+            {submissions.map((submission: any) => (
               <Card key={submission.id}>
                 <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
                   <div className="min-w-0 flex-1">

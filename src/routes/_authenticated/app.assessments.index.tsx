@@ -127,7 +127,7 @@ function AssessmentsIndex() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="general">General</SelectItem>
-                  {(areas.data?.areas ?? []).map((a: any) => (
+                  {(areas.data ?? []).map((a: any) => (
                     <SelectItem key={a.key} value={a.key}>
                       {a.label}
                     </SelectItem>
