@@ -265,6 +265,7 @@ function ExamPage() {
                       value={state.text}
                       onChange={(e) => setAnswer(question.id, { text: e.target.value })}
                       placeholder="Escribe tu respuesta"
+                      disabled={locked}
                       aria-label={`Respuesta a la pregunta ${index + 1}`}
                     />
                   )}
@@ -277,6 +278,7 @@ function ExamPage() {
                         value={state.text}
                         onChange={(e) => setAnswer(question.id, { text: e.target.value })}
                         placeholder="Introduce el resultado"
+                        disabled={locked}
                       />
                     </div>
                   )}
@@ -285,6 +287,7 @@ function ExamPage() {
                     <RadioGroup
                       value={state.optionIds[0] ?? ""}
                       onValueChange={(value) => setAnswer(question.id, { optionIds: [value] })}
+                      disabled={locked}
                       className="space-y-2"
                     >
                       {(question.options.length > 0
@@ -316,6 +319,7 @@ function ExamPage() {
                             <Checkbox
                               id={`${question.id}-${option.id}`}
                               checked={checked}
+                              disabled={locked}
                               onCheckedChange={(value) =>
                                 setAnswer(question.id, {
                                   optionIds: value
@@ -344,6 +348,7 @@ function ExamPage() {
                         question.type !== "numeric" && setAnswer(question.id, { text: e.target.value })
                       }
                       placeholder="Justificación (opcional)"
+                      disabled={locked}
                       aria-label={`Justificación de la pregunta ${index + 1}`}
                       className={question.type === "numeric" ? "hidden" : ""}
                     />
@@ -360,14 +365,33 @@ function ExamPage() {
           {answered} de {assessment.questions.length} preguntas respondidas
           {expired ? " · tiempo agotado" : timeLabel ? ` · quedan ${timeLabel}` : ""}
         </p>
-        <Button onClick={() => submitMut.mutate(false)} disabled={submitMut.isPending || expired}>
-          {submitMut.isPending ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-          ) : (
-            <Send className="mr-2 h-4 w-4" aria-hidden="true" />
-          )}
-          Entregar examen
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button disabled={locked || expired}>
+              {submitMut.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Send className="mr-2 h-4 w-4" aria-hidden="true" />
+              )}
+              Finalizar examen
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Finalizar y entregar el examen?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Has respondido {answered} de {assessment.questions.length} preguntas. Al finalizar se
+                registrará la fecha de envío y no podrás modificar tus respuestas.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Seguir respondiendo</AlertDialogCancel>
+              <AlertDialogAction onClick={() => submitMut.mutate(false)}>
+                Finalizar y entregar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </main>
   );
