@@ -123,6 +123,17 @@ export const HandwritingSchema = z.object({
 });
 export type HandwritingAnalysis = z.infer<typeof HandwritingSchema>;
 
+/** Veredicto por pregunta usado en el feedback individual del informe. */
+export const ANSWER_VERDICTS = ["correct", "partial", "incorrect", "unanswered"] as const;
+export type AnswerVerdict = (typeof ANSWER_VERDICTS)[number];
+
+export const VERDICT_LABELS: Record<AnswerVerdict, string> = {
+  correct: "Correcta",
+  partial: "Parcialmente correcta",
+  incorrect: "Incorrecta",
+  unanswered: "Sin responder",
+};
+
 export const EvaluationSchema = z.object({
   score: z.number().default(0),
   maxScore: z.number().default(10),
@@ -141,6 +152,16 @@ export const EvaluationSchema = z.object({
         strengths: z.array(z.string()).default([]),
         gaps: z.array(z.string()).default([]),
         evidence: z.string().default(""),
+        /** Veredicto de la respuesta del candidato. */
+        verdict: z.enum(ANSWER_VERDICTS).default("partial"),
+        /** Respuesta correcta esperada (para preguntas cerradas o clave de la narrativa). */
+        expectedAnswer: z.string().default(""),
+        /** Por qué la respuesta es correcta o incorrecta. */
+        explanation: z.string().default(""),
+        /** Feedback individual dirigido al candidato. */
+        feedback: z.string().default(""),
+        /** Siguiente paso concreto para mejorar en esta pregunta. */
+        nextStep: z.string().default(""),
       }),
     )
     .default([]),
