@@ -52,44 +52,47 @@ export const ROLE_GUIDES: Record<
 
 /** Informe Insights: hechos observables + hipótesis trazables (copiloto experto, nunca diagnóstico). */
 export const InsightsSchema = z.object({
-  headline: z.string().describe("Titular de una frase con la dinámica principal observada"),
-  summary: z.string().describe("Resumen ejecutivo de 3-5 frases, solo hechos observables"),
+  headline: z.string().default("").describe("Titular de una frase con la dinámica principal observada"),
+  summary: z.string().default("").describe("Resumen ejecutivo de 3-5 frases, solo hechos observables"),
   observations: z
     .array(
       z.object({
-        fact: z.string().describe("Hecho observable, medible en la transcripción"),
-        evidence: z.string().describe("Evidencia con minutos exactos o cifras concretas"),
+        fact: z.string().default("").describe("Hecho observable, medible en la transcripción"),
+        evidence: z.string().default("").describe("Evidencia con minutos exactos o cifras concretas"),
       }),
     )
-    .min(2),
+    .default([]),
   hypotheses: z
     .array(
       z.object({
-        hypothesis: z.string().describe("Hipótesis de trabajo, redactada como posibilidad"),
-        basis: z.string().describe("En qué evidencia observable se apoya"),
-        confidence: z.enum(["baja", "media", "alta"]),
+        hypothesis: z.string().default("").describe("Hipótesis de trabajo, redactada como posibilidad"),
+        basis: z.string().default("").describe("En qué evidencia observable se apoya"),
+        confidence: z
+          .string()
+          .default("media")
+          .describe("Nivel de confianza: baja, media o alta"),
       }),
     )
-    .min(1),
+    .default([]),
   participants: z
     .array(
       z.object({
-        name: z.string(),
-        role: z.string().describe("Rol funcional observado en la conversación"),
-        behaviours: z.array(z.string()).min(1),
+        name: z.string().default(""),
+        role: z.string().default("").describe("Rol funcional observado en la conversación"),
+        behaviours: z.array(z.string()).default([]),
       }),
     )
     .default([]),
   roleSections: z
     .array(
       z.object({
-        title: z.string().describe("Título de la sección propia del rol profesional solicitado"),
-        points: z.array(z.string()).min(1).describe("Puntos concretos con evidencia observable"),
+        title: z.string().default("").describe("Título de la sección propia del rol profesional solicitado"),
+        points: z.array(z.string()).default([]).describe("Puntos concretos con evidencia observable"),
       }),
     )
     .default([])
     .describe("Secciones específicas del rol profesional para el que se redacta el informe"),
-  recommendations: z.array(z.string()).min(1).describe("Siguientes pasos para el profesional"),
+  recommendations: z.array(z.string()).default([]).describe("Siguientes pasos para el profesional"),
   followUpQuestions: z
     .array(z.string())
     .default([])
