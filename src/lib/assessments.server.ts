@@ -1,0 +1,617 @@
+import { generateText } from "ai";
+import { resolveUserTextModel } from "./ai-gateway.server";
+import {
+  BlueprintSchema,
+  EvaluationSchema,
+  HandwritingSchema,
+  type AssessmentBlueprint,
+  type AssessmentEvaluation,
+  type AssessmentRecord,
+  type SubmissionPage,
+  type SubmissionRecord,
+} from "./assessments-shared";
+import { loadUserKeys } from "./user-keys.functions";
+
+const BUCKET = "assessments";
+const MAX_PAGE_BYTES = 15 * 1024 * 1024;
+const MAX_PAGES = 12;
+
+const ASSESSMENT_COLUMNS =
+  "id, title, area_key, prompt, instructions, questions, rubric, max_score, handwriting_weight_pct, status, created_at, updated_at";
+const SUBMISSION_COLUMNS =
+  "id, assessment_id, candidate_name, candidate_identifier, source_kind, pages, extracted_text, handwriting, evaluation, score, max_score, status, error_message, graded_at, created_at";
+
+export function mapAssessment(row: any): AssessmentRecord {
+  return {
+    id: row.id,
+    title: row.title,
+    areaKey: row.area_key ?? null,
+    prompt: row.prompt ?? null,
+    instructions: row.instructions ?? null,
+    questions: Array.isArray(row.questions) ? row.questions : [],
+    rubric: Array.isArray(row.rubric) ? row.rubric : [],
+    maxScore: Number(row.max_score ?? 10),
+    handwritingWeightPct: Number(row.handwriting_weight_pct ?? 15),
+    status: row.status ?? "draft",
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function mapSubmission(row: any): SubmissionRecord {
+  const evaluation = row.evaluation && Object.keys(row.evaluation).length > 0
+    ? EvaluationSchema.safeParse(row.evaluation)
+    : null;
+  return {
+    id: row.id,
+    assessmentId: row.assessment_id,
+    candidateName: row.candidate_name,
+    candidateIdentifier: row.candidate_identifier ?? null,
+    sourceKind: row.source_kind ?? "handwritten",
+    pages: Array.isArray(row.pages) ? row.pages : [],
+    extractedText: row.extracted_text ?? null,
+    evaluation: evaluation?.success ? evaluation.data : null,
+    score: row.score === null || row.score === undefined ? null : Number(row.score),
+    maxScore: row.max_score === null || row.max_score === undefined ? null : Number(row.max_score),
+    status: row.status ?? "pending",
+    errorMessage: row.error_message ?? null,
+    gradedAt: row.graded_at ?? null,
+    createdAt: row.created_at,
+  };
+}
+
+function extractJson(text: string): unknown {
+  const trimmed = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+  const start = trimmed.indexOf("{");
+  const end = trimmed.lastIndexOf("}");
+  if (start < 0 || end <= start) throw new Error("La IA no devolvió un JSON reconocible.");
+  try {
+    return JSON.parse(trimmed.slice(start, end + 1));
+  } catch {
+    throw new Error("La IA devolvió una respuesta incompleta. Vuelve a intentarlo.");
+  }
+}
+
+function slug(n: number) {
+  return `p${n}`;
+}
+
+// ───────────────────────────────── Assessments ─────────────────────────────────
+
+export async function listAssessmentsHandler(context: any) {
+  const { data, error } = await context.supabase
+    .from("assessments")
+    .select(ASSESSMENT_COLUMNS)
+    .eq("owner_id", context.userId)
+    .order("updated_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return { assessments: (data ?? []).map(mapAssessment) };
+}
+
+export async function getAssessmentHandler(data: { id: string }, context: any) {
+  const [assessmentRes, submissionsRes] = await Promise.all([
+    context.supabase
+      .from("assessments")
+      .select(ASSESSMENT_COLUMNS)
+      .eq("id", data.id)
+      .eq("owner_id", context.userId)
+      .single(),
+    context.supabase
+      .from("assessment_submissions")
+      .select(SUBMISSION_COLUMNS)
+      .eq("assessment_id", data.id)
+      .eq("owner_id", context.userId)
+      .order("created_at", { ascending: false }),
+  ]);
+  if (assessmentRes.error) throw new Error(assessmentRes.error.message);
+  if (submissionsRes.error) throw new Error(submissionsRes.error.message);
+  return {
+    assessment: mapAssessment(assessmentRes.data),
+    submissions: (submissionsRes.data ?? []).map(mapSubmission),
+  };
+}
+
+export async function generateBlueprint(
+  input: { prompt: string; questionCount: number; maxScore: number; areaKey?: string | null },
+  context: any,
+): Promise<AssessmentBlueprint> {
+  const userKeys = await loadUserKeys(context.supabase, context.userId);
+  const { model, provider, nativeId } = resolveUserTextModel(userKeys);
+  const system =
+    "Eres un experto en evaluación educativa y de selección. Diseñas pruebas escritas de desarrollo (narrativa) con rúbricas analíticas defendibles. Respondes solo con un objeto JSON válido, en español, sin markdown.";
+  const prompt = `Diseña una prueba escrita a partir de este encargo:\n"""${input.prompt}"""\nÁrea: ${input.areaKey ?? "general"}\nNúmero de preguntas: ${input.questionCount}\nPuntuación total de la prueba: ${input.maxScore}\n\nDevuelve exactamente estas claves JSON: title (string), instructions (string con indicaciones para el candidato), questions (array de {id, prompt, type:"narrative", maxPoints, keyElements: array de strings con los elementos que debe contener una buena respuesta}), rubric (array de {id, name, description, weightPct, levels: array de {label, descriptor, pct}}).\nLa suma de maxPoints debe ser ${input.maxScore}. La suma de weightPct debe ser 100. Usa 4 niveles por criterio (Insuficiente 40, Suficiente 60, Notable 80, Excelente 100).`;
+
+  const result = await generateText({ model, system, prompt });
+  const raw = extractJson(result.text) as any;
+  const blueprint = BlueprintSchema.parse({
+    title: raw.title ?? raw.titulo ?? "",
+    instructions: raw.instructions ?? raw.instrucciones ?? "",
+    questions: (raw.questions ?? raw.preguntas ?? []).map((q: any, i: number) => ({
+      id: String(q?.id ?? slug(i + 1)),
+      prompt: String(q?.prompt ?? q?.enunciado ?? ""),
+      type: "narrative",
+      maxPoints: Number(q?.maxPoints ?? q?.puntos ?? 0) || 0,
+      keyElements: Array.isArray(q?.keyElements ?? q?.elementosClave)
+        ? (q.keyElements ?? q.elementosClave).map((s: any) => String(s))
+        : [],
+    })),
+    rubric: (raw.rubric ?? raw.rubrica ?? []).map((c: any, i: number) => ({
+      id: String(c?.id ?? `c${i + 1}`),
+      name: String(c?.name ?? c?.nombre ?? ""),
+      description: String(c?.description ?? c?.descripcion ?? ""),
+      weightPct: Number(c?.weightPct ?? c?.peso ?? 0) || 0,
+      levels: Array.isArray(c?.levels ?? c?.niveles)
+        ? (c.levels ?? c.niveles).map((l: any) => ({
+            label: String(l?.label ?? l?.nivel ?? ""),
+            descriptor: String(l?.descriptor ?? l?.descripcion ?? ""),
+            pct: Number(l?.pct ?? l?.porcentaje ?? 0) || 0,
+          }))
+        : [],
+    })),
+  });
+
+  try {
+    const usage = await result.usage;
+    const { recordUsage, userPaysPlatform } = await import("./usage.server");
+    await recordUsage({
+      userId: context.userId,
+      action: "text",
+      provider,
+      model: nativeId,
+      inputTokens: usage.inputTokens ?? 0,
+      outputTokens: usage.outputTokens ?? 0,
+      paysPlatform: await userPaysPlatform(context.userId),
+    });
+  } catch (error) {
+    console.error("[assessments] usage:", error);
+  }
+
+  return blueprint;
+}
+
+export async function createAssessmentHandler(
+  data: {
+    title: string;
+    prompt?: string;
+    areaKey?: string | null;
+    maxScore: number;
+    handwritingWeightPct: number;
+    questionCount: number;
+    generate: boolean;
+  },
+  context: any,
+) {
+  let blueprint: AssessmentBlueprint | null = null;
+  if (data.generate && data.prompt) {
+    blueprint = await generateBlueprint(
+      {
+        prompt: data.prompt,
+        questionCount: data.questionCount,
+        maxScore: data.maxScore,
+        areaKey: data.areaKey ?? null,
+      },
+      context,
+    );
+  }
+
+  const { data: row, error } = await context.supabase
+    .from("assessments")
+    .insert({
+      owner_id: context.userId,
+      title: blueprint?.title || data.title,
+      area_key: data.areaKey ?? null,
+      prompt: data.prompt ?? null,
+      instructions: blueprint?.instructions ?? null,
+      questions: blueprint?.questions ?? [],
+      rubric: blueprint?.rubric ?? [],
+      max_score: data.maxScore,
+      handwriting_weight_pct: data.handwritingWeightPct,
+      status: blueprint ? "ready" : "draft",
+    })
+    .select(ASSESSMENT_COLUMNS)
+    .single();
+  if (error) throw new Error(error.message);
+  return { assessment: mapAssessment(row) };
+}
+
+export async function regenerateAssessmentHandler(
+  data: { id: string; prompt: string; questionCount: number },
+  context: any,
+) {
+  const { data: current, error: curErr } = await context.supabase
+    .from("assessments")
+    .select("max_score, area_key")
+    .eq("id", data.id)
+    .eq("owner_id", context.userId)
+    .single();
+  if (curErr) throw new Error(curErr.message);
+
+  const blueprint = await generateBlueprint(
+    {
+      prompt: data.prompt,
+      questionCount: data.questionCount,
+      maxScore: Number(current.max_score ?? 10),
+      areaKey: current.area_key ?? null,
+    },
+    context,
+  );
+
+  const { data: row, error } = await context.supabase
+    .from("assessments")
+    .update({
+      prompt: data.prompt,
+      instructions: blueprint.instructions,
+      questions: blueprint.questions,
+      rubric: blueprint.rubric,
+      status: "ready",
+    })
+    .eq("id", data.id)
+    .eq("owner_id", context.userId)
+    .select(ASSESSMENT_COLUMNS)
+    .single();
+  if (error) throw new Error(error.message);
+  return { assessment: mapAssessment(row) };
+}
+
+export async function deleteAssessmentHandler(data: { id: string }, context: any) {
+  const { error } = await context.supabase
+    .from("assessments")
+    .delete()
+    .eq("id", data.id)
+    .eq("owner_id", context.userId);
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
+
+// ───────────────────────────────── Submissions ─────────────────────────────────
+
+export async function createSubmissionHandler(
+  data: {
+    assessmentId: string;
+    candidateName: string;
+    candidateIdentifier?: string | null;
+    sourceKind: "handwritten" | "digital";
+    files: File[];
+    typedText?: string;
+  },
+  context: any,
+) {
+  const { data: assessment, error: aErr } = await context.supabase
+    .from("assessments")
+    .select("id, max_score")
+    .eq("id", data.assessmentId)
+    .eq("owner_id", context.userId)
+    .single();
+  if (aErr) throw new Error(aErr.message);
+
+  const { data: row, error } = await context.supabase
+    .from("assessment_submissions")
+    .insert({
+      assessment_id: assessment.id,
+      owner_id: context.userId,
+      candidate_name: data.candidateName,
+      candidate_identifier: data.candidateIdentifier ?? null,
+      source_kind: data.sourceKind,
+      extracted_text: data.typedText?.trim() ? data.typedText.trim() : null,
+      max_score: Number(assessment.max_score ?? 10),
+      status: "pending",
+    })
+    .select(SUBMISSION_COLUMNS)
+    .single();
+  if (error) throw new Error(error.message);
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const pages: SubmissionPage[] = [];
+  for (let i = 0; i < data.files.length; i++) {
+    const file = data.files[i];
+    const ext = (file.name.split(".").pop() ?? "bin").toLowerCase();
+    const path = `${context.userId}/${assessment.id}/${row.id}/${String(i + 1).padStart(2, "0")}.${ext}`;
+    const buf = new Uint8Array(await file.arrayBuffer());
+    const { error: upErr } = await supabaseAdmin.storage
+      .from(BUCKET)
+      .upload(path, buf, { contentType: file.type || "application/octet-stream", upsert: true });
+    if (upErr) throw new Error(`No se pudo subir ${file.name}: ${upErr.message}`);
+    pages.push({
+      path,
+      name: file.name,
+      mimeType: file.type || "application/octet-stream",
+      sizeBytes: file.size,
+    });
+  }
+
+  if (pages.length > 0) {
+    const { error: pErr } = await context.supabase
+      .from("assessment_submissions")
+      .update({ pages })
+      .eq("id", row.id)
+      .eq("owner_id", context.userId);
+    if (pErr) throw new Error(pErr.message);
+  }
+
+  return { submission: mapSubmission({ ...row, pages }) };
+}
+
+export function validateFiles(files: File[]) {
+  if (files.length > MAX_PAGES) throw new Error(`Máximo ${MAX_PAGES} páginas por entrega.`);
+  for (const f of files) {
+    if (f.size === 0) throw new Error(`El archivo ${f.name} está vacío.`);
+    if (f.size > MAX_PAGE_BYTES) throw new Error(`${f.name} supera los 15 MB.`);
+    const ok = /^image\/(png|jpeg|jpg|webp|heic)$/.test(f.type) || f.type === "application/pdf";
+    if (!ok) throw new Error(`Formato no soportado en ${f.name}. Usa imágenes o PDF.`);
+  }
+}
+
+export async function deleteSubmissionHandler(data: { id: string }, context: any) {
+  const { data: row } = await context.supabase
+    .from("assessment_submissions")
+    .select("pages")
+    .eq("id", data.id)
+    .eq("owner_id", context.userId)
+    .maybeSingle();
+  const pages: SubmissionPage[] = Array.isArray(row?.pages) ? row!.pages : [];
+  if (pages.length > 0) {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.storage.from(BUCKET).remove(pages.map((p) => p.path));
+  }
+  const { error } = await context.supabase
+    .from("assessment_submissions")
+    .delete()
+    .eq("id", data.id)
+    .eq("owner_id", context.userId);
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
+
+export async function getSubmissionHandler(data: { id: string }, context: any) {
+  const { data: row, error } = await context.supabase
+    .from("assessment_submissions")
+    .select(SUBMISSION_COLUMNS)
+    .eq("id", data.id)
+    .eq("owner_id", context.userId)
+    .single();
+  if (error) throw new Error(error.message);
+  const { data: assessment, error: aErr } = await context.supabase
+    .from("assessments")
+    .select(ASSESSMENT_COLUMNS)
+    .eq("id", row.assessment_id)
+    .eq("owner_id", context.userId)
+    .single();
+  if (aErr) throw new Error(aErr.message);
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const pages: SubmissionPage[] = Array.isArray(row.pages) ? row.pages : [];
+  const pageUrls: { path: string; url: string | null; mimeType: string; name: string }[] = [];
+  for (const page of pages) {
+    const { data: signed } = await supabaseAdmin.storage
+      .from(BUCKET)
+      .createSignedUrl(page.path, 3600);
+    pageUrls.push({
+      path: page.path,
+      url: signed?.signedUrl ?? null,
+      mimeType: page.mimeType,
+      name: page.name,
+    });
+  }
+
+  return {
+    submission: mapSubmission(row),
+    assessment: mapAssessment(assessment),
+    pageUrls,
+  };
+}
+
+/** Descarga las páginas y las convierte en partes multimodales para el modelo. */
+async function buildFileParts(pages: SubmissionPage[]) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const parts: any[] = [];
+  for (const page of pages) {
+    const { data: blob, error } = await supabaseAdmin.storage.from(BUCKET).download(page.path);
+    if (error || !blob) continue;
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    if (page.mimeType === "application/pdf") {
+      parts.push({ type: "file", data: bytes, mediaType: "application/pdf", filename: page.name });
+    } else {
+      parts.push({ type: "image", image: bytes, mediaType: page.mimeType });
+    }
+  }
+  return parts;
+}
+
+export async function gradeSubmissionHandler(data: { id: string }, context: any) {
+  const { data: row, error } = await context.supabase
+    .from("assessment_submissions")
+    .select(SUBMISSION_COLUMNS)
+    .eq("id", data.id)
+    .eq("owner_id", context.userId)
+    .single();
+  if (error) throw new Error(error.message);
+
+  const { data: assessmentRow, error: aErr } = await context.supabase
+    .from("assessments")
+    .select(ASSESSMENT_COLUMNS)
+    .eq("id", row.assessment_id)
+    .eq("owner_id", context.userId)
+    .single();
+  if (aErr) throw new Error(aErr.message);
+  const assessment = mapAssessment(assessmentRow);
+
+  const pages: SubmissionPage[] = Array.isArray(row.pages) ? row.pages : [];
+  const typed = (row.extracted_text ?? "").trim();
+  if (pages.length === 0 && !typed) {
+    throw new Error("La entrega no tiene páginas escaneadas ni texto para evaluar.");
+  }
+  if (assessment.questions.length === 0) {
+    throw new Error("La evaluación no tiene preguntas. Genera la prueba antes de corregir.");
+  }
+
+  await context.supabase
+    .from("assessment_submissions")
+    .update({ status: "grading", error_message: null })
+    .eq("id", row.id)
+    .eq("owner_id", context.userId);
+
+  try {
+    const userKeys = await loadUserKeys(context.supabase, context.userId);
+    const { model, provider, nativeId } = resolveUserTextModel(userKeys);
+    const hwWeight = assessment.handwritingWeightPct;
+    const contentWeight = 100 - hwWeight;
+
+    const system = `Eres un corrector experto. Trabajas en dos capas independientes:
+1) CONTENIDO: transcribes literalmente lo que ha escrito el candidato y lo evalúas contra las preguntas y la rúbrica.
+2) GRAFISMO: describes hechos observables de la escritura (legibilidad, estructura, limpieza, espaciado, consistencia, tachones y correcciones). Puedes añadir hipótesis de trabajo, marcadas siempre como no concluyentes y revisables. Nunca afirmes rasgos de personalidad, ni hagas diagnósticos, ni inferencias de salud, género, origen o edad.
+Responde en español con un único objeto JSON válido, sin markdown.`;
+
+    const rubricBrief = assessment.rubric.map((c) => ({
+      nombre: c.name,
+      peso: c.weightPct,
+      descripcion: c.description,
+      niveles: c.levels.map((l) => `${l.label} (${l.pct}%): ${l.descriptor}`),
+    }));
+    const questionsBrief = assessment.questions.map((q) => ({
+      id: q.id,
+      enunciado: q.prompt,
+      puntos: q.maxPoints,
+      elementosClave: q.keyElements,
+    }));
+
+    const instructions = `Prueba: ${assessment.title}
+Área: ${assessment.areaKey ?? "general"}
+Puntuación máxima: ${assessment.maxScore}
+Reparto de la nota: contenido ${contentWeight}% · grafismo ${hwWeight}%
+Preguntas: ${JSON.stringify(questionsBrief)}
+Rúbrica: ${JSON.stringify(rubricBrief)}
+${typed ? `\nTexto ya transcrito por el evaluador:\n"""${typed.slice(0, 40000)}"""` : ""}
+${pages.length > 0 ? `\nAdjunto ${pages.length} página(s) de la entrega (escaneadas o digitales). Transcribe primero su contenido.` : ""}
+
+Devuelve exactamente estas claves JSON:
+transcription (string con la transcripción literal completa),
+headline (string), summary (string),
+score (número sobre ${assessment.maxScore}), contentScore (número sobre ${assessment.maxScore}), handwritingScore (número 0-100),
+answers (array de {questionId, question, answerSummary, score, maxPoints, strengths[], gaps[], evidence con cita textual}),
+criteria (array de {name, score sobre 100, maxScore:100, justification}),
+competencies (array de {name, level, evidence}),
+handwriting ({legibility, structure, cleanliness, spacing, consistency, score — todos 0-100 —, corrections (string), observations (array de strings con hechos observables), hypotheses (array de {hypothesis, basis, confidence})}),
+recommendations (array de strings), conclusion (string).
+score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafismo al ${hwWeight}%.`;
+
+    const fileParts = pages.length > 0 ? await buildFileParts(pages) : [];
+    const result = await generateText({
+      model,
+      system,
+      messages: [
+        {
+          role: "user",
+          content: [{ type: "text", text: instructions }, ...fileParts],
+        } as any,
+      ],
+    });
+
+    const raw = extractJson(result.text) as any;
+    const handwriting = HandwritingSchema.parse({
+      legibility: Number(raw?.handwriting?.legibility ?? 0) || 0,
+      structure: Number(raw?.handwriting?.structure ?? 0) || 0,
+      cleanliness: Number(raw?.handwriting?.cleanliness ?? 0) || 0,
+      spacing: Number(raw?.handwriting?.spacing ?? 0) || 0,
+      consistency: Number(raw?.handwriting?.consistency ?? 0) || 0,
+      score: Number(raw?.handwriting?.score ?? raw?.handwritingScore ?? 0) || 0,
+      corrections: String(raw?.handwriting?.corrections ?? ""),
+      observations: Array.isArray(raw?.handwriting?.observations)
+        ? raw.handwriting.observations.map((s: any) => String(s))
+        : [],
+      hypotheses: Array.isArray(raw?.handwriting?.hypotheses)
+        ? raw.handwriting.hypotheses.map((h: any) => ({
+            hypothesis: String(h?.hypothesis ?? h?.hipotesis ?? ""),
+            basis: String(h?.basis ?? h?.base ?? ""),
+            confidence: String(h?.confidence ?? h?.confianza ?? "media"),
+          }))
+        : [],
+    });
+
+    const evaluation: AssessmentEvaluation = EvaluationSchema.parse({
+      score: Number(raw?.score ?? 0) || 0,
+      maxScore: assessment.maxScore,
+      contentScore: Number(raw?.contentScore ?? 0) || 0,
+      handwritingScore: handwriting.score,
+      headline: String(raw?.headline ?? ""),
+      summary: String(raw?.summary ?? ""),
+      answers: Array.isArray(raw?.answers)
+        ? raw.answers.map((a: any) => ({
+            questionId: String(a?.questionId ?? ""),
+            question: String(a?.question ?? ""),
+            answerSummary: String(a?.answerSummary ?? ""),
+            score: Number(a?.score ?? 0) || 0,
+            maxPoints: Number(a?.maxPoints ?? 0) || 0,
+            strengths: Array.isArray(a?.strengths) ? a.strengths.map((s: any) => String(s)) : [],
+            gaps: Array.isArray(a?.gaps) ? a.gaps.map((s: any) => String(s)) : [],
+            evidence: String(a?.evidence ?? ""),
+          }))
+        : [],
+      criteria: Array.isArray(raw?.criteria)
+        ? raw.criteria.map((c: any) => ({
+            name: String(c?.name ?? ""),
+            score: Number(c?.score ?? 0) || 0,
+            maxScore: Number(c?.maxScore ?? 100) || 100,
+            justification: String(c?.justification ?? ""),
+          }))
+        : [],
+      competencies: Array.isArray(raw?.competencies)
+        ? raw.competencies.map((c: any) => ({
+            name: String(c?.name ?? ""),
+            level: String(c?.level ?? ""),
+            evidence: String(c?.evidence ?? ""),
+          }))
+        : [],
+      handwriting,
+      recommendations: Array.isArray(raw?.recommendations)
+        ? raw.recommendations.map((s: any) => String(s))
+        : [],
+      conclusion: String(raw?.conclusion ?? ""),
+    });
+
+    const transcription = typed || String(raw?.transcription ?? "").trim() || null;
+    const gradedAt = new Date().toISOString();
+    const { data: saved, error: saveErr } = await context.supabase
+      .from("assessment_submissions")
+      .update({
+        evaluation,
+        handwriting,
+        extracted_text: transcription,
+        score: evaluation.score,
+        max_score: assessment.maxScore,
+        status: "graded",
+        error_message: null,
+        graded_at: gradedAt,
+      })
+      .eq("id", row.id)
+      .eq("owner_id", context.userId)
+      .select(SUBMISSION_COLUMNS)
+      .single();
+    if (saveErr) throw new Error(saveErr.message);
+
+    try {
+      const usage = await result.usage;
+      const { recordUsage, userPaysPlatform } = await import("./usage.server");
+      await recordUsage({
+        userId: context.userId,
+        action: "text",
+        provider,
+        model: nativeId,
+        inputTokens: usage.inputTokens ?? 0,
+        outputTokens: usage.outputTokens ?? 0,
+        paysPlatform: await userPaysPlatform(context.userId),
+      });
+    } catch (usageError) {
+      console.error("[assessments] usage:", usageError);
+    }
+
+    return { submission: mapSubmission(saved) };
+  } catch (err: any) {
+    const message = err?.message ?? "No se pudo corregir la entrega";
+    await context.supabase
+      .from("assessment_submissions")
+      .update({ status: "failed", error_message: message })
+      .eq("id", row.id)
+      .eq("owner_id", context.userId);
+    throw new Error(message);
+  }
+}
