@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listAssessmentCandidates } from "@/lib/assessment-candidates.functions";
@@ -192,8 +192,8 @@ export function CandidateAttemptsCard({ assessmentId }: { assessmentId: string }
                 {rows.map(({ candidate: c, history, deliveries }) => {
                   const isOpen = !!open[c.id];
                   return (
-                    <>
-                      <TableRow key={c.id}>
+                    <Fragment key={c.id}>
+                      <TableRow>
                         <TableCell>
                           <Button
                             variant="ghost"
@@ -239,7 +239,7 @@ export function CandidateAttemptsCard({ assessmentId }: { assessmentId: string }
                         <TableCell className="text-right text-sm">{deliveries.length}</TableCell>
                       </TableRow>
                       {isOpen && (
-                        <TableRow key={`${c.id}-history`}>
+                        <TableRow>
                           <TableCell colSpan={6} className="bg-muted/40">
                             {history.length === 0 ? (
                               <p className="py-2 text-sm text-muted-foreground">
@@ -267,7 +267,7 @@ export function CandidateAttemptsCard({ assessmentId }: { assessmentId: string }
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </TableBody>
