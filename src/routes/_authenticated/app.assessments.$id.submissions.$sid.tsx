@@ -132,6 +132,79 @@ function SubmissionReport() {
         </div>
       </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Aprobación de la calificación</CardTitle>
+          <CardDescription>
+            {permissions?.canApprove
+              ? "Valida o devuelve la calificación de esta entrega. Queda registrado quién aprueba y cuándo."
+              : `Tu rol en esta evaluación: ${
+                  permissions?.role === "propietario"
+                    ? "propietario (control total)"
+                    : permissions?.role
+                      ? COLLABORATOR_ROLE_LABELS[permissions.role]
+                      : "sin permisos"
+                }.`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant={
+                submission.approvalStatus === "approved"
+                  ? "default"
+                  : submission.approvalStatus === "rejected"
+                    ? "destructive"
+                    : "secondary"
+              }
+            >
+              {APPROVAL_LABELS[submission.approvalStatus]}
+            </Badge>
+            {submission.approvedAt && (
+              <span className="text-xs text-muted-foreground">
+                {new Date(submission.approvedAt).toLocaleString()}
+              </span>
+            )}
+          </div>
+          {submission.approvalNote && (
+            <p className="text-sm text-muted-foreground">{submission.approvalNote}</p>
+          )}
+
+          {permissions?.canApprove && (
+            <div className="space-y-2">
+              <Textarea
+                value={approvalNote}
+                onChange={(e) => setApprovalNote(e.target.value)}
+                placeholder="Nota de aprobación o motivo de la devolución (opcional)"
+                rows={2}
+                aria-label="Nota de aprobación"
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => approval.mutate("approved")} disabled={approval.isPending}>
+                  <CheckCircle2 className="mr-2 h-4 w-4" /> Aprobar calificación
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => approval.mutate("rejected")}
+                  disabled={approval.isPending}
+                >
+                  <XCircle className="mr-2 h-4 w-4" /> Devolver para revisión
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => approval.mutate("pending")}
+                  disabled={approval.isPending}
+                >
+                  <Undo2 className="mr-2 h-4 w-4" /> Dejar pendiente
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
+
       {!evaluation ? (
         <Card>
           <CardContent className="py-10 text-center text-muted-foreground">
