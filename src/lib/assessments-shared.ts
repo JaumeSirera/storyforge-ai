@@ -223,6 +223,7 @@ export interface AssessmentRecord {
   areaKey: string | null;
   feedbackTone: FeedbackTone;
   prompt: string | null;
+  sourceText: string | null;
   instructions: string | null;
   questions: AssessmentQuestion[];
   rubric: RubricCriterion[];

@@ -43,11 +43,13 @@ const SUBMISSION_COLUMNS =
   "id, assessment_id, candidate_name, candidate_identifier, source_kind, pages, extracted_text, handwriting, evaluation, score, max_score, status, error_message, graded_at, created_at, approval_status, approval_note, approved_at";
 
 export function mapAssessment(row: any): AssessmentRecord {
+  const unpacked = unpackPrompt(row.prompt ?? null);
   return {
     id: row.id,
     title: row.title,
     areaKey: row.area_key ?? null,
-    prompt: row.prompt ?? null,
+    prompt: unpacked.prompt || null,
+    sourceText: unpacked.sourceText,
     instructions: row.instructions ?? null,
     questions: Array.isArray(row.questions) ? row.questions : [],
     rubric: Array.isArray(row.rubric) ? row.rubric : [],

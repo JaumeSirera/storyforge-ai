@@ -76,7 +76,13 @@ function AssessmentDetail() {
 
   const regenMut = useMutation({
     mutationFn: () =>
-      regen({ data: { id, prompt: (prompt || assessment?.prompt || "").trim(), questionCount } }),
+      regen({
+        data: {
+          id,
+          prompt: (prompt || assessment?.prompt || "").trim().slice(0, 4000),
+          questionCount,
+        },
+      }),
     onSuccess: () => {
       toast.success("Prueba generada");
       invalidate();
