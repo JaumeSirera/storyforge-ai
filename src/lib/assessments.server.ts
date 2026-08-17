@@ -40,7 +40,7 @@ function normalizeVerdict(raw: unknown, score: number, maxPoints: number): Answe
 const ASSESSMENT_COLUMNS =
   "id, title, area_key, prompt, instructions, questions, rubric, max_score, handwriting_weight_pct, feedback_tone, status, created_at, updated_at";
 const SUBMISSION_COLUMNS =
-  "id, assessment_id, candidate_name, candidate_identifier, source_kind, pages, extracted_text, handwriting, evaluation, score, max_score, status, error_message, graded_at, created_at";
+  "id, assessment_id, candidate_name, candidate_identifier, source_kind, pages, extracted_text, handwriting, evaluation, score, max_score, status, error_message, graded_at, created_at, approval_status, approval_note, approved_at";
 
 export function mapAssessment(row: any): AssessmentRecord {
   return {
