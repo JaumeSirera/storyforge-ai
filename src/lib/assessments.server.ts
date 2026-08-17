@@ -591,6 +591,7 @@ export async function getSubmissionHandler(data: { id: string }, context: any) {
     assessment: mapAssessment(assessment),
     pageUrls,
     annotations,
+    permissions,
   };
 }
 
