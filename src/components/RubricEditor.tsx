@@ -100,9 +100,13 @@ export function RubricEditor({ assessment, onSaved }: Props) {
           questions: questions.map((q, i) => ({
             id: q.id || uid(`q${i + 1}`),
             prompt: q.prompt,
-            type: "narrative" as const,
+            type: (q.type ?? "narrative") as QuestionType,
             maxPoints: Number(q.maxPoints) || 0,
             keyElements: q.keyElements ?? [],
+            options: q.options ?? [],
+            correctOptionIds: q.correctOptionIds ?? [],
+            correctAnswer: q.correctAnswer ?? "",
+            explanation: q.explanation ?? "",
           })),
           rubric: rubric.map((c, i) => ({
             id: c.id || uid(`c${i + 1}`),
