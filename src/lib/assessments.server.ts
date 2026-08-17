@@ -612,9 +612,21 @@ Responde en español con un único objeto JSON válido, sin markdown.`;
     const questionsBrief = assessment.questions.map((q) => ({
       id: q.id,
       enunciado: q.prompt,
+      tipo: q.type ?? "narrative",
       puntos: q.maxPoints,
       elementosClave: q.keyElements,
+      opciones: (q.options ?? []).map((o) => `${o.id}) ${o.text}`),
+      respuestaCorrecta:
+        (q.correctOptionIds ?? []).length > 0
+          ? (q.correctOptionIds ?? []).join(", ")
+          : (q.correctAnswer ?? ""),
+      justificacion: q.explanation ?? "",
     }));
+    const hasObjective = assessment.questions.some((q) => (q.type ?? "narrative") !== "narrative");
+    const objectiveRule = hasObjective
+      ? `\nEn las preguntas cerradas (single_choice, multiple_choice, true_false, numeric) corrige de forma OBJETIVA: identifica qué ha marcado o respondido el candidato y compáralo con respuestaCorrecta. Acierto = puntos completos; fallo = 0 (en multiple_choice puedes puntuar proporcionalmente a las opciones correctas marcadas sin marcar incorrectas). En evidence indica la respuesta detectada y la correcta.`
+      : "";
+
 
     const instructions = `Prueba: ${assessment.title}
 Área: ${assessment.areaKey ?? "general"}
