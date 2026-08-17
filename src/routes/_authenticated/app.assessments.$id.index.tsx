@@ -246,6 +246,9 @@ function AssessmentDetail() {
         </CardContent>
       </Card>
 
+      <RubricEditor assessment={assessment} onSaved={invalidate} />
+
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Nueva entrega</CardTitle>
