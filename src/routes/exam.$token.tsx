@@ -12,7 +12,18 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { AlarmClock, CheckCircle2, Loader2, Send } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { AlarmClock, CheckCircle2, Loader2, Lock, Send } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/exam/$token")({
@@ -47,6 +58,8 @@ function ExamPage() {
 
   const [answers, setAnswers] = useState<Record<string, AnswerState>>({});
   const [done, setDone] = useState(false);
+  /** ISO de la entrega, devuelto por el servidor al finalizar el examen. */
+  const [submittedAt, setSubmittedAt] = useState<string | null>(null);
   /** Marca temporal local equivalente al fin del examen (calculada con la hora del servidor). */
   const [deadline, setDeadline] = useState<number | null>(null);
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
@@ -112,9 +125,10 @@ function ExamPage() {
           })),
         },
       }),
-    onSuccess: () => {
+    onSuccess: (res: any) => {
+      setSubmittedAt(res?.submittedAt ?? new Date().toISOString());
       setDone(true);
-      toast.success("Examen entregado correctamente");
+      toast.success("Examen finalizado y entregado correctamente");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -157,23 +171,43 @@ function ExamPage() {
   }
 
   if (done || exam.candidate.status === "submitted") {
+    const sentAt = submittedAt ?? exam.candidate.submittedAt;
+    const sentLabel = sentAt
+      ? new Date(sentAt).toLocaleString("es-ES", { dateStyle: "long", timeStyle: "short" })
+      : null;
     return (
       <main className="mx-auto flex min-h-screen max-w-lg items-center justify-center p-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-primary" aria-hidden="true" />
-              Examen entregado
+              Examen finalizado
             </CardTitle>
             <CardDescription>
-              Gracias, {exam.candidate.name}. Tus respuestas se han registrado y serán corregidas por
-              el equipo evaluador. Ya puedes cerrar esta ventana.
+              Gracias, {exam.candidate.name}. Tus respuestas se han registrado y ya no pueden
+              modificarse. El equipo evaluador las corregirá. Ya puedes cerrar esta ventana.
             </CardDescription>
           </CardHeader>
+          {sentLabel && (
+            <CardContent className="space-y-1">
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Lock className="h-4 w-4" aria-hidden="true" />
+                Entrega registrada el {sentLabel}
+              </p>
+              {exam.candidate.timeExpired && (
+                <p className="text-xs text-muted-foreground">
+                  Entrega realizada al agotarse el tiempo disponible.
+                </p>
+              )}
+            </CardContent>
+          )}
         </Card>
       </main>
     );
   }
+
+  /** Mientras se envía o tras finalizar, las respuestas quedan bloqueadas. */
+  const locked = submitMut.isPending || done;
 
   const { assessment } = exam;
 
@@ -231,6 +265,7 @@ function ExamPage() {
                       value={state.text}
                       onChange={(e) => setAnswer(question.id, { text: e.target.value })}
                       placeholder="Escribe tu respuesta"
+                      disabled={locked}
                       aria-label={`Respuesta a la pregunta ${index + 1}`}
                     />
                   )}
@@ -243,6 +278,7 @@ function ExamPage() {
                         value={state.text}
                         onChange={(e) => setAnswer(question.id, { text: e.target.value })}
                         placeholder="Introduce el resultado"
+                        disabled={locked}
                       />
                     </div>
                   )}
@@ -251,6 +287,7 @@ function ExamPage() {
                     <RadioGroup
                       value={state.optionIds[0] ?? ""}
                       onValueChange={(value) => setAnswer(question.id, { optionIds: [value] })}
+                      disabled={locked}
                       className="space-y-2"
                     >
                       {(question.options.length > 0
@@ -282,6 +319,7 @@ function ExamPage() {
                             <Checkbox
                               id={`${question.id}-${option.id}`}
                               checked={checked}
+                              disabled={locked}
                               onCheckedChange={(value) =>
                                 setAnswer(question.id, {
                                   optionIds: value
@@ -310,6 +348,7 @@ function ExamPage() {
                         question.type !== "numeric" && setAnswer(question.id, { text: e.target.value })
                       }
                       placeholder="Justificación (opcional)"
+                      disabled={locked}
                       aria-label={`Justificación de la pregunta ${index + 1}`}
                       className={question.type === "numeric" ? "hidden" : ""}
                     />
@@ -326,14 +365,33 @@ function ExamPage() {
           {answered} de {assessment.questions.length} preguntas respondidas
           {expired ? " · tiempo agotado" : timeLabel ? ` · quedan ${timeLabel}` : ""}
         </p>
-        <Button onClick={() => submitMut.mutate(false)} disabled={submitMut.isPending || expired}>
-          {submitMut.isPending ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-          ) : (
-            <Send className="mr-2 h-4 w-4" aria-hidden="true" />
-          )}
-          Entregar examen
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button disabled={locked || expired}>
+              {submitMut.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Send className="mr-2 h-4 w-4" aria-hidden="true" />
+              )}
+              Finalizar examen
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Finalizar y entregar el examen?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Has respondido {answered} de {assessment.questions.length} preguntas. Al finalizar se
+                registrará la fecha de envío y no podrás modificar tus respuestas.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Seguir respondiendo</AlertDialogCancel>
+              <AlertDialogAction onClick={() => submitMut.mutate(false)}>
+                Finalizar y entregar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </main>
   );

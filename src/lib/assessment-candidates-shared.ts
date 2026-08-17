@@ -43,6 +43,8 @@ export interface ExamPayload {
     status: CandidateStatus;
     /** ISO del momento en que el aspirante abrió el examen (null si aún no ha empezado). */
     startedAt: string | null;
+    /** ISO del momento en que entregó el examen (null si aún no ha entregado). */
+    submittedAt: string | null;
     timeExpired: boolean;
   };
   /** Hora del servidor al servir el examen, para calcular el tiempo restante sin depender del reloj local. */
