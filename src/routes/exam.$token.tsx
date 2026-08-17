@@ -70,7 +70,7 @@ function ExamPage() {
   const setAnswer = (id: string, patch: Partial<AnswerState>) =>
     setAnswers((prev) => ({
       ...prev,
-      [id]: { text: "", optionIds: [], ...prev[id], ...patch },
+      [id]: { text: prev[id]?.text ?? "", optionIds: prev[id]?.optionIds ?? [], ...patch },
     }));
 
   const submitMut = useMutation({

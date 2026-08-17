@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ExamTokenRouteImport } from './routes/exam.$token'
 import { Route as ExploreIndexRouteImport } from './routes/explore.index'
 import { Route as ExploreIdRouteImport } from './routes/explore.$id'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
@@ -62,6 +63,11 @@ const AuthRoute = AuthRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExamTokenRoute = ExamTokenRouteImport.update({
+  id: '/exam/$token',
+  path: '/exam/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExploreIndexRoute = ExploreIndexRouteImport.update({
@@ -247,6 +253,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/exam/$token': typeof ExamTokenRoute
   '/explore/$id': typeof ExploreIdRoute
   '/invite/$token': typeof InviteTokenRoute
   '/explore/': typeof ExploreIndexRoute
@@ -283,6 +290,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/exam/$token': typeof ExamTokenRoute
   '/explore/$id': typeof ExploreIdRoute
   '/invite/$token': typeof InviteTokenRoute
   '/explore': typeof ExploreIndexRoute
@@ -321,6 +329,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/exam/$token': typeof ExamTokenRoute
   '/explore/$id': typeof ExploreIdRoute
   '/invite/$token': typeof InviteTokenRoute
   '/explore/': typeof ExploreIndexRoute
@@ -359,6 +368,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/exam/$token'
     | '/explore/$id'
     | '/invite/$token'
     | '/explore/'
@@ -395,6 +405,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/exam/$token'
     | '/explore/$id'
     | '/invite/$token'
     | '/explore'
@@ -432,6 +443,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/reset-password'
+    | '/exam/$token'
     | '/explore/$id'
     | '/invite/$token'
     | '/explore/'
@@ -470,6 +482,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ExamTokenRoute: typeof ExamTokenRoute
   ExploreIdRoute: typeof ExploreIdRoute
   InviteTokenRoute: typeof InviteTokenRoute
   ExploreIndexRoute: typeof ExploreIndexRoute
@@ -506,6 +519,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/exam/$token': {
+      id: '/exam/$token'
+      path: '/exam/$token'
+      fullPath: '/exam/$token'
+      preLoaderRoute: typeof ExamTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/explore/': {
@@ -810,6 +830,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ExamTokenRoute: ExamTokenRoute,
   ExploreIdRoute: ExploreIdRoute,
   InviteTokenRoute: InviteTokenRoute,
   ExploreIndexRoute: ExploreIndexRoute,
