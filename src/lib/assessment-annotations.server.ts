@@ -79,7 +79,6 @@ export async function saveAnnotationHandler(data: SaveAnnotationInput, context: 
       .from("assessment_annotations")
       .update(payload)
       .eq("id", data.id)
-      .eq("owner_id", context.userId)
       .select(COLUMNS)
       .single();
     if (error) throw new Error(error.message);
@@ -99,8 +98,7 @@ export async function deleteAnnotationHandler(data: { id: string }, context: any
   const { error } = await context.supabase
     .from("assessment_annotations")
     .delete()
-    .eq("id", data.id)
-    .eq("owner_id", context.userId);
+    .eq("id", data.id);
   if (error) throw new Error(error.message);
   return { ok: true };
 }
