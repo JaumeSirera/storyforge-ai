@@ -45,3 +45,50 @@ export async function logExamAudit(params: {
     /* auditoría best-effort */
   }
 }
+
+/** Lista el log de auditoría de una evaluación (solo su propietario). */
+export async function listExamAuditHandler(
+  data: { assessmentId: string; candidateId?: string | null },
+  context: any,
+) {
+  const { data: assessment, error: aErr } = await context.supabase
+    .from("assessments")
+    .select("id")
+    .eq("id", data.assessmentId)
+    .eq("owner_id", context.userId)
+    .maybeSingle();
+  if (aErr) throw new Error(aErr.message);
+  if (!assessment)
+    throw new Error("Solo el propietario de la evaluación puede consultar el log de auditoría.");
+
+  let query = context.supabase
+    .from("exam_audit_log")
+    .select("id, candidate_id, event, ip, user_agent, client_version, detail, created_at")
+    .eq("assessment_id", data.assessmentId)
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (data.candidateId) query = query.eq("candidate_id", data.candidateId);
+
+  const { data: rows, error } = await query;
+  if (error) throw new Error(error.message);
+
+  const { data: candidates } = await context.supabase
+    .from("assessment_candidates")
+    .select("id, name")
+    .eq("assessment_id", data.assessmentId);
+  const names = new Map<string, string>((candidates ?? []).map((c: any) => [c.id, c.name]));
+
+  return {
+    entries: (rows ?? []).map((r: any) => ({
+      id: r.id,
+      candidateId: r.candidate_id,
+      candidateName: names.get(r.candidate_id) ?? "Aspirante eliminado",
+      event: r.event,
+      ip: r.ip ?? null,
+      userAgent: r.user_agent ?? null,
+      clientVersion: r.client_version ?? null,
+      detail: (r.detail ?? {}) as Record<string, unknown>,
+      createdAt: r.created_at,
+    })),
+  };
+}
