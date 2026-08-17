@@ -112,29 +112,70 @@ export async function getAssessmentHandler(data: { id: string }, context: any) {
 }
 
 export async function generateBlueprint(
-  input: { prompt: string; questionCount: number; maxScore: number; areaKey?: string | null },
+  input: {
+    prompt: string;
+    questionCount: number;
+    maxScore: number;
+    areaKey?: string | null;
+    subject?: string | null;
+    questionTypes?: string[];
+    sourceText?: string | null;
+  },
   context: any,
 ): Promise<AssessmentBlueprint> {
   const userKeys = await loadUserKeys(context.supabase, context.userId);
   const { model, provider, nativeId } = resolveUserTextModel(userKeys);
+  const types = input.questionTypes && input.questionTypes.length > 0 ? input.questionTypes : ["narrative"];
   const system =
-    "Eres un experto en evaluación educativa y de selección. Diseñas pruebas escritas de desarrollo (narrativa) con rúbricas analíticas defendibles. Respondes solo con un objeto JSON válido, en español, sin markdown.";
-  const prompt = `Diseña una prueba escrita a partir de este encargo:\n"""${input.prompt}"""\nÁrea: ${input.areaKey ?? "general"}\nNúmero de preguntas: ${input.questionCount}\nPuntuación total de la prueba: ${input.maxScore}\n\nDevuelve exactamente estas claves JSON: title (string), instructions (string con indicaciones para el candidato), questions (array de {id, prompt, type:"narrative", maxPoints, keyElements: array de strings con los elementos que debe contener una buena respuesta}), rubric (array de {id, name, description, weightPct, levels: array de {label, descriptor, pct}}).\nLa suma de maxPoints debe ser ${input.maxScore}. La suma de weightPct debe ser 100. Usa 4 niveles por criterio (Insuficiente 40, Suficiente 60, Notable 80, Excelente 100).`;
+    "Eres un experto en evaluación educativa, pruebas psicotécnicas y procesos de selección. Diseñas pruebas escritas (desarrollo, test, verdadero/falso y ejercicios numéricos) con rúbricas analíticas defendibles. Cuando la pregunta es cerrada, la respuesta correcta es inequívoca y verificable. Respondes solo con un objeto JSON válido, en español, sin markdown.";
+  const prompt = `Diseña una prueba escrita a partir de este encargo:\n"""${input.prompt}"""\nÁrea: ${input.areaKey ?? "general"}\nMateria / tipo de contenido: ${input.subject ?? "generico"}\nTipos de pregunta permitidos (usa solo estos, repartidos de forma equilibrada): ${types.join(", ")}\nNúmero de preguntas: ${input.questionCount}\nPuntuación total de la prueba: ${input.maxScore}
+${input.sourceText ? `\nTEXTO BASE sobre el que deben versar las preguntas (no lo reescribas, úsalo como fuente):\n"""${input.sourceText.slice(0, 20000)}"""\n` : ""}
+Devuelve exactamente estas claves JSON: title (string), instructions (string con indicaciones para el candidato), questions (array), rubric (array de {id, name, description, weightPct, levels: array de {label, descriptor, pct}}).
+
+Cada pregunta es un objeto {id, prompt, type, maxPoints, keyElements, options, correctOptionIds, correctAnswer, explanation} donde:
+- type es uno de: narrative, single_choice, multiple_choice, true_false, numeric.
+- narrative: options=[], correctOptionIds=[], correctAnswer="" y keyElements con los elementos que debe contener una buena respuesta.
+- single_choice / multiple_choice: options con 4 alternativas [{id:"a"|"b"|"c"|"d", text}], correctOptionIds con la(s) correcta(s), keyElements=[].
+- true_false: options=[{id:"v",text:"Verdadero"},{id:"f",text:"Falso"}] y correctOptionIds con "v" o "f".
+- numeric: correctAnswer con el resultado exacto (incluye unidades si aplica), options=[].
+- explanation: justificación breve de la respuesta correcta (para el corrector, no para el candidato).
+Para psicotécnicos usa series numéricas, analogías, razonamiento lógico-abstracto o cálculo mental, siempre con una única alternativa correcta.
+La suma de maxPoints debe ser ${input.maxScore}. La suma de weightPct debe ser 100. Usa 4 niveles por criterio (Insuficiente 40, Suficiente 60, Notable 80, Excelente 100).`;
 
   const result = await generateText({ model, system, prompt });
   const raw = extractJson(result.text) as any;
+  const allowedTypes = ["narrative", "single_choice", "multiple_choice", "true_false", "numeric"];
   const blueprint = BlueprintSchema.parse({
     title: raw.title ?? raw.titulo ?? "",
     instructions: raw.instructions ?? raw.instrucciones ?? "",
-    questions: (raw.questions ?? raw.preguntas ?? []).map((q: any, i: number) => ({
-      id: String(q?.id ?? slug(i + 1)),
-      prompt: String(q?.prompt ?? q?.enunciado ?? ""),
-      type: "narrative",
-      maxPoints: Number(q?.maxPoints ?? q?.puntos ?? 0) || 0,
-      keyElements: Array.isArray(q?.keyElements ?? q?.elementosClave)
-        ? (q.keyElements ?? q.elementosClave).map((s: any) => String(s))
-        : [],
-    })),
+    questions: (raw.questions ?? raw.preguntas ?? []).map((q: any, i: number) => {
+      const rawType = String(q?.type ?? q?.tipo ?? "narrative");
+      const type = allowedTypes.includes(rawType) ? rawType : "narrative";
+      const options = Array.isArray(q?.options ?? q?.opciones)
+        ? (q.options ?? q.opciones).map((o: any, oi: number) => ({
+            id: String(o?.id ?? String.fromCharCode(97 + oi)),
+            text: String(o?.text ?? o?.texto ?? o ?? ""),
+          }))
+        : [];
+      const correct = q?.correctOptionIds ?? q?.correctas ?? q?.correcta;
+      return {
+        id: String(q?.id ?? slug(i + 1)),
+        prompt: String(q?.prompt ?? q?.enunciado ?? ""),
+        type,
+        maxPoints: Number(q?.maxPoints ?? q?.puntos ?? 0) || 0,
+        keyElements: Array.isArray(q?.keyElements ?? q?.elementosClave)
+          ? (q.keyElements ?? q.elementosClave).map((s: any) => String(s))
+          : [],
+        options,
+        correctOptionIds: Array.isArray(correct)
+          ? correct.map((s: any) => String(s))
+          : correct
+            ? [String(correct)]
+            : [],
+        correctAnswer: String(q?.correctAnswer ?? q?.respuesta ?? ""),
+        explanation: String(q?.explanation ?? q?.justificacion ?? ""),
+      };
+    }),
     rubric: (raw.rubric ?? raw.rubrica ?? []).map((c: any, i: number) => ({
       id: String(c?.id ?? `c${i + 1}`),
       name: String(c?.name ?? c?.nombre ?? ""),
@@ -149,6 +190,7 @@ export async function generateBlueprint(
         : [],
     })),
   });
+
 
   try {
     const usage = await result.usage;
