@@ -6,6 +6,7 @@ import type {
   ExamQuestion,
 } from "./assessment-candidates-shared";
 import { mapAssessment } from "./assessments.server";
+import { logExamAudit } from "./exam-audit.server";
 import type { AssessmentQuestion } from "./assessments-shared";
 
 const CANDIDATE_COLUMNS =
@@ -209,9 +210,19 @@ export async function getExamHandler(data: { token: string }): Promise<ExamPaylo
   };
 }
 
-export async function startExamHandler(data: { token: string }) {
+export async function startExamHandler(data: { token: string; clientVersion?: string }) {
   const { supabaseAdmin, candidate } = await loadByToken(data.token);
-  if (candidate.status === "submitted") throw new Error("Ya has entregado este examen.");
+  if (candidate.status === "submitted") {
+    await logExamAudit({
+      ownerId: candidate.owner_id,
+      assessmentId: candidate.assessment_id,
+      candidateId: candidate.id,
+      event: "exam_resubmit_attempt",
+      clientVersion: data.clientVersion ?? null,
+      detail: { phase: "start", submittedAt: candidate.submitted_at },
+    });
+    throw new Error("Ya has entregado este examen.");
+  }
   let startedAt = candidate.started_at ?? null;
   if (candidate.status !== "started" || !startedAt) {
     startedAt = new Date().toISOString();
@@ -220,6 +231,14 @@ export async function startExamHandler(data: { token: string }) {
       .update({ status: "started", started_at: startedAt })
       .eq("id", candidate.id);
     if (error) throw new Error(error.message);
+    await logExamAudit({
+      ownerId: candidate.owner_id,
+      assessmentId: candidate.assessment_id,
+      candidateId: candidate.id,
+      event: "exam_started",
+      clientVersion: data.clientVersion ?? null,
+      detail: { startedAt },
+    });
   }
   return { ok: true, startedAt, serverNow: new Date().toISOString() };
 }
@@ -247,9 +266,27 @@ export async function submitExamHandler(data: {
   token: string;
   answers: ExamAnswerInput[];
   auto?: boolean;
+  clientVersion?: string;
 }) {
   const { supabaseAdmin, candidate, assessment } = await loadByToken(data.token);
-  if (candidate.status === "submitted") throw new Error("Ya has entregado este examen.");
+  const auditBase = {
+    ownerId: candidate.owner_id,
+    assessmentId: candidate.assessment_id,
+    candidateId: candidate.id,
+    clientVersion: data.clientVersion ?? null,
+  };
+  if (candidate.status === "submitted") {
+    await logExamAudit({
+      ...auditBase,
+      event: "exam_resubmit_attempt",
+      detail: {
+        submittedAt: candidate.submitted_at,
+        submissionId: candidate.submission_id,
+        auto: Boolean(data.auto),
+      },
+    });
+    throw new Error("Ya has entregado este examen.");
+  }
 
   // Validación del tiempo: se acepta la entrega dentro del límite (+ margen) o
   // cuando es el cierre automático al agotarse el tiempo.
@@ -259,8 +296,14 @@ export async function submitExamHandler(data: {
     const startedAt = candidate.started_at ? new Date(candidate.started_at).getTime() : Date.now();
     const elapsedSec = (Date.now() - startedAt) / 1000;
     timeExpired = elapsedSec > limitMin * 60;
-    if (timeExpired && !data.auto && elapsedSec > limitMin * 60 + TIME_GRACE_SEC)
+    if (timeExpired && !data.auto && elapsedSec > limitMin * 60 + TIME_GRACE_SEC) {
+      await logExamAudit({
+        ...auditBase,
+        event: "exam_submit_rejected_time",
+        detail: { elapsedSec: Math.round(elapsedSec), limitMin },
+      });
       throw new Error("El tiempo del examen ha finalizado y no se admiten más cambios.");
+    }
   }
 
   const questions = assessment.questions.map(toExamQuestion);
@@ -293,6 +336,18 @@ export async function submitExamHandler(data: {
     })
     .eq("id", candidate.id);
   if (cErr) throw new Error(cErr.message);
+
+  await logExamAudit({
+    ...auditBase,
+    event: data.auto ? "exam_auto_submitted" : "exam_submitted",
+    detail: {
+      submittedAt,
+      submissionId: submission.id,
+      answers: data.answers.length,
+      timeExpired,
+      startedAt: candidate.started_at,
+    },
+  });
 
   return { ok: true, submissionId: submission.id as string, submittedAt };
 }
