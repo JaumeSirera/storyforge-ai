@@ -1,14 +1,18 @@
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getSubmission, gradeSubmission } from "@/lib/assessments.functions";
-import { gradeLabel, VERDICT_LABELS } from "@/lib/assessments-shared";
+import { APPROVAL_LABELS, gradeLabel, VERDICT_LABELS } from "@/lib/assessments-shared";
+import { setSubmissionApproval } from "@/lib/assessment-roles.functions";
+import { COLLABORATOR_ROLE_LABELS } from "@/lib/assessment-roles-shared";
+import { Textarea } from "@/components/ui/textarea";
 import { generateAssessmentPdf } from "@/lib/assessment-pdf";
 import { SubmissionPageAnnotator } from "@/components/SubmissionPageAnnotator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Download, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Download, Loader2, RefreshCw, Undo2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/assessments/$id/submissions/$sid")({
@@ -54,12 +58,15 @@ function SubmissionReport() {
   const qc = useQueryClient();
   const get = useServerFn(getSubmission);
   const grade = useServerFn(gradeSubmission);
+  const approve = useServerFn(setSubmissionApproval);
+  const [approvalNote, setApprovalNote] = useState("");
 
   const q = useQuery({ queryKey: ["assessment-submission", sid], queryFn: () => get({ data: { id: sid } }) });
   const submission = q.data?.submission;
   const assessment = q.data?.assessment;
   const pageUrls = q.data?.pageUrls ?? [];
   const annotations = q.data?.annotations ?? [];
+  const permissions = q.data?.permissions;
   const evaluation = submission?.evaluation ?? null;
 
   const regrade = useMutation({
@@ -69,6 +76,16 @@ function SubmissionReport() {
       void qc.invalidateQueries({ queryKey: ["assessment-submission", sid] });
     },
     onError: (e: any) => toast.error(e?.message ?? "No se pudo corregir"),
+  });
+
+  const approval = useMutation({
+    mutationFn: (decision: "pending" | "approved" | "rejected") =>
+      approve({ data: { id: sid, decision, note: approvalNote } }),
+    onSuccess: () => {
+      toast.success("Estado de aprobación actualizado");
+      void qc.invalidateQueries({ queryKey: ["assessment-submission", sid] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "No se pudo actualizar la aprobación"),
   });
 
   const download = () => {
@@ -99,6 +116,7 @@ function SubmissionReport() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {permissions?.canGrade && (
           <Button variant="secondary" onClick={() => regrade.mutate()} disabled={regrade.isPending}>
             {regrade.isPending ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -107,11 +125,85 @@ function SubmissionReport() {
             )}
             Volver a corregir
           </Button>
+          )}
           <Button onClick={download} disabled={!evaluation}>
             <Download className="h-4 w-4 mr-2" /> Descargar informe PDF
           </Button>
         </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Aprobación de la calificación</CardTitle>
+          <CardDescription>
+            {permissions?.canApprove
+              ? "Valida o devuelve la calificación de esta entrega. Queda registrado quién aprueba y cuándo."
+              : `Tu rol en esta evaluación: ${
+                  permissions?.role === "propietario"
+                    ? "propietario (control total)"
+                    : permissions?.role
+                      ? COLLABORATOR_ROLE_LABELS[permissions.role]
+                      : "sin permisos"
+                }.`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant={
+                submission.approvalStatus === "approved"
+                  ? "default"
+                  : submission.approvalStatus === "rejected"
+                    ? "destructive"
+                    : "secondary"
+              }
+            >
+              {APPROVAL_LABELS[submission.approvalStatus]}
+            </Badge>
+            {submission.approvedAt && (
+              <span className="text-xs text-muted-foreground">
+                {new Date(submission.approvedAt).toLocaleString()}
+              </span>
+            )}
+          </div>
+          {submission.approvalNote && (
+            <p className="text-sm text-muted-foreground">{submission.approvalNote}</p>
+          )}
+
+          {permissions?.canApprove && (
+            <div className="space-y-2">
+              <Textarea
+                value={approvalNote}
+                onChange={(e) => setApprovalNote(e.target.value)}
+                placeholder="Nota de aprobación o motivo de la devolución (opcional)"
+                rows={2}
+                aria-label="Nota de aprobación"
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => approval.mutate("approved")} disabled={approval.isPending}>
+                  <CheckCircle2 className="mr-2 h-4 w-4" /> Aprobar calificación
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => approval.mutate("rejected")}
+                  disabled={approval.isPending}
+                >
+                  <XCircle className="mr-2 h-4 w-4" /> Devolver para revisión
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => approval.mutate("pending")}
+                  disabled={approval.isPending}
+                >
+                  <Undo2 className="mr-2 h-4 w-4" /> Dejar pendiente
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
 
       {!evaluation ? (
         <Card>
@@ -346,7 +438,12 @@ function SubmissionReport() {
       )}
 
       {pageUrls.length > 0 && (
-        <SubmissionPageAnnotator submissionId={sid} pages={pageUrls} annotations={annotations} />
+        <SubmissionPageAnnotator
+          submissionId={sid}
+          pages={pageUrls}
+          annotations={annotations}
+          readOnly={!permissions?.canAnnotate}
+        />
       )}
 
       {submission.extractedText && (

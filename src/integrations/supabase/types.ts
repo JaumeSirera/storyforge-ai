@@ -73,8 +73,53 @@ export type Database = {
           },
         ]
       }
+      assessment_collaborators: {
+        Row: {
+          assessment_id: string
+          created_at: string
+          email: string
+          id: string
+          owner_id: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string
+          email?: string
+          id?: string
+          owner_id: string
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          owner_id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_collaborators_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessment_submissions: {
         Row: {
+          approval_note: string
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           assessment_id: string
           candidate_identifier: string | null
           candidate_name: string
@@ -94,6 +139,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approval_note?: string
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           assessment_id: string
           candidate_identifier?: string | null
           candidate_name: string
@@ -113,6 +162,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approval_note?: string
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           assessment_id?: string
           candidate_identifier?: string | null
           candidate_name?: string
@@ -1684,6 +1737,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assessment_can: {
+        Args: { _assessment_id: string; _perm: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1693,6 +1750,10 @@ export type Database = {
       }
       has_session_for_simulation: {
         Args: { _simulation_id: string; _user_id: string }
+        Returns: boolean
+      }
+      submission_can: {
+        Args: { _perm: string; _submission_id: string; _user_id: string }
         Returns: boolean
       }
     }

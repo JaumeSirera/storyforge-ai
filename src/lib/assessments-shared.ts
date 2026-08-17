@@ -256,7 +256,16 @@ export interface SubmissionRecord {
   errorMessage: string | null;
   gradedAt: string | null;
   createdAt: string;
+  approvalStatus: "pending" | "approved" | "rejected";
+  approvalNote: string;
+  approvedAt: string | null;
 }
+
+export const APPROVAL_LABELS: Record<"pending" | "approved" | "rejected", string> = {
+  pending: "Pendiente de aprobación",
+  approved: "Calificación aprobada",
+  rejected: "Devuelta para revisión",
+};
 
 export function gradeLabel(score: number, maxScore: number): string {
   if (!maxScore) return "—";

@@ -40,7 +40,7 @@ function normalizeVerdict(raw: unknown, score: number, maxPoints: number): Answe
 const ASSESSMENT_COLUMNS =
   "id, title, area_key, prompt, instructions, questions, rubric, max_score, handwriting_weight_pct, feedback_tone, status, created_at, updated_at";
 const SUBMISSION_COLUMNS =
-  "id, assessment_id, candidate_name, candidate_identifier, source_kind, pages, extracted_text, handwriting, evaluation, score, max_score, status, error_message, graded_at, created_at";
+  "id, assessment_id, candidate_name, candidate_identifier, source_kind, pages, extracted_text, handwriting, evaluation, score, max_score, status, error_message, graded_at, created_at, approval_status, approval_note, approved_at";
 
 export function mapAssessment(row: any): AssessmentRecord {
   return {
@@ -79,6 +79,9 @@ export function mapSubmission(row: any): SubmissionRecord {
     errorMessage: row.error_message ?? null,
     gradedAt: row.graded_at ?? null,
     createdAt: row.created_at,
+    approvalStatus: (row.approval_status ?? "pending") as "pending" | "approved" | "rejected",
+    approvalNote: row.approval_note ?? "",
+    approvedAt: row.approved_at ?? null,
   };
 }
 
@@ -101,28 +104,30 @@ function slug(n: number) {
 // ───────────────────────────────── Assessments ─────────────────────────────────
 
 export async function listAssessmentsHandler(context: any) {
+  // RLS deja ver las propias y las compartidas como colaborador.
   const { data, error } = await context.supabase
     .from("assessments")
-    .select(ASSESSMENT_COLUMNS)
-    .eq("owner_id", context.userId)
+    .select(`${ASSESSMENT_COLUMNS}, owner_id`)
     .order("updated_at", { ascending: false });
   if (error) throw new Error(error.message);
-  return { assessments: (data ?? []).map(mapAssessment) };
+  return {
+    assessments: (data ?? []).map((row: any) => ({
+      ...mapAssessment(row),
+      shared: row.owner_id !== context.userId,
+    })),
+  };
 }
 
 export async function getAssessmentHandler(data: { id: string }, context: any) {
+  const { assertAssessmentPermission } = await import("./assessment-roles.server");
+  const permissions = await assertAssessmentPermission(data.id, "view", context);
+
   const [assessmentRes, submissionsRes] = await Promise.all([
-    context.supabase
-      .from("assessments")
-      .select(ASSESSMENT_COLUMNS)
-      .eq("id", data.id)
-      .eq("owner_id", context.userId)
-      .single(),
+    context.supabase.from("assessments").select(ASSESSMENT_COLUMNS).eq("id", data.id).single(),
     context.supabase
       .from("assessment_submissions")
       .select(SUBMISSION_COLUMNS)
       .eq("assessment_id", data.id)
-      .eq("owner_id", context.userId)
       .order("created_at", { ascending: false }),
   ]);
   if (assessmentRes.error) throw new Error(assessmentRes.error.message);
@@ -130,6 +135,7 @@ export async function getAssessmentHandler(data: { id: string }, context: any) {
   return {
     assessment: mapAssessment(assessmentRes.data),
     submissions: (submissionsRes.data ?? []).map(mapSubmission),
+    permissions,
   };
 }
 
@@ -549,18 +555,19 @@ export async function deleteSubmissionHandler(data: { id: string }, context: any
 }
 
 export async function getSubmissionHandler(data: { id: string }, context: any) {
+  const { assertSubmissionPermission } = await import("./assessment-roles.server");
+  const { permissions } = await assertSubmissionPermission(data.id, "view", context);
+
   const { data: row, error } = await context.supabase
     .from("assessment_submissions")
     .select(SUBMISSION_COLUMNS)
     .eq("id", data.id)
-    .eq("owner_id", context.userId)
     .single();
   if (error) throw new Error(error.message);
   const { data: assessment, error: aErr } = await context.supabase
     .from("assessments")
     .select(ASSESSMENT_COLUMNS)
     .eq("id", row.assessment_id)
-    .eq("owner_id", context.userId)
     .single();
   if (aErr) throw new Error(aErr.message);
 
@@ -587,6 +594,7 @@ export async function getSubmissionHandler(data: { id: string }, context: any) {
     assessment: mapAssessment(assessment),
     pageUrls,
     annotations,
+    permissions,
   };
 }
 
@@ -608,11 +616,13 @@ async function buildFileParts(pages: SubmissionPage[]) {
 }
 
 export async function gradeSubmissionHandler(data: { id: string }, context: any) {
+  const { assertSubmissionPermission } = await import("./assessment-roles.server");
+  await assertSubmissionPermission(data.id, "grade", context);
+
   const { data: row, error } = await context.supabase
     .from("assessment_submissions")
     .select(SUBMISSION_COLUMNS)
     .eq("id", data.id)
-    .eq("owner_id", context.userId)
     .single();
   if (error) throw new Error(error.message);
 
@@ -620,7 +630,6 @@ export async function gradeSubmissionHandler(data: { id: string }, context: any)
     .from("assessments")
     .select(ASSESSMENT_COLUMNS)
     .eq("id", row.assessment_id)
-    .eq("owner_id", context.userId)
     .single();
   if (aErr) throw new Error(aErr.message);
   const assessment = mapAssessment(assessmentRow);
@@ -637,8 +646,7 @@ export async function gradeSubmissionHandler(data: { id: string }, context: any)
   await context.supabase
     .from("assessment_submissions")
     .update({ status: "grading", error_message: null })
-    .eq("id", row.id)
-    .eq("owner_id", context.userId);
+    .eq("id", row.id);
 
   try {
     const userKeys = await loadUserKeys(context.supabase, context.userId);
@@ -819,7 +827,6 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
         graded_at: gradedAt,
       })
       .eq("id", row.id)
-      .eq("owner_id", context.userId)
       .select(SUBMISSION_COLUMNS)
       .single();
     if (saveErr) throw new Error(saveErr.message);
@@ -846,8 +853,7 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
     await context.supabase
       .from("assessment_submissions")
       .update({ status: "failed", error_message: message })
-      .eq("id", row.id)
-      .eq("owner_id", context.userId);
+      .eq("id", row.id);
     throw new Error(message);
   }
 }
