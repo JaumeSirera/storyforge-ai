@@ -121,11 +121,19 @@ export function generateAssessmentPdf(data: AssessmentPdfData): jsPDF {
   }
 
   if (evaluation.answers.length > 0) {
-    heading("Corrección por pregunta");
+    heading("Corrección y feedback por pregunta");
     for (const answer of evaluation.answers) {
-      body(`${answer.question || answer.questionId} — ${answer.score} / ${answer.maxPoints} puntos`, { bold: true });
+      body(
+        `${answer.question || answer.questionId} — ${answer.score} / ${answer.maxPoints} puntos · ${VERDICT_LABELS[answer.verdict] ?? ""}`,
+        { bold: true },
+      );
       body(answer.answerSummary, { indent: 12 });
       if (answer.evidence) body(`Evidencia: “${answer.evidence}”`, { indent: 12, size: 9 });
+      if (answer.expectedAnswer)
+        body(`Respuesta esperada: ${answer.expectedAnswer}`, { indent: 12, size: 9 });
+      if (answer.explanation) body(`¿Por qué?: ${answer.explanation}`, { indent: 12, size: 9 });
+      if (answer.feedback) body(`Feedback: ${answer.feedback}`, { indent: 12, size: 9 });
+      if (answer.nextStep) body(`Siguiente paso: ${answer.nextStep}`, { indent: 12, size: 9 });
       if (answer.strengths.length) {
         body("Fortalezas:", { bold: true, indent: 12, size: 9 });
         bullets(answer.strengths, 24);
