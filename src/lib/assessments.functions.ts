@@ -60,6 +60,7 @@ export const createAssessment = createServerFn({ method: "POST" })
         areaKey: z.string().trim().max(80).nullable().optional(),
         maxScore: z.number().min(1).max(100).default(10),
         handwritingWeightPct: z.number().min(0).max(50).default(15),
+        timeLimitMin: z.number().min(1).max(600).nullable().optional(),
         feedbackTone: z.enum(FEEDBACK_TONES).default("formativo"),
         questionCount: z.number().min(1).max(30).default(4),
         generate: z.boolean().default(true),
@@ -98,6 +99,7 @@ export const updateAssessmentBlueprint = createServerFn({ method: "POST" })
         instructions: z.string().max(4000).optional(),
         maxScore: z.number().min(1).max(100).optional(),
         handwritingWeightPct: z.number().min(0).max(50).optional(),
+        timeLimitMin: z.number().min(0).max(600).nullable().optional(),
         feedbackTone: z.enum(FEEDBACK_TONES).optional(),
         questions: z.array(QuestionInput).max(40).optional(),
 

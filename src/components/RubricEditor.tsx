@@ -53,6 +53,7 @@ export function RubricEditor({ assessment, onSaved }: Props) {
   const [maxScore, setMaxScore] = useState(assessment.maxScore);
   const [handwritingWeightPct, setHandwritingWeightPct] = useState(assessment.handwritingWeightPct);
   const [feedbackTone, setFeedbackTone] = useState<FeedbackTone>(assessment.feedbackTone);
+  const [timeLimitMin, setTimeLimitMin] = useState<number>(assessment.timeLimitMin ?? 0);
 
   const reset = () => {
     setRubric(assessment.rubric);
@@ -61,6 +62,7 @@ export function RubricEditor({ assessment, onSaved }: Props) {
     setMaxScore(assessment.maxScore);
     setHandwritingWeightPct(assessment.handwritingWeightPct);
     setFeedbackTone(assessment.feedbackTone);
+    setTimeLimitMin(assessment.timeLimitMin ?? 0);
   };
 
   useEffect(reset, [assessment]);
@@ -103,6 +105,7 @@ export function RubricEditor({ assessment, onSaved }: Props) {
           maxScore,
           handwritingWeightPct,
           feedbackTone,
+          timeLimitMin: timeLimitMin > 0 ? timeLimitMin : null,
           questions: questions.map((q, i) => ({
             id: q.id || uid(`q${i + 1}`),
             prompt: q.prompt,
@@ -156,7 +159,7 @@ export function RubricEditor({ assessment, onSaved }: Props) {
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-1.5">
             <Label htmlFor="rb-max">Nota máxima</Label>
             <Input
@@ -178,6 +181,21 @@ export function RubricEditor({ assessment, onSaved }: Props) {
               value={handwritingWeightPct}
               onChange={(e) => setHandwritingWeightPct(Number(e.target.value) || 0)}
             />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="rb-time">Tiempo del examen (min)</Label>
+            <Input
+              id="rb-time"
+              type="number"
+              min={0}
+              max={600}
+              value={timeLimitMin}
+              onChange={(e) => setTimeLimitMin(Math.max(0, Number(e.target.value) || 0))}
+            />
+            <p className="text-xs text-muted-foreground">
+              0 = sin límite. El aspirante verá una cuenta atrás y el examen se entregará
+              automáticamente al agotarse el tiempo.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="rb-tone">Tono del feedback</Label>

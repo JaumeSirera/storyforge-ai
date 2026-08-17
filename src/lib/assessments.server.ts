@@ -38,7 +38,7 @@ function normalizeVerdict(raw: unknown, score: number, maxPoints: number): Answe
 }
 
 const ASSESSMENT_COLUMNS =
-  "id, title, area_key, prompt, instructions, questions, rubric, max_score, handwriting_weight_pct, feedback_tone, status, created_at, updated_at";
+  "id, title, area_key, prompt, instructions, questions, rubric, max_score, handwriting_weight_pct, time_limit_min, feedback_tone, status, created_at, updated_at";
 const SUBMISSION_COLUMNS =
   "id, assessment_id, candidate_name, candidate_identifier, source_kind, pages, extracted_text, handwriting, evaluation, score, max_score, status, error_message, graded_at, created_at, approval_status, approval_note, approved_at";
 
@@ -55,6 +55,7 @@ export function mapAssessment(row: any): AssessmentRecord {
     rubric: Array.isArray(row.rubric) ? row.rubric : [],
     maxScore: Number(row.max_score ?? 10),
     handwritingWeightPct: Number(row.handwriting_weight_pct ?? 15),
+    timeLimitMin: row.time_limit_min == null ? null : Number(row.time_limit_min),
     feedbackTone: normalizeFeedbackTone(row.feedback_tone),
     status: row.status ?? "draft",
     createdAt: row.created_at,
@@ -268,6 +269,7 @@ export async function createAssessmentHandler(
     areaKey?: string | null;
     maxScore: number;
     handwritingWeightPct: number;
+    timeLimitMin?: number | null;
     feedbackTone?: string;
     questionCount: number;
     generate: boolean;
@@ -309,6 +311,7 @@ export async function createAssessmentHandler(
       rubric: blueprint?.rubric ?? [],
       max_score: data.maxScore,
       handwriting_weight_pct: data.handwritingWeightPct,
+      time_limit_min: data.timeLimitMin ?? null,
       feedback_tone: normalizeFeedbackTone(data.feedbackTone),
       status: blueprint ? "ready" : "draft",
     })
@@ -421,6 +424,7 @@ export async function updateAssessmentBlueprintHandler(
     instructions?: string;
     maxScore?: number;
     handwritingWeightPct?: number;
+    timeLimitMin?: number | null;
     feedbackTone?: string;
     questions?: any[];
     rubric?: any[];
@@ -432,6 +436,8 @@ export async function updateAssessmentBlueprintHandler(
   if (data.maxScore !== undefined) patch.max_score = data.maxScore;
   if (data.handwritingWeightPct !== undefined)
     patch.handwriting_weight_pct = data.handwritingWeightPct;
+  if (data.timeLimitMin !== undefined)
+    patch.time_limit_min = data.timeLimitMin && data.timeLimitMin > 0 ? data.timeLimitMin : null;
   if (data.feedbackTone !== undefined)
     patch.feedback_tone = normalizeFeedbackTone(data.feedbackTone);
   if (data.questions !== undefined) patch.questions = data.questions;

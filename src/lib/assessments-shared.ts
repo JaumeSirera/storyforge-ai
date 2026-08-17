@@ -229,6 +229,7 @@ export interface AssessmentRecord {
   rubric: RubricCriterion[];
   maxScore: number;
   handwritingWeightPct: number;
+  timeLimitMin: number | null;
   status: string;
   createdAt: string;
   updatedAt: string;

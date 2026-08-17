@@ -85,6 +85,7 @@ export const submitExam = createServerFn({ method: "POST" })
           }),
         )
         .max(60),
+      auto: z.boolean().default(false),
     }).parse(input),
   )
   .handler(async ({ data }) => submitExamHandler(data));

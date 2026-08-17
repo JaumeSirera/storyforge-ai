@@ -19,6 +19,7 @@ export interface AssessmentCandidate {
   token: string;
   status: CandidateStatus;
   submissionId: string | null;
+  timeExpired?: boolean;
   expiresAt: string | null;
   startedAt: string | null;
   submittedAt: string | null;
@@ -36,12 +37,23 @@ export interface ExamQuestion {
 }
 
 export interface ExamPayload {
-  candidate: { name: string; identifier: string | null; status: CandidateStatus };
+  candidate: {
+    name: string;
+    identifier: string | null;
+    status: CandidateStatus;
+    /** ISO del momento en que el aspirante abrió el examen (null si aún no ha empezado). */
+    startedAt: string | null;
+    timeExpired: boolean;
+  };
+  /** Hora del servidor al servir el examen, para calcular el tiempo restante sin depender del reloj local. */
+  serverNow: string;
   assessment: {
     id: string;
     title: string;
     instructions: string | null;
-    
+    /** Minutos disponibles para completar el examen (null = sin límite). */
+    timeLimitMin: number | null;
+
     maxScore: number;
     questions: ExamQuestion[];
   };

@@ -88,6 +88,7 @@ export type Database = {
           status: string
           submission_id: string | null
           submitted_at: string | null
+          time_expired: boolean
           token: string
           updated_at: string
         }
@@ -105,6 +106,7 @@ export type Database = {
           status?: string
           submission_id?: string | null
           submitted_at?: string | null
+          time_expired?: boolean
           token: string
           updated_at?: string
         }
@@ -122,6 +124,7 @@ export type Database = {
           status?: string
           submission_id?: string | null
           submitted_at?: string | null
+          time_expired?: boolean
           token?: string
           updated_at?: string
         }
@@ -277,6 +280,7 @@ export type Database = {
           questions: Json
           rubric: Json
           status: string
+          time_limit_min: number | null
           title: string
           updated_at: string
         }
@@ -293,6 +297,7 @@ export type Database = {
           questions?: Json
           rubric?: Json
           status?: string
+          time_limit_min?: number | null
           title: string
           updated_at?: string
         }
@@ -309,6 +314,7 @@ export type Database = {
           questions?: Json
           rubric?: Json
           status?: string
+          time_limit_min?: number | null
           title?: string
           updated_at?: string
         }
