@@ -10,6 +10,8 @@ import {
   deleteSubmission,
 } from "@/lib/assessments.functions";
 import { gradeLabel } from "@/lib/assessments-shared";
+import { RubricEditor } from "@/components/RubricEditor";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
