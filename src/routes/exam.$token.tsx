@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { AlarmClock, CheckCircle2, Loader2, Lock, Send } from "lucide-react";
+import { AlarmClock, AlertTriangle, CheckCircle2, Loader2, Lock, PlayCircle, Send } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/exam/$token")({
@@ -278,6 +278,57 @@ function ExamPage() {
   const locked = submitMut.isPending || done;
 
   const { assessment } = exam;
+
+  // Pantalla previa: el examen no se abre (ni arranca el tiempo) hasta pulsar "Comenzar examen".
+  if (!started) {
+    const hasSavedAnswers = Object.keys(answers).length > 0;
+    return (
+      <main className="mx-auto flex min-h-screen max-w-lg items-center justify-center p-6">
+        <Card className="w-full">
+          <CardHeader>
+            <Badge variant="secondary" className="w-fit">Prueba escrita</Badge>
+            <CardTitle>{assessment.title}</CardTitle>
+            <CardDescription>
+              Aspirante: {exam.candidate.name}
+              {exam.candidate.identifier ? ` · ${exam.candidate.identifier}` : ""} · Puntuación
+              máxima: {assessment.maxScore} · {assessment.questions.length} preguntas
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+              <p className="flex items-center gap-2 font-medium text-destructive">
+                <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+                Antes de comenzar
+              </p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
+                <li>
+                  Al comenzar el examen no podrás volver atrás
+                  {assessment.timeLimitMin
+                    ? ` y se iniciará la cuenta atrás de ${assessment.timeLimitMin} minutos.`
+                    : "."}
+                </li>
+                <li>Tu progreso se guarda automáticamente: si refrescas, continuarás donde estabas.</li>
+                <li>Cuando finalices el examen no podrás modificar tus respuestas.</li>
+              </ul>
+            </div>
+            {hasSavedAnswers && (
+              <p className="text-sm text-muted-foreground">
+                Hemos recuperado respuestas guardadas en este dispositivo.
+              </p>
+            )}
+            <Button onClick={beginExam} disabled={starting} className="w-full">
+              {starting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <PlayCircle className="mr-2 h-4 w-4" aria-hidden="true" />
+              )}
+              Comenzar examen
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8">
