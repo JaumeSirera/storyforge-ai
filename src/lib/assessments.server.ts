@@ -850,7 +850,7 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
     await context.supabase
       .from("assessment_submissions")
       .update({ status: "failed", error_message: message })
-      .eq("id", row.id)
+      .eq("id", row.id);
     throw new Error(message);
   }
 }
