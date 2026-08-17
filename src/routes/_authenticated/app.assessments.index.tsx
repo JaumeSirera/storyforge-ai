@@ -73,6 +73,7 @@ function AssessmentsIndex() {
   const [subject, setSubject] = useState<AssessmentSubject>("generico");
   const [types, setTypes] = useState<QuestionType[]>(["narrative"]);
   const [sourceText, setSourceText] = useState("");
+  const [allowOutsideSource, setAllowOutsideSource] = useState(false);
 
   const toggleType = (t: QuestionType) =>
     setTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
@@ -92,6 +93,7 @@ function AssessmentsIndex() {
           subject,
           questionTypes: types.length > 0 ? types : ["narrative"],
           sourceText: sourceText.trim() || null,
+          allowOutsideSource,
         },
       }),
 
@@ -225,6 +227,16 @@ function AssessmentsIndex() {
               onChange={(e) => setSourceText(e.target.value)}
               placeholder="Pega aquí el texto, el temario o el enunciado del caso sobre el que la IA debe formular las preguntas (comprensión lectora, física, biología…)."
             />
+            <label className="flex items-start gap-2 text-sm text-muted-foreground">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 accent-primary"
+                checked={allowOutsideSource}
+                onChange={(e) => setAllowOutsideSource(e.target.checked)}
+              />
+              Permitir preguntas fuera del texto base. Desactivado (recomendado), la IA se ciñe al
+              texto: nada de datos inventados y cada respuesta se justifica con un fragmento del texto.
+            </label>
           </div>
 
 

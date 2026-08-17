@@ -117,6 +117,7 @@ function QuestionBankPage() {
   // generación
   const [prompt, setPrompt] = useState("");
   const [sourceText, setSourceText] = useState("");
+  const [allowOutsideSource, setAllowOutsideSource] = useState(false);
   const [subject, setSubject] = useState<AssessmentSubject>("generico");
   const [areaKey, setAreaKey] = useState("general");
   const [types, setTypes] = useState<QuestionType[]>(["single_choice"]);
@@ -144,6 +145,7 @@ function QuestionBankPage() {
           areaKey: areaKey === "general" ? null : areaKey,
           questionTypes: types.length > 0 ? types : ["narrative"],
           sourceText: sourceText.trim() || null,
+          allowOutsideSource,
           tags: tagList(),
         },
       }),
@@ -346,6 +348,16 @@ function QuestionBankPage() {
               value={sourceText}
               onChange={(e) => setSourceText(e.target.value)}
             />
+            <label className="flex items-start gap-2 text-sm text-muted-foreground">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 accent-primary"
+                checked={allowOutsideSource}
+                onChange={(e) => setAllowOutsideSource(e.target.checked)}
+              />
+              Permitir preguntas fuera del texto base. Desactivado, la IA solo formula preguntas
+              verificables con el texto aportado y no inventa contenido.
+            </label>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">

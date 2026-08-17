@@ -65,6 +65,7 @@ export const createAssessment = createServerFn({ method: "POST" })
         subject: z.string().trim().max(40).nullable().optional(),
         questionTypes: z.array(QuestionTypeEnum).min(1).max(5).default(["narrative"]),
         sourceText: z.string().trim().max(30000).nullable().optional(),
+        allowOutsideSource: z.boolean().default(false),
       })
       .parse(input),
   )
@@ -81,6 +82,7 @@ export const regenerateAssessment = createServerFn({ method: "POST" })
         subject: z.string().trim().max(40).nullable().optional(),
         questionTypes: z.array(QuestionTypeEnum).max(5).default([]),
         sourceText: z.string().trim().max(30000).nullable().optional(),
+        allowOutsideSource: z.boolean().default(false),
       })
       .parse(input),
   )
