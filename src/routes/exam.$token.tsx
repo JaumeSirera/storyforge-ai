@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getExam, startExam, submitExam } from "@/lib/assessment-candidates.functions";
 import type { ExamPayload } from "@/lib/assessment-candidates-shared";
+import { CLIENT_VERSION } from "@/lib/app-version";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -138,7 +139,7 @@ function ExamPage() {
   const beginExam = async () => {
     setStarting(true);
     try {
-      const res: any = await start({ data: { token } });
+      const res: any = await start({ data: { token, clientVersion: CLIENT_VERSION } });
       setStarted(true);
       applyDeadline(res?.startedAt ?? exam?.candidate.startedAt, res?.serverNow);
     } catch (e) {
@@ -179,6 +180,7 @@ function ExamPage() {
         data: {
           token,
           auto,
+          clientVersion: CLIENT_VERSION,
           answers: (exam?.assessment.questions ?? []).map((qq) => ({
             questionId: qq.id,
             text: answers[qq.id]?.text ?? "",
