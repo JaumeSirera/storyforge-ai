@@ -669,7 +669,10 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
       messages: [
         {
           role: "user",
-          content: [{ type: "text", text: instructions + annotationBrief }, ...fileParts],
+          content: [
+            { type: "text", text: instructions + objectiveRule + annotationBrief },
+            ...fileParts,
+          ],
         } as any,
       ],
     });
