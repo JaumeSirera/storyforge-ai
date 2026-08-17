@@ -393,10 +393,14 @@ export async function getSubmissionHandler(data: { id: string }, context: any) {
     });
   }
 
+  const { listAnnotationsHandler } = await import("./assessment-annotations.server");
+  const { annotations } = await listAnnotationsHandler({ submissionId: row.id }, context);
+
   return {
     submission: mapSubmission(row),
     assessment: mapAssessment(assessment),
     pageUrls,
+    annotations,
   };
 }
 
