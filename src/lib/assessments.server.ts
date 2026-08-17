@@ -613,11 +613,13 @@ async function buildFileParts(pages: SubmissionPage[]) {
 }
 
 export async function gradeSubmissionHandler(data: { id: string }, context: any) {
+  const { assertSubmissionPermission } = await import("./assessment-roles.server");
+  await assertSubmissionPermission(data.id, "grade", context);
+
   const { data: row, error } = await context.supabase
     .from("assessment_submissions")
     .select(SUBMISSION_COLUMNS)
     .eq("id", data.id)
-    .eq("owner_id", context.userId)
     .single();
   if (error) throw new Error(error.message);
 
@@ -625,7 +627,6 @@ export async function gradeSubmissionHandler(data: { id: string }, context: any)
     .from("assessments")
     .select(ASSESSMENT_COLUMNS)
     .eq("id", row.assessment_id)
-    .eq("owner_id", context.userId)
     .single();
   if (aErr) throw new Error(aErr.message);
   const assessment = mapAssessment(assessmentRow);
@@ -642,8 +643,7 @@ export async function gradeSubmissionHandler(data: { id: string }, context: any)
   await context.supabase
     .from("assessment_submissions")
     .update({ status: "grading", error_message: null })
-    .eq("id", row.id)
-    .eq("owner_id", context.userId);
+    .eq("id", row.id);
 
   try {
     const userKeys = await loadUserKeys(context.supabase, context.userId);
