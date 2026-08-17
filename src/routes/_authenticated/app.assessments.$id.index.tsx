@@ -10,6 +10,7 @@ import {
   deleteSubmission,
 } from "@/lib/assessments.functions";
 import { gradeLabel } from "@/lib/assessments-shared";
+import { AssessmentCollaboratorsCard } from "@/components/AssessmentCollaboratorsCard";
 import { RubricEditor } from "@/components/RubricEditor";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,6 +62,7 @@ function AssessmentDetail() {
   const q = useQuery({ queryKey: ["assessment", id], queryFn: () => get({ data: { id } }) });
   const assessment = q.data?.assessment;
   const submissions = q.data?.submissions ?? [];
+  const permissions = q.data?.permissions;
 
   const [prompt, setPrompt] = useState("");
   const [questionCount, setQuestionCount] = useState(4);
