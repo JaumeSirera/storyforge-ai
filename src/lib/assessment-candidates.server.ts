@@ -159,7 +159,7 @@ async function loadByToken(token: string) {
 
   const { data: assessment, error: aErr } = await supabaseAdmin
     .from("assessments")
-    .select("id, title, prompt, instructions, questions, rubric, max_score, handwriting_weight_pct, feedback_tone, status, area_key, created_at, updated_at")
+    .select("id, title, prompt, instructions, questions, rubric, max_score, handwriting_weight_pct, time_limit_min, feedback_tone, status, area_key, created_at, updated_at")
     .eq("id", candidate.assessment_id)
     .single();
   if (aErr) throw new Error(aErr.message);
