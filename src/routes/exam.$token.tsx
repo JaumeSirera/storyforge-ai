@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getExam, startExam, submitExam } from "@/lib/assessment-candidates.functions";
@@ -119,6 +119,19 @@ function ExamPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const autoSentRef = useRef(false);
+  useEffect(() => {
+    if (!expired || autoSentRef.current || done) return;
+    autoSentRef.current = true;
+    toast.info("Se ha agotado el tiempo: entregando tus respuestas…");
+    submitMut.mutate(true);
+  }, [expired, done, submitMut]);
+
+  const timeLabel =
+    remainingSec == null
+      ? null
+      : `${String(Math.floor(remainingSec / 60)).padStart(2, "0")}:${String(remainingSec % 60).padStart(2, "0")}`;
+
   if (q.isLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center p-6">
@@ -168,7 +181,30 @@ function ExamPage() {
     <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8">
       <header className="space-y-2">
         <Badge variant="secondary">Prueba escrita</Badge>
-        <h1 className="text-2xl font-bold sm:text-3xl">{assessment.title}</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold sm:text-3xl">{assessment.title}</h1>
+          {timeLabel && (
+            <div
+              role="timer"
+              aria-live="off"
+              aria-label={`Tiempo restante ${timeLabel}`}
+              className={`flex items-center gap-2 rounded-md border px-3 py-1.5 font-mono text-lg font-semibold tabular-nums ${
+                (remainingSec ?? 0) <= 60
+                  ? "border-destructive/50 bg-destructive/10 text-destructive"
+                  : "border-border bg-muted text-foreground"
+              }`}
+            >
+              <AlarmClock className="h-4 w-4" aria-hidden="true" />
+              {timeLabel}
+            </div>
+          )}
+        </div>
+        {assessment.timeLimitMin ? (
+          <p className="text-xs text-muted-foreground">
+            Tiempo total: {assessment.timeLimitMin} minutos. Al agotarse, el examen se entrega
+            automáticamente con lo que tengas respondido.
+          </p>
+        ) : null}
         <p className="text-sm text-muted-foreground">
           Aspirante: {exam.candidate.name}
           {exam.candidate.identifier ? ` · ${exam.candidate.identifier}` : ""} · Puntuación máxima:{" "}
@@ -288,8 +324,9 @@ function ExamPage() {
       <div className="sticky bottom-0 flex flex-col gap-2 border-t border-border/60 bg-background/95 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           {answered} de {assessment.questions.length} preguntas respondidas
+          {expired ? " · tiempo agotado" : timeLabel ? ` · quedan ${timeLabel}` : ""}
         </p>
-        <Button onClick={() => submitMut.mutate()} disabled={submitMut.isPending}>
+        <Button onClick={() => submitMut.mutate(false)} disabled={submitMut.isPending || expired}>
           {submitMut.isPending ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
           ) : (
