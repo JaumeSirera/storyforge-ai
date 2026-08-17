@@ -76,7 +76,7 @@ export const Route = createFileRoute("/_authenticated/app/assessments/bank")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: QuestionBankPage;
+  component: QuestionBankPage,
 });
 
 function QuestionBankPage() {
