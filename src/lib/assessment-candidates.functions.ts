@@ -63,10 +63,14 @@ export const deleteAssessmentCandidate = createServerFn({ method: "POST" })
 
 // ─── Examen público (acceso solo con token privado del aspirante) ───
 
-const TokenInput = z.object({ token: z.string().trim().min(20).max(120) });
+const TokenInput = z.object({
+  token: z.string().trim().min(20).max(120),
+  /** Versión del cliente que realiza la acción (para el log de auditoría). */
+  clientVersion: z.string().trim().max(80).optional(),
+});
 
 export const getExam = createServerFn({ method: "GET" })
-  .inputValidator((input: unknown) => TokenInput.parse(input))
+  .inputValidator((input: unknown) => TokenInput.pick({ token: true }).parse(input))
   .handler(async ({ data }) => getExamHandler(data));
 
 export const startExam = createServerFn({ method: "POST" })
