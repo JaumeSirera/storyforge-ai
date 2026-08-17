@@ -282,16 +282,17 @@ export async function submitExamHandler(data: {
     .single();
   if (error) throw new Error(error.message);
 
+  const submittedAt = new Date().toISOString();
   const { error: cErr } = await supabaseAdmin
     .from("assessment_candidates")
     .update({
       status: "submitted",
-      submitted_at: new Date().toISOString(),
+      submitted_at: submittedAt,
       submission_id: submission.id,
       time_expired: timeExpired,
     })
     .eq("id", candidate.id);
   if (cErr) throw new Error(cErr.message);
 
-  return { ok: true, submissionId: submission.id as string };
+  return { ok: true, submissionId: submission.id as string, submittedAt };
 }
