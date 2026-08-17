@@ -79,6 +79,9 @@ export function mapSubmission(row: any): SubmissionRecord {
     errorMessage: row.error_message ?? null,
     gradedAt: row.graded_at ?? null,
     createdAt: row.created_at,
+    approvalStatus: (row.approval_status ?? "pending") as "pending" | "approved" | "rejected",
+    approvalNote: row.approval_note ?? "",
+    approvedAt: row.approved_at ?? null,
   };
 }
 
