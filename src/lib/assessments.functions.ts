@@ -25,6 +25,29 @@ export const getAssessment = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => getAssessmentHandler(data, context));
 
+const QuestionTypeEnum = z.enum([
+  "narrative",
+  "single_choice",
+  "multiple_choice",
+  "true_false",
+  "numeric",
+]);
+
+const QuestionInput = z.object({
+  id: z.string().max(40).default(""),
+  prompt: z.string().max(2000).default(""),
+  type: QuestionTypeEnum.default("narrative"),
+  maxPoints: z.number().min(0).max(100).default(1),
+  keyElements: z.array(z.string().max(400)).max(20).default([]),
+  options: z
+    .array(z.object({ id: z.string().max(8).default(""), text: z.string().max(600).default("") }))
+    .max(8)
+    .default([]),
+  correctOptionIds: z.array(z.string().max(8)).max(8).default([]),
+  correctAnswer: z.string().max(400).default(""),
+  explanation: z.string().max(1000).default(""),
+});
+
 export const createAssessment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
@@ -35,8 +58,11 @@ export const createAssessment = createServerFn({ method: "POST" })
         areaKey: z.string().trim().max(80).nullable().optional(),
         maxScore: z.number().min(1).max(100).default(10),
         handwritingWeightPct: z.number().min(0).max(50).default(15),
-        questionCount: z.number().min(1).max(12).default(4),
+        questionCount: z.number().min(1).max(30).default(4),
         generate: z.boolean().default(true),
+        subject: z.string().trim().max(40).nullable().optional(),
+        questionTypes: z.array(QuestionTypeEnum).min(1).max(5).default(["narrative"]),
+        sourceText: z.string().trim().max(30000).nullable().optional(),
       })
       .parse(input),
   )
@@ -49,7 +75,10 @@ export const regenerateAssessment = createServerFn({ method: "POST" })
       .object({
         id: z.string().uuid(),
         prompt: z.string().trim().min(10).max(4000),
-        questionCount: z.number().min(1).max(12).default(4),
+        questionCount: z.number().min(1).max(30).default(4),
+        subject: z.string().trim().max(40).nullable().optional(),
+        questionTypes: z.array(QuestionTypeEnum).max(5).default([]),
+        sourceText: z.string().trim().max(30000).nullable().optional(),
       })
       .parse(input),
   )
@@ -64,18 +93,8 @@ export const updateAssessmentBlueprint = createServerFn({ method: "POST" })
         instructions: z.string().max(4000).optional(),
         maxScore: z.number().min(1).max(100).optional(),
         handwritingWeightPct: z.number().min(0).max(50).optional(),
-        questions: z
-          .array(
-            z.object({
-              id: z.string().max(40).default(""),
-              prompt: z.string().max(2000).default(""),
-              type: z.literal("narrative").default("narrative"),
-              maxPoints: z.number().min(0).max(100).default(1),
-              keyElements: z.array(z.string().max(400)).max(20).default([]),
-            }),
-          )
-          .max(20)
-          .optional(),
+        questions: z.array(QuestionInput).max(40).optional(),
+
         rubric: z
           .array(
             z.object({
