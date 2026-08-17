@@ -13,6 +13,7 @@ import {
   listAssessmentsHandler,
   regenerateAssessmentHandler,
   updateAssessmentBlueprintHandler,
+  validateAssessmentSourceHandler,
   validateFiles,
 
 } from "./assessments.server";
@@ -164,3 +165,8 @@ export const deleteSubmission = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => deleteSubmissionHandler(data, context));
+
+export const validateAssessmentSource = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => validateAssessmentSourceHandler(data, context));

@@ -859,3 +859,120 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
     throw new Error(message);
   }
 }
+
+// ─────────────────────── Validación contra el texto base ───────────────────────
+
+export type SourceCheckStatus = "supported" | "partial" | "unsupported";
+
+export interface SourceCheckItem {
+  questionId: string;
+  index: number;
+  prompt: string;
+  status: SourceCheckStatus;
+  evidence: string;
+  issue: string;
+}
+
+export interface SourceCheckResult {
+  hasSource: boolean;
+  items: SourceCheckItem[];
+  supported: number;
+  partial: number;
+  unsupported: number;
+  checkedAt: string;
+}
+
+function normalizeCheckStatus(raw: unknown): SourceCheckStatus {
+  const v = String(raw ?? "").trim().toLowerCase();
+  if (v.startsWith("support") || v.startsWith("soport") || v.startsWith("si") || v === "ok")
+    return "supported";
+  if (v.startsWith("partial") || v.startsWith("parcial")) return "partial";
+  return "unsupported";
+}
+
+export async function validateAssessmentSourceHandler(data: { id: string }, context: any) {
+  const { assertAssessmentPermission } = await import("./assessment-roles.server");
+  await assertAssessmentPermission(data.id, "view", context);
+
+  const { data: row, error } = await context.supabase
+    .from("assessments")
+    .select("prompt, questions")
+    .eq("id", data.id)
+    .single();
+  if (error) throw new Error(error.message);
+
+  const { sourceText } = unpackPrompt(row.prompt ?? null);
+  const questions = Array.isArray(row.questions) ? row.questions : [];
+  if (questions.length === 0) throw new Error("La evaluación no tiene preguntas que validar.");
+
+  const empty: SourceCheckResult = {
+    hasSource: false,
+    items: [],
+    supported: 0,
+    partial: 0,
+    unsupported: 0,
+    checkedAt: new Date().toISOString(),
+  };
+  if (!sourceText || sourceText.trim().length < 30) return empty;
+
+  const userKeys = await loadUserKeys(context.supabase, context.userId);
+  const { model, provider, nativeId } = resolveUserTextModel(userKeys);
+
+  const list = questions
+    .map((q: any, i: number) => {
+      const options = Array.isArray(q?.options) ? q.options : [];
+      const correct = Array.isArray(q?.correctOptionIds) ? q.correctOptionIds.join(",") : "";
+      return `#${i + 1} [${q?.type ?? "narrative"}] ${String(q?.prompt ?? "")}${
+        options.length > 0
+          ? `\n   Alternativas: ${options.map((o: any) => `${o?.id}) ${o?.text}`).join(" | ")}\n   Correcta(s): ${correct}`
+          : ""
+      }${q?.correctAnswer ? `\n   Respuesta: ${q.correctAnswer}` : ""}`;
+    })
+    .join("\n");
+
+  const system =
+    "Eres un auditor de calidad de pruebas escritas. Compruebas si cada pregunta y su respuesta correcta se pueden responder y verificar ÚNICAMENTE con el TEXTO BASE aportado. No usas conocimiento externo. Respondes solo con un objeto JSON válido, en español, sin markdown.";
+  const prompt = `TEXTO BASE:\n"""${sourceText.slice(0, 20000)}"""\n\nPREGUNTAS:\n${list}\n\nDevuelve {"items":[{"index":1,"status":"supported|partial|unsupported","evidence":"fragmento literal del TEXTO BASE que la respalda (vacío si no existe)","issue":"qué dato falta o se ha inventado (vacío si está soportada)"}]}.\nCriterio: supported = pregunta y respuesta correcta se verifican con el texto; partial = el tema aparece pero falta algún dato o la respuesta no es inequívoca; unsupported = requiere información que no está en el texto.\nIncluye una entrada por cada pregunta, en el mismo orden.`;
+
+  const result = await generateText({ model, system, prompt });
+  const raw = extractJson(result.text) as any;
+  const rawItems: any[] = Array.isArray(raw?.items) ? raw.items : Array.isArray(raw?.preguntas) ? raw.preguntas : [];
+
+  const items: SourceCheckItem[] = questions.map((q: any, i: number) => {
+    const match =
+      rawItems.find((it) => Number(it?.index ?? it?.indice) === i + 1) ?? rawItems[i] ?? {};
+    return {
+      questionId: String(q?.id ?? slug(i + 1)),
+      index: i + 1,
+      prompt: String(q?.prompt ?? ""),
+      status: normalizeCheckStatus(match?.status ?? match?.estado),
+      evidence: String(match?.evidence ?? match?.evidencia ?? "").slice(0, 600),
+      issue: String(match?.issue ?? match?.problema ?? "").slice(0, 600),
+    };
+  });
+
+  try {
+    const usage = await result.usage;
+    const { recordUsage, userPaysPlatform } = await import("./usage.server");
+    await recordUsage({
+      userId: context.userId,
+      action: "text",
+      provider,
+      model: nativeId,
+      inputTokens: usage.inputTokens ?? 0,
+      outputTokens: usage.outputTokens ?? 0,
+      paysPlatform: await userPaysPlatform(context.userId),
+    });
+  } catch (err) {
+    console.error("[assessments] usage:", err);
+  }
+
+  return {
+    hasSource: true,
+    items,
+    supported: items.filter((i) => i.status === "supported").length,
+    partial: items.filter((i) => i.status === "partial").length,
+    unsupported: items.filter((i) => i.status === "unsupported").length,
+    checkedAt: new Date().toISOString(),
+  } satisfies SourceCheckResult;
+}
