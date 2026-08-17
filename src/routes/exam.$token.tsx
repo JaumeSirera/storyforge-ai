@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { AlarmClock, CheckCircle2, Loader2, Lock, Send } from "lucide-react";
+import { AlarmClock, AlertTriangle, CheckCircle2, Loader2, Lock, PlayCircle, Send } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/exam/$token")({
@@ -64,6 +64,12 @@ function ExamPage() {
   const [deadline, setDeadline] = useState<number | null>(null);
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const [expired, setExpired] = useState(false);
+  /** true cuando el aspirante ya ha pulsado "Comenzar examen" (o lo había comenzado antes). */
+  const [started, setStarted] = useState(false);
+  const [starting, setStarting] = useState(false);
+
+  const answersKey = `playnalyze.exam.answers.${token}`;
+  const submittedKey = `playnalyze.exam.submitted.${token}`;
 
   const q = useQuery({
     queryKey: ["exam", token],
@@ -72,20 +78,75 @@ function ExamPage() {
   });
   const exam = q.data;
 
+  // Bloqueo local: si ya se entregó desde este navegador, no se permite editar aunque refresque.
   useEffect(() => {
-    if (!exam || exam.candidate.status === "submitted") return;
-    start({ data: { token } })
-      .then((res: any) => {
-        const limit = exam.assessment.timeLimitMin;
-        if (!limit || limit <= 0) return;
-        const startedAt = new Date(res?.startedAt ?? exam.candidate.startedAt ?? exam.serverNow).getTime();
-        const serverNow = new Date(res?.serverNow ?? exam.serverNow).getTime();
-        // Compensamos el desfase entre el reloj del servidor y el del navegador.
-        const skew = Date.now() - serverNow;
-        setDeadline(startedAt + limit * 60_000 + skew);
-      })
-      .catch(() => {});
-  }, [exam, start, token]);
+    try {
+      const flag = window.localStorage.getItem(submittedKey);
+      if (flag) {
+        setSubmittedAt(flag);
+        setDone(true);
+      }
+    } catch {
+      /* almacenamiento no disponible */
+    }
+  }, [submittedKey]);
+
+  // Recupera las respuestas guardadas para continuar donde lo dejó tras un refresco.
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    try {
+      const raw = window.localStorage.getItem(answersKey);
+      if (raw) setAnswers(JSON.parse(raw) as Record<string, AnswerState>);
+    } catch {
+      /* datos corruptos: se ignoran */
+    }
+  }, [answersKey]);
+
+  // Guarda el progreso en cada cambio.
+  useEffect(() => {
+    if (!restoredRef.current || done) return;
+    try {
+      window.localStorage.setItem(answersKey, JSON.stringify(answers));
+    } catch {
+      /* almacenamiento no disponible */
+    }
+  }, [answers, answersKey, done]);
+
+  /** Calcula el fin del examen a partir de la hora del servidor. */
+  const applyDeadline = (startedAtIso?: string | null, serverNowIso?: string | null) => {
+    const limit = exam?.assessment.timeLimitMin;
+    if (!limit || limit <= 0) return;
+    const startedAt = new Date(startedAtIso ?? exam?.serverNow ?? Date.now()).getTime();
+    const serverNow = new Date(serverNowIso ?? exam?.serverNow ?? Date.now()).getTime();
+    // Compensamos el desfase entre el reloj del servidor y el del navegador.
+    const skew = Date.now() - serverNow;
+    setDeadline(startedAt + limit * 60_000 + skew);
+  };
+
+  // Si ya había comenzado (p. ej. tras refrescar), se reanuda automáticamente sin reiniciar el tiempo.
+  useEffect(() => {
+    if (!exam || started || done) return;
+    if (exam.candidate.status === "started" && exam.candidate.startedAt) {
+      setStarted(true);
+      applyDeadline(exam.candidate.startedAt, exam.serverNow);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exam, started, done]);
+
+  const beginExam = async () => {
+    setStarting(true);
+    try {
+      const res: any = await start({ data: { token } });
+      setStarted(true);
+      applyDeadline(res?.startedAt ?? exam?.candidate.startedAt, res?.serverNow);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setStarting(false);
+    }
+  };
 
   // Cuenta atrás visible + entrega automática al agotarse el tiempo.
   useEffect(() => {
@@ -126,8 +187,15 @@ function ExamPage() {
         },
       }),
     onSuccess: (res: any) => {
-      setSubmittedAt(res?.submittedAt ?? new Date().toISOString());
+      const at = res?.submittedAt ?? new Date().toISOString();
+      setSubmittedAt(at);
       setDone(true);
+      try {
+        window.localStorage.setItem(submittedKey, at);
+        window.localStorage.removeItem(answersKey);
+      } catch {
+        /* almacenamiento no disponible */
+      }
       toast.success("Examen finalizado y entregado correctamente");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -210,6 +278,57 @@ function ExamPage() {
   const locked = submitMut.isPending || done;
 
   const { assessment } = exam;
+
+  // Pantalla previa: el examen no se abre (ni arranca el tiempo) hasta pulsar "Comenzar examen".
+  if (!started) {
+    const hasSavedAnswers = Object.keys(answers).length > 0;
+    return (
+      <main className="mx-auto flex min-h-screen max-w-lg items-center justify-center p-6">
+        <Card className="w-full">
+          <CardHeader>
+            <Badge variant="secondary" className="w-fit">Prueba escrita</Badge>
+            <CardTitle>{assessment.title}</CardTitle>
+            <CardDescription>
+              Aspirante: {exam.candidate.name}
+              {exam.candidate.identifier ? ` · ${exam.candidate.identifier}` : ""} · Puntuación
+              máxima: {assessment.maxScore} · {assessment.questions.length} preguntas
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+              <p className="flex items-center gap-2 font-medium text-destructive">
+                <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+                Antes de comenzar
+              </p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
+                <li>
+                  Al comenzar el examen no podrás volver atrás
+                  {assessment.timeLimitMin
+                    ? ` y se iniciará la cuenta atrás de ${assessment.timeLimitMin} minutos.`
+                    : "."}
+                </li>
+                <li>Tu progreso se guarda automáticamente: si refrescas, continuarás donde estabas.</li>
+                <li>Cuando finalices el examen no podrás modificar tus respuestas.</li>
+              </ul>
+            </div>
+            {hasSavedAnswers && (
+              <p className="text-sm text-muted-foreground">
+                Hemos recuperado respuestas guardadas en este dispositivo.
+              </p>
+            )}
+            <Button onClick={beginExam} disabled={starting} className="w-full">
+              {starting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <PlayCircle className="mr-2 h-4 w-4" aria-hidden="true" />
+              )}
+              Comenzar examen
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8">
