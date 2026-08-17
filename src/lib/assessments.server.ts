@@ -142,6 +142,7 @@ export async function generateBlueprint(
     subject?: string | null;
     questionTypes?: string[];
     sourceText?: string | null;
+    allowOutsideSource?: boolean;
   },
   context: any,
 ): Promise<AssessmentBlueprint> {
