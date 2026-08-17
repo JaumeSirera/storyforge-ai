@@ -220,6 +220,9 @@ export async function createAssessmentHandler(
     handwritingWeightPct: number;
     questionCount: number;
     generate: boolean;
+    subject?: string | null;
+    questionTypes?: string[];
+    sourceText?: string | null;
   },
   context: any,
 ) {
@@ -231,6 +234,9 @@ export async function createAssessmentHandler(
         questionCount: data.questionCount,
         maxScore: data.maxScore,
         areaKey: data.areaKey ?? null,
+        subject: data.subject ?? null,
+        questionTypes: data.questionTypes ?? ["narrative"],
+        sourceText: data.sourceText ?? null,
       },
       context,
     );
@@ -242,7 +248,7 @@ export async function createAssessmentHandler(
       owner_id: context.userId,
       title: blueprint?.title || data.title,
       area_key: data.areaKey ?? null,
-      prompt: data.prompt ?? null,
+      prompt: packPrompt(data.prompt ?? null, data.subject ?? null, data.questionTypes, data.sourceText ?? null),
       instructions: blueprint?.instructions ?? null,
       questions: blueprint?.questions ?? [],
       rubric: blueprint?.rubric ?? [],
@@ -256,17 +262,69 @@ export async function createAssessmentHandler(
   return { assessment: mapAssessment(row) };
 }
 
+const SOURCE_MARK = "\n\n[TEXTO BASE]\n";
+const META_MARK = "\n\n[CONFIG]";
+
+/** Guarda materia, tipos y texto base dentro del campo `prompt` (sin cambiar el esquema). */
+export function packPrompt(
+  prompt: string | null,
+  subject: string | null,
+  questionTypes: string[] | undefined,
+  sourceText: string | null,
+) {
+  if (!prompt && !sourceText) return null;
+  let out = prompt ?? "";
+  if (subject || (questionTypes && questionTypes.length > 0)) {
+    out += `${META_MARK} materia=${subject ?? "generico"} tipos=${(questionTypes ?? ["narrative"]).join(",")}`;
+  }
+  if (sourceText?.trim()) out += `${SOURCE_MARK}${sourceText.trim()}`;
+  return out;
+}
+
+/** Recupera materia, tipos y texto base guardados en el campo `prompt`. */
+export function unpackPrompt(stored: string | null) {
+  const value = stored ?? "";
+  const [beforeSource, ...sourceRest] = value.split(SOURCE_MARK);
+  const sourceText = sourceRest.length > 0 ? sourceRest.join(SOURCE_MARK) : null;
+  const [prompt, meta] = beforeSource.split(META_MARK);
+  const subject = meta?.match(/materia=([\w-]+)/)?.[1] ?? null;
+  const typesRaw = meta?.match(/tipos=([\w,]+)/)?.[1];
+  return {
+    prompt: (prompt ?? "").trim(),
+    subject,
+    questionTypes: typesRaw ? typesRaw.split(",").filter(Boolean) : [],
+    sourceText,
+  };
+}
+
 export async function regenerateAssessmentHandler(
-  data: { id: string; prompt: string; questionCount: number },
+  data: {
+    id: string;
+    prompt: string;
+    questionCount: number;
+    subject?: string | null;
+    questionTypes?: string[];
+    sourceText?: string | null;
+  },
   context: any,
 ) {
   const { data: current, error: curErr } = await context.supabase
     .from("assessments")
-    .select("max_score, area_key")
+    .select("max_score, area_key, prompt")
     .eq("id", data.id)
     .eq("owner_id", context.userId)
     .single();
   if (curErr) throw new Error(curErr.message);
+
+  const previous = unpackPrompt(current.prompt ?? null);
+  const subject = data.subject ?? previous.subject ?? null;
+  const questionTypes =
+    data.questionTypes && data.questionTypes.length > 0
+      ? data.questionTypes
+      : previous.questionTypes.length > 0
+        ? previous.questionTypes
+        : ["narrative"];
+  const sourceText = data.sourceText ?? previous.sourceText ?? null;
 
   const blueprint = await generateBlueprint(
     {
@@ -274,6 +332,9 @@ export async function regenerateAssessmentHandler(
       questionCount: data.questionCount,
       maxScore: Number(current.max_score ?? 10),
       areaKey: current.area_key ?? null,
+      subject,
+      questionTypes,
+      sourceText,
     },
     context,
   );
@@ -281,7 +342,7 @@ export async function regenerateAssessmentHandler(
   const { data: row, error } = await context.supabase
     .from("assessments")
     .update({
-      prompt: data.prompt,
+      prompt: packPrompt(data.prompt, subject, questionTypes, sourceText),
       instructions: blueprint.instructions,
       questions: blueprint.questions,
       rubric: blueprint.rubric,
@@ -294,6 +355,7 @@ export async function regenerateAssessmentHandler(
   if (error) throw new Error(error.message);
   return { assessment: mapAssessment(row) };
 }
+
 
 export async function updateAssessmentBlueprintHandler(
   data: {
