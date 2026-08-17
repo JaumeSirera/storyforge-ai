@@ -9,7 +9,7 @@ import { mapAssessment } from "./assessments.server";
 import type { AssessmentQuestion } from "./assessments-shared";
 
 const CANDIDATE_COLUMNS =
-  "id, assessment_id, name, email, identifier, token, status, submission_id, expires_at, started_at, submitted_at, note, created_at";
+  "id, assessment_id, name, email, identifier, token, status, submission_id, expires_at, started_at, submitted_at, note, created_at, time_expired";
 
 export function mapCandidate(row: any): AssessmentCandidate {
   return {
@@ -21,6 +21,7 @@ export function mapCandidate(row: any): AssessmentCandidate {
     token: row.token,
     status: (row.status ?? "invited") as CandidateStatus,
     submissionId: row.submission_id ?? null,
+    timeExpired: Boolean(row.time_expired),
     expiresAt: row.expires_at ?? null,
     startedAt: row.started_at ?? null,
     submittedAt: row.submitted_at ?? null,
@@ -189,10 +190,14 @@ export async function getExamHandler(data: { token: string }): Promise<ExamPaylo
       name: candidate.name,
       identifier: candidate.identifier ?? null,
       status: (candidate.status ?? "invited") as CandidateStatus,
+      startedAt: candidate.started_at ?? null,
+      timeExpired: Boolean((candidate as any).time_expired),
     },
+    serverNow: new Date().toISOString(),
     assessment: {
       id: assessment.id,
       title: assessment.title,
+      timeLimitMin: assessment.timeLimitMin,
       instructions: assessment.instructions ? stripSourceReferences(assessment.instructions) : null,
       maxScore: assessment.maxScore,
       questions: assessment.questions.map(toExamQuestion).map((q) => ({
@@ -206,15 +211,20 @@ export async function getExamHandler(data: { token: string }): Promise<ExamPaylo
 export async function startExamHandler(data: { token: string }) {
   const { supabaseAdmin, candidate } = await loadByToken(data.token);
   if (candidate.status === "submitted") throw new Error("Ya has entregado este examen.");
-  if (candidate.status !== "started") {
+  let startedAt = candidate.started_at ?? null;
+  if (candidate.status !== "started" || !startedAt) {
+    startedAt = new Date().toISOString();
     const { error } = await supabaseAdmin
       .from("assessment_candidates")
-      .update({ status: "started", started_at: new Date().toISOString() })
+      .update({ status: "started", started_at: startedAt })
       .eq("id", candidate.id);
     if (error) throw new Error(error.message);
   }
-  return { ok: true };
+  return { ok: true, startedAt, serverNow: new Date().toISOString() };
 }
+
+/** Margen de cortesía (segundos) para absorber latencia de red al entregar al límite. */
+const TIME_GRACE_SEC = 30;
 
 function formatAnswers(questions: ExamQuestion[], answers: ExamAnswerInput[]) {
   const byId = new Map(answers.map((a) => [a.questionId, a]));
@@ -232,9 +242,25 @@ function formatAnswers(questions: ExamQuestion[], answers: ExamAnswerInput[]) {
     .join("\n\n");
 }
 
-export async function submitExamHandler(data: { token: string; answers: ExamAnswerInput[] }) {
+export async function submitExamHandler(data: {
+  token: string;
+  answers: ExamAnswerInput[];
+  auto?: boolean;
+}) {
   const { supabaseAdmin, candidate, assessment } = await loadByToken(data.token);
   if (candidate.status === "submitted") throw new Error("Ya has entregado este examen.");
+
+  // Validación del tiempo: se acepta la entrega dentro del límite (+ margen) o
+  // cuando es el cierre automático al agotarse el tiempo.
+  const limitMin = assessment.timeLimitMin;
+  let timeExpired = false;
+  if (limitMin && limitMin > 0) {
+    const startedAt = candidate.started_at ? new Date(candidate.started_at).getTime() : Date.now();
+    const elapsedSec = (Date.now() - startedAt) / 1000;
+    timeExpired = elapsedSec > limitMin * 60;
+    if (timeExpired && !data.auto && elapsedSec > limitMin * 60 + TIME_GRACE_SEC)
+      throw new Error("El tiempo del examen ha finalizado y no se admiten más cambios.");
+  }
 
   const questions = assessment.questions.map(toExamQuestion);
   const text = formatAnswers(questions, data.answers);
@@ -261,6 +287,7 @@ export async function submitExamHandler(data: { token: string; answers: ExamAnsw
       status: "submitted",
       submitted_at: new Date().toISOString(),
       submission_id: submission.id,
+      time_expired: timeExpired,
     })
     .eq("id", candidate.id);
   if (cErr) throw new Error(cErr.message);
