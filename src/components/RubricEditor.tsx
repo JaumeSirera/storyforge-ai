@@ -2,7 +2,21 @@ import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { updateAssessmentBlueprint } from "@/lib/assessments.functions";
-import type { AssessmentQuestion, AssessmentRecord, RubricCriterion } from "@/lib/assessments-shared";
+import {
+  QUESTION_TYPES,
+  QUESTION_TYPE_LABELS,
+  type AssessmentQuestion,
+  type AssessmentRecord,
+  type QuestionType,
+  type RubricCriterion,
+} from "@/lib/assessments-shared";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
