@@ -29,11 +29,12 @@ export function mapAnnotation(row: any): SubmissionAnnotation {
 }
 
 export async function listAnnotationsHandler(data: { submissionId: string }, context: any) {
+  const { assertSubmissionPermission } = await import("./assessment-roles.server");
+  await assertSubmissionPermission(data.submissionId, "view", context);
   const { data: rows, error } = await context.supabase
     .from("assessment_annotations")
     .select(COLUMNS)
     .eq("submission_id", data.submissionId)
-    .eq("owner_id", context.userId)
     .order("page_index", { ascending: true })
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
@@ -55,15 +56,9 @@ export interface SaveAnnotationInput {
 }
 
 export async function saveAnnotationHandler(data: SaveAnnotationInput, context: any) {
-  // La entrega debe pertenecer al usuario autenticado.
-  const { data: submission, error: sErr } = await context.supabase
-    .from("assessment_submissions")
-    .select("id")
-    .eq("id", data.submissionId)
-    .eq("owner_id", context.userId)
-    .maybeSingle();
-  if (sErr) throw new Error(sErr.message);
-  if (!submission) throw new Error("Entrega no encontrada.");
+  // Debe tener permiso de anotación sobre la evaluación de la entrega.
+  const { assertSubmissionPermission } = await import("./assessment-roles.server");
+  await assertSubmissionPermission(data.submissionId, "annotate", context);
 
   const payload = {
     submission_id: data.submissionId,
