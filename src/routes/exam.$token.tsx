@@ -139,7 +139,15 @@ function ExamPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8">
-
+      <header className="space-y-2">
+        <Badge variant="secondary">Prueba escrita</Badge>
+        <h1 className="text-2xl font-bold sm:text-3xl">{assessment.title}</h1>
+        <p className="text-sm text-muted-foreground">
+          Aspirante: {exam.candidate.name}
+          {exam.candidate.identifier ? ` · ${exam.candidate.identifier}` : ""} · Puntuación máxima:{" "}
+          {assessment.maxScore}
+        </p>
+      </header>
 
       <ol className="space-y-4">
         {assessment.questions.map((question, index) => {
