@@ -67,6 +67,7 @@ export const generateBankQuestions = createServerFn({ method: "POST" })
         areaKey: z.string().trim().max(80).nullable().optional(),
         questionTypes: z.array(QuestionTypeEnum).min(1).max(5).default(["narrative"]),
         sourceText: z.string().trim().max(30000).nullable().optional(),
+        allowOutsideSource: z.boolean().default(false),
         tags: TagsInput.default([]),
       })
       .parse(input),

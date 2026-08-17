@@ -139,6 +139,7 @@ export async function generateBankQuestionsHandler(
     areaKey?: string | null;
     questionTypes?: string[];
     sourceText?: string | null;
+    allowOutsideSource?: boolean;
     tags?: string[];
   },
   context: any,
@@ -152,6 +153,7 @@ export async function generateBankQuestionsHandler(
       subject: data.subject ?? null,
       questionTypes: data.questionTypes ?? ["narrative"],
       sourceText: data.sourceText ?? null,
+      allowOutsideSource: data.allowOutsideSource ?? false,
     },
     context,
   );
