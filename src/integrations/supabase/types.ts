@@ -1002,6 +1002,100 @@ export type Database = {
         }
         Relationships: []
       }
+      question_bank_items: {
+        Row: {
+          area_key: string | null
+          created_at: string
+          id: string
+          owner_id: string
+          prompt: string
+          question: Json
+          source_assessment_id: string | null
+          subject: string | null
+          tags: string[]
+          times_used: number
+          type: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          area_key?: string | null
+          created_at?: string
+          id?: string
+          owner_id: string
+          prompt?: string
+          question?: Json
+          source_assessment_id?: string | null
+          subject?: string | null
+          tags?: string[]
+          times_used?: number
+          type?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          area_key?: string | null
+          created_at?: string
+          id?: string
+          owner_id?: string
+          prompt?: string
+          question?: Json
+          source_assessment_id?: string | null
+          subject?: string | null
+          tags?: string[]
+          times_used?: number
+          type?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_bank_items_source_assessment_id_fkey"
+            columns: ["source_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_bank_versions: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          note: string
+          owner_id: string
+          question: Json
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          note?: string
+          owner_id: string
+          question?: Json
+          version: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          note?: string
+          owner_id?: string
+          question?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_bank_versions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "question_bank_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       redsys_payments: {
         Row: {
           amount_cents: number
