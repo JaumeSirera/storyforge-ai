@@ -6,10 +6,13 @@ import { listAssessments, createAssessment, deleteAssessment } from "@/lib/asses
 import { listPracticeAreas } from "@/lib/areas.functions";
 import {
   ASSESSMENT_SUBJECTS,
+  FEEDBACK_TONES,
+  FEEDBACK_TONE_LABELS,
   QUESTION_TYPES,
   QUESTION_TYPE_LABELS,
   SUBJECT_LABELS,
   type AssessmentSubject,
+  type FeedbackTone,
   type QuestionType,
 } from "@/lib/assessments-shared";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,6 +69,7 @@ function AssessmentsIndex() {
   const [maxScore, setMaxScore] = useState(10);
   const [questionCount, setQuestionCount] = useState(4);
   const [handwritingWeight, setHandwritingWeight] = useState(15);
+  const [feedbackTone, setFeedbackTone] = useState<FeedbackTone>("formativo");
   const [subject, setSubject] = useState<AssessmentSubject>("generico");
   const [types, setTypes] = useState<QuestionType[]>(["narrative"]);
   const [sourceText, setSourceText] = useState("");
@@ -82,6 +86,7 @@ function AssessmentsIndex() {
           areaKey: areaKey === "general" ? null : areaKey,
           maxScore,
           handwritingWeightPct: handwritingWeight,
+          feedbackTone,
           questionCount,
           generate: prompt.trim().length >= 10 || sourceText.trim().length >= 50,
           subject,
@@ -256,6 +261,21 @@ function AssessmentsIndex() {
                 value={handwritingWeight}
                 onChange={(e) => setHandwritingWeight(Number(e.target.value) || 0)}
               />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="a-tone">Tono del feedback</Label>
+              <Select value={feedbackTone} onValueChange={(v) => setFeedbackTone(v as FeedbackTone)}>
+                <SelectTrigger id="a-tone">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FEEDBACK_TONES.map((tone) => (
+                    <SelectItem key={tone} value={tone}>
+                      {FEEDBACK_TONE_LABELS[tone]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

@@ -3,10 +3,13 @@ import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { updateAssessmentBlueprint } from "@/lib/assessments.functions";
 import {
+  FEEDBACK_TONES,
+  FEEDBACK_TONE_LABELS,
   QUESTION_TYPES,
   QUESTION_TYPE_LABELS,
   type AssessmentQuestion,
   type AssessmentRecord,
+  type FeedbackTone,
   type QuestionType,
   type RubricCriterion,
 } from "@/lib/assessments-shared";
@@ -49,6 +52,7 @@ export function RubricEditor({ assessment, onSaved }: Props) {
   const [instructions, setInstructions] = useState(assessment.instructions ?? "");
   const [maxScore, setMaxScore] = useState(assessment.maxScore);
   const [handwritingWeightPct, setHandwritingWeightPct] = useState(assessment.handwritingWeightPct);
+  const [feedbackTone, setFeedbackTone] = useState<FeedbackTone>(assessment.feedbackTone);
 
   const reset = () => {
     setRubric(assessment.rubric);
@@ -56,6 +60,7 @@ export function RubricEditor({ assessment, onSaved }: Props) {
     setInstructions(assessment.instructions ?? "");
     setMaxScore(assessment.maxScore);
     setHandwritingWeightPct(assessment.handwritingWeightPct);
+    setFeedbackTone(assessment.feedbackTone);
   };
 
   useEffect(reset, [assessment]);
@@ -97,6 +102,7 @@ export function RubricEditor({ assessment, onSaved }: Props) {
           instructions,
           maxScore,
           handwritingWeightPct,
+          feedbackTone,
           questions: questions.map((q, i) => ({
             id: q.id || uid(`q${i + 1}`),
             prompt: q.prompt,
@@ -173,11 +179,29 @@ export function RubricEditor({ assessment, onSaved }: Props) {
               onChange={(e) => setHandwritingWeightPct(Number(e.target.value) || 0)}
             />
           </div>
-          <div className="flex items-end">
-            <Button variant="outline" className="w-full" onClick={distributeWeights}>
-              Repartir pesos al 100%
-            </Button>
+          <div className="space-y-1.5">
+            <Label htmlFor="rb-tone">Tono del feedback</Label>
+            <Select value={feedbackTone} onValueChange={(v) => setFeedbackTone(v as FeedbackTone)}>
+              <SelectTrigger id="rb-tone">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FEEDBACK_TONES.map((tone) => (
+                  <SelectItem key={tone} value={tone}>
+                    {FEEDBACK_TONE_LABELS[tone]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Se aplica a la explicación y al feedback de cada pregunta, en pantalla y en el PDF.
+            </p>
           </div>
+        </div>
+        <div>
+          <Button variant="outline" onClick={distributeWeights}>
+            Repartir pesos al 100%
+          </Button>
         </div>
 
         <div className="space-y-1.5">

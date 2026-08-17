@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { FEEDBACK_TONES } from "./assessments-shared";
 import {
   createAssessmentHandler,
   createSubmissionHandler,
@@ -58,6 +59,7 @@ export const createAssessment = createServerFn({ method: "POST" })
         areaKey: z.string().trim().max(80).nullable().optional(),
         maxScore: z.number().min(1).max(100).default(10),
         handwritingWeightPct: z.number().min(0).max(50).default(15),
+        feedbackTone: z.enum(FEEDBACK_TONES).default("formativo"),
         questionCount: z.number().min(1).max(30).default(4),
         generate: z.boolean().default(true),
         subject: z.string().trim().max(40).nullable().optional(),
@@ -93,6 +95,7 @@ export const updateAssessmentBlueprint = createServerFn({ method: "POST" })
         instructions: z.string().max(4000).optional(),
         maxScore: z.number().min(1).max(100).optional(),
         handwritingWeightPct: z.number().min(0).max(50).optional(),
+        feedbackTone: z.enum(FEEDBACK_TONES).optional(),
         questions: z.array(QuestionInput).max(40).optional(),
 
         rubric: z

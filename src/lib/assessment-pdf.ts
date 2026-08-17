@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import {
   VERDICT_LABELS,
+  FEEDBACK_TONE_LABELS,
   ANNOTATION_KIND_LABELS,
   gradeLabel,
   type AssessmentEvaluation,
@@ -123,6 +124,7 @@ export function generateAssessmentPdf(data: AssessmentPdfData): jsPDF {
 
   if (evaluation.answers.length > 0) {
     heading("Corrección y feedback por pregunta");
+    body(`Tono del feedback: ${FEEDBACK_TONE_LABELS[assessment.feedbackTone]}`, { size: 9 });
     for (const answer of evaluation.answers) {
       body(
         `${answer.question || answer.questionId} — ${answer.score} / ${answer.maxPoints} puntos · ${VERDICT_LABELS[answer.verdict] ?? ""}`,

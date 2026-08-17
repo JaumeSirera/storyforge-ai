@@ -2,6 +2,8 @@ import { generateText } from "ai";
 import { resolveUserTextModel } from "./ai-gateway.server";
 import {
   ANSWER_VERDICTS,
+  FEEDBACK_TONE_INSTRUCTIONS,
+  normalizeFeedbackTone,
   BlueprintSchema,
   EvaluationSchema,
   HandwritingSchema,
@@ -36,7 +38,7 @@ function normalizeVerdict(raw: unknown, score: number, maxPoints: number): Answe
 }
 
 const ASSESSMENT_COLUMNS =
-  "id, title, area_key, prompt, instructions, questions, rubric, max_score, handwriting_weight_pct, status, created_at, updated_at";
+  "id, title, area_key, prompt, instructions, questions, rubric, max_score, handwriting_weight_pct, feedback_tone, status, created_at, updated_at";
 const SUBMISSION_COLUMNS =
   "id, assessment_id, candidate_name, candidate_identifier, source_kind, pages, extracted_text, handwriting, evaluation, score, max_score, status, error_message, graded_at, created_at";
 
@@ -51,6 +53,7 @@ export function mapAssessment(row: any): AssessmentRecord {
     rubric: Array.isArray(row.rubric) ? row.rubric : [],
     maxScore: Number(row.max_score ?? 10),
     handwritingWeightPct: Number(row.handwriting_weight_pct ?? 15),
+    feedbackTone: normalizeFeedbackTone(row.feedback_tone),
     status: row.status ?? "draft",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -237,6 +240,7 @@ export async function createAssessmentHandler(
     areaKey?: string | null;
     maxScore: number;
     handwritingWeightPct: number;
+    feedbackTone?: string;
     questionCount: number;
     generate: boolean;
     subject?: string | null;
@@ -273,6 +277,7 @@ export async function createAssessmentHandler(
       rubric: blueprint?.rubric ?? [],
       max_score: data.maxScore,
       handwriting_weight_pct: data.handwritingWeightPct,
+      feedback_tone: normalizeFeedbackTone(data.feedbackTone),
       status: blueprint ? "ready" : "draft",
     })
     .select(ASSESSMENT_COLUMNS)
@@ -382,6 +387,7 @@ export async function updateAssessmentBlueprintHandler(
     instructions?: string;
     maxScore?: number;
     handwritingWeightPct?: number;
+    feedbackTone?: string;
     questions?: any[];
     rubric?: any[];
   },
@@ -392,6 +398,8 @@ export async function updateAssessmentBlueprintHandler(
   if (data.maxScore !== undefined) patch.max_score = data.maxScore;
   if (data.handwritingWeightPct !== undefined)
     patch.handwriting_weight_pct = data.handwritingWeightPct;
+  if (data.feedbackTone !== undefined)
+    patch.feedback_tone = normalizeFeedbackTone(data.feedbackTone);
   if (data.questions !== undefined) patch.questions = data.questions;
   if (data.rubric !== undefined) {
     patch.rubric = data.rubric;
@@ -687,6 +695,8 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
             .join("\n")}`
         : "";
 
+    const toneRule = `\nESTILO DEL FEEDBACK: ${FEEDBACK_TONE_INSTRUCTIONS[assessment.feedbackTone]}\nAplica ese tono en explanation, feedback y nextStep de TODAS las preguntas, y también en summary, recommendations y conclusion. No cambies por ello la puntuación ni los hechos.`;
+
     const fileParts = pages.length > 0 ? await buildFileParts(pages) : [];
     const result = await generateText({
       model,
@@ -695,7 +705,7 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
         {
           role: "user",
           content: [
-            { type: "text", text: instructions + objectiveRule + annotationBrief },
+            { type: "text", text: instructions + objectiveRule + toneRule + annotationBrief },
             ...fileParts,
           ],
         } as any,
