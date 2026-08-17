@@ -6,10 +6,12 @@ import {
   getSessionInsights,
   generateSessionInsights,
   deleteSessionInsights,
+} from "@/lib/insights.functions";
+import {
   REPORT_ROLES,
   ROLE_GUIDES,
   type ReportRole,
-} from "@/lib/insights.functions";
+} from "@/lib/insights-shared";
 import { getSessionScenes } from "@/lib/scenes.functions";
 import { listSceneAnnotations } from "@/lib/scene-annotations.functions";
 import { getSessionAnalysis } from "@/lib/analyze.functions";

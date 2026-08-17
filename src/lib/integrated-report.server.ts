@@ -1,7 +1,7 @@
 // Cruce entre el informe final de la simulación (decisiones) y el análisis de
 // la grabación (comportamiento observable). Solo hechos trazables.
 import type { SessionMetrics, InteractionNetwork } from "./analyze-metrics";
-import type { SessionInsights } from "./insights.functions";
+import type { SessionInsights } from "./insights-shared";
 
 export interface IntegratedTimelineEntry {
   index: number;
