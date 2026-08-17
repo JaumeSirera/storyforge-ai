@@ -152,7 +152,21 @@ export async function generateBlueprint(
   const system =
     "Eres un experto en evaluación educativa, pruebas psicotécnicas y procesos de selección. Diseñas pruebas escritas (desarrollo, test, verdadero/falso y ejercicios numéricos) con rúbricas analíticas defendibles. Cuando la pregunta es cerrada, la respuesta correcta es inequívoca y verificable. Respondes solo con un objeto JSON válido, en español, sin markdown.";
   const prompt = `Diseña una prueba escrita a partir de este encargo:\n"""${input.prompt}"""\nÁrea: ${input.areaKey ?? "general"}\nMateria / tipo de contenido: ${input.subject ?? "generico"}\nTipos de pregunta permitidos (usa solo estos, repartidos de forma equilibrada): ${types.join(", ")}\nNúmero de preguntas: ${input.questionCount}\nPuntuación total de la prueba: ${input.maxScore}
-${input.sourceText ? `\nTEXTO BASE sobre el que deben versar las preguntas (no lo reescribas, úsalo como fuente):\n"""${input.sourceText.slice(0, 20000)}"""\n` : ""}
+${
+    input.sourceText
+      ? `\nTEXTO BASE (fuente única de la prueba; no lo reescribas):\n"""${input.sourceText.slice(0, 20000)}"""\n${
+          input.allowOutsideSource
+            ? "\nPuedes ampliar con contenido externo relacionado, pero la mayoría de las preguntas deben salir del TEXTO BASE.\n"
+            : `\nREGLA DE ANCLAJE ESTRICTO (obligatoria):
+- TODAS las preguntas, alternativas, respuestas correctas y elementos clave deben poder responderse y verificarse ÚNICAMENTE con la información literal o directamente inferible del TEXTO BASE.
+- Está PROHIBIDO inventar datos, cifras, nombres, fechas, normativa, fórmulas o conceptos que no aparezcan en el TEXTO BASE, aunque sean ciertos en el mundo real.
+- Los distractores de los test deben ser plausibles pero falsos SEGÚN EL TEXTO BASE (no requieren conocimiento externo).
+- En explanation cita brevemente la parte del TEXTO BASE que justifica la respuesta (frase o fragmento entre comillas).
+- Si el TEXTO BASE no da material suficiente para ${input.questionCount} preguntas, genera menos preguntas en lugar de inventar contenido, y reparte la puntuación entre las que sí generes.
+`
+        }`
+      : ""
+  }
 Devuelve exactamente estas claves JSON: title (string), instructions (string con indicaciones para el candidato), questions (array), rubric (array de {id, name, description, weightPct, levels: array de {label, descriptor, pct}}).
 
 Cada pregunta es un objeto {id, prompt, type, maxPoints, keyElements, options, correctOptionIds, correctAnswer, explanation} donde:
