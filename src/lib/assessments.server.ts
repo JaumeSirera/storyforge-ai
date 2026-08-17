@@ -552,18 +552,19 @@ export async function deleteSubmissionHandler(data: { id: string }, context: any
 }
 
 export async function getSubmissionHandler(data: { id: string }, context: any) {
+  const { assertSubmissionPermission } = await import("./assessment-roles.server");
+  const { permissions } = await assertSubmissionPermission(data.id, "view", context);
+
   const { data: row, error } = await context.supabase
     .from("assessment_submissions")
     .select(SUBMISSION_COLUMNS)
     .eq("id", data.id)
-    .eq("owner_id", context.userId)
     .single();
   if (error) throw new Error(error.message);
   const { data: assessment, error: aErr } = await context.supabase
     .from("assessments")
     .select(ASSESSMENT_COLUMNS)
     .eq("id", row.assessment_id)
-    .eq("owner_id", context.userId)
     .single();
   if (aErr) throw new Error(aErr.message);
 
