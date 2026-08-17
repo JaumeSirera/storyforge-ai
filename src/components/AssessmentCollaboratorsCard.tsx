@@ -9,8 +9,9 @@ import {
 import {
   COLLABORATOR_ROLES,
   COLLABORATOR_ROLE_LABELS,
+  type Collaborator,
   type CollaboratorRole,
-} from "@/lib/assessment-roles.server";
+} from "@/lib/assessment-roles-shared";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -127,7 +128,7 @@ export function AssessmentCollaboratorsCard({
           </p>
         ) : (
           <ul className="divide-y divide-border rounded-md border border-border">
-            {collaborators.map((c) => (
+            {(collaborators as Collaborator[]).map((c) => (
               <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 p-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{c.email}</p>
