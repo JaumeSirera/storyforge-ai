@@ -58,6 +58,8 @@ function ExamPage() {
 
   const [answers, setAnswers] = useState<Record<string, AnswerState>>({});
   const [done, setDone] = useState(false);
+  /** ISO de la entrega, devuelto por el servidor al finalizar el examen. */
+  const [submittedAt, setSubmittedAt] = useState<string | null>(null);
   /** Marca temporal local equivalente al fin del examen (calculada con la hora del servidor). */
   const [deadline, setDeadline] = useState<number | null>(null);
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
