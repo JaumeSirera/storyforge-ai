@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getSubmission, gradeSubmission } from "@/lib/assessments.functions";
-import { gradeLabel } from "@/lib/assessments-shared";
+import { gradeLabel, VERDICT_LABELS } from "@/lib/assessments-shared";
 import { generateAssessmentPdf } from "@/lib/assessment-pdf";
 import { SubmissionPageAnnotator } from "@/components/SubmissionPageAnnotator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

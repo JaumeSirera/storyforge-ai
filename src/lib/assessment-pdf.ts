@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import {
+  VERDICT_LABELS,
   ANNOTATION_KIND_LABELS,
   gradeLabel,
   type AssessmentEvaluation,
