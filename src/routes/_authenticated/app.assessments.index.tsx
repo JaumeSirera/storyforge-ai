@@ -4,6 +4,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { listAssessments, createAssessment, deleteAssessment } from "@/lib/assessments.functions";
 import { listPracticeAreas } from "@/lib/areas.functions";
+import {
+  ASSESSMENT_SUBJECTS,
+  QUESTION_TYPES,
+  QUESTION_TYPE_LABELS,
+  SUBJECT_LABELS,
+  type AssessmentSubject,
+  type QuestionType,
+} from "@/lib/assessments-shared";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +66,12 @@ function AssessmentsIndex() {
   const [maxScore, setMaxScore] = useState(10);
   const [questionCount, setQuestionCount] = useState(4);
   const [handwritingWeight, setHandwritingWeight] = useState(15);
+  const [subject, setSubject] = useState<AssessmentSubject>("generico");
+  const [types, setTypes] = useState<QuestionType[]>(["narrative"]);
+  const [sourceText, setSourceText] = useState("");
+
+  const toggleType = (t: QuestionType) =>
+    setTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
 
   const createMut = useMutation({
     mutationFn: () =>
@@ -69,9 +83,13 @@ function AssessmentsIndex() {
           maxScore,
           handwritingWeightPct: handwritingWeight,
           questionCount,
-          generate: prompt.trim().length >= 10,
+          generate: prompt.trim().length >= 10 || sourceText.trim().length >= 50,
+          subject,
+          questionTypes: types.length > 0 ? types : ["narrative"],
+          sourceText: sourceText.trim() || null,
         },
       }),
+
     onSuccess: (res: any) => {
       toast.success("Evaluación creada");
       void qc.invalidateQueries({ queryKey: ["assessments"] });
@@ -137,6 +155,40 @@ function AssessmentsIndex() {
             </div>
           </div>
 
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="a-subject">Materia / tipo de contenido</Label>
+              <Select value={subject} onValueChange={(v) => setSubject(v as AssessmentSubject)}>
+                <SelectTrigger id="a-subject">
+                  <SelectValue placeholder="Materia" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ASSESSMENT_SUBJECTS.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {SUBJECT_LABELS[s]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <fieldset className="space-y-1.5">
+              <legend className="text-sm font-medium">Tipos de pregunta</legend>
+              <div className="flex flex-wrap gap-x-4 gap-y-2 rounded-md border border-border p-3">
+                {QUESTION_TYPES.map((t) => (
+                  <label key={t} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-primary"
+                      checked={types.includes(t)}
+                      onChange={() => toggleType(t)}
+                    />
+                    {QUESTION_TYPE_LABELS[t]}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </div>
+
           <div className="space-y-1.5">
             <Label htmlFor="a-prompt">Encargo para la IA</Label>
             <Textarea
@@ -144,12 +196,25 @@ function AssessmentsIndex() {
               rows={4}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Prueba de desarrollo para estudiantes de 2º de FP sobre gestión de una reclamación difícil: 4 preguntas narrativas, evaluando comprensión, argumentación, estructura y expresión escrita."
+              placeholder="Test psicotécnico de 10 preguntas de series numéricas y razonamiento lógico para operarios de almacén, con una única alternativa correcta."
             />
             <p className="text-xs text-muted-foreground">
-              Con menos de 10 caracteres se crea vacía y podrás generar la prueba después.
+              Con menos de 10 caracteres (y sin texto base) se crea vacía y podrás generar la prueba
+              después.
             </p>
           </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="a-source">Texto o tema base (opcional)</Label>
+            <Textarea
+              id="a-source"
+              rows={5}
+              value={sourceText}
+              onChange={(e) => setSourceText(e.target.value)}
+              placeholder="Pega aquí el texto, el temario o el enunciado del caso sobre el que la IA debe formular las preguntas (comprensión lectora, física, biología…)."
+            />
+          </div>
+
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-1.5">

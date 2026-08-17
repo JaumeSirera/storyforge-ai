@@ -2,7 +2,21 @@ import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { updateAssessmentBlueprint } from "@/lib/assessments.functions";
-import type { AssessmentQuestion, AssessmentRecord, RubricCriterion } from "@/lib/assessments-shared";
+import {
+  QUESTION_TYPES,
+  QUESTION_TYPE_LABELS,
+  type AssessmentQuestion,
+  type AssessmentRecord,
+  type QuestionType,
+  type RubricCriterion,
+} from "@/lib/assessments-shared";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,9 +100,13 @@ export function RubricEditor({ assessment, onSaved }: Props) {
           questions: questions.map((q, i) => ({
             id: q.id || uid(`q${i + 1}`),
             prompt: q.prompt,
-            type: "narrative" as const,
+            type: (q.type ?? "narrative") as QuestionType,
             maxPoints: Number(q.maxPoints) || 0,
             keyElements: q.keyElements ?? [],
+            options: q.options ?? [],
+            correctOptionIds: q.correctOptionIds ?? [],
+            correctAnswer: q.correctAnswer ?? "",
+            explanation: q.explanation ?? "",
           })),
           rubric: rubric.map((c, i) => ({
             id: c.id || uid(`c${i + 1}`),
@@ -302,48 +320,204 @@ export function RubricEditor({ assessment, onSaved }: Props) {
         </div>
 
         <div className="space-y-3 border-t border-border pt-4">
-          <h3 className="text-sm font-semibold">Preguntas y puntos</h3>
+          <h3 className="text-sm font-semibold">Preguntas, tipo y puntos</h3>
           {questions.length === 0 && (
             <p className="text-sm text-muted-foreground">Sin preguntas todavía.</p>
           )}
-          {questions.map((question, qi) => (
-            <div key={question.id || qi} className="grid gap-2 md:grid-cols-[1fr_6rem_auto]">
-              <Textarea
-                aria-label={`Enunciado ${qi + 1}`}
-                rows={2}
-                value={question.prompt}
-                onChange={(e) => patchQuestion(qi, { prompt: e.target.value })}
-              />
-              <Input
-                aria-label={`Puntos de la pregunta ${qi + 1}`}
-                type="number"
-                min={0}
-                value={question.maxPoints}
-                onChange={(e) => patchQuestion(qi, { maxPoints: Number(e.target.value) || 0 })}
-              />
-              <Button
-                size="icon"
-                variant="ghost"
-                aria-label={`Eliminar pregunta ${qi + 1}`}
-                onClick={() => setQuestions((prev) => prev.filter((_, i) => i !== qi))}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
+          {questions.map((question, qi) => {
+            const type = question.type ?? "narrative";
+            const isChoice = type === "single_choice" || type === "multiple_choice";
+            const isTf = type === "true_false";
+            const options = isTf
+              ? [
+                  { id: "v", text: "Verdadero" },
+                  { id: "f", text: "Falso" },
+                ]
+              : (question.options ?? []);
+            return (
+              <div key={question.id || qi} className="rounded-md border border-border p-3 space-y-3">
+                <div className="grid gap-2 md:grid-cols-[1fr_12rem_6rem_auto] md:items-start">
+                  <Textarea
+                    aria-label={`Enunciado ${qi + 1}`}
+                    rows={2}
+                    value={question.prompt}
+                    onChange={(e) => patchQuestion(qi, { prompt: e.target.value })}
+                  />
+                  <Select
+                    value={type}
+                    onValueChange={(v) =>
+                      patchQuestion(qi, {
+                        type: v as QuestionType,
+                        options:
+                          v === "single_choice" || v === "multiple_choice"
+                            ? (question.options ?? []).length > 0
+                              ? question.options
+                              : ["a", "b", "c", "d"].map((id) => ({ id, text: "" }))
+                            : v === "true_false"
+                              ? [
+                                  { id: "v", text: "Verdadero" },
+                                  { id: "f", text: "Falso" },
+                                ]
+                              : [],
+                        correctOptionIds: [],
+                      })
+                    }
+                  >
+                    <SelectTrigger aria-label={`Tipo de la pregunta ${qi + 1}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {QUESTION_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {QUESTION_TYPE_LABELS[t]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    aria-label={`Puntos de la pregunta ${qi + 1}`}
+                    type="number"
+                    min={0}
+                    value={question.maxPoints}
+                    onChange={(e) => patchQuestion(qi, { maxPoints: Number(e.target.value) || 0 })}
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    aria-label={`Eliminar pregunta ${qi + 1}`}
+                    onClick={() => setQuestions((prev) => prev.filter((_, i) => i !== qi))}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {(isChoice || isTf) && (
+                  <div className="space-y-2">
+                    <span className="text-xs font-semibold uppercase text-muted-foreground">
+                      Alternativas · marca la(s) correcta(s)
+                    </span>
+                    {options.map((option, oi) => {
+                      const checked = (question.correctOptionIds ?? []).includes(option.id);
+                      return (
+                        <div key={option.id || oi} className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 accent-primary"
+                            aria-label={`Opción ${option.id} correcta`}
+                            checked={checked}
+                            onChange={() =>
+                              patchQuestion(qi, {
+                                correctOptionIds: checked
+                                  ? (question.correctOptionIds ?? []).filter((c) => c !== option.id)
+                                  : type === "multiple_choice"
+                                    ? [...(question.correctOptionIds ?? []), option.id]
+                                    : [option.id],
+                              })
+                            }
+                          />
+                          <span className="w-5 text-xs font-mono uppercase">{option.id}</span>
+                          <Input
+                            aria-label={`Texto de la opción ${option.id}`}
+                            value={option.text}
+                            disabled={isTf}
+                            onChange={(e) =>
+                              patchQuestion(qi, {
+                                options: options.map((o, i) =>
+                                  i === oi ? { ...o, text: e.target.value } : o,
+                                ),
+                              })
+                            }
+                          />
+                          {isChoice && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              aria-label={`Eliminar opción ${option.id}`}
+                              onClick={() =>
+                                patchQuestion(qi, {
+                                  options: options.filter((_, i) => i !== oi),
+                                  correctOptionIds: (question.correctOptionIds ?? []).filter(
+                                    (c) => c !== option.id,
+                                  ),
+                                })
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {isChoice && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() =>
+                          patchQuestion(qi, {
+                            options: [
+                              ...options,
+                              {
+                                id: String.fromCharCode(97 + options.length),
+                                text: "",
+                              },
+                            ],
+                          })
+                        }
+                      >
+                        <Plus className="h-4 w-4 mr-1" /> Alternativa
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {type === "numeric" && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`q-num-${qi}`}>Resultado correcto</Label>
+                    <Input
+                      id={`q-num-${qi}`}
+                      value={question.correctAnswer ?? ""}
+                      placeholder="Ej. 42 m/s"
+                      onChange={(e) => patchQuestion(qi, { correctAnswer: e.target.value })}
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <Label htmlFor={`q-exp-${qi}`}>Justificación / clave de corrección</Label>
+                  <Textarea
+                    id={`q-exp-${qi}`}
+                    rows={2}
+                    value={question.explanation ?? ""}
+                    onChange={(e) => patchQuestion(qi, { explanation: e.target.value })}
+                  />
+                </div>
+              </div>
+            );
+          })}
           <Button
             size="sm"
             variant="secondary"
             onClick={() =>
               setQuestions((prev) => [
                 ...prev,
-                { id: uid("q"), prompt: "", type: "narrative", maxPoints: 1, keyElements: [] },
+                {
+                  id: uid("q"),
+                  prompt: "",
+                  type: "narrative",
+                  maxPoints: 1,
+                  keyElements: [],
+                  options: [],
+                  correctOptionIds: [],
+                  correctAnswer: "",
+                  explanation: "",
+                },
               ])
             }
           >
             <Plus className="h-4 w-4 mr-1" /> Pregunta
           </Button>
         </div>
+
 
         <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
           <Button onClick={() => mut.mutate()} disabled={mut.isPending}>

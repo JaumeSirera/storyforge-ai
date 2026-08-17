@@ -1,8 +1,58 @@
 import { z } from "zod";
 
-/** Tipos de pregunta soportados en la primera fase del módulo de evaluaciones escritas. */
-export const QUESTION_TYPES = ["narrative"] as const;
+/** Tipos de pregunta soportados en el módulo de evaluaciones escritas. */
+export const QUESTION_TYPES = [
+  "narrative",
+  "single_choice",
+  "multiple_choice",
+  "true_false",
+  "numeric",
+] as const;
 export type QuestionType = (typeof QUESTION_TYPES)[number];
+
+export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
+  narrative: "Desarrollo (narrativa)",
+  single_choice: "Test (una correcta)",
+  multiple_choice: "Test (varias correctas)",
+  true_false: "Verdadero / Falso",
+  numeric: "Numérica / cálculo",
+};
+
+/** Bloques temáticos que puede encargarse a la IA (afinan el estilo de los enunciados). */
+export const ASSESSMENT_SUBJECTS = [
+  "generico",
+  "psicotecnico",
+  "matematicas",
+  "fisica",
+  "quimica",
+  "biologia",
+  "lengua",
+  "historia",
+  "informatica",
+  "legislacion",
+  "comprension_lectora",
+] as const;
+export type AssessmentSubject = (typeof ASSESSMENT_SUBJECTS)[number];
+
+export const SUBJECT_LABELS: Record<AssessmentSubject, string> = {
+  generico: "Genérico / profesional",
+  psicotecnico: "Psicotécnico (aptitudes)",
+  matematicas: "Matemáticas",
+  fisica: "Física",
+  quimica: "Química",
+  biologia: "Biología",
+  lengua: "Lengua y expresión",
+  historia: "Historia / ciencias sociales",
+  informatica: "Informática",
+  legislacion: "Legislación / normativa",
+  comprension_lectora: "Comprensión lectora de un texto",
+};
+
+export const QuestionOptionSchema = z.object({
+  id: z.string().default(""),
+  text: z.string().default(""),
+});
+export type QuestionOption = z.infer<typeof QuestionOptionSchema>;
 
 export const QuestionSchema = z.object({
   id: z.string().default(""),
@@ -10,8 +60,18 @@ export const QuestionSchema = z.object({
   type: z.enum(QUESTION_TYPES).default("narrative"),
   maxPoints: z.number().default(1),
   keyElements: z.array(z.string()).default([]),
+  options: z.array(QuestionOptionSchema).default([]),
+  correctOptionIds: z.array(z.string()).default([]),
+  correctAnswer: z.string().default(""),
+  explanation: z.string().default(""),
 });
 export type AssessmentQuestion = z.infer<typeof QuestionSchema>;
+
+/** ¿La pregunta se corrige de forma objetiva (respuesta cerrada)? */
+export function isObjectiveType(type: QuestionType) {
+  return type !== "narrative";
+}
+
 
 export const RubricCriterionSchema = z.object({
   id: z.string().default(""),

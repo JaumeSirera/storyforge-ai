@@ -112,29 +112,70 @@ export async function getAssessmentHandler(data: { id: string }, context: any) {
 }
 
 export async function generateBlueprint(
-  input: { prompt: string; questionCount: number; maxScore: number; areaKey?: string | null },
+  input: {
+    prompt: string;
+    questionCount: number;
+    maxScore: number;
+    areaKey?: string | null;
+    subject?: string | null;
+    questionTypes?: string[];
+    sourceText?: string | null;
+  },
   context: any,
 ): Promise<AssessmentBlueprint> {
   const userKeys = await loadUserKeys(context.supabase, context.userId);
   const { model, provider, nativeId } = resolveUserTextModel(userKeys);
+  const types = input.questionTypes && input.questionTypes.length > 0 ? input.questionTypes : ["narrative"];
   const system =
-    "Eres un experto en evaluación educativa y de selección. Diseñas pruebas escritas de desarrollo (narrativa) con rúbricas analíticas defendibles. Respondes solo con un objeto JSON válido, en español, sin markdown.";
-  const prompt = `Diseña una prueba escrita a partir de este encargo:\n"""${input.prompt}"""\nÁrea: ${input.areaKey ?? "general"}\nNúmero de preguntas: ${input.questionCount}\nPuntuación total de la prueba: ${input.maxScore}\n\nDevuelve exactamente estas claves JSON: title (string), instructions (string con indicaciones para el candidato), questions (array de {id, prompt, type:"narrative", maxPoints, keyElements: array de strings con los elementos que debe contener una buena respuesta}), rubric (array de {id, name, description, weightPct, levels: array de {label, descriptor, pct}}).\nLa suma de maxPoints debe ser ${input.maxScore}. La suma de weightPct debe ser 100. Usa 4 niveles por criterio (Insuficiente 40, Suficiente 60, Notable 80, Excelente 100).`;
+    "Eres un experto en evaluación educativa, pruebas psicotécnicas y procesos de selección. Diseñas pruebas escritas (desarrollo, test, verdadero/falso y ejercicios numéricos) con rúbricas analíticas defendibles. Cuando la pregunta es cerrada, la respuesta correcta es inequívoca y verificable. Respondes solo con un objeto JSON válido, en español, sin markdown.";
+  const prompt = `Diseña una prueba escrita a partir de este encargo:\n"""${input.prompt}"""\nÁrea: ${input.areaKey ?? "general"}\nMateria / tipo de contenido: ${input.subject ?? "generico"}\nTipos de pregunta permitidos (usa solo estos, repartidos de forma equilibrada): ${types.join(", ")}\nNúmero de preguntas: ${input.questionCount}\nPuntuación total de la prueba: ${input.maxScore}
+${input.sourceText ? `\nTEXTO BASE sobre el que deben versar las preguntas (no lo reescribas, úsalo como fuente):\n"""${input.sourceText.slice(0, 20000)}"""\n` : ""}
+Devuelve exactamente estas claves JSON: title (string), instructions (string con indicaciones para el candidato), questions (array), rubric (array de {id, name, description, weightPct, levels: array de {label, descriptor, pct}}).
+
+Cada pregunta es un objeto {id, prompt, type, maxPoints, keyElements, options, correctOptionIds, correctAnswer, explanation} donde:
+- type es uno de: narrative, single_choice, multiple_choice, true_false, numeric.
+- narrative: options=[], correctOptionIds=[], correctAnswer="" y keyElements con los elementos que debe contener una buena respuesta.
+- single_choice / multiple_choice: options con 4 alternativas [{id:"a"|"b"|"c"|"d", text}], correctOptionIds con la(s) correcta(s), keyElements=[].
+- true_false: options=[{id:"v",text:"Verdadero"},{id:"f",text:"Falso"}] y correctOptionIds con "v" o "f".
+- numeric: correctAnswer con el resultado exacto (incluye unidades si aplica), options=[].
+- explanation: justificación breve de la respuesta correcta (para el corrector, no para el candidato).
+Para psicotécnicos usa series numéricas, analogías, razonamiento lógico-abstracto o cálculo mental, siempre con una única alternativa correcta.
+La suma de maxPoints debe ser ${input.maxScore}. La suma de weightPct debe ser 100. Usa 4 niveles por criterio (Insuficiente 40, Suficiente 60, Notable 80, Excelente 100).`;
 
   const result = await generateText({ model, system, prompt });
   const raw = extractJson(result.text) as any;
+  const allowedTypes = ["narrative", "single_choice", "multiple_choice", "true_false", "numeric"];
   const blueprint = BlueprintSchema.parse({
     title: raw.title ?? raw.titulo ?? "",
     instructions: raw.instructions ?? raw.instrucciones ?? "",
-    questions: (raw.questions ?? raw.preguntas ?? []).map((q: any, i: number) => ({
-      id: String(q?.id ?? slug(i + 1)),
-      prompt: String(q?.prompt ?? q?.enunciado ?? ""),
-      type: "narrative",
-      maxPoints: Number(q?.maxPoints ?? q?.puntos ?? 0) || 0,
-      keyElements: Array.isArray(q?.keyElements ?? q?.elementosClave)
-        ? (q.keyElements ?? q.elementosClave).map((s: any) => String(s))
-        : [],
-    })),
+    questions: (raw.questions ?? raw.preguntas ?? []).map((q: any, i: number) => {
+      const rawType = String(q?.type ?? q?.tipo ?? "narrative");
+      const type = allowedTypes.includes(rawType) ? rawType : "narrative";
+      const options = Array.isArray(q?.options ?? q?.opciones)
+        ? (q.options ?? q.opciones).map((o: any, oi: number) => ({
+            id: String(o?.id ?? String.fromCharCode(97 + oi)),
+            text: String(o?.text ?? o?.texto ?? o ?? ""),
+          }))
+        : [];
+      const correct = q?.correctOptionIds ?? q?.correctas ?? q?.correcta;
+      return {
+        id: String(q?.id ?? slug(i + 1)),
+        prompt: String(q?.prompt ?? q?.enunciado ?? ""),
+        type,
+        maxPoints: Number(q?.maxPoints ?? q?.puntos ?? 0) || 0,
+        keyElements: Array.isArray(q?.keyElements ?? q?.elementosClave)
+          ? (q.keyElements ?? q.elementosClave).map((s: any) => String(s))
+          : [],
+        options,
+        correctOptionIds: Array.isArray(correct)
+          ? correct.map((s: any) => String(s))
+          : correct
+            ? [String(correct)]
+            : [],
+        correctAnswer: String(q?.correctAnswer ?? q?.respuesta ?? ""),
+        explanation: String(q?.explanation ?? q?.justificacion ?? ""),
+      };
+    }),
     rubric: (raw.rubric ?? raw.rubrica ?? []).map((c: any, i: number) => ({
       id: String(c?.id ?? `c${i + 1}`),
       name: String(c?.name ?? c?.nombre ?? ""),
@@ -149,6 +190,7 @@ export async function generateBlueprint(
         : [],
     })),
   });
+
 
   try {
     const usage = await result.usage;
@@ -178,6 +220,9 @@ export async function createAssessmentHandler(
     handwritingWeightPct: number;
     questionCount: number;
     generate: boolean;
+    subject?: string | null;
+    questionTypes?: string[];
+    sourceText?: string | null;
   },
   context: any,
 ) {
@@ -189,6 +234,9 @@ export async function createAssessmentHandler(
         questionCount: data.questionCount,
         maxScore: data.maxScore,
         areaKey: data.areaKey ?? null,
+        subject: data.subject ?? null,
+        questionTypes: data.questionTypes ?? ["narrative"],
+        sourceText: data.sourceText ?? null,
       },
       context,
     );
@@ -200,7 +248,7 @@ export async function createAssessmentHandler(
       owner_id: context.userId,
       title: blueprint?.title || data.title,
       area_key: data.areaKey ?? null,
-      prompt: data.prompt ?? null,
+      prompt: packPrompt(data.prompt ?? null, data.subject ?? null, data.questionTypes, data.sourceText ?? null),
       instructions: blueprint?.instructions ?? null,
       questions: blueprint?.questions ?? [],
       rubric: blueprint?.rubric ?? [],
@@ -214,17 +262,69 @@ export async function createAssessmentHandler(
   return { assessment: mapAssessment(row) };
 }
 
+const SOURCE_MARK = "\n\n[TEXTO BASE]\n";
+const META_MARK = "\n\n[CONFIG]";
+
+/** Guarda materia, tipos y texto base dentro del campo `prompt` (sin cambiar el esquema). */
+export function packPrompt(
+  prompt: string | null,
+  subject: string | null,
+  questionTypes: string[] | undefined,
+  sourceText: string | null,
+) {
+  if (!prompt && !sourceText) return null;
+  let out = prompt ?? "";
+  if (subject || (questionTypes && questionTypes.length > 0)) {
+    out += `${META_MARK} materia=${subject ?? "generico"} tipos=${(questionTypes ?? ["narrative"]).join(",")}`;
+  }
+  if (sourceText?.trim()) out += `${SOURCE_MARK}${sourceText.trim()}`;
+  return out;
+}
+
+/** Recupera materia, tipos y texto base guardados en el campo `prompt`. */
+export function unpackPrompt(stored: string | null) {
+  const value = stored ?? "";
+  const [beforeSource, ...sourceRest] = value.split(SOURCE_MARK);
+  const sourceText = sourceRest.length > 0 ? sourceRest.join(SOURCE_MARK) : null;
+  const [prompt, meta] = beforeSource.split(META_MARK);
+  const subject = meta?.match(/materia=([\w-]+)/)?.[1] ?? null;
+  const typesRaw = meta?.match(/tipos=([\w,]+)/)?.[1];
+  return {
+    prompt: (prompt ?? "").trim(),
+    subject,
+    questionTypes: typesRaw ? typesRaw.split(",").filter(Boolean) : [],
+    sourceText,
+  };
+}
+
 export async function regenerateAssessmentHandler(
-  data: { id: string; prompt: string; questionCount: number },
+  data: {
+    id: string;
+    prompt: string;
+    questionCount: number;
+    subject?: string | null;
+    questionTypes?: string[];
+    sourceText?: string | null;
+  },
   context: any,
 ) {
   const { data: current, error: curErr } = await context.supabase
     .from("assessments")
-    .select("max_score, area_key")
+    .select("max_score, area_key, prompt")
     .eq("id", data.id)
     .eq("owner_id", context.userId)
     .single();
   if (curErr) throw new Error(curErr.message);
+
+  const previous = unpackPrompt(current.prompt ?? null);
+  const subject = data.subject ?? previous.subject ?? null;
+  const questionTypes =
+    data.questionTypes && data.questionTypes.length > 0
+      ? data.questionTypes
+      : previous.questionTypes.length > 0
+        ? previous.questionTypes
+        : ["narrative"];
+  const sourceText = data.sourceText ?? previous.sourceText ?? null;
 
   const blueprint = await generateBlueprint(
     {
@@ -232,6 +332,9 @@ export async function regenerateAssessmentHandler(
       questionCount: data.questionCount,
       maxScore: Number(current.max_score ?? 10),
       areaKey: current.area_key ?? null,
+      subject,
+      questionTypes,
+      sourceText,
     },
     context,
   );
@@ -239,7 +342,7 @@ export async function regenerateAssessmentHandler(
   const { data: row, error } = await context.supabase
     .from("assessments")
     .update({
-      prompt: data.prompt,
+      prompt: packPrompt(data.prompt, subject, questionTypes, sourceText),
       instructions: blueprint.instructions,
       questions: blueprint.questions,
       rubric: blueprint.rubric,
@@ -252,6 +355,7 @@ export async function regenerateAssessmentHandler(
   if (error) throw new Error(error.message);
   return { assessment: mapAssessment(row) };
 }
+
 
 export async function updateAssessmentBlueprintHandler(
   data: {
@@ -508,9 +612,21 @@ Responde en español con un único objeto JSON válido, sin markdown.`;
     const questionsBrief = assessment.questions.map((q) => ({
       id: q.id,
       enunciado: q.prompt,
+      tipo: q.type ?? "narrative",
       puntos: q.maxPoints,
       elementosClave: q.keyElements,
+      opciones: (q.options ?? []).map((o) => `${o.id}) ${o.text}`),
+      respuestaCorrecta:
+        (q.correctOptionIds ?? []).length > 0
+          ? (q.correctOptionIds ?? []).join(", ")
+          : (q.correctAnswer ?? ""),
+      justificacion: q.explanation ?? "",
     }));
+    const hasObjective = assessment.questions.some((q) => (q.type ?? "narrative") !== "narrative");
+    const objectiveRule = hasObjective
+      ? `\nEn las preguntas cerradas (single_choice, multiple_choice, true_false, numeric) corrige de forma OBJETIVA: identifica qué ha marcado o respondido el candidato y compáralo con respuestaCorrecta. Acierto = puntos completos; fallo = 0 (en multiple_choice puedes puntuar proporcionalmente a las opciones correctas marcadas sin marcar incorrectas). En evidence indica la respuesta detectada y la correcta.`
+      : "";
+
 
     const instructions = `Prueba: ${assessment.title}
 Área: ${assessment.areaKey ?? "general"}
@@ -553,7 +669,10 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
       messages: [
         {
           role: "user",
-          content: [{ type: "text", text: instructions + annotationBrief }, ...fileParts],
+          content: [
+            { type: "text", text: instructions + objectiveRule + annotationBrief },
+            ...fileParts,
+          ],
         } as any,
       ],
     });
