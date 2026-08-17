@@ -104,28 +104,30 @@ function slug(n: number) {
 // ───────────────────────────────── Assessments ─────────────────────────────────
 
 export async function listAssessmentsHandler(context: any) {
+  // RLS deja ver las propias y las compartidas como colaborador.
   const { data, error } = await context.supabase
     .from("assessments")
-    .select(ASSESSMENT_COLUMNS)
-    .eq("owner_id", context.userId)
+    .select(`${ASSESSMENT_COLUMNS}, owner_id`)
     .order("updated_at", { ascending: false });
   if (error) throw new Error(error.message);
-  return { assessments: (data ?? []).map(mapAssessment) };
+  return {
+    assessments: (data ?? []).map((row: any) => ({
+      ...mapAssessment(row),
+      shared: row.owner_id !== context.userId,
+    })),
+  };
 }
 
 export async function getAssessmentHandler(data: { id: string }, context: any) {
+  const { assertAssessmentPermission } = await import("./assessment-roles.server");
+  const permissions = await assertAssessmentPermission(data.id, "view", context);
+
   const [assessmentRes, submissionsRes] = await Promise.all([
-    context.supabase
-      .from("assessments")
-      .select(ASSESSMENT_COLUMNS)
-      .eq("id", data.id)
-      .eq("owner_id", context.userId)
-      .single(),
+    context.supabase.from("assessments").select(ASSESSMENT_COLUMNS).eq("id", data.id).single(),
     context.supabase
       .from("assessment_submissions")
       .select(SUBMISSION_COLUMNS)
       .eq("assessment_id", data.id)
-      .eq("owner_id", context.userId)
       .order("created_at", { ascending: false }),
   ]);
   if (assessmentRes.error) throw new Error(assessmentRes.error.message);
@@ -133,6 +135,7 @@ export async function getAssessmentHandler(data: { id: string }, context: any) {
   return {
     assessment: mapAssessment(assessmentRes.data),
     submissions: (submissionsRes.data ?? []).map(mapSubmission),
+    permissions,
   };
 }
 
