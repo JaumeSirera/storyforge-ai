@@ -58,6 +58,12 @@ function AssessmentsIndex() {
   const [maxScore, setMaxScore] = useState(10);
   const [questionCount, setQuestionCount] = useState(4);
   const [handwritingWeight, setHandwritingWeight] = useState(15);
+  const [subject, setSubject] = useState<AssessmentSubject>("generico");
+  const [types, setTypes] = useState<QuestionType[]>(["narrative"]);
+  const [sourceText, setSourceText] = useState("");
+
+  const toggleType = (t: QuestionType) =>
+    setTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
 
   const createMut = useMutation({
     mutationFn: () =>
@@ -69,9 +75,13 @@ function AssessmentsIndex() {
           maxScore,
           handwritingWeightPct: handwritingWeight,
           questionCount,
-          generate: prompt.trim().length >= 10,
+          generate: prompt.trim().length >= 10 || sourceText.trim().length >= 50,
+          subject,
+          questionTypes: types.length > 0 ? types : ["narrative"],
+          sourceText: sourceText.trim() || null,
         },
       }),
+
     onSuccess: (res: any) => {
       toast.success("Evaluación creada");
       void qc.invalidateQueries({ queryKey: ["assessments"] });
