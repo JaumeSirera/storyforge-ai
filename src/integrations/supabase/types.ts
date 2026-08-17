@@ -73,6 +73,75 @@ export type Database = {
           },
         ]
       }
+      assessment_candidates: {
+        Row: {
+          assessment_id: string
+          created_at: string
+          email: string | null
+          expires_at: string | null
+          id: string
+          identifier: string | null
+          name: string
+          note: string
+          owner_id: string
+          started_at: string | null
+          status: string
+          submission_id: string | null
+          submitted_at: string | null
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string
+          email?: string | null
+          expires_at?: string | null
+          id?: string
+          identifier?: string | null
+          name: string
+          note?: string
+          owner_id: string
+          started_at?: string | null
+          status?: string
+          submission_id?: string | null
+          submitted_at?: string | null
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string
+          email?: string | null
+          expires_at?: string | null
+          id?: string
+          identifier?: string | null
+          name?: string
+          note?: string
+          owner_id?: string
+          started_at?: string | null
+          status?: string
+          submission_id?: string | null
+          submitted_at?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_candidates_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_candidates_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessment_collaborators: {
         Row: {
           assessment_id: string
