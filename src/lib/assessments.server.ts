@@ -240,6 +240,7 @@ export async function createAssessmentHandler(
     areaKey?: string | null;
     maxScore: number;
     handwritingWeightPct: number;
+    feedbackTone?: string;
     questionCount: number;
     generate: boolean;
     subject?: string | null;
@@ -276,6 +277,7 @@ export async function createAssessmentHandler(
       rubric: blueprint?.rubric ?? [],
       max_score: data.maxScore,
       handwriting_weight_pct: data.handwritingWeightPct,
+      feedback_tone: normalizeFeedbackTone(data.feedbackTone),
       status: blueprint ? "ready" : "draft",
     })
     .select(ASSESSMENT_COLUMNS)
