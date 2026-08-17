@@ -69,7 +69,7 @@ export function AssessmentCandidatesCard({ assessmentId, canManage }: Props) {
     queryKey: ["assessment-candidates", assessmentId],
     queryFn: () => list({ data: { assessmentId } }),
   });
-  const candidates = q.data?.candidates ?? [];
+  const candidates: AssessmentCandidate[] = q.data?.candidates ?? [];
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
