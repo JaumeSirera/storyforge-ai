@@ -12,6 +12,7 @@ import {
 import { getCaptureSession, PARTICIPANT_ROLE_LABELS } from "@/lib/capture.functions";
 import { listSceneAnnotations } from "@/lib/scene-annotations.functions";
 import { formatSec, type SpeakerMetrics } from "@/lib/analyze-metrics";
+import { AnalysisExportCard } from "@/components/AnalysisExportCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
