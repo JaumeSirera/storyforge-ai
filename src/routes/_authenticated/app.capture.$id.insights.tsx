@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import { IntegratedReportButton } from "@/components/IntegratedReportButton";
 import { GroupInsightsPanel } from "@/components/GroupInsightsPanel";
 import { InsightsTimeline } from "@/components/InsightsTimeline";
+import { HypothesisValidationPanel } from "@/components/HypothesisValidationPanel";
 import {
   Select,
   SelectContent,
