@@ -12,6 +12,7 @@ import {
 import { gradeLabel } from "@/lib/assessments-shared";
 import { AssessmentCollaboratorsCard } from "@/components/AssessmentCollaboratorsCard";
 import { RubricEditor } from "@/components/RubricEditor";
+import { SourceValidationCard } from "@/components/SourceValidationCard";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -255,6 +256,14 @@ function AssessmentDetail() {
           </div>
         </CardContent>
       </Card>
+
+      {assessment.questions.length > 0 && (
+        <SourceValidationCard
+          assessmentId={id}
+          hasSourceText={Boolean(assessment.sourceText && assessment.sourceText.trim().length >= 30)}
+          questionCount={assessment.questions.length}
+        />
+      )}
 
       {permissions?.isOwner !== false && <RubricEditor assessment={assessment} onSaved={invalidate} />}
 
