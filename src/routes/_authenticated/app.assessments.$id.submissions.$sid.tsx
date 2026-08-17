@@ -303,36 +303,7 @@ function SubmissionReport() {
       )}
 
       {pageUrls.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Páginas de la entrega</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {pageUrls.map((page) =>
-              page.url ? (
-                page.mimeType === "application/pdf" ? (
-                  <a
-                    key={page.path}
-                    href={page.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-md border border-border p-3 text-sm hover:bg-accent"
-                  >
-                    {page.name} (PDF)
-                  </a>
-                ) : (
-                  <img
-                    key={page.path}
-                    src={page.url}
-                    alt={`Página escaneada: ${page.name}`}
-                    loading="lazy"
-                    className="w-full rounded-md border border-border object-contain"
-                  />
-                )
-              ) : null,
-            )}
-          </CardContent>
-        </Card>
+        <SubmissionPageAnnotator submissionId={sid} pages={pageUrls} annotations={annotations} />
       )}
 
       {submission.extractedText && (
