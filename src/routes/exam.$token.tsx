@@ -171,23 +171,43 @@ function ExamPage() {
   }
 
   if (done || exam.candidate.status === "submitted") {
+    const sentAt = submittedAt ?? exam.candidate.submittedAt;
+    const sentLabel = sentAt
+      ? new Date(sentAt).toLocaleString("es-ES", { dateStyle: "long", timeStyle: "short" })
+      : null;
     return (
       <main className="mx-auto flex min-h-screen max-w-lg items-center justify-center p-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-primary" aria-hidden="true" />
-              Examen entregado
+              Examen finalizado
             </CardTitle>
             <CardDescription>
-              Gracias, {exam.candidate.name}. Tus respuestas se han registrado y serán corregidas por
-              el equipo evaluador. Ya puedes cerrar esta ventana.
+              Gracias, {exam.candidate.name}. Tus respuestas se han registrado y ya no pueden
+              modificarse. El equipo evaluador las corregirá. Ya puedes cerrar esta ventana.
             </CardDescription>
           </CardHeader>
+          {sentLabel && (
+            <CardContent className="space-y-1">
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Lock className="h-4 w-4" aria-hidden="true" />
+                Entrega registrada el {sentLabel}
+              </p>
+              {exam.candidate.timeExpired && (
+                <p className="text-xs text-muted-foreground">
+                  Entrega realizada al agotarse el tiempo disponible.
+                </p>
+              )}
+            </CardContent>
+          )}
         </Card>
       </main>
     );
   }
+
+  /** Mientras se envía o tras finalizar, las respuestas quedan bloqueadas. */
+  const locked = submitMut.isPending || done;
 
   const { assessment } = exam;
 
