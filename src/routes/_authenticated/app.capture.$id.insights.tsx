@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import { IntegratedReportButton } from "@/components/IntegratedReportButton";
 import { GroupInsightsPanel } from "@/components/GroupInsightsPanel";
 import { InsightsTimeline } from "@/components/InsightsTimeline";
+import { HypothesisValidationPanel } from "@/components/HypothesisValidationPanel";
 import {
   Select,
   SelectContent,
@@ -370,29 +371,11 @@ function InsightsPage() {
             </Card>
           )}
 
-          {insights.hypotheses?.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Hipótesis de trabajo</CardTitle>
-                <CardDescription>
-                  Interpretaciones trazables, con su base observable y nivel de confianza.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {insights.hypotheses.map((h, i) => (
-                  <div key={i} className="rounded-lg border border-border p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm font-medium">{h.hypothesis}</p>
-                      <Badge variant={CONFIDENCE_VARIANT[h.confidence] ?? "outline"}>
-                        confianza {h.confidence}
-                      </Badge>
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">Base: {h.basis}</p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+          <HypothesisValidationPanel
+            captureSessionId={id}
+            hypotheses={insights.hypotheses ?? []}
+          />
+
 
           {insights.participants?.length > 0 && (
             <Card>
