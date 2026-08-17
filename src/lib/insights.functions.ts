@@ -52,44 +52,47 @@ export const ROLE_GUIDES: Record<
 
 /** Informe Insights: hechos observables + hipótesis trazables (copiloto experto, nunca diagnóstico). */
 export const InsightsSchema = z.object({
-  headline: z.string().describe("Titular de una frase con la dinámica principal observada"),
-  summary: z.string().describe("Resumen ejecutivo de 3-5 frases, solo hechos observables"),
+  headline: z.string().default("").describe("Titular de una frase con la dinámica principal observada"),
+  summary: z.string().default("").describe("Resumen ejecutivo de 3-5 frases, solo hechos observables"),
   observations: z
     .array(
       z.object({
-        fact: z.string().describe("Hecho observable, medible en la transcripción"),
-        evidence: z.string().describe("Evidencia con minutos exactos o cifras concretas"),
+        fact: z.string().default("").describe("Hecho observable, medible en la transcripción"),
+        evidence: z.string().default("").describe("Evidencia con minutos exactos o cifras concretas"),
       }),
     )
-    .min(2),
+    .default([]),
   hypotheses: z
     .array(
       z.object({
-        hypothesis: z.string().describe("Hipótesis de trabajo, redactada como posibilidad"),
-        basis: z.string().describe("En qué evidencia observable se apoya"),
-        confidence: z.enum(["baja", "media", "alta"]),
+        hypothesis: z.string().default("").describe("Hipótesis de trabajo, redactada como posibilidad"),
+        basis: z.string().default("").describe("En qué evidencia observable se apoya"),
+        confidence: z
+          .string()
+          .default("media")
+          .describe("Nivel de confianza: baja, media o alta"),
       }),
     )
-    .min(1),
+    .default([]),
   participants: z
     .array(
       z.object({
-        name: z.string(),
-        role: z.string().describe("Rol funcional observado en la conversación"),
-        behaviours: z.array(z.string()).min(1),
+        name: z.string().default(""),
+        role: z.string().default("").describe("Rol funcional observado en la conversación"),
+        behaviours: z.array(z.string()).default([]),
       }),
     )
     .default([]),
   roleSections: z
     .array(
       z.object({
-        title: z.string().describe("Título de la sección propia del rol profesional solicitado"),
-        points: z.array(z.string()).min(1).describe("Puntos concretos con evidencia observable"),
+        title: z.string().default("").describe("Título de la sección propia del rol profesional solicitado"),
+        points: z.array(z.string()).default([]).describe("Puntos concretos con evidencia observable"),
       }),
     )
     .default([])
     .describe("Secciones específicas del rol profesional para el que se redacta el informe"),
-  recommendations: z.array(z.string()).min(1).describe("Siguientes pasos para el profesional"),
+  recommendations: z.array(z.string()).default([]).describe("Siguientes pasos para el profesional"),
   followUpQuestions: z
     .array(z.string())
     .default([])
@@ -221,18 +224,16 @@ export const generateSessionInsights = createServerFn({ method: "POST" })
 
     const guide = ROLE_GUIDES[data.role];
 
-    const result = await generateText({
-      model,
-      experimental_output: Output.object({ schema: InsightsSchema }),
-      system: `Eres un copiloto experto en análisis de interacción humana para profesionales (selección, formación, terapia, mediación).
+    const system = `Eres un copiloto experto en análisis de interacción humana para profesionales (selección, formación, terapia, mediación).
 Escribes para un ${guide.audience}.
 Registro y vocabulario: ${guide.language}
 Reglas estrictas:
 - Describe SOLO hechos observables y trazables (minutos, turnos, tiempos, interrupciones, silencios, frases citadas).
 - Las interpretaciones se presentan como HIPÓTESIS de trabajo, con su base observable y un nivel de confianza.
 - PROHIBIDO: diagnósticos clínicos, etiquetas de personalidad, juicios morales, inferencias sobre salud, ideología, origen u orientación.
-- Idioma: español. Devuelve SIEMPRE el JSON completo.`,
-      prompt: `Sesión: ${sessionRes.data.title}
+- Idioma: español. Devuelve SIEMPRE un único objeto JSON válido y completo, sin texto fuera del JSON.`;
+
+    const prompt = `Sesión: ${sessionRes.data.title}
 Modo: ${sessionRes.data.mode} · Área: ${sessionRes.data.area_key ?? "general"}
 Participantes: ${participants.map((p) => `${p.name} (${p.role})`).join(", ") || "sin identificar"}
 Rol del lector del informe: ${guide.label}
@@ -244,13 +245,32 @@ ${JSON.stringify(metricsBrief, null, 2)}
 Transcripción con marcas de tiempo:
 ${transcript}
 
-Genera el informe Insights: titular, resumen, observaciones con evidencia temporal, hipótesis trazables con nivel de confianza, comportamientos por participante, recomendaciones y preguntas de seguimiento.
+Genera el informe Insights: titular, resumen, observaciones con evidencia temporal, hipótesis trazables con nivel de confianza (baja, media o alta), comportamientos por participante, recomendaciones y preguntas de seguimiento.
 Además, en "roleSections" incluye EXACTAMENTE estas secciones adaptadas al rol ${guide.label}, en este orden y con estos títulos:
 ${guide.sections.map((s, i) => `${i + 1}. ${s}`).join("\n")}
-Cada sección debe tener entre 2 y 5 puntos, todos anclados en evidencia observable (minutos o cifras).`,
-    });
+Cada sección debe tener entre 2 y 5 puntos, todos anclados en evidencia observable (minutos o cifras).`;
 
-    const insights = result.experimental_output;
+    async function runGeneration(attempt: number) {
+      return await generateText({
+        model,
+        experimental_output: Output.object({ schema: InsightsSchema }),
+        system,
+        prompt:
+          attempt === 0
+            ? prompt
+            : `${prompt}\n\nIMPORTANTE: el intento anterior devolvió un JSON inválido. Responde con el objeto JSON completo, con todas las claves del esquema, sin comentarios ni markdown.`,
+      });
+    }
+
+    let result: Awaited<ReturnType<typeof runGeneration>>;
+    try {
+      result = await runGeneration(0);
+    } catch (e) {
+      console.error("[insights] reintento tras salida no válida:", e);
+      result = await runGeneration(1);
+    }
+
+    const insights = InsightsSchema.parse(result.experimental_output ?? {});
     const generatedAt = new Date().toISOString();
 
     const { error: saveErr } = await context.supabase.from("capture_analyses").upsert(
