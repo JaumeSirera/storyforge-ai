@@ -99,8 +99,8 @@ function ExamPage() {
       [id]: { text: prev[id]?.text ?? "", optionIds: prev[id]?.optionIds ?? [], ...patch },
     }));
 
-  const submitMut = useMutation({
-    mutationFn: (auto = false) =>
+  const submitMut = useMutation<unknown, Error, boolean>({
+    mutationFn: (auto: boolean) =>
       send({
         data: {
           token,
