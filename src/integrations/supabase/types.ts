@@ -142,6 +142,113 @@ export type Database = {
           },
         ]
       }
+      capture_hypothesis_review_events: {
+        Row: {
+          action: string
+          adjusted_text: string | null
+          capture_session_id: string
+          comment: string
+          confidence: string
+          created_at: string
+          hypothesis_index: number
+          id: string
+          owner_id: string
+          review_id: string
+          status: string
+        }
+        Insert: {
+          action?: string
+          adjusted_text?: string | null
+          capture_session_id: string
+          comment?: string
+          confidence: string
+          created_at?: string
+          hypothesis_index: number
+          id?: string
+          owner_id: string
+          review_id: string
+          status: string
+        }
+        Update: {
+          action?: string
+          adjusted_text?: string | null
+          capture_session_id?: string
+          comment?: string
+          confidence?: string
+          created_at?: string
+          hypothesis_index?: number
+          id?: string
+          owner_id?: string
+          review_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capture_hypothesis_review_events_capture_session_id_fkey"
+            columns: ["capture_session_id"]
+            isOneToOne: false
+            referencedRelation: "capture_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capture_hypothesis_review_events_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "capture_hypothesis_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      capture_hypothesis_reviews: {
+        Row: {
+          adjusted_text: string | null
+          capture_session_id: string
+          comment: string
+          confidence: string
+          created_at: string
+          hypothesis_index: number
+          hypothesis_text: string
+          id: string
+          owner_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          adjusted_text?: string | null
+          capture_session_id: string
+          comment?: string
+          confidence?: string
+          created_at?: string
+          hypothesis_index: number
+          hypothesis_text?: string
+          id?: string
+          owner_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          adjusted_text?: string | null
+          capture_session_id?: string
+          comment?: string
+          confidence?: string
+          created_at?: string
+          hypothesis_index?: number
+          hypothesis_text?: string
+          id?: string
+          owner_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capture_hypothesis_reviews_capture_session_id_fkey"
+            columns: ["capture_session_id"]
+            isOneToOne: false
+            referencedRelation: "capture_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       capture_invitations: {
         Row: {
           capture_session_id: string
