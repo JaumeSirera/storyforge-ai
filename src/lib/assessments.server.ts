@@ -1,9 +1,11 @@
 import { generateText } from "ai";
 import { resolveUserTextModel } from "./ai-gateway.server";
 import {
+  ANSWER_VERDICTS,
   BlueprintSchema,
   EvaluationSchema,
   HandwritingSchema,
+  type AnswerVerdict,
   type AssessmentBlueprint,
   type AssessmentEvaluation,
   type AssessmentRecord,
@@ -15,6 +17,23 @@ import { loadUserKeys } from "./user-keys.functions";
 const BUCKET = "assessments";
 const MAX_PAGE_BYTES = 15 * 1024 * 1024;
 const MAX_PAGES = 12;
+
+/** Normaliza el veredicto devuelto por la IA; si falta, lo deduce de la puntuación. */
+function normalizeVerdict(raw: unknown, score: number, maxPoints: number): AnswerVerdict {
+  const value = String(raw ?? "")
+    .trim()
+    .toLowerCase();
+  if (ANSWER_VERDICTS.includes(value as AnswerVerdict)) return value as AnswerVerdict;
+  if (value.startsWith("correct")) return "correct";
+  if (value.startsWith("parcial")) return "partial";
+  if (value.startsWith("incorrect")) return "incorrect";
+  if (value.includes("sin responder") || value.includes("blanco") || value.includes("unanswer"))
+    return "unanswered";
+  if (!maxPoints) return "partial";
+  if (score <= 0) return "incorrect";
+  if (score >= maxPoints) return "correct";
+  return "partial";
+}
 
 const ASSESSMENT_COLUMNS =
   "id, title, area_key, prompt, instructions, questions, rubric, max_score, handwriting_weight_pct, status, created_at, updated_at";
