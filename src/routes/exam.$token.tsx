@@ -125,9 +125,10 @@ function ExamPage() {
           })),
         },
       }),
-    onSuccess: () => {
+    onSuccess: (res: any) => {
+      setSubmittedAt(res?.submittedAt ?? new Date().toISOString());
       setDone(true);
-      toast.success("Examen entregado correctamente");
+      toast.success("Examen finalizado y entregado correctamente");
     },
     onError: (e: Error) => toast.error(e.message),
   });
