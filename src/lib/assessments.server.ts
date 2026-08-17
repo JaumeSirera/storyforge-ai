@@ -261,20 +261,24 @@ export async function createAssessmentHandler(
     subject?: string | null;
     questionTypes?: string[];
     sourceText?: string | null;
+    allowOutsideSource?: boolean;
   },
   context: any,
 ) {
   let blueprint: AssessmentBlueprint | null = null;
-  if (data.generate && data.prompt) {
+  if (data.generate && (data.prompt || data.sourceText)) {
     blueprint = await generateBlueprint(
       {
-        prompt: data.prompt,
+        prompt:
+          data.prompt ||
+          "Formula las preguntas exclusivamente a partir del TEXTO BASE aportado.",
         questionCount: data.questionCount,
         maxScore: data.maxScore,
         areaKey: data.areaKey ?? null,
         subject: data.subject ?? null,
         questionTypes: data.questionTypes ?? ["narrative"],
         sourceText: data.sourceText ?? null,
+        allowOutsideSource: data.allowOutsideSource ?? false,
       },
       context,
     );
