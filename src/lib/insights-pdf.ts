@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import { ROLE_GUIDES, type SessionInsights } from "./insights.functions";
+import { ROLE_GUIDES, type SessionInsights } from "./insights-shared";
 import { formatSec, type SessionMetrics } from "./analyze-metrics";
 
 export interface InsightsPdfData {

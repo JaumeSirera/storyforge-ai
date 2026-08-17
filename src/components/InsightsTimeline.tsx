@@ -10,7 +10,7 @@ import { getRecordingUrl, type CaptureRecording } from "@/lib/capture.functions"
 import { formatSec, type SessionMetrics, type TranscriptSegment } from "@/lib/analyze-metrics";
 import type { SessionScene } from "@/lib/scenes.helpers";
 import type { SceneAnnotation } from "@/lib/scene-annotations.functions";
-import type { SessionInsights } from "@/lib/insights.functions";
+import type { SessionInsights } from "@/lib/insights-shared";
 
 interface Props {
   segments: TranscriptSegment[];
