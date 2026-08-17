@@ -1007,6 +1007,60 @@ export type Database = {
         }
         Relationships: []
       }
+      exam_audit_log: {
+        Row: {
+          assessment_id: string
+          candidate_id: string
+          client_version: string | null
+          created_at: string
+          detail: Json
+          event: string
+          id: string
+          ip: string | null
+          owner_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          assessment_id: string
+          candidate_id: string
+          client_version?: string | null
+          created_at?: string
+          detail?: Json
+          event: string
+          id?: string
+          ip?: string | null
+          owner_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          assessment_id?: string
+          candidate_id?: string
+          client_version?: string | null
+          created_at?: string
+          detail?: Json
+          event?: string
+          id?: string
+          ip?: string | null
+          owner_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_audit_log_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_audit_log_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       practice_areas: {
         Row: {
           created_at: string
