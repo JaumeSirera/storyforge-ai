@@ -253,7 +253,41 @@ export async function regenerateAssessmentHandler(
   return { assessment: mapAssessment(row) };
 }
 
+export async function updateAssessmentBlueprintHandler(
+  data: {
+    id: string;
+    instructions?: string;
+    maxScore?: number;
+    handwritingWeightPct?: number;
+    questions?: any[];
+    rubric?: any[];
+  },
+  context: any,
+) {
+  const patch: Record<string, unknown> = {};
+  if (data.instructions !== undefined) patch.instructions = data.instructions;
+  if (data.maxScore !== undefined) patch.max_score = data.maxScore;
+  if (data.handwritingWeightPct !== undefined)
+    patch.handwriting_weight_pct = data.handwritingWeightPct;
+  if (data.questions !== undefined) patch.questions = data.questions;
+  if (data.rubric !== undefined) {
+    patch.rubric = data.rubric;
+    if (data.rubric.length > 0) patch.status = "ready";
+  }
+
+  const { data: row, error } = await context.supabase
+    .from("assessments")
+    .update(patch)
+    .eq("id", data.id)
+    .eq("owner_id", context.userId)
+    .select(ASSESSMENT_COLUMNS)
+    .single();
+  if (error) throw new Error(error.message);
+  return { assessment: mapAssessment(row) };
+}
+
 export async function deleteAssessmentHandler(data: { id: string }, context: any) {
+
   const { error } = await context.supabase
     .from("assessments")
     .delete()

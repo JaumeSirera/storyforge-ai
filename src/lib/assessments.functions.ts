@@ -11,7 +11,9 @@ import {
   gradeSubmissionHandler,
   listAssessmentsHandler,
   regenerateAssessmentHandler,
+  updateAssessmentBlueprintHandler,
   validateFiles,
+
 } from "./assessments.server";
 
 export const listAssessments = createServerFn({ method: "GET" })
@@ -53,7 +55,55 @@ export const regenerateAssessment = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => regenerateAssessmentHandler(data, context));
 
+export const updateAssessmentBlueprint = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        instructions: z.string().max(4000).optional(),
+        maxScore: z.number().min(1).max(100).optional(),
+        handwritingWeightPct: z.number().min(0).max(50).optional(),
+        questions: z
+          .array(
+            z.object({
+              id: z.string().max(40).default(""),
+              prompt: z.string().max(2000).default(""),
+              type: z.literal("narrative").default("narrative"),
+              maxPoints: z.number().min(0).max(100).default(1),
+              keyElements: z.array(z.string().max(400)).max(20).default([]),
+            }),
+          )
+          .max(20)
+          .optional(),
+        rubric: z
+          .array(
+            z.object({
+              id: z.string().max(40).default(""),
+              name: z.string().max(160).default(""),
+              description: z.string().max(1000).default(""),
+              weightPct: z.number().min(0).max(100).default(0),
+              levels: z
+                .array(
+                  z.object({
+                    label: z.string().max(80).default(""),
+                    descriptor: z.string().max(600).default(""),
+                    pct: z.number().min(0).max(100).default(0),
+                  }),
+                )
+                .max(8)
+                .default([]),
+            }),
+          )
+          .max(15)
+          .optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => updateAssessmentBlueprintHandler(data, context));
+
 export const deleteAssessment = createServerFn({ method: "POST" })
+
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => deleteAssessmentHandler(data, context));
