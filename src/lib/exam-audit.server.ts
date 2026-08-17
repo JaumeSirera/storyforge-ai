@@ -39,7 +39,7 @@ export async function logExamAudit(params: {
       ip,
       user_agent: userAgent ? userAgent.slice(0, 500) : null,
       client_version: params.clientVersion ? params.clientVersion.slice(0, 80) : null,
-      detail: params.detail ?? {},
+      detail: (params.detail ?? {}) as never,
     });
   } catch {
     /* auditoría best-effort */
