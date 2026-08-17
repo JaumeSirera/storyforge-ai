@@ -250,7 +250,16 @@ function AssessmentDetail() {
         </CardContent>
       </Card>
 
-      <RubricEditor assessment={assessment} onSaved={invalidate} />
+      {permissions?.isOwner !== false && <RubricEditor assessment={assessment} onSaved={invalidate} />}
+
+      {permissions?.canView && (
+        <AssessmentCollaboratorsCard
+          assessmentId={id}
+          canManage={Boolean(permissions.canManageCollaborators)}
+        />
+      )}
+
+
 
 
       <Card>
