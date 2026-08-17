@@ -14,6 +14,122 @@ export type Database = {
   }
   public: {
     Tables: {
+      assessment_submissions: {
+        Row: {
+          assessment_id: string
+          candidate_identifier: string | null
+          candidate_name: string
+          created_at: string
+          error_message: string | null
+          evaluation: Json | null
+          extracted_text: string | null
+          graded_at: string | null
+          handwriting: Json | null
+          id: string
+          max_score: number | null
+          owner_id: string
+          pages: Json
+          score: number | null
+          source_kind: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assessment_id: string
+          candidate_identifier?: string | null
+          candidate_name: string
+          created_at?: string
+          error_message?: string | null
+          evaluation?: Json | null
+          extracted_text?: string | null
+          graded_at?: string | null
+          handwriting?: Json | null
+          id?: string
+          max_score?: number | null
+          owner_id: string
+          pages?: Json
+          score?: number | null
+          source_kind?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assessment_id?: string
+          candidate_identifier?: string | null
+          candidate_name?: string
+          created_at?: string
+          error_message?: string | null
+          evaluation?: Json | null
+          extracted_text?: string | null
+          graded_at?: string | null
+          handwriting?: Json | null
+          id?: string
+          max_score?: number | null
+          owner_id?: string
+          pages?: Json
+          score?: number | null
+          source_kind?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_submissions_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessments: {
+        Row: {
+          area_key: string | null
+          created_at: string
+          handwriting_weight_pct: number
+          id: string
+          instructions: string | null
+          max_score: number
+          owner_id: string
+          prompt: string | null
+          questions: Json
+          rubric: Json
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          area_key?: string | null
+          created_at?: string
+          handwriting_weight_pct?: number
+          id?: string
+          instructions?: string | null
+          max_score?: number
+          owner_id: string
+          prompt?: string | null
+          questions?: Json
+          rubric?: Json
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          area_key?: string | null
+          created_at?: string
+          handwriting_weight_pct?: number
+          id?: string
+          instructions?: string | null
+          max_score?: number
+          owner_id?: string
+          prompt?: string | null
+          questions?: Json
+          rubric?: Json
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       capture_analyses: {
         Row: {
           capture_session_id: string

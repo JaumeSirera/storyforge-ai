@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Sparkles, LayoutDashboard, Plus, LogOut, Library, Settings, Shield, CreditCard, Menu, X , Video} from "lucide-react";
+import { Sparkles, LayoutDashboard, Plus, LogOut, Library, Settings, Shield, CreditCard, Menu, X , Video, FileText} from "lucide-react";
 import { getMyAdminStatus } from "@/lib/admin.functions";
 
 
@@ -48,6 +48,7 @@ function AppLayout() {
             <NavItem to="/app/simulations" icon={Library} label="Mis simulaciones" />
             <NavItem to="/app/new" icon={Plus} label="Nueva" />
             <NavItem to="/app/capture" icon={Video} label="Grabaciones" />
+            <NavItem to="/app/assessments" icon={FileText} label="Evaluaciones" />
             <NavItem to="/app/settings" icon={Settings} label="Ajustes" />
             <NavItem to="/app/billing" icon={CreditCard} label="Facturación" />
             {adminStatus?.isAdmin && (
@@ -77,6 +78,7 @@ function AppLayout() {
               <MobileNavItem to="/app/simulations" icon={Library} label="Mis simulaciones" onClick={() => setMobileOpen(false)} />
               <MobileNavItem to="/app/new" icon={Plus} label="Nueva" onClick={() => setMobileOpen(false)} />
               <MobileNavItem to="/app/capture" icon={Video} label="Grabaciones" onClick={() => setMobileOpen(false)} />
+              <MobileNavItem to="/app/assessments" icon={FileText} label="Evaluaciones" onClick={() => setMobileOpen(false)} />
               <MobileNavItem to="/app/settings" icon={Settings} label="Ajustes" onClick={() => setMobileOpen(false)} />
               <MobileNavItem to="/app/billing" icon={CreditCard} label="Facturación" onClick={() => setMobileOpen(false)} />
               {adminStatus?.isAdmin && (
@@ -99,10 +101,11 @@ function AppLayout() {
         className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-background/95 backdrop-blur"
         aria-label="Navegación principal móvil"
       >
-        <ul className="mx-auto grid max-w-7xl grid-cols-3">
+        <ul className="mx-auto grid max-w-7xl grid-cols-5">
           <li><BottomNavItem to="/app/dashboard" icon={LayoutDashboard} label="Inicio" /></li>
           <li><BottomNavItem to="/app/simulations" icon={Library} label="Simulaciones" /></li>
           <li><BottomNavItem to="/app/capture" icon={Video} label="Grabaciones" /></li>
+          <li><BottomNavItem to="/app/assessments" icon={FileText} label="Evaluar" /></li>
           <li><BottomNavItem to="/app/settings" icon={Settings} label="Perfil" /></li>
         </ul>
       </nav>
