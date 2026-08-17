@@ -64,6 +64,12 @@ function ExamPage() {
   const [deadline, setDeadline] = useState<number | null>(null);
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const [expired, setExpired] = useState(false);
+  /** true cuando el aspirante ya ha pulsado "Comenzar examen" (o lo había comenzado antes). */
+  const [started, setStarted] = useState(false);
+  const [starting, setStarting] = useState(false);
+
+  const answersKey = `playnalyze.exam.answers.${token}`;
+  const submittedKey = `playnalyze.exam.submitted.${token}`;
 
   const q = useQuery({
     queryKey: ["exam", token],
@@ -72,20 +78,75 @@ function ExamPage() {
   });
   const exam = q.data;
 
+  // Bloqueo local: si ya se entregó desde este navegador, no se permite editar aunque refresque.
   useEffect(() => {
-    if (!exam || exam.candidate.status === "submitted") return;
-    start({ data: { token } })
-      .then((res: any) => {
-        const limit = exam.assessment.timeLimitMin;
-        if (!limit || limit <= 0) return;
-        const startedAt = new Date(res?.startedAt ?? exam.candidate.startedAt ?? exam.serverNow).getTime();
-        const serverNow = new Date(res?.serverNow ?? exam.serverNow).getTime();
-        // Compensamos el desfase entre el reloj del servidor y el del navegador.
-        const skew = Date.now() - serverNow;
-        setDeadline(startedAt + limit * 60_000 + skew);
-      })
-      .catch(() => {});
-  }, [exam, start, token]);
+    try {
+      const flag = window.localStorage.getItem(submittedKey);
+      if (flag) {
+        setSubmittedAt(flag);
+        setDone(true);
+      }
+    } catch {
+      /* almacenamiento no disponible */
+    }
+  }, [submittedKey]);
+
+  // Recupera las respuestas guardadas para continuar donde lo dejó tras un refresco.
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    try {
+      const raw = window.localStorage.getItem(answersKey);
+      if (raw) setAnswers(JSON.parse(raw) as Record<string, AnswerState>);
+    } catch {
+      /* datos corruptos: se ignoran */
+    }
+  }, [answersKey]);
+
+  // Guarda el progreso en cada cambio.
+  useEffect(() => {
+    if (!restoredRef.current || done) return;
+    try {
+      window.localStorage.setItem(answersKey, JSON.stringify(answers));
+    } catch {
+      /* almacenamiento no disponible */
+    }
+  }, [answers, answersKey, done]);
+
+  /** Calcula el fin del examen a partir de la hora del servidor. */
+  const applyDeadline = (startedAtIso?: string | null, serverNowIso?: string | null) => {
+    const limit = exam?.assessment.timeLimitMin;
+    if (!limit || limit <= 0) return;
+    const startedAt = new Date(startedAtIso ?? exam?.serverNow ?? Date.now()).getTime();
+    const serverNow = new Date(serverNowIso ?? exam?.serverNow ?? Date.now()).getTime();
+    // Compensamos el desfase entre el reloj del servidor y el del navegador.
+    const skew = Date.now() - serverNow;
+    setDeadline(startedAt + limit * 60_000 + skew);
+  };
+
+  // Si ya había comenzado (p. ej. tras refrescar), se reanuda automáticamente sin reiniciar el tiempo.
+  useEffect(() => {
+    if (!exam || started || done) return;
+    if (exam.candidate.status === "started" && exam.candidate.startedAt) {
+      setStarted(true);
+      applyDeadline(exam.candidate.startedAt, exam.serverNow);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exam, started, done]);
+
+  const beginExam = async () => {
+    setStarting(true);
+    try {
+      const res: any = await start({ data: { token } });
+      setStarted(true);
+      applyDeadline(res?.startedAt ?? exam?.candidate.startedAt, res?.serverNow);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setStarting(false);
+    }
+  };
 
   // Cuenta atrás visible + entrega automática al agotarse el tiempo.
   useEffect(() => {
