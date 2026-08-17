@@ -393,10 +393,14 @@ export async function getSubmissionHandler(data: { id: string }, context: any) {
     });
   }
 
+  const { listAnnotationsHandler } = await import("./assessment-annotations.server");
+  const { annotations } = await listAnnotationsHandler({ submissionId: row.id }, context);
+
   return {
     submission: mapSubmission(row),
     assessment: mapAssessment(assessment),
     pageUrls,
+    annotations,
   };
 }
 
@@ -494,6 +498,20 @@ handwriting ({legibility, structure, cleanliness, spacing, consistency, score 鈥
 recommendations (array de strings), conclusion (string).
 score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafismo al ${hwWeight}%.`;
 
+    const { listAnnotationsHandler } = await import("./assessment-annotations.server");
+    const { annotations } = await listAnnotationsHandler({ submissionId: row.id }, context);
+    const annotationBrief =
+      annotations.length > 0
+        ? `\nCorrecciones marcadas manualmente por el evaluador sobre las p谩ginas (tienen PRIORIDAD sobre tu propia lectura; apl铆calas en la transcripci贸n y en el grafismo):\n${annotations
+            .map(
+              (a: any, i: number) =>
+                `${i + 1}. p谩gina ${a.pageIndex + 1} 路 ${a.kind === "transcription" ? "transcripci贸n" : a.kind === "handwriting" ? "grafismo" : "contenido"}${
+                  a.correction ? ` 路 texto correcto: "${a.correction}"` : ""
+                }${a.comment ? ` 路 comentario: "${a.comment}"` : ""}`,
+            )
+            .join("\n")}`
+        : "";
+
     const fileParts = pages.length > 0 ? await buildFileParts(pages) : [];
     const result = await generateText({
       model,
@@ -501,7 +519,7 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
       messages: [
         {
           role: "user",
-          content: [{ type: "text", text: instructions }, ...fileParts],
+          content: [{ type: "text", text: instructions + annotationBrief }, ...fileParts],
         } as any,
       ],
     });

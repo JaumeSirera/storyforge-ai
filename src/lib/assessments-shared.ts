@@ -158,3 +158,30 @@ export function gradeLabel(score: number, maxScore: number): string {
   if (pct >= 50) return "Suficiente";
   return "Insuficiente";
 }
+
+/** Tipos de marca que el evaluador puede poner sobre una página escaneada. */
+export const ANNOTATION_KINDS = ["transcription", "handwriting", "content"] as const;
+export type AnnotationKind = (typeof ANNOTATION_KINDS)[number];
+
+export const ANNOTATION_KIND_LABELS: Record<AnnotationKind, string> = {
+  transcription: "Corrección de transcripción",
+  handwriting: "Observación de grafismo",
+  content: "Nota de contenido",
+};
+
+/** Marca rectangular (coordenadas normalizadas 0-1) sobre una página de la entrega. */
+export interface SubmissionAnnotation {
+  id: string;
+  submissionId: string;
+  pagePath: string;
+  pageIndex: number;
+  kind: AnnotationKind;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  correction: string;
+  comment: string;
+  createdAt: string;
+  updatedAt: string;
+}

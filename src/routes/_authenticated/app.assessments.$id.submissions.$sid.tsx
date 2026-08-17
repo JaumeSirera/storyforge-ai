@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getSubmission, gradeSubmission } from "@/lib/assessments.functions";
 import { gradeLabel } from "@/lib/assessments-shared";
 import { generateAssessmentPdf } from "@/lib/assessment-pdf";
+import { SubmissionPageAnnotator } from "@/components/SubmissionPageAnnotator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +59,7 @@ function SubmissionReport() {
   const submission = q.data?.submission;
   const assessment = q.data?.assessment;
   const pageUrls = q.data?.pageUrls ?? [];
+  const annotations = q.data?.annotations ?? [];
   const evaluation = submission?.evaluation ?? null;
 
   const regrade = useMutation({
@@ -71,7 +73,7 @@ function SubmissionReport() {
 
   const download = () => {
     if (!assessment || !submission || !evaluation) return;
-    const doc = generateAssessmentPdf({ assessment, submission, evaluation });
+    const doc = generateAssessmentPdf({ assessment, submission, evaluation, annotations });
     doc.save(`informe-${submission.candidateName.replace(/\s+/g, "-").toLowerCase()}.pdf`);
   };
 
@@ -303,36 +305,7 @@ function SubmissionReport() {
       )}
 
       {pageUrls.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Páginas de la entrega</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {pageUrls.map((page) =>
-              page.url ? (
-                page.mimeType === "application/pdf" ? (
-                  <a
-                    key={page.path}
-                    href={page.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-md border border-border p-3 text-sm hover:bg-accent"
-                  >
-                    {page.name} (PDF)
-                  </a>
-                ) : (
-                  <img
-                    key={page.path}
-                    src={page.url}
-                    alt={`Página escaneada: ${page.name}`}
-                    loading="lazy"
-                    className="w-full rounded-md border border-border object-contain"
-                  />
-                )
-              ) : null,
-            )}
-          </CardContent>
-        </Card>
+        <SubmissionPageAnnotator submissionId={sid} pages={pageUrls} annotations={annotations} />
       )}
 
       {submission.extractedText && (
