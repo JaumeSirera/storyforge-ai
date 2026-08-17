@@ -4,6 +4,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { listAssessments, createAssessment, deleteAssessment } from "@/lib/assessments.functions";
 import { listPracticeAreas } from "@/lib/areas.functions";
+import {
+  ASSESSMENT_SUBJECTS,
+  QUESTION_TYPES,
+  QUESTION_TYPE_LABELS,
+  SUBJECT_LABELS,
+  type AssessmentSubject,
+  type QuestionType,
+} from "@/lib/assessments-shared";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
