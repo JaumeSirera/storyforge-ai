@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Loader2, Send } from "lucide-react";
+import { AlarmClock, CheckCircle2, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/exam/$token")({
@@ -47,6 +47,10 @@ function ExamPage() {
 
   const [answers, setAnswers] = useState<Record<string, AnswerState>>({});
   const [done, setDone] = useState(false);
+  /** Marca temporal local equivalente al fin del examen (calculada con la hora del servidor). */
+  const [deadline, setDeadline] = useState<number | null>(null);
+  const [remainingSec, setRemainingSec] = useState<number | null>(null);
+  const [expired, setExpired] = useState(false);
 
   const q = useQuery({
     queryKey: ["exam", token],
@@ -56,10 +60,32 @@ function ExamPage() {
   const exam = q.data;
 
   useEffect(() => {
-    if (exam && exam.candidate.status !== "submitted") {
-      start({ data: { token } }).catch(() => {});
-    }
+    if (!exam || exam.candidate.status === "submitted") return;
+    start({ data: { token } })
+      .then((res: any) => {
+        const limit = exam.assessment.timeLimitMin;
+        if (!limit || limit <= 0) return;
+        const startedAt = new Date(res?.startedAt ?? exam.candidate.startedAt ?? exam.serverNow).getTime();
+        const serverNow = new Date(res?.serverNow ?? exam.serverNow).getTime();
+        // Compensamos el desfase entre el reloj del servidor y el del navegador.
+        const skew = Date.now() - serverNow;
+        setDeadline(startedAt + limit * 60_000 + skew);
+      })
+      .catch(() => {});
   }, [exam, start, token]);
+
+  // Cuenta atrás visible + entrega automática al agotarse el tiempo.
+  useEffect(() => {
+    if (deadline == null) return;
+    const tick = () => {
+      const left = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+      setRemainingSec(left);
+      if (left === 0) setExpired(true);
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [deadline]);
 
   const answered = useMemo(
     () =>
@@ -74,10 +100,11 @@ function ExamPage() {
     }));
 
   const submitMut = useMutation({
-    mutationFn: () =>
+    mutationFn: (auto = false) =>
       send({
         data: {
           token,
+          auto,
           answers: (exam?.assessment.questions ?? []).map((qq) => ({
             questionId: qq.id,
             text: answers[qq.id]?.text ?? "",
