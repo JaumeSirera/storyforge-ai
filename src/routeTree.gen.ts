@@ -26,6 +26,7 @@ import { Route as AuthenticatedAppAdminPricingRouteImport } from './routes/_auth
 import { Route as AuthenticatedAppAdminSimulationsRouteImport } from './routes/_authenticated/app.admin.simulations'
 import { Route as AuthenticatedAppAdminUsersRouteImport } from './routes/_authenticated/app.admin.users'
 import { Route as AuthenticatedAppAssessmentsIndexRouteImport } from './routes/_authenticated/app.assessments.index'
+import { Route as AuthenticatedAppAssessmentsBankRouteImport } from './routes/_authenticated/app.assessments.bank'
 import { Route as AuthenticatedAppCaptureIndexRouteImport } from './routes/_authenticated/app.capture.index'
 import { Route as AuthenticatedAppPlayIdRouteImport } from './routes/_authenticated/app.play.$id'
 import { Route as AuthenticatedAppSessionsIdRouteImport } from './routes/_authenticated/app.sessions.$id'
@@ -132,6 +133,12 @@ const AuthenticatedAppAssessmentsIndexRoute =
   AuthenticatedAppAssessmentsIndexRouteImport.update({
     id: '/app/assessments/',
     path: '/app/assessments/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppAssessmentsBankRoute =
+  AuthenticatedAppAssessmentsBankRouteImport.update({
+    id: '/app/assessments/bank',
+    path: '/app/assessments/bank',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppCaptureIndexRoute =
@@ -252,6 +259,7 @@ export interface FileRoutesByFullPath {
   '/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
+  '/app/assessments/bank': typeof AuthenticatedAppAssessmentsBankRoute
   '/app/play/$id': typeof AuthenticatedAppPlayIdRoute
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
@@ -287,6 +295,7 @@ export interface FileRoutesByTo {
   '/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
+  '/app/assessments/bank': typeof AuthenticatedAppAssessmentsBankRoute
   '/app/play/$id': typeof AuthenticatedAppPlayIdRoute
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
@@ -324,6 +333,7 @@ export interface FileRoutesById {
   '/_authenticated/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/_authenticated/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/_authenticated/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
+  '/_authenticated/app/assessments/bank': typeof AuthenticatedAppAssessmentsBankRoute
   '/_authenticated/app/play/$id': typeof AuthenticatedAppPlayIdRoute
   '/_authenticated/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
@@ -361,6 +371,7 @@ export interface FileRouteTypes {
     | '/app/admin/pricing'
     | '/app/admin/simulations'
     | '/app/admin/users'
+    | '/app/assessments/bank'
     | '/app/play/$id'
     | '/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
@@ -396,6 +407,7 @@ export interface FileRouteTypes {
     | '/app/admin/pricing'
     | '/app/admin/simulations'
     | '/app/admin/users'
+    | '/app/assessments/bank'
     | '/app/play/$id'
     | '/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
@@ -432,6 +444,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/admin/pricing'
     | '/_authenticated/app/admin/simulations'
     | '/_authenticated/app/admin/users'
+    | '/_authenticated/app/assessments/bank'
     | '/_authenticated/app/play/$id'
     | '/_authenticated/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
@@ -586,6 +599,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAssessmentsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/assessments/bank': {
+      id: '/_authenticated/app/assessments/bank'
+      path: '/app/assessments/bank'
+      fullPath: '/app/assessments/bank'
+      preLoaderRoute: typeof AuthenticatedAppAssessmentsBankRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/capture/': {
       id: '/_authenticated/app/capture/'
       path: '/app/capture'
@@ -731,6 +751,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppDashboardRoute: typeof AuthenticatedAppDashboardRoute
   AuthenticatedAppNewRoute: typeof AuthenticatedAppNewRoute
   AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
+  AuthenticatedAppAssessmentsBankRoute: typeof AuthenticatedAppAssessmentsBankRoute
   AuthenticatedAppPlayIdRoute: typeof AuthenticatedAppPlayIdRoute
   AuthenticatedAppSessionsIdRoute: typeof AuthenticatedAppSessionsIdRoute
   AuthenticatedAppAssessmentsIndexRoute: typeof AuthenticatedAppAssessmentsIndexRoute
@@ -755,6 +776,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppDashboardRoute: AuthenticatedAppDashboardRoute,
   AuthenticatedAppNewRoute: AuthenticatedAppNewRoute,
   AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
+  AuthenticatedAppAssessmentsBankRoute: AuthenticatedAppAssessmentsBankRoute,
   AuthenticatedAppPlayIdRoute: AuthenticatedAppPlayIdRoute,
   AuthenticatedAppSessionsIdRoute: AuthenticatedAppSessionsIdRoute,
   AuthenticatedAppAssessmentsIndexRoute: AuthenticatedAppAssessmentsIndexRoute,
