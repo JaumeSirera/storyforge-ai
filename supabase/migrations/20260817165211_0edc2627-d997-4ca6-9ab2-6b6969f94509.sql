@@ -1,0 +1,1 @@
+ALTER TABLE public.assessments ADD COLUMN IF NOT EXISTS feedback_tone text NOT NULL DEFAULT 'formativo';

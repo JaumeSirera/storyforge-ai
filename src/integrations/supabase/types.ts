@@ -145,6 +145,7 @@ export type Database = {
         Row: {
           area_key: string | null
           created_at: string
+          feedback_tone: string
           handwriting_weight_pct: number
           id: string
           instructions: string | null
@@ -160,6 +161,7 @@ export type Database = {
         Insert: {
           area_key?: string | null
           created_at?: string
+          feedback_tone?: string
           handwriting_weight_pct?: number
           id?: string
           instructions?: string | null
@@ -175,6 +177,7 @@ export type Database = {
         Update: {
           area_key?: string | null
           created_at?: string
+          feedback_tone?: string
           handwriting_weight_pct?: number
           id?: string
           instructions?: string | null
