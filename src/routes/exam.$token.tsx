@@ -187,8 +187,15 @@ function ExamPage() {
         },
       }),
     onSuccess: (res: any) => {
-      setSubmittedAt(res?.submittedAt ?? new Date().toISOString());
+      const at = res?.submittedAt ?? new Date().toISOString();
+      setSubmittedAt(at);
       setDone(true);
+      try {
+        window.localStorage.setItem(submittedKey, at);
+        window.localStorage.removeItem(answersKey);
+      } catch {
+        /* almacenamiento no disponible */
+      }
       toast.success("Examen finalizado y entregado correctamente");
     },
     onError: (e: Error) => toast.error(e.message),
