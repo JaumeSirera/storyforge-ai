@@ -55,10 +55,12 @@ export function SubmissionPageAnnotator({
   submissionId,
   pages,
   annotations,
+  readOnly = false,
 }: {
   submissionId: string;
   pages: AnnotatorPage[];
   annotations: SubmissionAnnotation[];
+  readOnly?: boolean;
 }) {
   const qc = useQueryClient();
   const save = useServerFn(saveAnnotation);
@@ -126,6 +128,7 @@ export function SubmissionPageAnnotator({
   };
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>, page: AnnotatorPage, index: number) => {
+    if (readOnly) return;
     if ((event.target as HTMLElement).dataset.annotation) return;
     const { x, y } = relative(event);
     dragRef.current = { pageIndex: index, startX: x, startY: y };
@@ -182,8 +185,9 @@ export function SubmissionPageAnnotator({
       <CardHeader>
         <CardTitle className="text-base">Páginas de la entrega y marcas del evaluador</CardTitle>
         <CardDescription>
-          Arrastra sobre una página para marcar un área y añade la transcripción correcta o una nota de
-          grafismo. Las marcas se guardan con la entrega y se aplican al volver a corregir.
+          {readOnly
+            ? "Solo lectura: no tienes permiso para editar anotaciones en esta evaluación."
+            : "Arrastra sobre una página para marcar un área y añade la transcripción correcta o una nota de grafismo. Las marcas se guardan con la entrega y se aplican al volver a corregir."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -231,7 +235,9 @@ export function SubmissionPageAnnotator({
                       type="button"
                       data-annotation="1"
                       onClick={() =>
-                        setDraft({
+                        readOnly
+                          ? undefined
+                          : setDraft({
                           id: mark.id,
                           pagePath: mark.pagePath,
                           pageIndex: mark.pageIndex,
