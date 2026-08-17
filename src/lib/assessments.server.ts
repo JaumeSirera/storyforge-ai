@@ -385,6 +385,7 @@ export async function updateAssessmentBlueprintHandler(
     instructions?: string;
     maxScore?: number;
     handwritingWeightPct?: number;
+    feedbackTone?: string;
     questions?: any[];
     rubric?: any[];
   },
@@ -395,6 +396,8 @@ export async function updateAssessmentBlueprintHandler(
   if (data.maxScore !== undefined) patch.max_score = data.maxScore;
   if (data.handwritingWeightPct !== undefined)
     patch.handwriting_weight_pct = data.handwritingWeightPct;
+  if (data.feedbackTone !== undefined)
+    patch.feedback_tone = normalizeFeedbackTone(data.feedbackTone);
   if (data.questions !== undefined) patch.questions = data.questions;
   if (data.rubric !== undefined) {
     patch.rubric = data.rubric;
@@ -700,7 +703,7 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
         {
           role: "user",
           content: [
-            { type: "text", text: instructions + objectiveRule + annotationBrief },
+            { type: "text", text: instructions + objectiveRule + toneRule + annotationBrief },
             ...fileParts,
           ],
         } as any,
