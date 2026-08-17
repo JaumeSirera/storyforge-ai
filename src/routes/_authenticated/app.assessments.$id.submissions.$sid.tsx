@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getSubmission, gradeSubmission } from "@/lib/assessments.functions";
-import { gradeLabel } from "@/lib/assessments-shared";
+import { gradeLabel, VERDICT_LABELS } from "@/lib/assessments-shared";
 import { generateAssessmentPdf } from "@/lib/assessment-pdf";
 import { SubmissionPageAnnotator } from "@/components/SubmissionPageAnnotator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -153,22 +153,63 @@ function SubmissionReport() {
           {evaluation.answers.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Corrección por pregunta</CardTitle>
+                <CardTitle className="text-base">Corrección y feedback por pregunta</CardTitle>
+                <CardDescription>
+                  Cada pregunta incluye veredicto, respuesta esperada, explicación de por qué es
+                  correcta o incorrecta y feedback individual.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {evaluation.answers.map((answer, i) => (
                   <div key={answer.questionId || i} className="rounded-md border border-border p-3">
                     <div className="flex items-start justify-between gap-3">
                       <p className="text-sm font-medium">{answer.question || `Pregunta ${i + 1}`}</p>
-                      <Badge variant="secondary" className="shrink-0">
-                        {answer.score} / {answer.maxPoints}
-                      </Badge>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Badge
+                          variant={
+                            answer.verdict === "correct"
+                              ? "default"
+                              : answer.verdict === "incorrect" || answer.verdict === "unanswered"
+                                ? "destructive"
+                                : "secondary"
+                          }
+                        >
+                          {VERDICT_LABELS[answer.verdict]}
+                        </Badge>
+                        <Badge variant="outline">
+                          {answer.score} / {answer.maxPoints}
+                        </Badge>
+                      </div>
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground">{answer.answerSummary}</p>
                     {answer.evidence && (
                       <blockquote className="mt-2 border-l-2 border-primary/40 pl-3 text-xs italic text-muted-foreground">
                         {answer.evidence}
                       </blockquote>
+                    )}
+                    {answer.expectedAnswer && (
+                      <p className="mt-2 text-xs">
+                        <span className="font-semibold">Respuesta esperada: </span>
+                        <span className="text-muted-foreground">{answer.expectedAnswer}</span>
+                      </p>
+                    )}
+                    {answer.explanation && (
+                      <div className="mt-2 rounded-md bg-muted/60 p-2.5 text-xs leading-relaxed">
+                        <p className="font-semibold">¿Por qué?</p>
+                        <p className="text-muted-foreground">{answer.explanation}</p>
+                      </div>
+                    )}
+                    {answer.feedback && (
+                      <div className="mt-2 rounded-md border border-primary/30 bg-primary/5 p-2.5 text-xs leading-relaxed">
+                        <p className="font-semibold">Feedback para el candidato</p>
+                        <p className="text-muted-foreground">{answer.feedback}</p>
+                        {answer.nextStep && (
+                          <p className="mt-1 text-muted-foreground">
+                            <span className="font-semibold">Siguiente paso: </span>
+                            {answer.nextStep}
+                          </p>
+                        )}
+                      </div>
                     )}
                     <div className="mt-2 grid gap-2 sm:grid-cols-2">
                       {answer.strengths.length > 0 && (

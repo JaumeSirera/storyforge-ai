@@ -1,9 +1,11 @@
 import { generateText } from "ai";
 import { resolveUserTextModel } from "./ai-gateway.server";
 import {
+  ANSWER_VERDICTS,
   BlueprintSchema,
   EvaluationSchema,
   HandwritingSchema,
+  type AnswerVerdict,
   type AssessmentBlueprint,
   type AssessmentEvaluation,
   type AssessmentRecord,
@@ -15,6 +17,23 @@ import { loadUserKeys } from "./user-keys.functions";
 const BUCKET = "assessments";
 const MAX_PAGE_BYTES = 15 * 1024 * 1024;
 const MAX_PAGES = 12;
+
+/** Normaliza el veredicto devuelto por la IA; si falta, lo deduce de la puntuación. */
+function normalizeVerdict(raw: unknown, score: number, maxPoints: number): AnswerVerdict {
+  const value = String(raw ?? "")
+    .trim()
+    .toLowerCase();
+  if (ANSWER_VERDICTS.includes(value as AnswerVerdict)) return value as AnswerVerdict;
+  if (value.startsWith("correct")) return "correct";
+  if (value.startsWith("parcial")) return "partial";
+  if (value.startsWith("incorrect")) return "incorrect";
+  if (value.includes("sin responder") || value.includes("blanco") || value.includes("unanswer"))
+    return "unanswered";
+  if (!maxPoints) return "partial";
+  if (score <= 0) return "incorrect";
+  if (score >= maxPoints) return "correct";
+  return "partial";
+}
 
 const ASSESSMENT_COLUMNS =
   "id, title, area_key, prompt, instructions, questions, rubric, max_score, handwriting_weight_pct, status, created_at, updated_at";
@@ -641,7 +660,13 @@ Devuelve exactamente estas claves JSON:
 transcription (string con la transcripción literal completa),
 headline (string), summary (string),
 score (número sobre ${assessment.maxScore}), contentScore (número sobre ${assessment.maxScore}), handwritingScore (número 0-100),
-answers (array de {questionId, question, answerSummary, score, maxPoints, strengths[], gaps[], evidence con cita textual}),
+answers (array de {questionId, question, answerSummary, score, maxPoints, strengths[], gaps[], evidence con cita textual, verdict, expectedAnswer, explanation, feedback, nextStep}),
+Para CADA pregunta, sin excepción, incluye:
+- verdict: exactamente uno de "correct", "partial", "incorrect", "unanswered".
+- expectedAnswer: la respuesta correcta esperada (en cerradas, la opción u opciones correctas con su texto; en narrativas, los elementos clave imprescindibles).
+- explanation: explicación didáctica de POR QUÉ la respuesta del candidato es correcta o incorrecta, indicando el razonamiento o la regla aplicable y en qué punto se desvía.
+- feedback: feedback individual dirigido al candidato en segunda persona, concreto y respetuoso, basado solo en lo que ha escrito.
+- nextStep: una acción concreta para mejorar en esa pregunta (qué repasar o cómo estructurar la respuesta).
 criteria (array de {name, score sobre 100, maxScore:100, justification}),
 competencies (array de {name, level, evidence}),
 handwriting ({legibility, structure, cleanliness, spacing, consistency, score — todos 0-100 —, corrections (string), observations (array de strings con hechos observables), hypotheses (array de {hypothesis, basis, confidence})}),
@@ -715,6 +740,15 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
             strengths: Array.isArray(a?.strengths) ? a.strengths.map((s: any) => String(s)) : [],
             gaps: Array.isArray(a?.gaps) ? a.gaps.map((s: any) => String(s)) : [],
             evidence: String(a?.evidence ?? ""),
+            verdict: normalizeVerdict(
+              a?.verdict ?? a?.veredicto,
+              Number(a?.score ?? 0) || 0,
+              Number(a?.maxPoints ?? 0) || 0,
+            ),
+            expectedAnswer: String(a?.expectedAnswer ?? a?.respuestaCorrecta ?? ""),
+            explanation: String(a?.explanation ?? a?.explicacion ?? ""),
+            feedback: String(a?.feedback ?? a?.retroalimentacion ?? ""),
+            nextStep: String(a?.nextStep ?? a?.siguientePaso ?? ""),
           }))
         : [],
       criteria: Array.isArray(raw?.criteria)
