@@ -14,6 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      assessment_annotations: {
+        Row: {
+          comment: string
+          correction: string
+          created_at: string
+          h: number
+          id: string
+          kind: string
+          owner_id: string
+          page_index: number
+          page_path: string
+          submission_id: string
+          updated_at: string
+          w: number
+          x: number
+          y: number
+        }
+        Insert: {
+          comment?: string
+          correction?: string
+          created_at?: string
+          h?: number
+          id?: string
+          kind?: string
+          owner_id: string
+          page_index?: number
+          page_path: string
+          submission_id: string
+          updated_at?: string
+          w?: number
+          x?: number
+          y?: number
+        }
+        Update: {
+          comment?: string
+          correction?: string
+          created_at?: string
+          h?: number
+          id?: string
+          kind?: string
+          owner_id?: string
+          page_index?: number
+          page_path?: string
+          submission_id?: string
+          updated_at?: string
+          w?: number
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_annotations_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessment_submissions: {
         Row: {
           assessment_id: string
