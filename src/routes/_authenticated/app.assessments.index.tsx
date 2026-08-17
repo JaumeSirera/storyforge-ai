@@ -92,7 +92,7 @@ function AssessmentsIndex() {
           generate: prompt.trim().length >= 10 || sourceText.trim().length >= 50,
           subject,
           questionTypes: types.length > 0 ? types : ["narrative"],
-          sourceText: sourceText.trim() || null,
+          sourceText: sourceText.trim().slice(0, 200000) || null,
           allowOutsideSource,
         },
       }),
