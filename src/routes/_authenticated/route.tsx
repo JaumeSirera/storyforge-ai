@@ -101,7 +101,7 @@ function AppLayout() {
         className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-background/95 backdrop-blur"
         aria-label="Navegación principal móvil"
       >
-        <ul className="mx-auto grid max-w-7xl grid-cols-4">
+        <ul className="mx-auto grid max-w-7xl grid-cols-5">
           <li><BottomNavItem to="/app/dashboard" icon={LayoutDashboard} label="Inicio" /></li>
           <li><BottomNavItem to="/app/simulations" icon={Library} label="Simulaciones" /></li>
           <li><BottomNavItem to="/app/capture" icon={Video} label="Grabaciones" /></li>
