@@ -255,9 +255,40 @@ export function AssessmentCandidatesCard({ assessmentId, canManage, submissions 
                   <p className="truncate text-xs text-muted-foreground">
                     {[c.email, c.identifier].filter(Boolean).join(" · ") || "Sin datos de contacto"}
                   </p>
-                  <Badge variant={c.status === "submitted" ? "default" : "secondary"}>
-                    {CANDIDATE_STATUS_LABELS[c.status]}
-                  </Badge>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={c.status === "submitted" ? "default" : "secondary"}>
+                      {CANDIDATE_STATUS_LABELS[c.status]}
+                    </Badge>
+                    {(() => {
+                      const sub = c.submissionId
+                        ? submissionsById.get(c.submissionId)
+                        : undefined;
+                      if (!sub) return null;
+                      const hasScore =
+                        sub.score !== null &&
+                        sub.score !== undefined &&
+                        sub.maxScore !== null &&
+                        sub.maxScore !== undefined &&
+                        Number(sub.maxScore) > 0;
+                      if (hasScore) {
+                        return (
+                          <Badge variant="outline" className="font-mono">
+                            {sub.score} / {sub.maxScore} ·{" "}
+                            {gradeLabel(Number(sub.score), Number(sub.maxScore))}
+                          </Badge>
+                        );
+                      }
+                      return (
+                        <Badge variant="secondary">
+                          {sub.status === "grading"
+                            ? "Corrigiendo…"
+                            : sub.status === "failed"
+                              ? "Error al corregir"
+                              : "Sin nota"}
+                        </Badge>
+                      );
+                    })()}
+                  </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button variant="outline" size="sm" onClick={() => copyLink(c)}>
