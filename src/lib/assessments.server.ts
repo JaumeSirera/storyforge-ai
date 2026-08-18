@@ -85,6 +85,26 @@ export function mapSubmission(row: any): SubmissionRecord {
     approvalStatus: (row.approval_status ?? "pending") as "pending" | "approved" | "rejected",
     approvalNote: row.approval_note ?? "",
     approvedAt: row.approved_at ?? null,
+    transcriptionSegments: Array.isArray(row.transcription_segments)
+      ? row.transcription_segments.map((s: any, i: number) =>
+          TranscriptionSegmentSchema.parse({
+            index: Number(s?.index ?? i + 1) || i + 1,
+            pageIndex: Number(s?.pageIndex ?? 0) || 0,
+            text: String(s?.text ?? ""),
+            confidence: Math.max(0, Math.min(100, Number(s?.confidence ?? 0) || 0)),
+            issues: Array.isArray(s?.issues) ? s.issues.map((x: any) => String(x)) : [],
+          }),
+        )
+      : [],
+    scanQuality:
+      row.scan_quality && typeof row.scan_quality === "object"
+        ? ScanQualitySchema.parse({
+            score: Math.max(0, Math.min(100, Number(row.scan_quality.score ?? 0) || 0)),
+            notes: String(row.scan_quality.notes ?? ""),
+            lowConfidenceSegments: Number(row.scan_quality.lowConfidenceSegments ?? 0) || 0,
+          })
+        : null,
+    ocrUpdatedAt: row.ocr_updated_at ?? null,
   };
 }
 
