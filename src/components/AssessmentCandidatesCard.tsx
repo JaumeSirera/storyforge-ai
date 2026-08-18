@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { gradeLabel } from "@/lib/assessments-shared";
 import {
   ClipboardCopy,
   ExternalLink,
@@ -30,10 +31,19 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+interface CandidateSubmissionInfo {
+  id: string;
+  status?: string | null;
+  score?: number | null;
+  maxScore?: number | null;
+}
+
 interface Props {
   assessmentId: string;
   /** Solo el propietario puede inscribir o dar de baja aspirantes. */
   canManage: boolean;
+  /** Entregas de la evaluación, para mostrar la nota de cada aspirante. */
+  submissions?: CandidateSubmissionInfo[];
 }
 
 /** Convierte texto pegado (una línea por aspirante) en candidatos. */
@@ -52,7 +62,7 @@ function parseBulk(raw: string) {
     .filter((c) => c.name);
 }
 
-export function AssessmentCandidatesCard({ assessmentId, canManage }: Props) {
+export function AssessmentCandidatesCard({ assessmentId, canManage, submissions = [] }: Props) {
   const qc = useQueryClient();
   const list = useServerFn(listAssessmentCandidates);
   const add = useServerFn(addAssessmentCandidates);
@@ -64,6 +74,11 @@ export function AssessmentCandidatesCard({ assessmentId, canManage }: Props) {
   const [identifier, setIdentifier] = useState("");
   const [bulk, setBulk] = useState("");
   const [search, setSearch] = useState("");
+
+  const submissionsById = useMemo(
+    () => new Map(submissions.map((s) => [s.id, s])),
+    [submissions],
+  );
 
   const q = useQuery({
     queryKey: ["assessment-candidates", assessmentId],
@@ -246,9 +261,40 @@ export function AssessmentCandidatesCard({ assessmentId, canManage }: Props) {
                   <p className="truncate text-xs text-muted-foreground">
                     {[c.email, c.identifier].filter(Boolean).join(" · ") || "Sin datos de contacto"}
                   </p>
-                  <Badge variant={c.status === "submitted" ? "default" : "secondary"}>
-                    {CANDIDATE_STATUS_LABELS[c.status]}
-                  </Badge>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={c.status === "submitted" ? "default" : "secondary"}>
+                      {CANDIDATE_STATUS_LABELS[c.status]}
+                    </Badge>
+                    {(() => {
+                      const sub = c.submissionId
+                        ? submissionsById.get(c.submissionId)
+                        : undefined;
+                      if (!sub) return null;
+                      const hasScore =
+                        sub.score !== null &&
+                        sub.score !== undefined &&
+                        sub.maxScore !== null &&
+                        sub.maxScore !== undefined &&
+                        Number(sub.maxScore) > 0;
+                      if (hasScore) {
+                        return (
+                          <Badge variant="outline" className="font-mono">
+                            {sub.score} / {sub.maxScore} ·{" "}
+                            {gradeLabel(Number(sub.score), Number(sub.maxScore))}
+                          </Badge>
+                        );
+                      }
+                      return (
+                        <Badge variant="secondary">
+                          {sub.status === "grading"
+                            ? "Corrigiendo…"
+                            : sub.status === "failed"
+                              ? "Error al corregir"
+                              : "Sin nota"}
+                        </Badge>
+                      );
+                    })()}
+                  </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button variant="outline" size="sm" onClick={() => copyLink(c)}>

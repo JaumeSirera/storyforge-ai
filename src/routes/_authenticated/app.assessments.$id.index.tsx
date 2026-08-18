@@ -268,7 +268,11 @@ function AssessmentDetail() {
         />
       )}
 
-      <AssessmentCandidatesCard assessmentId={id} canManage={permissions?.isOwner !== false} />
+      <AssessmentCandidatesCard
+        assessmentId={id}
+        canManage={permissions?.isOwner !== false}
+        submissions={submissions}
+      />
 
       {permissions?.isOwner !== false && <CandidateAttemptsCard assessmentId={id} />}
 
