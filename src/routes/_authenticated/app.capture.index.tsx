@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   listCaptureSessions,
   createCaptureSession,
@@ -23,7 +23,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, Trash2, Video, Users, ShieldCheck, BarChart3, Sparkles } from "lucide-react";
+import {
+  Loader2,
+  Plus,
+  Search,
+  Trash2,
+  Video,
+  Users,
+  ShieldCheck,
+  BarChart3,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/capture/")({
@@ -205,15 +215,60 @@ function CaptureIndex() {
       </Card>
 
       <div className="space-y-3">
-        <h2 className="text-lg font-semibold">Sesiones</h2>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h2 className="text-lg font-semibold">Sesiones</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <Input
+                className="w-64 pl-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por título"
+                aria-label="Buscar sesiones de grabación"
+              />
+            </div>
+            <Select value={modeFilter} onValueChange={setModeFilter}>
+              <SelectTrigger className="w-40" aria-label="Filtrar por tipo de sesión">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los tipos</SelectItem>
+                <SelectItem value="individual">Individual</SelectItem>
+                <SelectItem value="group">Grupo</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40" aria-label="Filtrar por estado">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                {sessionStatuses.map((st) => (
+                  <SelectItem key={st} value={st}>
+                    {st}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         {sessions.isLoading && <p className="text-muted-foreground text-sm">Cargando…</p>}
         {sessions.data?.length === 0 && (
           <p className="text-muted-foreground text-sm">
             Todavía no has creado ninguna sesión de grabación.
           </p>
         )}
+        {!sessions.isLoading && (sessions.data?.length ?? 0) > 0 && filteredSessions.length === 0 && (
+          <p className="text-muted-foreground text-sm">
+            Ninguna sesión coincide con la búsqueda.
+          </p>
+        )}
         <div className="grid gap-3 md:grid-cols-2">
-          {(sessions.data ?? []).map((s) => (
+          {filteredSessions.map((s) => (
             <Card key={s.id}>
               <CardContent className="p-4 flex items-start justify-between gap-3">
                 <div className="min-w-0">
