@@ -78,6 +78,29 @@ function CaptureIndex() {
   const [recordScreen, setRecordScreen] = useState(false);
   const [retentionDays, setRetentionDays] = useState(30);
 
+  const [search, setSearch] = useState("");
+  const [modeFilter, setModeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const sessionStatuses = useMemo(
+    () =>
+      Array.from(
+        new Set((sessions.data ?? []).map((s) => String(s.status ?? "")).filter(Boolean)),
+      ),
+    [sessions.data],
+  );
+
+  const filteredSessions = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return (sessions.data ?? []).filter((s) => {
+      if (term && !String(s.title ?? "").toLowerCase().includes(term)) return false;
+      if (modeFilter !== "all" && s.mode !== modeFilter) return false;
+      if (statusFilter !== "all" && String(s.status ?? "") !== statusFilter) return false;
+      return true;
+    });
+  }, [sessions.data, search, modeFilter, statusFilter]);
+
+
   const prefs = useQuery({ queryKey: ["capture-preferences"], queryFn: () => getPrefs() });
   const prefsApplied = useRef(false);
   useEffect(() => {
