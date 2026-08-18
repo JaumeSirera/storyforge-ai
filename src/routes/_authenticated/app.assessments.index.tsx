@@ -307,13 +307,55 @@ function AssessmentsIndex() {
       </Card>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Mis evaluaciones</h2>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h2 className="text-lg font-semibold">Mis evaluaciones</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <Input
+                className="w-64 pl-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por título"
+                aria-label="Buscar evaluaciones"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40" aria-label="Filtrar por estado">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="ready">Listas</SelectItem>
+                <SelectItem value="draft">Borradores</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={areaFilter} onValueChange={setAreaFilter}>
+              <SelectTrigger className="w-44" aria-label="Filtrar por área">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las áreas</SelectItem>
+                {(areas.data ?? []).map((a: any) => (
+                  <SelectItem key={a.key} value={a.key}>
+                    {a.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         {assessments.isLoading ? (
           <div className="text-muted-foreground">Cargando…</div>
-        ) : (assessments.data?.assessments ?? []).length === 0 ? (
+        ) : filteredAssessments.length === 0 ? (
           <Card>
             <CardContent className="py-10 text-center text-muted-foreground">
-              Todavía no has creado ninguna evaluación escrita.
+              {(assessments.data?.assessments ?? []).length === 0
+                ? "Todavía no has creado ninguna evaluación escrita."
+                : "Ninguna evaluación coincide con la búsqueda."}
             </CardContent>
           </Card>
         ) : (
