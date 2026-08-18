@@ -1,10 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useMemo, useState } from "react";
 import { listMySimulations, deleteSimulation } from "@/lib/simulations.functions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Play } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, Trash2, Play, Search } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/simulations/")({
@@ -16,6 +25,30 @@ function SimulationsList() {
   const del = useServerFn(deleteSimulation);
   const qc = useQueryClient();
   const sims = useQuery({ queryKey: ["my-simulations"], queryFn: () => list() });
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const statuses = useMemo(
+    () =>
+      Array.from(
+        new Set((sims.data ?? []).map((s: any) => String(s.status ?? "")).filter(Boolean)),
+      ),
+    [sims.data],
+  );
+
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return (sims.data ?? []).filter((s: any) => {
+      if (
+        term &&
+        !`${s.title ?? ""} ${s.objective ?? ""} ${s.topic ?? ""}`.toLowerCase().includes(term)
+      )
+        return false;
+      if (statusFilter !== "all" && String(s.status ?? "") !== statusFilter) return false;
+      return true;
+    });
+  }, [sims.data, search, statusFilter]);
 
   return (
     <div className="space-y-6">
@@ -29,6 +62,37 @@ function SimulationsList() {
         </Link>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[16rem] flex-1">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <Input
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por título, objetivo o tema"
+            aria-label="Buscar simulaciones"
+          />
+        </div>
+        {statuses.length > 1 && (
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-44" aria-label="Filtrar por estado">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los estados</SelectItem>
+              {statuses.map((st) => (
+                <SelectItem key={st} value={st}>
+                  {st}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+
       {sims.isLoading ? (
         <p className="text-sm text-muted-foreground">Cargando...</p>
       ) : (sims.data?.length ?? 0) === 0 ? (
@@ -40,9 +104,15 @@ function SimulationsList() {
             </Link>
           </CardContent>
         </Card>
+      ) : filtered.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="py-16 text-center text-muted-foreground">
+            Ninguna simulación coincide con la búsqueda.
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {sims.data!.map((s: any) => (
+          {filtered.map((s: any) => (
             <Card key={s.id} className="shadow-soft">
               <CardHeader>
                 <CardTitle className="text-base line-clamp-2">{s.title}</CardTitle>

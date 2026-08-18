@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { listAssessments, createAssessment, deleteAssessment } from "@/lib/assessments.functions";
 import { listPracticeAreas } from "@/lib/areas.functions";
 import {
@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Database, FileText, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
+import { Database, FileText, Loader2, Plus, Search, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/assessments/")({
@@ -74,6 +74,21 @@ function AssessmentsIndex() {
   const [types, setTypes] = useState<QuestionType[]>(["narrative"]);
   const [sourceText, setSourceText] = useState("");
   const [allowOutsideSource, setAllowOutsideSource] = useState(false);
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [areaFilter, setAreaFilter] = useState("all");
+
+  const filteredAssessments = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return (assessments.data?.assessments ?? []).filter((a: any) => {
+      if (term && !String(a.title ?? "").toLowerCase().includes(term)) return false;
+      if (statusFilter !== "all" && (a.status ?? "draft") !== statusFilter) return false;
+      if (areaFilter !== "all" && (a.areaKey ?? null) !== areaFilter) return false;
+      return true;
+    });
+  }, [assessments.data, search, statusFilter, areaFilter]);
+
 
   const toggleType = (t: QuestionType) =>
     setTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
@@ -307,18 +322,60 @@ function AssessmentsIndex() {
       </Card>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Mis evaluaciones</h2>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h2 className="text-lg font-semibold">Mis evaluaciones</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <Input
+                className="w-64 pl-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por título"
+                aria-label="Buscar evaluaciones"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40" aria-label="Filtrar por estado">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="ready">Listas</SelectItem>
+                <SelectItem value="draft">Borradores</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={areaFilter} onValueChange={setAreaFilter}>
+              <SelectTrigger className="w-44" aria-label="Filtrar por área">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las áreas</SelectItem>
+                {(areas.data ?? []).map((a: any) => (
+                  <SelectItem key={a.key} value={a.key}>
+                    {a.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         {assessments.isLoading ? (
           <div className="text-muted-foreground">Cargando…</div>
-        ) : (assessments.data?.assessments ?? []).length === 0 ? (
+        ) : filteredAssessments.length === 0 ? (
           <Card>
             <CardContent className="py-10 text-center text-muted-foreground">
-              Todavía no has creado ninguna evaluación escrita.
+              {(assessments.data?.assessments ?? []).length === 0
+                ? "Todavía no has creado ninguna evaluación escrita."
+                : "Ninguna evaluación coincide con la búsqueda."}
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
-            {(assessments.data?.assessments ?? []).map((a: any) => (
+            {filteredAssessments.map((a: any) => (
               <Card key={a.id}>
                 <CardContent className="flex items-start justify-between gap-3 p-4">
                   <Link
