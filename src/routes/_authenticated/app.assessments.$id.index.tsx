@@ -30,7 +30,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, FileText, Loader2, RefreshCw, Sparkles, Trash2, Upload } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { SectionCard } from "@/components/SectionCard";
+import {
+  ArrowLeft,
+  ClipboardList,
+  FileText,
+  GraduationCap,
+  ListChecks,
+  Loader2,
+  RefreshCw,
+  ScrollText,
+  ShieldCheck,
+  Sparkles,
+  Trash2,
+  Upload,
+  UserCog,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/assessments/$id/")({
@@ -54,6 +77,17 @@ export const Route = createFileRoute("/_authenticated/app/assessments/$id/")({
   component: AssessmentDetail,
 });
 
+type SectionKey =
+  | "test"
+  | "validation"
+  | "candidates"
+  | "attempts"
+  | "audit"
+  | "rubric"
+  | "collaborators"
+  | "upload"
+  | "submissions";
+
 function AssessmentDetail() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
@@ -75,6 +109,7 @@ function AssessmentDetail() {
   const [sourceKind, setSourceKind] = useState<"handwritten" | "digital">("handwritten");
   const [typedText, setTypedText] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState<SectionKey | null>(null);
 
   const invalidate = () => void qc.invalidateQueries({ queryKey: ["assessment", id] });
 
@@ -138,307 +173,429 @@ function AssessmentDetail() {
   if (q.isLoading) return <div className="text-muted-foreground">Cargando…</div>;
   if (!assessment) return <div className="text-muted-foreground">Evaluación no encontrada.</div>;
 
+  const sectionTitles: Record<SectionKey, string> = {
+    test: "Prueba: enunciados y rúbrica",
+    validation: "Validación con el texto base",
+    candidates: "Aspirantes inscritos",
+    attempts: "Estado de los intentos",
+    audit: "Log de auditoría del examen",
+    rubric: "Editor de rúbrica",
+    collaborators: "Permisos y colaboradores",
+    upload: "Nueva entrega",
+    submissions: `Entregas (${submissions.length})`,
+  };
+
+  const isOwner = permissions?.isOwner !== false;
+  const gradedCount = submissions.filter((s: any) => s.status === "graded").length;
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <Link
-            to="/app/assessments"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" /> Evaluaciones
-          </Link>
-          <h1 className="text-2xl font-bold tracking-tight truncate">{assessment.title}</h1>
-          <p className="text-sm text-muted-foreground">
-            Área {assessment.areaKey ?? "general"} · máx {assessment.maxScore} puntos · grafismo{" "}
-            {assessment.handwritingWeightPct}%
-          </p>
+    <div className="mx-auto max-w-5xl space-y-6">
+      <Link
+        to="/app/assessments"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Volver
+      </Link>
+
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">{assessment.title}</h1>
+        <p className="mt-1 text-muted-foreground">
+          {assessment.instructions?.trim() || "Prueba escrita con corrección por IA."}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Badge variant="secondary">Área {assessment.areaKey ?? "general"}</Badge>
+          <Badge variant="outline">{assessment.maxScore} puntos</Badge>
+          <Badge variant="outline">Grafismo {assessment.handwritingWeightPct}%</Badge>
+          {assessment.timeLimitMin ? (
+            <Badge variant="outline">{assessment.timeLimitMin} min</Badge>
+          ) : null}
+          <Badge variant={assessment.status === "ready" ? "default" : "secondary"}>
+            {assessment.status === "ready" ? "Lista" : "Borrador"}
+          </Badge>
         </div>
-        <Badge variant={assessment.status === "ready" ? "default" : "secondary"}>
-          {assessment.status === "ready" ? "Lista" : "Borrador"}
-        </Badge>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Prueba</CardTitle>
-          <CardDescription>
-            {assessment.questions.length > 0
-              ? "Enunciados y rúbrica generados por IA. Puedes volver a generarlos con otro encargo."
-              : "Todavía no hay preguntas. Describe el encargo y genera la prueba."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {assessment.instructions && (
-            <p className="rounded-md bg-muted/60 p-3 text-sm">{assessment.instructions}</p>
-          )}
-
-          {assessment.questions.length > 0 && (
-            <ol className="space-y-3">
-              {assessment.questions.map((question, i) => (
-                <li key={question.id || i} className="rounded-md border border-border p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="font-medium text-sm">
-                      {i + 1}. {question.prompt}
-                    </p>
-                    <Badge variant="secondary" className="shrink-0">
-                      {question.maxPoints} pts
-                    </Badge>
-                  </div>
-                  {question.keyElements.length > 0 && (
-                    <ul className="mt-2 list-disc pl-5 text-xs text-muted-foreground space-y-0.5">
-                      {question.keyElements.map((el, j) => (
-                        <li key={j}>{el}</li>
-                      ))}
-                    </ul>
-                  )}
-                </li>
-              ))}
-            </ol>
-          )}
-
-          {assessment.rubric.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold">Rúbrica</h3>
-              <div className="grid gap-2 md:grid-cols-2">
-                {assessment.rubric.map((criterion, i) => (
-                  <div key={criterion.id || i} className="rounded-md border border-border p-3 text-sm">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium">{criterion.name}</span>
-                      <Badge variant="outline">{criterion.weightPct}%</Badge>
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">{criterion.description}</p>
-                    <ul className="mt-2 space-y-0.5 text-xs">
-                      {criterion.levels.map((level, j) => (
-                        <li key={j}>
-                          <span className="font-medium">{level.label}</span> ({level.pct}%):{" "}
-                          {level.descriptor}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-2 border-t border-border pt-4">
-            <Label htmlFor="regen-prompt">Encargo para (re)generar la prueba</Label>
-            <Textarea
-              id="regen-prompt"
-              rows={3}
-              value={prompt || assessment.prompt || ""}
-              onChange={(e) => setPrompt(e.target.value)}
-            />
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="regen-count">Nº de preguntas</Label>
-                <Input
-                  id="regen-count"
-                  type="number"
-                  min={1}
-                  max={12}
-                  className="w-28"
-                  value={questionCount}
-                  onChange={(e) => setQuestionCount(Number(e.target.value) || 4)}
-                />
-              </div>
-              <Button
-                variant="secondary"
-                onClick={() => regenMut.mutate()}
-                disabled={regenMut.isPending}
-              >
-                {regenMut.isPending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Sparkles className="h-4 w-4 mr-2" />
-                )}
-                Generar con IA
-              </Button>
-            </div>
+      <Card className="shadow-glow">
+        <CardContent className="flex flex-wrap items-center justify-between gap-4 pt-6">
+          <div>
+            <h2 className="font-semibold">¿Listo para corregir?</h2>
+            <p className="text-sm text-muted-foreground">
+              {submissions.length === 0
+                ? "Sube una entrega escaneada o digital y la IA la corregirá con la rúbrica."
+                : `${submissions.length} entrega(s) · ${gradedCount} corregida(s).`}
+            </p>
           </div>
-        </CardContent>
-      </Card>
-
-      {assessment.questions.length > 0 && (
-        <SourceValidationCard
-          assessmentId={id}
-          hasSourceText={Boolean(assessment.sourceText && assessment.sourceText.trim().length >= 30)}
-          questionCount={assessment.questions.length}
-        />
-      )}
-
-      <AssessmentCandidatesCard
-        assessmentId={id}
-        canManage={permissions?.isOwner !== false}
-        submissions={submissions}
-      />
-
-      {permissions?.isOwner !== false && <CandidateAttemptsCard assessmentId={id} />}
-
-      {permissions?.isOwner !== false && <ExamAuditLogCard assessmentId={id} />}
-
-      {permissions?.isOwner !== false && <RubricEditor assessment={assessment} onSaved={invalidate} />}
-
-      {permissions?.canView && (
-        <AssessmentCollaboratorsCard
-          assessmentId={id}
-          canManage={Boolean(permissions.canManageCollaborators)}
-        />
-      )}
-
-
-
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Nueva entrega</CardTitle>
-          <CardDescription>
-            Sube fotos o el PDF escaneado del examen manuscrito (o de un documento digitalizado). La IA
-            transcribe, corrige con la rúbrica y analiza el grafismo.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="s-name">Candidato / estudiante</Label>
-              <Input
-                id="s-name"
-                value={candidateName}
-                onChange={(e) => setCandidateName(e.target.value)}
-                placeholder="Nombre y apellidos"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="s-id">Identificador (opcional)</Label>
-              <Input
-                id="s-id"
-                value={candidateId}
-                onChange={(e) => setCandidateId(e.target.value)}
-                placeholder="Nº de expediente"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="s-kind">Origen</Label>
-              <Select value={sourceKind} onValueChange={(v) => setSourceKind(v as any)}>
-                <SelectTrigger id="s-kind">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="handwritten">Escrito a mano</SelectItem>
-                  <SelectItem value="digital">Documento digital</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="s-files">Páginas (imágenes o PDF, máx. 12 · 15 MB cada una)</Label>
-            <Input id="s-files" ref={fileRef} type="file" multiple accept="image/*,application/pdf" />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="s-text">Texto ya transcrito (opcional)</Label>
-            <Textarea
-              id="s-text"
-              rows={3}
-              value={typedText}
-              onChange={(e) => setTypedText(e.target.value)}
-              placeholder="Si ya tienes la respuesta en texto, pégala aquí y se usará tal cual."
-            />
-          </div>
-
-          <Button
-            onClick={() => uploadMut.mutate()}
-            disabled={uploadMut.isPending || !candidateName.trim()}
-          >
-            {uploadMut.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4 mr-2" />
-            )}
-            Subir y corregir con IA
+          <Button size="lg" className="gap-2" onClick={() => setOpen("upload")}>
+            <Upload className="h-4 w-4" aria-hidden="true" /> Nueva entrega
           </Button>
         </CardContent>
       </Card>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Entregas ({submissions.length})</h2>
-        {submissions.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              Sin entregas todavía.
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            {submissions.map((submission: any) => (
-              <Card key={submission.id}>
-                <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-primary shrink-0" />
-                      <span className="font-medium truncate">{submission.candidateName}</span>
-                      <Badge
-                        variant={
-                          submission.status === "graded"
-                            ? "default"
-                            : submission.status === "failed"
-                              ? "destructive"
-                              : "secondary"
-                        }
-                      >
-                        {submission.status === "graded"
-                          ? "Corregida"
-                          : submission.status === "failed"
-                            ? "Error"
-                            : submission.status === "grading"
-                              ? "Corrigiendo…"
-                              : "Pendiente"}
-                      </Badge>
-                    </div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {submission.score !== null && submission.maxScore
-                        ? `${submission.score} / ${submission.maxScore} · ${gradeLabel(submission.score, submission.maxScore)}`
-                        : "Sin nota"}{" "}
-                      · {submission.pages.length} página(s)
-                      {submission.errorMessage ? ` · ${submission.errorMessage}` : ""}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button asChild size="sm" variant="secondary">
-                      <Link
-                        to="/app/assessments/$id/submissions/$sid"
-                        params={{ id, sid: submission.id }}
-                      >
-                        Ver informe
-                      </Link>
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      aria-label="Volver a corregir"
-                      onClick={() => regradeMut.mutate(submission.id)}
-                      disabled={regradeMut.isPending}
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      aria-label="Eliminar entrega"
-                      onClick={() => delMut.mutate(submission.id)}
-                      disabled={delMut.isPending}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+      {/* Hub de secciones */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <SectionCard
+          icon={FileText}
+          title="Prueba"
+          summary={
+            assessment.questions.length > 0
+              ? `${assessment.questions.length} pregunta(s) · ${assessment.rubric.length} criterio(s) de rúbrica`
+              : "Todavía no hay preguntas: genera la prueba con IA"
+          }
+          onClick={() => setOpen("test")}
+        />
+        {assessment.questions.length > 0 && (
+          <SectionCard
+            icon={ShieldCheck}
+            title="Validación con el texto base"
+            summary="Comprueba qué preguntas están soportadas por el texto"
+            onClick={() => setOpen("validation")}
+          />
         )}
-      </section>
+        <SectionCard
+          icon={Users}
+          title="Aspirantes"
+          summary="Inscribe aspirantes, comparte el examen y consulta su nota"
+          onClick={() => setOpen("candidates")}
+        />
+        {isOwner && (
+          <SectionCard
+            icon={ClipboardList}
+            title="Estado de los intentos"
+            summary="Inicio, entrega e historial de cada aspirante"
+            onClick={() => setOpen("attempts")}
+          />
+        )}
+        {isOwner && (
+          <SectionCard
+            icon={ScrollText}
+            title="Log de auditoría"
+            summary="Fecha, IP, navegador y versión del cliente"
+            onClick={() => setOpen("audit")}
+          />
+        )}
+        {isOwner && (
+          <SectionCard
+            icon={ListChecks}
+            title="Rúbrica"
+            summary="Edita criterios, pesos y niveles de la rúbrica"
+            onClick={() => setOpen("rubric")}
+          />
+        )}
+        {permissions?.canView && (
+          <SectionCard
+            icon={UserCog}
+            title="Permisos y colaboradores"
+            summary="Quién puede corregir, anotar o aprobar"
+            onClick={() => setOpen("collaborators")}
+          />
+        )}
+        <SectionCard
+          icon={Upload}
+          title="Nueva entrega"
+          summary="Sube fotos o el PDF del examen para corregir con IA"
+          onClick={() => setOpen("upload")}
+        />
+        <SectionCard
+          icon={GraduationCap}
+          title={`Entregas (${submissions.length})`}
+          summary={
+            submissions.length === 0
+              ? "Sin entregas todavía"
+              : `${gradedCount} corregida(s) · informes con nota y conclusiones`
+          }
+          onClick={() => setOpen("submissions")}
+        />
+      </div>
+
+      <Dialog open={open !== null} onOpenChange={(v) => setOpen(v ? open : null)}>
+        <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{open ? sectionTitles[open] : ""}</DialogTitle>
+            <DialogDescription>
+              {open === "test"
+                ? "Enunciados y rúbrica generados por IA."
+                : open === "submissions"
+                  ? "Entregas recibidas y sus informes de corrección."
+                  : "Gestión de esta sección de la evaluación."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {open === "test" && (
+            <div className="space-y-4">
+              {assessment.instructions && (
+                <p className="rounded-md bg-muted/60 p-3 text-sm">{assessment.instructions}</p>
+              )}
+
+              {assessment.questions.length > 0 && (
+                <ol className="space-y-3">
+                  {assessment.questions.map((question, i) => (
+                    <li key={question.id || i} className="rounded-md border border-border p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm font-medium">
+                          {i + 1}. {question.prompt}
+                        </p>
+                        <Badge variant="secondary" className="shrink-0">
+                          {question.maxPoints} pts
+                        </Badge>
+                      </div>
+                      {question.keyElements.length > 0 && (
+                        <ul className="mt-2 list-disc space-y-0.5 pl-5 text-xs text-muted-foreground">
+                          {question.keyElements.map((el, j) => (
+                            <li key={j}>{el}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              )}
+
+              {assessment.rubric.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold">Rúbrica</h3>
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {assessment.rubric.map((criterion, i) => (
+                      <div
+                        key={criterion.id || i}
+                        className="rounded-md border border-border p-3 text-sm"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-medium">{criterion.name}</span>
+                          <Badge variant="outline">{criterion.weightPct}%</Badge>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">{criterion.description}</p>
+                        <ul className="mt-2 space-y-0.5 text-xs">
+                          {criterion.levels.map((level, j) => (
+                            <li key={j}>
+                              <span className="font-medium">{level.label}</span> ({level.pct}%):{" "}
+                              {level.descriptor}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2 border-t border-border pt-4">
+                <Label htmlFor="regen-prompt">Encargo para (re)generar la prueba</Label>
+                <Textarea
+                  id="regen-prompt"
+                  rows={3}
+                  value={prompt || assessment.prompt || ""}
+                  onChange={(e) => setPrompt(e.target.value)}
+                />
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="regen-count">Nº de preguntas</Label>
+                    <Input
+                      id="regen-count"
+                      type="number"
+                      min={1}
+                      max={12}
+                      className="w-28"
+                      value={questionCount}
+                      onChange={(e) => setQuestionCount(Number(e.target.value) || 4)}
+                    />
+                  </div>
+                  <Button
+                    variant="secondary"
+                    onClick={() => regenMut.mutate()}
+                    disabled={regenMut.isPending}
+                  >
+                    {regenMut.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="mr-2 h-4 w-4" />
+                    )}
+                    Generar con IA
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {open === "validation" && (
+            <SourceValidationCard
+              assessmentId={id}
+              hasSourceText={Boolean(
+                assessment.sourceText && assessment.sourceText.trim().length >= 30,
+              )}
+              questionCount={assessment.questions.length}
+            />
+          )}
+
+          {open === "candidates" && (
+            <AssessmentCandidatesCard
+              assessmentId={id}
+              canManage={isOwner}
+              submissions={submissions}
+            />
+          )}
+
+          {open === "attempts" && <CandidateAttemptsCard assessmentId={id} />}
+
+          {open === "audit" && <ExamAuditLogCard assessmentId={id} />}
+
+          {open === "rubric" && <RubricEditor assessment={assessment} onSaved={invalidate} />}
+
+          {open === "collaborators" && (
+            <AssessmentCollaboratorsCard
+              assessmentId={id}
+              canManage={Boolean(permissions?.canManageCollaborators)}
+            />
+          )}
+
+          {open === "upload" && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Sube fotos o el PDF escaneado del examen manuscrito (o de un documento digitalizado).
+                La IA transcribe, corrige con la rúbrica y analiza el grafismo.
+              </p>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="s-name">Candidato / estudiante</Label>
+                  <Input
+                    id="s-name"
+                    value={candidateName}
+                    onChange={(e) => setCandidateName(e.target.value)}
+                    placeholder="Nombre y apellidos"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="s-id">Identificador (opcional)</Label>
+                  <Input
+                    id="s-id"
+                    value={candidateId}
+                    onChange={(e) => setCandidateId(e.target.value)}
+                    placeholder="Nº de expediente"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="s-kind">Origen</Label>
+                  <Select value={sourceKind} onValueChange={(v) => setSourceKind(v as any)}>
+                    <SelectTrigger id="s-kind">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="handwritten">Escrito a mano</SelectItem>
+                      <SelectItem value="digital">Documento digital</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="s-files">Páginas (imágenes o PDF, máx. 12 · 15 MB cada una)</Label>
+                <Input
+                  id="s-files"
+                  ref={fileRef}
+                  type="file"
+                  multiple
+                  accept="image/*,application/pdf"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="s-text">Texto ya transcrito (opcional)</Label>
+                <Textarea
+                  id="s-text"
+                  rows={3}
+                  value={typedText}
+                  onChange={(e) => setTypedText(e.target.value)}
+                  placeholder="Si ya tienes la respuesta en texto, pégala aquí y se usará tal cual."
+                />
+              </div>
+
+              <Button
+                onClick={() => uploadMut.mutate()}
+                disabled={uploadMut.isPending || !candidateName.trim()}
+              >
+                {uploadMut.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="mr-2 h-4 w-4" />
+                )}
+                Subir y corregir con IA
+              </Button>
+            </div>
+          )}
+
+          {open === "submissions" &&
+            (submissions.length === 0 ? (
+              <p className="py-6 text-center text-muted-foreground">Sin entregas todavía.</p>
+            ) : (
+              <div className="space-y-2">
+                {submissions.map((submission: any) => (
+                  <div
+                    key={submission.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                        <span className="truncate font-medium">{submission.candidateName}</span>
+                        <Badge
+                          variant={
+                            submission.status === "graded"
+                              ? "default"
+                              : submission.status === "failed"
+                                ? "destructive"
+                                : "secondary"
+                          }
+                        >
+                          {submission.status === "graded"
+                            ? "Corregida"
+                            : submission.status === "failed"
+                              ? "Error"
+                              : submission.status === "grading"
+                                ? "Corrigiendo…"
+                                : "Pendiente"}
+                        </Badge>
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {submission.score !== null && submission.maxScore
+                          ? `${submission.score} / ${submission.maxScore} · ${gradeLabel(submission.score, submission.maxScore)}`
+                          : "Sin nota"}{" "}
+                        · {submission.pages.length} página(s)
+                        {submission.errorMessage ? ` · ${submission.errorMessage}` : ""}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button asChild size="sm" variant="secondary">
+                        <Link
+                          to="/app/assessments/$id/submissions/$sid"
+                          params={{ id, sid: submission.id }}
+                        >
+                          Ver informe
+                        </Link>
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label="Volver a corregir"
+                        onClick={() => regradeMut.mutate(submission.id)}
+                        disabled={regradeMut.isPending}
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label="Eliminar entrega"
+                        onClick={() => delMut.mutate(submission.id)}
+                        disabled={delMut.isPending}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
