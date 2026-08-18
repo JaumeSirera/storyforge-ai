@@ -10,6 +10,7 @@ import {
   getAssessmentHandler,
   getSubmissionHandler,
   gradeSubmissionHandler,
+  reocrSubmissionHandler,
   listAssessmentsHandler,
   regenerateAssessmentHandler,
   updateAssessmentBlueprintHandler,
@@ -172,3 +173,16 @@ export const validateAssessmentSource = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => validateAssessmentSourceHandler(data, context));
+
+export const reocrSubmission = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        replaceText: z.boolean().optional(),
+        hint: z.string().max(500).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => reocrSubmissionHandler(data, context));
