@@ -450,7 +450,7 @@ function SubmissionReport() {
         submission={submission}
         hasPages={pageUrls.length > 0}
         canReocr={Boolean(permissions?.canGrade)}
-      />}
+      />
     </div>
   );
 }
