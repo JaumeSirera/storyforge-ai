@@ -30,10 +30,19 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+interface CandidateSubmissionInfo {
+  id: string;
+  status?: string | null;
+  score?: number | null;
+  maxScore?: number | null;
+}
+
 interface Props {
   assessmentId: string;
   /** Solo el propietario puede inscribir o dar de baja aspirantes. */
   canManage: boolean;
+  /** Entregas de la evaluación, para mostrar la nota de cada aspirante. */
+  submissions?: CandidateSubmissionInfo[];
 }
 
 /** Convierte texto pegado (una línea por aspirante) en candidatos. */
