@@ -203,11 +203,14 @@ export type Database = {
           handwriting: Json | null
           id: string
           max_score: number | null
+          ocr_updated_at: string | null
           owner_id: string
           pages: Json
+          scan_quality: Json | null
           score: number | null
           source_kind: string
           status: string
+          transcription_segments: Json
           updated_at: string
         }
         Insert: {
@@ -226,11 +229,14 @@ export type Database = {
           handwriting?: Json | null
           id?: string
           max_score?: number | null
+          ocr_updated_at?: string | null
           owner_id: string
           pages?: Json
+          scan_quality?: Json | null
           score?: number | null
           source_kind?: string
           status?: string
+          transcription_segments?: Json
           updated_at?: string
         }
         Update: {
@@ -249,11 +255,14 @@ export type Database = {
           handwriting?: Json | null
           id?: string
           max_score?: number | null
+          ocr_updated_at?: string | null
           owner_id?: string
           pages?: Json
+          scan_quality?: Json | null
           score?: number | null
           source_kind?: string
           status?: string
+          transcription_segments?: Json
           updated_at?: string
         }
         Relationships: [

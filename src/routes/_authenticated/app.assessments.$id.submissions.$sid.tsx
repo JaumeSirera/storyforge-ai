@@ -9,6 +9,7 @@ import { COLLABORATOR_ROLE_LABELS } from "@/lib/assessment-roles-shared";
 import { Textarea } from "@/components/ui/textarea";
 import { generateAssessmentPdf } from "@/lib/assessment-pdf";
 import { SubmissionPageAnnotator } from "@/components/SubmissionPageAnnotator";
+import { TranscriptionConfidenceCard } from "@/components/TranscriptionConfidenceCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -446,18 +447,11 @@ function SubmissionReport() {
         />
       )}
 
-      {submission.extractedText && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Transcripción</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-              {submission.extractedText}
-            </pre>
-          </CardContent>
-        </Card>
-      )}
+      <TranscriptionConfidenceCard
+        submission={submission}
+        hasPages={pageUrls.length > 0}
+        canReocr={Boolean(permissions?.canGrade)}
+      />
     </div>
   );
 }

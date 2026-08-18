@@ -261,7 +261,45 @@ export interface SubmissionRecord {
   approvalStatus: "pending" | "approved" | "rejected";
   approvalNote: string;
   approvedAt: string | null;
+  /** Transcripción troceada con nivel de confianza por segmento (OCR / lectura IA). */
+  transcriptionSegments: TranscriptionSegment[];
+  /** Calidad global estimada del escaneo. */
+  scanQuality: ScanQuality | null;
+  /** Fecha de la última relectura (re-OCR). */
+  ocrUpdatedAt: string | null;
 }
+
+/** Segmento de transcripción con confianza estimada por la IA (0-100). */
+export const TranscriptionSegmentSchema = z.object({
+  index: z.number().default(0),
+  pageIndex: z.number().default(0),
+  text: z.string().default(""),
+  confidence: z.number().default(0),
+  issues: z.array(z.string()).default([]),
+});
+export type TranscriptionSegment = z.infer<typeof TranscriptionSegmentSchema>;
+
+export const ScanQualitySchema = z.object({
+  score: z.number().default(0),
+  notes: z.string().default(""),
+  lowConfidenceSegments: z.number().default(0),
+});
+export type ScanQuality = z.infer<typeof ScanQualitySchema>;
+
+export const CONFIDENCE_THRESHOLD_LOW = 60;
+export const CONFIDENCE_THRESHOLD_MID = 80;
+
+export function confidenceLevel(confidence: number): "high" | "medium" | "low" {
+  if (confidence >= CONFIDENCE_THRESHOLD_MID) return "high";
+  if (confidence >= CONFIDENCE_THRESHOLD_LOW) return "medium";
+  return "low";
+}
+
+export const CONFIDENCE_LABELS: Record<"high" | "medium" | "low", string> = {
+  high: "Confianza alta",
+  medium: "Confianza media",
+  low: "Confianza baja",
+};
 
 export const APPROVAL_LABELS: Record<"pending" | "approved" | "rejected", string> = {
   pending: "Pendiente de aprobación",
