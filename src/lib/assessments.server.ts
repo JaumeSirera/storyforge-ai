@@ -850,6 +850,7 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
     });
 
     const transcription = typed || String(raw?.transcription ?? "").trim() || null;
+    const segments = parseSegments(raw?.transcriptionSegments ?? raw?.segmentos, transcription);
     const gradedAt = new Date().toISOString();
     const { data: saved, error: saveErr } = await context.supabase
       .from("assessment_submissions")
@@ -862,6 +863,13 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
         status: "graded",
         error_message: null,
         graded_at: gradedAt,
+        ...(segments.length > 0
+          ? {
+              transcription_segments: segments,
+              scan_quality: scanQualityFrom(segments, raw?.scanQuality ?? raw?.calidadEscaneo),
+              ocr_updated_at: gradedAt,
+            }
+          : {}),
       })
       .eq("id", row.id)
       .select(SUBMISSION_COLUMNS)
