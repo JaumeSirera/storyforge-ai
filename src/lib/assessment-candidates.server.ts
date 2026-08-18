@@ -349,5 +349,16 @@ export async function submitExamHandler(data: {
     },
   });
 
+  // Corrección automática de la entrega del candidato (actúa como el propietario).
+  try {
+    const { gradeSubmissionHandler } = await import("./assessments.server");
+    await gradeSubmissionHandler(
+      { id: submission.id as string },
+      { supabase: supabaseAdmin, userId: candidate.owner_id },
+    );
+  } catch (gradeError: any) {
+    console.error("[exam] auto-grade:", gradeError?.message ?? gradeError);
+  }
+
   return { ok: true, submissionId: submission.id as string, submittedAt };
 }
