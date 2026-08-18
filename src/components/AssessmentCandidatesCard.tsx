@@ -61,7 +61,7 @@ function parseBulk(raw: string) {
     .filter((c) => c.name);
 }
 
-export function AssessmentCandidatesCard({ assessmentId, canManage }: Props) {
+export function AssessmentCandidatesCard({ assessmentId, canManage, submissions = [] }: Props) {
   const qc = useQueryClient();
   const list = useServerFn(listAssessmentCandidates);
   const add = useServerFn(addAssessmentCandidates);
