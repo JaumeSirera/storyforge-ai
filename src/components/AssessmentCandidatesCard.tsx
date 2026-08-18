@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { gradeLabel } from "@/lib/assessments-shared";
 import {
   ClipboardCopy,
   ExternalLink,
@@ -73,6 +74,11 @@ export function AssessmentCandidatesCard({ assessmentId, canManage, submissions 
   const [identifier, setIdentifier] = useState("");
   const [bulk, setBulk] = useState("");
   const [search, setSearch] = useState("");
+
+  const submissionsById = useMemo(
+    () => new Map(submissions.map((s) => [s.id, s])),
+    [submissions],
+  );
 
   const q = useQuery({
     queryKey: ["assessment-candidates", assessmentId],
