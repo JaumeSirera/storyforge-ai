@@ -732,6 +732,8 @@ ${pages.length > 0 ? `\nAdjunto ${pages.length} página(s) de la entrega (escane
 
 Devuelve exactamente estas claves JSON:
 transcription (string con la transcripción literal completa),
+transcriptionSegments (array de {pageIndex (empieza en 0), text (fragmento de 1 frase o línea), confidence (0-100, tu confianza real de lectura de ese fragmento), issues (array con los motivos de la duda: trazo borroso, tachón, sombra, recorte...)}) — divide toda la transcripción en segmentos y baja la confianza donde la lectura sea dudosa; marca lo ilegible como [ilegible],
+scanQuality ({score 0-100 de calidad del escaneo, notes con qué limita la lectura y cómo mejorar el escaneo}),
 headline (string), summary (string),
 score (número sobre ${assessment.maxScore}), contentScore (número sobre ${assessment.maxScore}), handwritingScore (número 0-100),
 answers (array de {questionId, question, answerSummary, score, maxPoints, strengths[], gaps[], evidence con cita textual, verdict, expectedAnswer, explanation, feedback, nextStep}),
