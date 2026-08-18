@@ -375,7 +375,7 @@ function AssessmentsIndex() {
           </Card>
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
-            {(assessments.data?.assessments ?? []).map((a: any) => (
+            {filteredAssessments.map((a: any) => (
               <Card key={a.id}>
                 <CardContent className="flex items-start justify-between gap-3 p-4">
                   <Link
