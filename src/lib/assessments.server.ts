@@ -1019,3 +1019,124 @@ export async function validateAssessmentSourceHandler(data: { id: string }, cont
     checkedAt: new Date().toISOString(),
   } satisfies SourceCheckResult;
 }
+
+/** Convierte la respuesta de la IA en segmentos de transcripción con confianza. */
+function parseSegments(raw: unknown, fallbackText: string | null): TranscriptionSegment[] {
+  if (!Array.isArray(raw)) return [];
+  const segments = raw
+    .map((s: any, i: number) =>
+      TranscriptionSegmentSchema.parse({
+        index: i + 1,
+        pageIndex: Math.max(0, (Number(s?.pageIndex ?? s?.pagina ?? 1) || 1) - (s?.pageIndex != null ? 0 : 1)),
+        text: String(s?.text ?? s?.texto ?? "").trim(),
+        confidence: Math.max(0, Math.min(100, Number(s?.confidence ?? s?.confianza ?? 0) || 0)),
+        issues: Array.isArray(s?.issues ?? s?.problemas)
+          ? (s.issues ?? s.problemas).map((x: any) => String(x)).filter(Boolean)
+          : [],
+      }),
+    )
+    .filter((s) => s.text.length > 0);
+  if (segments.length === 0 && fallbackText) return [];
+  return segments;
+}
+
+/** Resume la calidad global del escaneo a partir de los segmentos. */
+function scanQualityFrom(segments: TranscriptionSegment[], raw: any) {
+  const low = segments.filter((s) => s.confidence < CONFIDENCE_THRESHOLD_LOW).length;
+  const avg =
+    segments.length > 0
+      ? Math.round(segments.reduce((acc, s) => acc + s.confidence, 0) / segments.length)
+      : 0;
+  const score = Math.max(0, Math.min(100, Number(raw?.score ?? raw?.puntuacion ?? avg) || avg));
+  return ScanQualitySchema.parse({
+    score,
+    notes: String(raw?.notes ?? raw?.observaciones ?? "").slice(0, 800),
+    lowConfidenceSegments: low,
+  });
+}
+
+/**
+ * Relectura (re-OCR) de las páginas de una entrega, con salida troceada en segmentos
+ * y confianza por segmento. Útil cuando la calidad del escaneo es baja.
+ */
+export async function reocrSubmissionHandler(
+  data: { id: string; replaceText?: boolean; hint?: string },
+  context: any,
+) {
+  const { assertSubmissionPermission } = await import("./assessment-roles.server");
+  await assertSubmissionPermission(data.id, "grade", context);
+
+  const { data: row, error } = await context.supabase
+    .from("assessment_submissions")
+    .select(SUBMISSION_COLUMNS)
+    .eq("id", data.id)
+    .single();
+  if (error) throw new Error(error.message);
+
+  const pages: SubmissionPage[] = Array.isArray(row.pages) ? row.pages : [];
+  if (pages.length === 0) {
+    throw new Error("Esta entrega no tiene páginas escaneadas que releer.");
+  }
+
+  const userKeys = await loadUserKeys(context.supabase, context.userId);
+  const { model, provider, nativeId } = resolveUserTextModel(userKeys);
+
+  const system =
+    "Eres un motor de OCR experto en manuscritos y documentos escaneados de baja calidad. Transcribes de forma literal, sin corregir ni completar lo que no puedas leer. Marcas lo ilegible como [ilegible]. Respondes solo con un objeto JSON válido, en español, sin markdown.";
+  const prompt = `Adjunto ${pages.length} página(s) de una entrega escaneada. Relee el documento con la máxima precisión.
+${data.hint ? `\nIndicaciones del evaluador: "${String(data.hint).slice(0, 500)}"\n` : ""}
+Devuelve exactamente:
+{"transcription":"transcripción literal completa",
+ "transcriptionSegments":[{"pageIndex":0,"text":"fragmento corto (una frase o línea)","confidence":0-100,"issues":["motivo de la duda: trazo borroso, tachón, recorte, sombra, ..."]}],
+ "scanQuality":{"score":0-100,"notes":"qué limita la lectura y cómo mejorar el escaneo"}}
+Reglas: divide la transcripción en segmentos de 1 frase o línea; pageIndex empieza en 0; confidence es tu confianza real de lectura de ese segmento (baja si hay trazos dudosos); issues vacío si la lectura es clara.`;
+
+  const fileParts = await buildFileParts(pages);
+  const result = await generateText({
+    model,
+    system,
+    messages: [{ role: "user", content: [{ type: "text", text: prompt }, ...fileParts] }] as any,
+  });
+
+  const raw = extractJson(result.text) as any;
+  const transcription = String(raw?.transcription ?? "").trim();
+  const segments = parseSegments(raw?.transcriptionSegments ?? raw?.segmentos, transcription);
+  if (segments.length === 0 && !transcription) {
+    throw new Error("La relectura no devolvió texto. Sube un escaneo con mejor calidad.");
+  }
+  const quality = scanQualityFrom(segments, raw?.scanQuality ?? raw?.calidadEscaneo);
+  const now = new Date().toISOString();
+
+  const update: Record<string, unknown> = {
+    transcription_segments: segments,
+    scan_quality: quality,
+    ocr_updated_at: now,
+  };
+  if (data.replaceText !== false && transcription) update.extracted_text = transcription;
+
+  const { data: saved, error: saveErr } = await context.supabase
+    .from("assessment_submissions")
+    .update(update)
+    .eq("id", row.id)
+    .select(SUBMISSION_COLUMNS)
+    .single();
+  if (saveErr) throw new Error(saveErr.message);
+
+  try {
+    const usage = await result.usage;
+    const { recordUsage, userPaysPlatform } = await import("./usage.server");
+    await recordUsage({
+      userId: context.userId,
+      action: "text",
+      provider,
+      model: nativeId,
+      inputTokens: usage.inputTokens ?? 0,
+      outputTokens: usage.outputTokens ?? 0,
+      paysPlatform: await userPaysPlatform(context.userId),
+    });
+  } catch (err) {
+    console.error("[assessments] usage:", err);
+  }
+
+  return { submission: mapSubmission(saved) };
+}
