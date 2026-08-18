@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { listAssessments, createAssessment, deleteAssessment } from "@/lib/assessments.functions";
 import { listPracticeAreas } from "@/lib/areas.functions";
 import {
@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Database, FileText, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
+import { Database, FileText, Loader2, Plus, Search, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/assessments/")({
@@ -74,6 +74,21 @@ function AssessmentsIndex() {
   const [types, setTypes] = useState<QuestionType[]>(["narrative"]);
   const [sourceText, setSourceText] = useState("");
   const [allowOutsideSource, setAllowOutsideSource] = useState(false);
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [areaFilter, setAreaFilter] = useState("all");
+
+  const filteredAssessments = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return (assessments.data?.assessments ?? []).filter((a: any) => {
+      if (term && !String(a.title ?? "").toLowerCase().includes(term)) return false;
+      if (statusFilter !== "all" && (a.status ?? "draft") !== statusFilter) return false;
+      if (areaFilter !== "all" && (a.areaKey ?? null) !== areaFilter) return false;
+      return true;
+    });
+  }, [assessments.data, search, statusFilter, areaFilter]);
+
 
   const toggleType = (t: QuestionType) =>
     setTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
