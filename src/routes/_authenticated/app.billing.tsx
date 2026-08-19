@@ -166,6 +166,21 @@ function BillingPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+  const setCredits = useServerFn(setDonationToCredits);
+  const toggleCredits = useMutation({
+    mutationFn: async (enabled: boolean) => setCredits({ data: { enabled } }),
+    onSuccess: (r) => {
+      toast.success(
+        r.enabled
+          ? "Tu donación mensual se convertirá en créditos de IA."
+          : "Tu donación volverá a ser una aportación de apoyo, sin créditos.",
+      );
+      qc.invalidateQueries({ queryKey: ["my-billing"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
 
   const status = b?.subscriptionStatus ?? "sin_suscripcion";
   const isActive = status === "active" || status === "trialing";
