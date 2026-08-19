@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { generateText, Output } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { resolveUserTextModel } from "./ai-gateway.server";
+import { runWithTextModelFallback } from "./ai-gateway.server";
 import { loadUserKeys } from "./user-keys.functions";
 import { formatSec, type SessionMetrics } from "./analyze-metrics";
 import {
@@ -108,12 +108,16 @@ export const generateSessionScenes = createServerFn({ method: "POST" })
       .map((s) => `${Math.round(s.startSec)}s–${Math.round(s.endSec)}s (${Math.round(s.durationSec)}s)`);
 
     const userKeys = await loadUserKeys(context.supabase, context.userId);
-    const { model, provider, nativeId } = resolveUserTextModel(userKeys);
 
     let result: Awaited<ReturnType<typeof generateText>> | null = null;
+    let provider: "openai" | "gemini" | "lovable" = "lovable";
+    let nativeId = "none";
     try {
-      result = await generateText({
-
+      const attempt = await runWithTextModelFallback(
+        userKeys,
+        undefined,
+        async ({ model }) =>
+          await generateText({
         model,
         experimental_output: Output.object({ schema: ScenesGenSchema }),
         system: `Eres un copiloto experto que selecciona los momentos más significativos de una sesión grabada para que un profesional (selección, formación, terapia, mediación) los revise sin ver la grabación completa.
@@ -136,7 +140,12 @@ Transcripción con segundos exactos:
 ${transcript}
 
 Selecciona los momentos más relevantes y devuélvelos como escenas de la "película resumen".`,
-      });
+          }),
+        { label: "scenes", maxAttempts: 3 },
+      );
+      result = attempt.value;
+      provider = attempt.used.provider;
+      nativeId = attempt.used.nativeId;
     } catch (err: any) {
       console.error("[scenes] generación fallida", err?.message ?? err);
       result = null;
