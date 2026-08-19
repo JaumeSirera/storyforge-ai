@@ -14,6 +14,10 @@ export interface BillingSummary {
   hasSavedCard: boolean;
   cardBrand: string | null;
   cardExpiry: string | null;
+  /** true when the monthly donation is converted into AI credits. */
+  donationToCredits: boolean;
+  /** Remaining AI credit balance (in cents) coming from donations. */
+  creditBalanceCents: number;
 }
 
 /** Current user's billing summary (plan + running usage). */
@@ -45,8 +49,26 @@ export const getMyBilling = createServerFn({ method: "GET" })
       hasSavedCard: !!billing?.redsys_card_token,
       cardBrand: billing?.redsys_card_brand ?? null,
       cardExpiry: billing?.redsys_card_expiry ?? null,
+      donationToCredits: !!billing?.donation_to_credits,
+      creditBalanceCents: Number(billing?.credit_balance_cents ?? 0),
     };
   });
+
+/** Enable/disable converting the monthly donation into AI consumption credits. */
+export const setDonationToCredits = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ enabled: z.boolean() }).parse(input))
+  .handler(async ({ data, context }): Promise<{ ok: true; enabled: boolean }> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin
+      .from("user_billing")
+      .upsert(
+        { user_id: context.userId, donation_to_credits: data.enabled },
+        { onConflict: "user_id" },
+      );
+    return { ok: true, enabled: data.enabled };
+  });
+
 
 /** Recent usage events for current user. */
 export const listMyUsage = createServerFn({ method: "GET" })
