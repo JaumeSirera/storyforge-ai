@@ -223,7 +223,7 @@ function BillingPage() {
               <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-sm text-muted-foreground">
                 <Info className="inline h-4 w-4 mr-1.5 align-text-bottom" />
                 Xandralyze es gratuito en uso. Esta aportación es voluntaria y mantiene la plataforma activa.
-                Antes se mostraba un importe fijo de 19€; ahora <span className="font-medium text-foreground">tú eliges</span> cuánto aportar cada mes.
+                Tú eliges cuánto aportar cada mes.
               </div>
 
               <div className="rounded-lg border border-border p-3 space-y-3">
