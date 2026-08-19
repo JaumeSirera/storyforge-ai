@@ -123,28 +123,35 @@ export async function recordUsage(input: RecordUsageInput): Promise<void> {
       .from("user_billing")
       .upsert({ user_id: input.userId }, { onConflict: "user_id", ignoreDuplicates: true });
 
-    // Apply to balances: first fill included_used up to subscription_included_cents,
-    // spill the rest into extra_pending_cents.
+    // Apply to balances: donation credits are consumed first, then the plan's
+    // included allowance, and only the rest spills into extra_pending_cents.
     const { data: billing } = await supabaseAdmin
       .from("user_billing")
-      .select("included_used_cents, extra_pending_cents")
+      .select("included_used_cents, extra_pending_cents, credit_balance_cents")
       .eq("user_id", input.userId)
       .maybeSingle();
 
     const included = Number(billing?.included_used_cents ?? 0);
     const extra = Number(billing?.extra_pending_cents ?? 0);
+    const credit = Number(billing?.credit_balance_cents ?? 0);
+
+    const fromCredit = Math.min(credit, totalCents);
+    let remaining = totalCents - fromCredit;
+
     const includedCap = p.subscription_included_cents;
     const room = Math.max(0, includedCap - included);
-    const toIncluded = Math.min(room, totalCents);
-    const toExtra = totalCents - toIncluded;
+    const toIncluded = Math.min(room, remaining);
+    remaining -= toIncluded;
 
     await supabaseAdmin
       .from("user_billing")
       .update({
+        credit_balance_cents: credit - fromCredit,
         included_used_cents: included + toIncluded,
-        extra_pending_cents: extra + toExtra,
+        extra_pending_cents: extra + remaining,
       })
       .eq("user_id", input.userId);
+
   } catch (e) {
     console.error("[usage] recordUsage failed:", e);
   }
