@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { AI_MODEL_IDS } from "./ai-models";
 
 export type TextProvider = "openai" | "gemini" | "lovable";
 
@@ -55,7 +56,7 @@ export const getMyApiKeys = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data } = await context.supabase
       .from("user_api_keys")
-      .select("openai_key, gemini_key, replicate_key, elevenlabs_key, text_provider")
+      .select("openai_key, gemini_key, replicate_key, elevenlabs_key, text_provider, preferred_model")
       .eq("user_id", context.userId)
       .maybeSingle();
 
@@ -69,6 +70,7 @@ export const getMyApiKeys = createServerFn({ method: "GET" })
       hasReplicate: !!data?.replicate_key,
       hasElevenlabs: !!data?.elevenlabs_key,
       textProvider: (data?.text_provider as TextProvider | undefined) ?? "gemini",
+      preferredModel: (data?.preferred_model as string | null) ?? null,
     };
   });
 
@@ -78,6 +80,7 @@ const SaveInput = z.object({
   replicateKey: z.string().trim().max(300).optional().nullable(),
   elevenlabsKey: z.string().trim().max(300).optional().nullable(),
   textProvider: z.enum(["openai", "gemini"]).optional(),
+  preferredModel: z.enum(AI_MODEL_IDS).optional(),
 });
 
 /**
@@ -97,12 +100,14 @@ export const saveMyApiKeys = createServerFn({ method: "POST" })
       replicate_key?: string | null;
       elevenlabs_key?: string | null;
       text_provider?: TextProvider;
+      preferred_model?: string;
     } = { user_id: context.userId };
     if (data.openaiKey !== undefined && data.openaiKey !== "") patch.openai_key = data.openaiKey;
     if (data.geminiKey !== undefined && data.geminiKey !== "") patch.gemini_key = data.geminiKey;
     if (data.replicateKey !== undefined && data.replicateKey !== "") patch.replicate_key = data.replicateKey;
     if (data.elevenlabsKey !== undefined && data.elevenlabsKey !== "") patch.elevenlabs_key = data.elevenlabsKey;
     if (data.textProvider !== undefined) patch.text_provider = data.textProvider;
+    if (data.preferredModel !== undefined) patch.preferred_model = data.preferredModel;
 
     const { error } = await context.supabase
       .from("user_api_keys")
