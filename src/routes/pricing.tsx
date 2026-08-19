@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import logoAsset from "@/assets/logo-xandralyze.png.asset.json";
 import { Button } from "@/components/ui/button";
 import {
   Card,
