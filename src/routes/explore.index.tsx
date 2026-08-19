@@ -66,8 +66,26 @@ function ExploreIndex() {
           <p className="text-sm text-muted-foreground">Cargando…</p>
         ) : (q.data?.length ?? 0) === 0 ? (
           <Card className="border-dashed">
-            <CardContent className="py-16 text-center text-muted-foreground">
-              Aún no hay simulaciones publicadas. ¡Vuelve pronto!
+            <CardContent className="py-14 text-center space-y-4">
+              <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-primary/10">
+                <Gamepad2 className="h-6 w-6 text-primary" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-semibold">Todavía no hay juegos en la galería</p>
+                <p className="text-sm text-muted-foreground max-w-xl mx-auto">
+                  La galería solo muestra simulaciones marcadas como públicas y publicadas. Si eres
+                  propietario, abre tu simulación, envíala a revisión y pulsa «Publicar» para que
+                  aparezca aquí.
+                </p>
+              </div>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button asChild size="sm">
+                  <Link to="/app/simulations">Ir a mis simulaciones</Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link to="/">Volver al inicio</Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ) : (
