@@ -34,8 +34,15 @@ function ExploreIndex() {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card/50">
         <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 font-semibold">
-            <Sparkles className="h-5 w-5 text-primary" /> Xandralyze
+          <Link to="/" className="flex items-center gap-2 font-semibold" aria-label="Xandralyze — inicio">
+            <img
+              src={logoAsset.url}
+              alt="Logotipo de Xandralyze"
+              className="h-6 w-auto"
+              width={24}
+              height={24}
+            />
+            Xandralyze
           </Link>
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost" size="sm">
