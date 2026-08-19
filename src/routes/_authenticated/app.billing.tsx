@@ -22,6 +22,24 @@ import { CreditCard, Sparkles, Download, Receipt, Activity, Heart, Wallet, Info 
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/billing")({
+  head: () => ({
+    meta: [
+      { title: "Facturación — Xandralyze" },
+      {
+        name: "description",
+        content:
+          "Gestiona tu donación mensual voluntaria, el consumo de IA y el historial de pagos de Xandralyze.",
+      },
+      { property: "og:title", content: "Facturación — Xandralyze" },
+      {
+        property: "og:description",
+        content:
+          "Donación voluntaria para mantener la plataforma, consumo de IA y pagos seguros por Redsys.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: BillingPage,
 });
 
