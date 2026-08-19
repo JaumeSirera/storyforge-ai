@@ -1756,6 +1756,7 @@ export type Database = {
           elevenlabs_key: string | null
           gemini_key: string | null
           openai_key: string | null
+          preferred_model: string | null
           replicate_key: string | null
           text_provider: string
           turn_api_token: string | null
@@ -1771,6 +1772,7 @@ export type Database = {
           elevenlabs_key?: string | null
           gemini_key?: string | null
           openai_key?: string | null
+          preferred_model?: string | null
           replicate_key?: string | null
           text_provider?: string
           turn_api_token?: string | null
@@ -1786,6 +1788,7 @@ export type Database = {
           elevenlabs_key?: string | null
           gemini_key?: string | null
           openai_key?: string | null
+          preferred_model?: string | null
           replicate_key?: string | null
           text_provider?: string
           turn_api_token?: string | null

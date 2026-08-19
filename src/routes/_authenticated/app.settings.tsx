@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMyApiKeys, saveMyApiKeys } from "@/lib/user-keys.functions";
@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
-import { KeyRound, Trash2, Mail, ExternalLink } from "lucide-react";
+import { KeyRound, Trash2, Mail, ExternalLink, FlaskConical } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/app/settings")({
   component: SettingsPage,
@@ -104,6 +104,13 @@ function SettingsPage() {
           >
             Guardar proveedor
           </Button>
+          <div className="pt-2">
+            <Button asChild size="sm" variant="outline">
+              <Link to="/app/ai-test">
+                <FlaskConical className="h-4 w-4" aria-hidden /> Probar IA y fallback
+              </Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

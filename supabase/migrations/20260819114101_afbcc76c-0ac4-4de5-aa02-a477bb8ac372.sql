@@ -1,0 +1,1 @@
+ALTER TABLE public.user_api_keys ADD COLUMN IF NOT EXISTS preferred_model text;
