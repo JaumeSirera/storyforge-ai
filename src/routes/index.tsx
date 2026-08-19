@@ -439,7 +439,14 @@ function CTA() {
 function Footer() {
   return (
     <footer className="border-t border-border/60 py-10 text-center text-sm text-muted-foreground">
-      © {new Date().getFullYear()} Xandralyze. Interacción humana impulsada por IA.
+      <div className="mx-auto max-w-7xl px-6 flex flex-col items-center gap-3 md:flex-row md:justify-between">
+        <span>© {new Date().getFullYear()} Xandralyze. Interacción humana impulsada por IA.</span>
+        <nav className="flex items-center gap-6">
+          <Link to="/pricing" className="hover:text-foreground">Precios</Link>
+          <Link to="/explore" className="hover:text-foreground">Galería</Link>
+          <Link to="/auth" className="hover:text-foreground">Entrar</Link>
+        </nav>
+      </div>
     </footer>
   );
 }
