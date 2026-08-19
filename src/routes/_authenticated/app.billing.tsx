@@ -10,6 +10,7 @@ import {
   createSubscriptionCheckout,
   payExtraNow,
   cancelSubscription,
+  setDonationToCredits,
 } from "@/lib/billing.functions";
 import { downloadReceiptPdf } from "@/lib/receipt-pdf";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,9 +18,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { CreditCard, Sparkles, Download, Receipt, Activity, Heart, Wallet, Info } from "lucide-react";
+import { CreditCard, Sparkles, Download, Receipt, Activity, Heart, Wallet, Info, Coins } from "lucide-react";
 import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/_authenticated/app/billing")({
   head: () => ({
@@ -163,6 +166,21 @@ function BillingPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+  const setCredits = useServerFn(setDonationToCredits);
+  const toggleCredits = useMutation({
+    mutationFn: async (enabled: boolean) => setCredits({ data: { enabled } }),
+    onSuccess: (r) => {
+      toast.success(
+        r.enabled
+          ? "Tu donación mensual se convertirá en créditos de IA."
+          : "Tu donación volverá a ser una aportación de apoyo, sin créditos.",
+      );
+      qc.invalidateQueries({ queryKey: ["my-billing"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
 
   const status = b?.subscriptionStatus ?? "sin_suscripcion";
   const isActive = status === "active" || status === "trialing";
@@ -208,6 +226,41 @@ function BillingPage() {
                 Antes se mostraba un importe fijo de 19€; ahora <span className="font-medium text-foreground">tú eliges</span> cuánto aportar cada mes.
               </div>
 
+              <div className="rounded-lg border border-border p-3 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2">
+                    <Coins className="h-5 w-5 text-primary mt-0.5" />
+                    <div>
+                      <Label htmlFor="donation-credits" className="text-sm font-medium">
+                        Convertir mi donación en créditos de IA
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Cada donación cobrada se añade a tu saldo de créditos (1€ donado = 1€ de crédito).
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="donation-credits"
+                    checked={!!b?.donationToCredits}
+                    disabled={toggleCredits.isPending}
+                    onCheckedChange={(v) => toggleCredits.mutate(v)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between rounded-md bg-muted/40 px-3 py-2 text-sm">
+                  <span className="text-muted-foreground">Saldo de créditos disponible</span>
+                  <span className="font-semibold">{money(b?.creditBalanceCents ?? 0, b?.currency)}</span>
+                </div>
+
+                <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
+                  <li>Los créditos se consumen <span className="font-medium text-foreground">antes</span> que el consumo incluido y antes de generar consumo extra a pagar.</li>
+                  <li>Se aplican automáticamente a cualquier acción de IA (texto, imagen, vídeo, voz, OCR) al precio real más el margen de plataforma.</li>
+                  <li>El saldo <span className="font-medium text-foreground">no caduca</span> y se acumula con cada donación mensual mientras la opción esté activa.</li>
+                  <li>Si desactivas la opción, tu donación vuelve a ser una aportación de apoyo sin créditos; el saldo ya acumulado se mantiene.</li>
+                  <li>Los créditos no son reembolsables ni transferibles: la donación sigue siendo voluntaria.</li>
+                </ul>
+              </div>
+
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span>Consumo incluido usado</span>
@@ -219,6 +272,7 @@ function BillingPage() {
                   <div className="h-full bg-primary" style={{ width: `${includedPct}%` }} />
                 </div>
               </div>
+
 
               {!isActive ? (
                 <div className="space-y-4">

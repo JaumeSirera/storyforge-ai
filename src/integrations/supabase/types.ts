@@ -1801,8 +1801,10 @@ export type Database = {
       user_billing: {
         Row: {
           created_at: string
+          credit_balance_cents: number
           current_period_end: string | null
           current_period_start: string | null
+          donation_to_credits: boolean
           extra_pending_cents: number
           included_used_cents: number
           next_charge_at: string | null
@@ -1817,8 +1819,10 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          credit_balance_cents?: number
           current_period_end?: string | null
           current_period_start?: string | null
+          donation_to_credits?: boolean
           extra_pending_cents?: number
           included_used_cents?: number
           next_charge_at?: string | null
@@ -1833,8 +1837,10 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          credit_balance_cents?: number
           current_period_end?: string | null
           current_period_start?: string | null
+          donation_to_credits?: boolean
           extra_pending_cents?: number
           included_used_cents?: number
           next_charge_at?: string | null
