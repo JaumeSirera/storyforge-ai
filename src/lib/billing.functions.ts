@@ -112,13 +112,19 @@ export const getMyPaymentReceipt = createServerFn({ method: "GET" })
       context.supabase.from("profiles").select("full_name, email").eq("id", context.userId).maybeSingle(),
       supabaseAdmin.from("pricing_config").select("vat_pct").eq("id", true).maybeSingle(),
     ]);
+    const product =
+      pay.kind === "subscription" || pay.kind === "renewal"
+        ? "Xandralyze — Donación mensual"
+        : pay.kind === "extra"
+          ? "Xandralyze — Consumo extra de IA"
+          : "Xandralyze — Simulaciones profesionales";
     return {
       payment: pay,
       buyer: { name: profile?.full_name ?? null, email: profile?.email ?? null },
       merchant: {
         name: "VITA Training",
         merchantCode: "356698696",
-        product: "Xandralyze — Simulaciones profesionales",
+        product,
       },
       vatPct: Number(pricing?.vat_pct ?? 21),
     };
