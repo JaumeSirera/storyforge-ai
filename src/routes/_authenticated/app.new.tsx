@@ -18,7 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AI_MODELS, DEFAULT_AI_MODEL, type AiModelId } from "@/lib/ai-models";
+import { AI_MODELS, type AiModelId } from "@/lib/ai-models";
+import { usePreferredAiModel } from "@/lib/preferred-model";
 import { Plus, Trash2, Sparkles, Loader2, Upload, FileText } from "lucide-react";
 import { toast } from "sonner";
 
@@ -73,7 +74,8 @@ function NewSimulation() {
   const [loading, setLoading] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [lastFile, setLastFile] = useState<string | null>(null);
-  const [model, setModel] = useState<AiModelId>(DEFAULT_AI_MODEL);
+  // El modelo elegido se guarda en el navegador y se mantiene entre sesiones.
+  const { model, setModel } = usePreferredAiModel();
   const [hydrated, setHydrated] = useState(false);
   const [areaKey, setAreaKey] = useState("");
   const [addingArea, setAddingArea] = useState(false);
@@ -131,7 +133,7 @@ function NewSimulation() {
     setPrompt("");
     setVideos([]);
     setLastFile(null);
-    setModel(DEFAULT_AI_MODEL);
+    // El modelo preferido se conserva a propósito al descartar el borrador.
     toast.success("Borrador descartado");
   }
 
