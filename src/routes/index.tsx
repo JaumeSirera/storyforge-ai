@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { GuidedTour } from "@/components/GuidedTour";
+import { AssessmentsModule } from "@/components/AssessmentsModule";
 import logoAsset from "@/assets/logo-xandralyze.png.asset.json";
 import {
   Sparkles,
@@ -48,7 +48,7 @@ function Landing() {
       <Header />
       <main>
         <Hero />
-        <GuidedTour />
+        <AssessmentsModule />
         <Modules />
         <Features />
         <HowItWorks />
@@ -77,7 +77,7 @@ function Header() {
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
           <Link to="/explore" className="hover:text-foreground">Galería</Link>
-          <a href="#tour" className="hover:text-foreground">Tour</a>
+          <a href="#assessments" className="hover:text-foreground">Evaluaciones</a>
           <a href="#modules" className="hover:text-foreground">Módulos</a>
           <a href="#features" className="hover:text-foreground">Funciones</a>
           <a href="#how" className="hover:text-foreground">Cómo funciona</a>
@@ -374,10 +374,14 @@ function HowItWorks() {
 }
 
 const cases = [
-  { tag: "RRHH", title: "Selección gamificada", body: "Assessment centers, entrevistas situacionales." },
-  { tag: "Formación", title: "PRL & compliance", body: "Simulaciones realistas con feedback inmediato." },
-  { tag: "Educación", title: "Medicina, derecho, idiomas", body: "Casos prácticos ramificados." },
-  { tag: "Industria", title: "Resolución de problemas", body: "Lean, Six Sigma, cuellos de botella." },
+  { tag: "RRHH", title: "Selección gamificada", body: "Assessment centers, entrevistas situacionales y pruebas escritas con corrección automática." },
+  { tag: "Formación", title: "PRL & compliance", body: "Simulaciones realistas con feedback inmediato y examen final certificable." },
+  { tag: "Educación", title: "Medicina, derecho, idiomas", body: "Casos prácticos ramificados y corrección de exámenes manuscritos escaneados." },
+  { tag: "Industria", title: "Resolución de problemas", body: "Lean, Six Sigma y cuellos de botella con decisiones cronometradas." },
+  { tag: "Oposiciones", title: "Exámenes oficiales", body: "Pruebas con temario, tiempo límite, auditoría de entregas y nota inmediata." },
+  { tag: "Academias", title: "Simulacros a distancia", body: "Aspirantes inscritos por enlace único, sin cuenta y con reanudación si se corta." },
+  { tag: "Universidad", title: "Evaluación por competencias", body: "Rúbricas propias, feedback por pregunta y validación humana de la nota." },
+  { tag: "Salud y social", title: "Entrevistas y terapia", body: "Sesiones grabadas con análisis de voz, turnos e informe adaptado al rol." },
 ];
 
 function UseCases() {
