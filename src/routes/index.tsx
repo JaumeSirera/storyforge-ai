@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { GuidedTour } from "@/components/GuidedTour";
+import logoAsset from "@/assets/logo-xandralyze.png.asset.json";
 import {
   Sparkles,
   Film,
