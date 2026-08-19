@@ -19,6 +19,10 @@ import {
   Zap,
   CheckCircle2,
   HelpCircle,
+  Coffee,
+  Sprout,
+  Rocket,
+  Diamond,
 } from "lucide-react";
 
 export const Route = createFileRoute("/pricing")({
@@ -47,10 +51,10 @@ export const Route = createFileRoute("/pricing")({
 });
 
 const donationTiers = [
-  { amount: 5, label: "Café", emoji: "☕", description: "Una pequeña ayuda que suma." },
-  { amount: 10, label: "Soporte", emoji: "🌱", description: "Mantiene el servidor encendido." },
-  { amount: 25, label: "Impulso", emoji: "🚀", description: "Financia mejoras continuas." },
-  { amount: 50, label: "Patrocinio", emoji: "💎", description: "Reconocimiento como patrocinador." },
+  { amount: 5, label: "Café", Icon: Coffee, description: "Una pequeña ayuda que suma." },
+  { amount: 10, label: "Soporte", Icon: Sprout, description: "Mantiene el servidor encendido." },
+  { amount: 25, label: "Impulso", Icon: Rocket, description: "Financia mejoras continuas." },
+  { amount: 50, label: "Patrocinio", Icon: Diamond, description: "Reconocimiento como patrocinador." },
 ];
 
 const included = [
