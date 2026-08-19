@@ -77,6 +77,7 @@ function Header() {
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
           <Link to="/explore" className="hover:text-foreground">Galería</Link>
+          <Link to="/pricing" className="hover:text-foreground">Precios</Link>
           <a href="#assessments" className="hover:text-foreground">Evaluaciones</a>
           <a href="#modules" className="hover:text-foreground">Módulos</a>
           <a href="#features" className="hover:text-foreground">Funciones</a>
