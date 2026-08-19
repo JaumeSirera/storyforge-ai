@@ -110,15 +110,16 @@ function Hero() {
           Simulaciones con IA + análisis de comportamiento
         </div>
         <h1 className="mt-6 text-balance text-5xl md:text-7xl font-bold tracking-tight">
-          Simula, graba y{" "}
+          Simula, graba, evalúa y{" "}
           <span className="bg-gradient-to-r from-primary to-chart-4 bg-clip-text text-transparent">
-            evalúa con evidencias
+            corrige con evidencias
           </span>
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-balance text-lg text-muted-foreground">
-          La IA crea la simulación en vídeo con preguntas ramificadas. Xandralyze graba al
-          participante (cámara, pantalla y multicámara), analiza su comportamiento y entrega un
-          informe integrado: qué decidió y cómo lo hizo.
+          La IA crea simulaciones en vídeo con preguntas ramificadas, genera exámenes y evaluaciones
+          escritas con rúbrica, y graba al participante (cámara, pantalla y multicámara). Xandralyze
+          analiza su comportamiento y entrega un informe integrado: qué decidió, cómo lo hizo y en
+          qué competencias mejora.
         </p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
           <Link to="/auth">
