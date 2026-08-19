@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getMyBilling,
   listMyUsage,
@@ -15,11 +15,31 @@ import { downloadReceiptPdf } from "@/lib/receipt-pdf";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { CreditCard, Sparkles, Download, Receipt, Activity } from "lucide-react";
+import { CreditCard, Sparkles, Download, Receipt, Activity, Heart, Wallet, Info } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/billing")({
+  head: () => ({
+    meta: [
+      { title: "Facturación — Xandralyze" },
+      {
+        name: "description",
+        content:
+          "Gestiona tu donación mensual voluntaria, el consumo de IA y el historial de pagos de Xandralyze.",
+      },
+      { property: "og:title", content: "Facturación — Xandralyze" },
+      {
+        property: "og:description",
+        content:
+          "Donación voluntaria para mantener la plataforma, consumo de IA y pagos seguros por Redsys.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: BillingPage,
 });
 
@@ -55,9 +75,9 @@ function redsysRedirect(params: {
 }
 
 const KIND_LABEL: Record<string, string> = {
-  subscription: "Suscripción",
+  subscription: "Donación mensual",
   renewal: "Renovación",
-  extra: "Consumo extra",
+  extra: "Consumo extra de IA",
 };
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -83,6 +103,8 @@ function BillingPage() {
     queryFn: () => listP({ data: { limit: 100 } }),
   });
   const toastedRef = useRef(false);
+  const [donationAmount, setDonationAmount] = useState<number>(5);
+  const [customAmount, setCustomAmount] = useState<string>("");
 
   useEffect(() => {
     if (toastedRef.current) return;
@@ -106,7 +128,14 @@ function BillingPage() {
   }, [qc]);
 
   const subscribe = useMutation({
-    mutationFn: async () => startCheckout({ data: { origin: window.location.origin } }),
+    mutationFn: async () =>
+      startCheckout({
+        data: {
+          origin: window.location.origin,
+          amountCents: Math.round(donationAmount * 100),
+          description: `Xandralyze — Donación ${donationAmount}€/mes`,
+        },
+      }),
     onSuccess: (r) => redsysRedirect(r),
     onError: (e: Error) => toast.error(e.message),
   });
@@ -129,7 +158,7 @@ function BillingPage() {
   const doCancel = useMutation({
     mutationFn: async () => cancel(),
     onSuccess: () => {
-      toast.success("Suscripción cancelada. No se realizarán más cobros automáticos.");
+      toast.success("Aportación mensual cancelada. No se realizarán más cobros automáticos.");
       qc.invalidateQueries({ queryKey: ["my-billing"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -152,23 +181,33 @@ function BillingPage() {
     <div className="space-y-6 max-w-4xl">
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2"><CreditCard className="h-6 w-6" /> Facturación</h1>
-        <p className="text-muted-foreground text-sm">Suscripción, consumo por uso e historial de pagos. Pagos procesados por Redsys.</p>
+        <p className="text-muted-foreground text-sm">Donación mensual voluntaria, consumo por uso de IA e historial de pagos. Pagos procesados por Redsys.</p>
       </div>
 
       <Tabs defaultValue="subscription" className="w-full">
         <TabsList>
-          <TabsTrigger value="subscription"><CreditCard className="h-4 w-4 mr-1" /> Suscripción</TabsTrigger>
+          <TabsTrigger value="subscription"><Heart className="h-4 w-4 mr-1" /> Donación</TabsTrigger>
           <TabsTrigger value="usage"><Activity className="h-4 w-4 mr-1" /> Consumo (IA)</TabsTrigger>
-          <TabsTrigger value="payments"><Receipt className="h-4 w-4 mr-1" /> Historial de pagos</TabsTrigger>
+          <TabsTrigger value="payments"><Receipt className="h-4 w-4 mr-1" /> Historial</TabsTrigger>
         </TabsList>
 
         <TabsContent value="subscription" className="mt-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Suscripción</CardTitle>
-              <Badge variant={status === "active" ? "default" : "secondary"}>{status}</Badge>
+              <CardTitle className="flex items-center gap-2">
+                <Heart className="h-5 w-5 text-destructive" /> Donación mensual
+              </CardTitle>
+              <Badge variant={status === "active" ? "default" : "secondary"}>
+                {status === "active" ? "Activa" : status === "canceled" ? "Cancelada" : "Sin activar"}
+              </Badge>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5">
+              <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-sm text-muted-foreground">
+                <Info className="inline h-4 w-4 mr-1.5 align-text-bottom" />
+                Xandralyze es gratuito en uso. Esta aportación es voluntaria y mantiene la plataforma activa.
+                Antes se mostraba un importe fijo de 19€; ahora <span className="font-medium text-foreground">tú eliges</span> cuánto aportar cada mes.
+              </div>
+
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span>Consumo incluido usado</span>
@@ -181,52 +220,111 @@ function BillingPage() {
                 </div>
               </div>
 
-              {b?.hasSavedCard && (
-                <div className="text-sm text-muted-foreground">
-                  Tarjeta guardada: <span className="font-medium">{b.cardBrand ?? "•••"} — caduca {b.cardExpiry ?? "—"}</span>
-                  {b.nextChargeAt && (
-                    <> · próximo cobro: <span className="font-medium">{new Date(b.nextChargeAt).toLocaleDateString("es-ES")}</span></>
-                  )}
-                </div>
-              )}
+              {!isActive ? (
+                <div className="space-y-4">
+                  <div>
+                    <Label className="mb-2 block">Elige tu aportación mensual</Label>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {[5, 10, 25, 50].map((a) => (
+                        <Button
+                          key={a}
+                          type="button"
+                          variant={donationAmount === a ? "default" : "outline"}
+                          onClick={() => {
+                            setDonationAmount(a);
+                            setCustomAmount("");
+                          }}
+                        >
+                          {a}€
+                        </Button>
+                      ))}
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min={1}
+                          placeholder="Otro"
+                          className="w-24"
+                          value={customAmount}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setCustomAmount(v);
+                            const n = Number(v);
+                            if (v && !Number.isNaN(n) && n > 0) setDonationAmount(n);
+                          }}
+                        />
+                        <span className="text-sm text-muted-foreground">€</span>
+                      </div>
+                    </div>
+                  </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-border p-3">
-                <div>
-                  <div className="text-sm text-muted-foreground">Extra pendiente de facturar</div>
-                  <div className="text-lg font-semibold">{money(b?.extraPendingCents ?? 0, b?.currency)}</div>
+                  <div className="flex items-center gap-3 rounded-lg border border-border p-3">
+                    <div className="grid h-10 w-10 place-items-center rounded-full bg-primary/10 text-primary">
+                      <Wallet className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm text-muted-foreground">Aportación elegida</div>
+                      <div className="text-2xl font-bold">
+                        {money(donationAmount * 100, b?.currency)}
+                        <span className="text-sm font-normal text-muted-foreground">/mes</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => subscribe.mutate()}
+                    disabled={subscribe.isPending || donationAmount < 1}
+                    className="w-full sm:w-auto"
+                  >
+                    <CreditCard className="h-4 w-4 mr-1" />
+                    Donar {donationAmount}€/mes con tarjeta
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Al pulsar el botón irás a Redsys para pagar con tarjeta de forma segura. Se guardará una referencia de la tarjeta para renovar la donación mensualmente; puedes cancelarla cuando quieras.
+                  </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {!isActive ? (
-                    <Button onClick={() => subscribe.mutate()} disabled={subscribe.isPending}>
-                      <Sparkles className="h-4 w-4 mr-1" /> Suscribirme
-                    </Button>
-                  ) : (
-                    <>
+              ) : (
+                <>
+                  {b?.hasSavedCard && (
+                    <div className="text-sm text-muted-foreground">
+                      Tarjeta guardada: <span className="font-medium">{b.cardBrand ?? "•••"} — caduca {b.cardExpiry ?? "—"}</span>
+                      {b.nextChargeAt && (
+                        <> · próxima aportación: <span className="font-medium">{new Date(b.nextChargeAt).toLocaleDateString("es-ES")}</span></>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-border p-3">
+                    <div>
+                      <div className="text-sm text-muted-foreground">Consumo extra de IA pendiente</div>
+                      <div className="text-lg font-semibold">{money(b?.extraPendingCents ?? 0, b?.currency)}</div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
                       <Button
                         variant="secondary"
                         onClick={() => pay.mutate()}
                         disabled={pay.isPending || !b || b.extraPendingCents <= 0}
                       >
-                        Pagar extra
+                        <CreditCard className="h-4 w-4 mr-1" />
+                        Pagar {money(b?.extraPendingCents ?? 0, b?.currency)} con tarjeta
                       </Button>
                       <Button
                         variant="outline"
                         onClick={() => {
-                          if (confirm("¿Cancelar la renovación automática? Podrás seguir usando el servicio hasta el fin del periodo.")) {
+                          if (confirm("¿Cancelar la aportación mensual? Podrás seguir usando Xandralyze hasta el fin del periodo actual.")) {
                             doCancel.mutate();
                           }
                         }}
                         disabled={doCancel.isPending}
                       >
-                        Cancelar suscripción
+                        Cancelar donación
                       </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Los pagos se procesan de forma segura mediante Redsys (VITA Training). Al suscribirte guardamos una referencia de la tarjeta para renovar automáticamente cada mes.
-              </p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Los pagos se procesan de forma segura mediante Redsys (VITA Training). Si tienes tarjeta guardada, el consumo extra se carga automáticamente; si no, te pedirá los datos de tarjeta en cada pago.
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

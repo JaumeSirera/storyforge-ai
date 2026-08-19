@@ -112,24 +112,35 @@ export const getMyPaymentReceipt = createServerFn({ method: "GET" })
       context.supabase.from("profiles").select("full_name, email").eq("id", context.userId).maybeSingle(),
       supabaseAdmin.from("pricing_config").select("vat_pct").eq("id", true).maybeSingle(),
     ]);
+    const product =
+      pay.kind === "subscription" || pay.kind === "renewal"
+        ? "Xandralyze — Donación mensual"
+        : pay.kind === "extra"
+          ? "Xandralyze — Consumo extra de IA"
+          : "Xandralyze — Simulaciones profesionales";
     return {
       payment: pay,
       buyer: { name: profile?.full_name ?? null, email: profile?.email ?? null },
       merchant: {
         name: "VITA Training",
         merchantCode: "356698696",
-        product: "Xandralyze — Simulaciones profesionales",
+        product,
       },
       vatPct: Number(pricing?.vat_pct ?? 21),
     };
   });
 
-/** Build the Redsys hosted-checkout form params for the FIRST subscription payment.
+/** Build the Redsys hosted-checkout form params for a monthly donation/subscription.
+ *  Accepts an optional amount; otherwise falls back to the configured default price.
  *  Returns URL + form fields; the client auto-submits the form. */
 export const createSubscriptionCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z.object({ origin: z.string().url() }).parse(input),
+    z.object({
+      origin: z.string().url(),
+      amountCents: z.number().int().min(100).max(1000000).optional(),
+      description: z.string().max(200).optional(),
+    }).parse(input ?? {}),
   )
   .handler(
     async ({
@@ -147,33 +158,37 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const cfg = getRedsysConfig();
 
-      const { data: pricing } = await supabaseAdmin
-        .from("pricing_config")
-        .select("subscription_price_cents, currency")
-        .eq("id", true)
-        .maybeSingle();
-      if (!pricing || !pricing.subscription_price_cents) {
-        throw new Error("Precio de suscripción no configurado");
+      let amountCents = data.amountCents;
+      if (!amountCents || amountCents <= 0) {
+        const { data: pricing } = await supabaseAdmin
+          .from("pricing_config")
+          .select("subscription_price_cents, currency")
+          .eq("id", true)
+          .maybeSingle();
+        amountCents = pricing?.subscription_price_cents ?? 0;
+      }
+      if (!amountCents) {
+        throw new Error("Importe de donación no configurado");
       }
 
       const order = newOrderCode();
       await supabaseAdmin.from("redsys_payments").insert({
         user_id: context.userId,
         order_code: order,
-        amount_cents: pricing.subscription_price_cents,
-        currency: pricing.currency ?? "EUR",
+        amount_cents: amountCents,
+        currency: "EUR",
         kind: "subscription",
         status: "pending",
       });
 
       const params = buildCheckoutParams({
         order,
-        amountCents: pricing.subscription_price_cents,
+        amountCents,
         cfg,
         urlOk: `${data.origin}/app/billing?redsys=ok`,
         urlKo: `${data.origin}/app/billing?redsys=ko`,
         urlNotification: `${data.origin}/api/public/redsys/notification`,
-        productDescription: "Xandralyze — Suscripción mensual",
+        productDescription: data.description ?? "Xandralyze — Aportación mensual",
         requestTokenization: true,
       });
       const { merchantParameters, signature } = signRequest(params, order, cfg.merchantKey);
