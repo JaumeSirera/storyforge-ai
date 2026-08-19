@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Plus, LogOut, Library, Settings, Shield, CreditCard, Menu, X , Video, FileText} from "lucide-react";
+import { LayoutDashboard, Plus, LogOut, Library, Settings, Shield, CreditCard, Menu, X , Video, FileText, Smartphone} from "lucide-react";
 import { getMyAdminStatus } from "@/lib/admin.functions";
 import logoAsset from "@/assets/logo-xandralyze.png.asset.json";
 
@@ -56,6 +56,7 @@ function AppLayout() {
             <NavItem to="/app/assessments" icon={FileText} label="Evaluaciones" />
             <NavItem to="/app/settings" icon={Settings} label="Ajustes" />
             <NavItem to="/app/billing" icon={CreditCard} label="Facturación" />
+            <NavItem to="/install" icon={Smartphone} label="App móvil" />
             {adminStatus?.isAdmin && (
               <NavItem to="/app/admin/users" icon={Shield} label="Admin" />
             )}
@@ -86,6 +87,7 @@ function AppLayout() {
               <MobileNavItem to="/app/assessments" icon={FileText} label="Evaluaciones" onClick={() => setMobileOpen(false)} />
               <MobileNavItem to="/app/settings" icon={Settings} label="Ajustes" onClick={() => setMobileOpen(false)} />
               <MobileNavItem to="/app/billing" icon={CreditCard} label="Facturación" onClick={() => setMobileOpen(false)} />
+              <MobileNavItem to="/install" icon={Smartphone} label="App móvil" onClick={() => setMobileOpen(false)} />
               {adminStatus?.isAdmin && (
                 <MobileNavItem to="/app/admin/users" icon={Shield} label="Admin" onClick={() => setMobileOpen(false)} />
               )}
