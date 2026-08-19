@@ -65,20 +65,20 @@ export function resolveUserTextModel(userKeys: UserApiKeys, requestedId?: AiMode
   if (provider === "openai") {
     const p = createOpenAIProvider(userKeys.openaiKey!);
     const nativeId =
-      requested && requested.provider === "openai" ? requested.nativeId : "gpt-5.4-mini";
+      requested && requested.provider === "openai" ? requested.nativeId : "gpt-5-mini";
     return { model: p(nativeId), provider, nativeId };
   }
 
   if (provider === "gemini") {
     const p = createGeminiProvider(userKeys.geminiKey!);
     const nativeId =
-      requested && requested.provider === "gemini" ? requested.nativeId : "gemini-3.7-flash";
+      requested && requested.provider === "gemini" ? requested.nativeId : "gemini-2.5-flash";
     return { model: p(nativeId), provider, nativeId };
   }
 
   // Lovable AI Gateway (platform pays via LOVABLE_API_KEY)
   const p = createLovableAiGatewayProvider(userKeys.lovableKey!);
-  const nativeId = requested ? requested.id : "google/gemini-3.7-flash";
+  const nativeId = requested ? requested.id : "google/gemini-2.5-flash";
   return { model: p(nativeId), provider, nativeId };
 }
 

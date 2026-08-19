@@ -140,7 +140,8 @@ export const AI_MODELS = [
 
 export type AiModelId = (typeof AI_MODELS)[number]["id"];
 
-export const DEFAULT_AI_MODEL: AiModelId = "google/gemini-3.7-flash";
+// Por defecto se mantienen los modelos que ya se usaban antes (generación estable).
+export const DEFAULT_AI_MODEL: AiModelId = "google/gemini-2.5-flash";
 
 export const AI_MODEL_IDS = AI_MODELS.map((m) => m.id) as [AiModelId, ...AiModelId[]];
 
