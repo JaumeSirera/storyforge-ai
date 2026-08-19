@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { generateObject, NoObjectGeneratedError } from "ai";
 import { z } from "zod";
-import { resolveUserTextModel } from "./ai-gateway.server";
+import { runWithTextModelFallback } from "./ai-gateway.server";
 import { AI_MODEL_IDS, DEFAULT_AI_MODEL } from "./ai-models";
 import { loadUserKeys } from "./user-keys.functions";
 
@@ -418,7 +418,6 @@ export const generateSimulation = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => GenerateInput.parse(input))
   .handler(async ({ data, context }) => {
     const userKeys = await loadUserKeys(context.supabase, context.userId);
-    const { model, provider: aiProvider, nativeId } = resolveUserTextModel(userKeys, data.model);
     const sanitizedPrompt = (sanitizeCreatorPrompt(data.prompt) || data.prompt).slice(0, 40000);
     const generationData = { ...data, prompt: sanitizedPrompt };
 
@@ -460,36 +459,62 @@ Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
     let output: GeneratedStory;
     let usageIn = 0;
     let usageOut = 0;
-    // aiProvider & nativeId already destructured above.
-    try {
-      const result = await generateObject({
-        model,
-        schema: StorySchema,
-        system: systemPrompt,
-        prompt: userPrompt,
-        maxOutputTokens: 16000,
-        temperature: 0.25,
-        experimental_repairText: async ({ text }) => {
+
+    const attempt = await runWithTextModelFallback(
+      userKeys,
+      data.model,
+      async ({ model }) => {
+        try {
+          const result = await generateObject({
+            model,
+            schema: StorySchema,
+            system: systemPrompt,
+            prompt: userPrompt,
+            maxOutputTokens: 16000,
+            temperature: 0.25,
+            experimental_repairText: async ({ text }) => {
+              try {
+                return JSON.stringify(normalizeStoryFromText(text, generationData));
+              } catch {
+                return null;
+              }
+            },
+          });
+          return {
+            story: normalizeStory(result.object, generationData),
+            usageIn:
+              (result.usage as { inputTokens?: number; promptTokens?: number } | undefined)?.inputTokens ??
+              (result.usage as { promptTokens?: number } | undefined)?.promptTokens ??
+              0,
+            usageOut:
+              (result.usage as { outputTokens?: number; completionTokens?: number } | undefined)?.outputTokens ??
+              (result.usage as { completionTokens?: number } | undefined)?.completionTokens ??
+              0,
+          };
+        } catch (err) {
+          // Salida no parseable: intentamos reparar el texto en lugar de cambiar de modelo.
+          if (!NoObjectGeneratedError.isInstance(err)) throw err;
           try {
-            return JSON.stringify(normalizeStoryFromText(text, generationData));
+            return {
+              story: err.text
+                ? normalizeStoryFromText(err.text, generationData)
+                : createFallbackStory(generationData),
+              usageIn: 0,
+              usageOut: 0,
+            };
           } catch {
-            return null;
+            return { story: createFallbackStory(generationData), usageIn: 0, usageOut: 0 };
           }
-        },
-      });
-      output = normalizeStory(result.object, generationData);
-      usageIn = (result.usage as { inputTokens?: number; promptTokens?: number } | undefined)?.inputTokens ?? (result.usage as { promptTokens?: number } | undefined)?.promptTokens ?? 0;
-      usageOut = (result.usage as { outputTokens?: number; completionTokens?: number } | undefined)?.outputTokens ?? (result.usage as { completionTokens?: number } | undefined)?.completionTokens ?? 0;
-    } catch (err) {
-      if (!NoObjectGeneratedError.isInstance(err)) throw err;
-      try {
-        output = err.text
-          ? normalizeStoryFromText(err.text, generationData)
-          : createFallbackStory(generationData);
-      } catch {
-        output = createFallbackStory(generationData);
-      }
-    }
+        }
+      },
+      { label: "simulation", maxAttempts: 3 },
+    );
+
+    output = attempt.value.story;
+    usageIn = attempt.value.usageIn;
+    usageOut = attempt.value.usageOut;
+    const aiProvider = attempt.used.provider;
+    const nativeId = attempt.used.nativeId;
 
     try {
       const { recordUsage, userPaysPlatform } = await import("./usage.server");
