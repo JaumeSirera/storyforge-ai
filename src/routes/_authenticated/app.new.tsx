@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AI_MODELS, type AiModelId } from "@/lib/ai-models";
-import { usePreferredAiModel, writePreferredAiModel } from "@/lib/preferred-model";
+import { usePreferredAiModel } from "@/lib/preferred-model";
 import { Plus, Trash2, Sparkles, Loader2, Upload, FileText } from "lucide-react";
 import { toast } from "sonner";
 
@@ -102,7 +102,6 @@ function NewSimulation() {
           setLastFile(d.lastFile ?? null);
         if (typeof d.model === "string" && AI_MODELS.some((m) => m.id === d.model))
           setModel(d.model as AiModelId);
-        else writePreferredAiModel(model);
       }
     } catch {
       /* ignore */
