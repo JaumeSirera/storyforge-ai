@@ -445,6 +445,7 @@ function Footer() {
         <nav className="flex items-center gap-6">
           <Link to="/pricing" className="hover:text-foreground">Precios</Link>
           <Link to="/explore" className="hover:text-foreground">Galería</Link>
+          <Link to="/install" className="hover:text-foreground">App móvil</Link>
           <Link to="/auth" className="hover:text-foreground">Entrar</Link>
         </nav>
       </div>
