@@ -19,6 +19,7 @@ import { Route as ExploreIndexRouteImport } from './routes/explore.index'
 import { Route as ExploreIdRouteImport } from './routes/explore.$id'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app.admin'
+import { Route as AuthenticatedAppAiTestRouteImport } from './routes/_authenticated/app.ai-test'
 import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authenticated/app.billing'
 import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
 import { Route as AuthenticatedAppNewRouteImport } from './routes/_authenticated/app.new'
@@ -94,6 +95,11 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
 const AuthenticatedAppAdminRoute = AuthenticatedAppAdminRouteImport.update({
   id: '/app/admin',
   path: '/app/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAppAiTestRoute = AuthenticatedAppAiTestRouteImport.update({
+  id: '/app/ai-test',
+  path: '/app/ai-test',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAppBillingRoute = AuthenticatedAppBillingRouteImport.update({
@@ -265,6 +271,7 @@ export interface FileRoutesByFullPath {
   '/invite/$token': typeof InviteTokenRoute
   '/explore/': typeof ExploreIndexRoute
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
+  '/app/ai-test': typeof AuthenticatedAppAiTestRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/new': typeof AuthenticatedAppNewRoute
@@ -303,6 +310,7 @@ export interface FileRoutesByTo {
   '/invite/$token': typeof InviteTokenRoute
   '/explore': typeof ExploreIndexRoute
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
+  '/app/ai-test': typeof AuthenticatedAppAiTestRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/new': typeof AuthenticatedAppNewRoute
@@ -343,6 +351,7 @@ export interface FileRoutesById {
   '/invite/$token': typeof InviteTokenRoute
   '/explore/': typeof ExploreIndexRoute
   '/_authenticated/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
+  '/_authenticated/app/ai-test': typeof AuthenticatedAppAiTestRoute
   '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
   '/_authenticated/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/_authenticated/app/new': typeof AuthenticatedAppNewRoute
@@ -383,6 +392,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/explore/'
     | '/app/admin'
+    | '/app/ai-test'
     | '/app/billing'
     | '/app/dashboard'
     | '/app/new'
@@ -421,6 +431,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/explore'
     | '/app/admin'
+    | '/app/ai-test'
     | '/app/billing'
     | '/app/dashboard'
     | '/app/new'
@@ -460,6 +471,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/explore/'
     | '/_authenticated/app/admin'
+    | '/_authenticated/app/ai-test'
     | '/_authenticated/app/billing'
     | '/_authenticated/app/dashboard'
     | '/_authenticated/app/new'
@@ -574,6 +586,13 @@ declare module '@tanstack/react-router' {
       path: '/app/admin'
       fullPath: '/app/admin'
       preLoaderRoute: typeof AuthenticatedAppAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/ai-test': {
+      id: '/_authenticated/app/ai-test'
+      path: '/app/ai-test'
+      fullPath: '/app/ai-test'
+      preLoaderRoute: typeof AuthenticatedAppAiTestRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/billing': {
@@ -787,6 +806,7 @@ const AuthenticatedAppAdminRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppAdminRoute: typeof AuthenticatedAppAdminRouteWithChildren
+  AuthenticatedAppAiTestRoute: typeof AuthenticatedAppAiTestRoute
   AuthenticatedAppBillingRoute: typeof AuthenticatedAppBillingRoute
   AuthenticatedAppDashboardRoute: typeof AuthenticatedAppDashboardRoute
   AuthenticatedAppNewRoute: typeof AuthenticatedAppNewRoute
@@ -812,6 +832,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppAdminRoute: AuthenticatedAppAdminRouteWithChildren,
+  AuthenticatedAppAiTestRoute: AuthenticatedAppAiTestRoute,
   AuthenticatedAppBillingRoute: AuthenticatedAppBillingRoute,
   AuthenticatedAppDashboardRoute: AuthenticatedAppDashboardRoute,
   AuthenticatedAppNewRoute: AuthenticatedAppNewRoute,
