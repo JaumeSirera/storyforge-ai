@@ -25,13 +25,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/capture/join/$token")({
   head: () => ({
     meta: [
-      { title: "Unirse a la grabación · Playnalyze" },
+      { title: "Unirse a la grabación · Xandralyze" },
       {
         name: "description",
-        content: "Accede por invitación a una sesión de grabación y análisis de Playnalyze.",
+        content: "Accede por invitación a una sesión de grabación y análisis de Xandralyze.",
       },
       { name: "robots", content: "noindex,nofollow" },
-      { property: "og:title", content: "Unirse a la grabación · Playnalyze" },
+      { property: "og:title", content: "Unirse a la grabación · Xandralyze" },
       { property: "og:description", content: "Sesión de grabación por invitación privada." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -149,7 +149,7 @@ function JoinCapturePage() {
           <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary text-primary-foreground">
             <Sparkles className="h-3.5 w-3.5" />
           </span>
-          Playnalyze
+          Xandralyze
         </Link>
         <h1 className="text-2xl font-bold">{session.title}</h1>
         <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">

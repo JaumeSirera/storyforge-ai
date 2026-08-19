@@ -45,13 +45,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/app/capture/$id/scenes")({
   head: () => ({
     meta: [
-      { title: "Escenas inteligentes — película resumen | Playnalyze" },
+      { title: "Escenas inteligentes — película resumen | Xandralyze" },
       {
         name: "description",
         content:
           "La IA detecta los momentos más significativos de la sesión y crea una película resumen: reproduce cada fragmento con su transcripción y observaciones objetivas.",
       },
-      { property: "og:title", content: "Escenas inteligentes — película resumen | Playnalyze" },
+      { property: "og:title", content: "Escenas inteligentes — película resumen | Xandralyze" },
       {
         property: "og:description",
         content:

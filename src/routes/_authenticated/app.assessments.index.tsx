@@ -34,13 +34,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/app/assessments/")({
   head: () => ({
     meta: [
-      { title: "Evaluaciones escritas con IA | Playnalyze" },
+      { title: "Evaluaciones escritas con IA | Xandralyze" },
       {
         name: "description",
         content:
           "Crea pruebas escritas con rúbrica generada por IA, escanea las respuestas a mano o en PDF y obtén nota, métricas y análisis del grafismo.",
       },
-      { property: "og:title", content: "Evaluaciones escritas con IA | Playnalyze" },
+      { property: "og:title", content: "Evaluaciones escritas con IA | Xandralyze" },
       {
         property: "og:description",
         content: "Corrige exámenes manuscritos y documentos digitalizados con rúbrica, nota e informe.",

@@ -77,13 +77,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/app/capture/$id/")({
   head: () => ({
     meta: [
-      { title: "Sesión de grabación — Capture | Playnalyze" },
+      { title: "Sesión de grabación — Capture | Xandralyze" },
       {
         name: "description",
         content:
           "Participantes, roles, consentimientos y grabación sincronizada de la sesión antes del análisis.",
       },
-      { property: "og:title", content: "Sesión de grabación — Capture | Playnalyze" },
+      { property: "og:title", content: "Sesión de grabación — Capture | Xandralyze" },
       {
         property: "og:description",
         content:

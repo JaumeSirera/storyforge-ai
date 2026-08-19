@@ -74,8 +74,8 @@ export function generateComparisonPdf(data: ComparisonPdfData): jsPDF {
   doc.setFontSize(11);
   doc.text(
     data.executiveSummary
-      ? "Comparativa de sesiones · Resumen ejecutivo · Playnalyze"
-      : "Comparativa de sesiones · Playnalyze",
+      ? "Comparativa de sesiones · Resumen ejecutivo · Xandralyze"
+      : "Comparativa de sesiones · Xandralyze",
     M,
     50 + titleLines.slice(0, 2).length * 20,
   );
@@ -192,7 +192,7 @@ export function generateComparisonPdf(data: ComparisonPdfData): jsPDF {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(150);
-    doc.text("Playnalyze · Comparativa de sesiones: hechos observables con marca de tiempo", M, H - 28);
+    doc.text("Xandralyze · Comparativa de sesiones: hechos observables con marca de tiempo", M, H - 28);
     doc.text(`Página ${p} de ${pages}`, W - M, H - 28, { align: "right" });
   }
 

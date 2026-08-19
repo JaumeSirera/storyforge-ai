@@ -61,13 +61,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/app/assessments/bank")({
   head: () => ({
     meta: [
-      { title: "Banco de preguntas reutilizables | Playnalyze" },
+      { title: "Banco de preguntas reutilizables | Xandralyze" },
       {
         name: "description",
         content:
           "Genera preguntas con IA, guárdalas con etiquetas y versiones, y compón nuevas evaluaciones escritas reutilizando tu banco de preguntas.",
       },
-      { property: "og:title", content: "Banco de preguntas reutilizables | Playnalyze" },
+      { property: "og:title", content: "Banco de preguntas reutilizables | Xandralyze" },
       {
         property: "og:description",
         content: "Preguntas guardadas con historial de versiones para crear evaluaciones en segundos.",

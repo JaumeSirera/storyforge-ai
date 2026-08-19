@@ -30,14 +30,14 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/exam/$token")({
   head: () => ({
     meta: [
-      { title: "Realizar el examen · Playnalyze" },
+      { title: "Realizar el examen · Xandralyze" },
       {
         name: "description",
         content:
           "Accede con tu enlace privado para realizar la prueba escrita asignada y enviar tus respuestas.",
       },
       { name: "robots", content: "noindex,nofollow" },
-      { property: "og:title", content: "Realizar el examen · Playnalyze" },
+      { property: "og:title", content: "Realizar el examen · Xandralyze" },
       { property: "og:description", content: "Prueba escrita por invitación privada." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -69,8 +69,8 @@ function ExamPage() {
   const [started, setStarted] = useState(false);
   const [starting, setStarting] = useState(false);
 
-  const answersKey = `playnalyze.exam.answers.${token}`;
-  const submittedKey = `playnalyze.exam.submitted.${token}`;
+  const answersKey = `xandralyze.exam.answers.${token}`;
+  const submittedKey = `xandralyze.exam.submitted.${token}`;
 
   const q = useQuery({
     queryKey: ["exam", token],

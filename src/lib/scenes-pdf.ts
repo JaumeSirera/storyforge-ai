@@ -83,7 +83,7 @@ export function generateScenesPdf(data: ScenesPdfData): jsPDF {
   doc.text(titleLines.slice(0, 2), M, 54);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
-  doc.text("Película resumen · Playnalyze", M, 54 + titleLines.slice(0, 2).length * 22);
+  doc.text("Película resumen · Xandralyze", M, 54 + titleLines.slice(0, 2).length * 22);
   doc.setFontSize(9);
   const meta = [
     data.areaLabel ? `Área: ${data.areaLabel}` : null,
@@ -155,7 +155,7 @@ export function generateScenesPdf(data: ScenesPdfData): jsPDF {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(150);
-    doc.text("Playnalyze · Película resumen: momentos observables con marca de tiempo", M, H - 28);
+    doc.text("Xandralyze · Película resumen: momentos observables con marca de tiempo", M, H - 28);
     doc.text(`Página ${p} de ${pages}`, W - M, H - 28, { align: "right" });
   }
 

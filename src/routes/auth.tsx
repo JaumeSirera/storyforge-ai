@@ -13,8 +13,8 @@ import { Sparkles } from "lucide-react";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Acceder — Playnalyze" },
-      { name: "description", content: "Inicia sesión o crea una cuenta en Playnalyze." },
+      { title: "Acceder — Xandralyze" },
+      { name: "description", content: "Inicia sesión o crea una cuenta en Xandralyze." },
     ],
   }),
   component: AuthPage,
@@ -52,7 +52,7 @@ function AuthPage() {
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
             <Sparkles className="h-4 w-4" />
           </span>
-          Playnalyze
+          Xandralyze
         </Link>
         <Card className="shadow-glow">
           <CardHeader>

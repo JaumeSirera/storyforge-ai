@@ -80,13 +80,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Playnalyze — Interacción humana impulsada por IA" },
+      { title: "Xandralyze — Interacción humana impulsada por IA" },
       {
         name: "description",
         content:
           "Crea simulaciones interactivas con vídeo, preguntas ramificadas y evaluación por IA. Para selección, formación y evaluación profesional.",
       },
-      { property: "og:title", content: "Playnalyze — Interacción humana impulsada por IA" },
+      { property: "og:title", content: "Xandralyze — Interacción humana impulsada por IA" },
       {
         property: "og:description",
         content:
@@ -94,7 +94,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Playnalyze — Interacción humana impulsada por IA" },
+      { name: "twitter:title", content: "Xandralyze — Interacción humana impulsada por IA" },
       { name: "description", content: "Convierte vídeos en simulaciones gamificadas. Enlaza videos y la IA generará las preguntas, respuestas y puntuará con un informe final los resultados del evento" },
       { property: "og:description", content: "Convierte vídeos en simulaciones gamificadas. Enlaza videos y la IA generará las preguntas, respuestas y puntuará con un informe final los resultados del evento" },
       { name: "twitter:description", content: "Convierte vídeos en simulaciones gamificadas. Enlaza videos y la IA generará las preguntas, respuestas y puntuará con un informe final los resultados del evento" },
@@ -103,6 +103,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",

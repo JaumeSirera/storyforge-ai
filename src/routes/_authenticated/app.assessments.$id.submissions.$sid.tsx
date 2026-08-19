@@ -19,13 +19,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/app/assessments/$id/submissions/$sid")({
   head: () => ({
     meta: [
-      { title: "Informe de evaluación escrita | Playnalyze" },
+      { title: "Informe de evaluación escrita | Xandralyze" },
       {
         name: "description",
         content:
           "Nota, corrección por pregunta, rúbrica, perfil competencial, análisis del grafismo y conclusiones de la entrega evaluada.",
       },
-      { property: "og:title", content: "Informe de evaluación escrita | Playnalyze" },
+      { property: "og:title", content: "Informe de evaluación escrita | Xandralyze" },
       {
         property: "og:description",
         content: "Nota, rúbrica, competencias y análisis del grafismo de la entrega.",

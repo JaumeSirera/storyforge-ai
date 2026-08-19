@@ -403,7 +403,7 @@ function EmailSettingsCard() {
                 <Label htmlFor="from-name">Nombre visible</Label>
                 <Input
                   id="from-name"
-                  placeholder="Playnalyze"
+                  placeholder="Xandralyze"
                   value={fromName}
                   onChange={(e) => setFromName(e.target.value)}
                 />

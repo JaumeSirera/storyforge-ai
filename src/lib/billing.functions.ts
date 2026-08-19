@@ -118,7 +118,7 @@ export const getMyPaymentReceipt = createServerFn({ method: "GET" })
       merchant: {
         name: "VITA Training",
         merchantCode: "356698696",
-        product: "Playnalyze — Simulaciones profesionales",
+        product: "Xandralyze — Simulaciones profesionales",
       },
       vatPct: Number(pricing?.vat_pct ?? 21),
     };
@@ -173,7 +173,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         urlOk: `${data.origin}/app/billing?redsys=ok`,
         urlKo: `${data.origin}/app/billing?redsys=ko`,
         urlNotification: `${data.origin}/api/public/redsys/notification`,
-        productDescription: "Playnalyze — Suscripción mensual",
+        productDescription: "Xandralyze — Suscripción mensual",
         requestTokenization: true,
       });
       const { merchantParameters, signature } = signRequest(params, order, cfg.merchantKey);
@@ -244,7 +244,7 @@ export const payExtraNow = createServerFn({ method: "POST" })
           cfg,
           cardToken: billing.redsys_card_token,
           originalAuthCode: billing.redsys_original_auth_code,
-          productDescription: "Playnalyze — Consumo extra de IA",
+          productDescription: "Xandralyze — Consumo extra de IA",
         });
         await supabaseAdmin
           .from("redsys_payments")
@@ -272,7 +272,7 @@ export const payExtraNow = createServerFn({ method: "POST" })
         urlOk: `${data.origin}/app/billing?redsys=ok`,
         urlKo: `${data.origin}/app/billing?redsys=ko`,
         urlNotification: `${data.origin}/api/public/redsys/notification`,
-        productDescription: "Playnalyze — Consumo extra de IA",
+        productDescription: "Xandralyze — Consumo extra de IA",
         requestTokenization: false,
       });
       const { merchantParameters, signature } = signRequest(params, order, cfg.merchantKey);

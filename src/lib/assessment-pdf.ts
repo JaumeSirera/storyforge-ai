@@ -219,7 +219,7 @@ export function generateAssessmentPdf(data: AssessmentPdfData): jsPDF {
     doc.setFontSize(8);
     doc.setTextColor(140);
     doc.text(
-      "Playnalyze · Informe generado con apoyo de IA. Las hipótesis no son concluyentes y requieren revisión profesional.",
+      "Xandralyze · Informe generado con apoyo de IA. Las hipótesis no son concluyentes y requieren revisión profesional.",
       M,
       H - 28,
     );
