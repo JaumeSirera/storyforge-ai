@@ -317,8 +317,8 @@ export const generateReport = createServerFn({ method: "POST" })
     let report: z.infer<typeof ReportSchema>;
     let usageIn = 0;
     let usageOut = 0;
-    let aiProvider: string = "none";
-    let nativeId: string = "none";
+    let aiProvider: "openai" | "gemini" | "lovable" = "lovable";
+    let nativeId = "none";
     try {
       const attempt = await runWithTextModelFallback(
         userKeys,
