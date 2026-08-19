@@ -10,6 +10,7 @@ import {
   createSubscriptionCheckout,
   payExtraNow,
   cancelSubscription,
+  setDonationToCredits,
 } from "@/lib/billing.functions";
 import { downloadReceiptPdf } from "@/lib/receipt-pdf";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,9 +18,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { CreditCard, Sparkles, Download, Receipt, Activity, Heart, Wallet, Info } from "lucide-react";
+import { CreditCard, Sparkles, Download, Receipt, Activity, Heart, Wallet, Info, Coins } from "lucide-react";
 import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/_authenticated/app/billing")({
   head: () => ({
