@@ -76,10 +76,22 @@ export const Route = createFileRoute("/api/public/redsys/notification")({
         if (!isPaid) return new Response("OK");
 
         // 2. Update user_billing based on the payment kind
-        if (payment.kind === "subscription") {
+        if (payment.kind === "subscription" || payment.kind === "renewal") {
           const now = new Date();
           const nextCharge = new Date(now);
           nextCharge.setMonth(nextCharge.getMonth() + 1);
+
+          const { data: prev } = await supabaseAdmin
+            .from("user_billing")
+            .select("donation_to_credits, credit_balance_cents")
+            .eq("user_id", payment.user_id)
+            .maybeSingle();
+
+          // If the user opted in, the donation becomes AI consumption credit.
+          const creditBalance = prev?.donation_to_credits
+            ? Number(prev.credit_balance_cents ?? 0) + Number(payment.amount_cents ?? 0)
+            : Number(prev?.credit_balance_cents ?? 0);
+
           await supabaseAdmin.from("user_billing").upsert(
             {
               user_id: payment.user_id,
@@ -88,6 +100,7 @@ export const Route = createFileRoute("/api/public/redsys/notification")({
               current_period_end: nextCharge.toISOString(),
               next_charge_at: nextCharge.toISOString(),
               included_used_cents: 0,
+              credit_balance_cents: creditBalance,
               redsys_card_token: cardToken,
               redsys_card_brand: cardBrand,
               redsys_card_expiry: cardExpiry,
@@ -96,6 +109,7 @@ export const Route = createFileRoute("/api/public/redsys/notification")({
             },
             { onConflict: "user_id" },
           );
+
         } else if (payment.kind === "extra") {
           await supabaseAdmin
             .from("user_billing")
