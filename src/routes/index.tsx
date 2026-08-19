@@ -64,11 +64,15 @@ function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-        <Link to="/" className="flex items-center gap-2 font-bold text-lg">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
-            <Sparkles className="h-4 w-4" />
-          </span>
-          Xandralyze
+        <Link to="/" className="flex items-center gap-2 font-bold text-lg" aria-label="Xandralyze — inicio">
+          <img
+            src={logoAsset.url}
+            alt="Logotipo de Xandralyze"
+            className="h-9 w-auto"
+            width={36}
+            height={36}
+          />
+          <span>Xandralyze</span>
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
           <Link to="/explore" className="hover:text-foreground">Galería</Link>
