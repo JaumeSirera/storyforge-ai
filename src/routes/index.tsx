@@ -416,13 +416,21 @@ function CTA() {
           Crea tu primera simulación profesional hoy
         </h2>
         <p className="mt-3 opacity-90">
-          Empieza gratis. Sin tarjeta. Comparte tu juego con candidatos o empleados en minutos.
+          Empieza gratis. Sin tarjeta. Sin límites de uso. Paga solo lo que consumes en IA con tu
+          propio proveedor y apoya la plataforma con una donación si te resulta útil.
         </p>
-        <Link to="/auth" className="mt-8 inline-block">
-          <Button size="lg" variant="secondary" className="gap-2">
-            Empezar ahora <ArrowRight className="h-4 w-4" />
-          </Button>
-        </Link>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <Link to="/auth" className="inline-block">
+            <Button size="lg" variant="secondary" className="gap-2">
+              Empezar ahora <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
+          <Link to="/pricing" className="inline-block">
+            <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
+              Ver precios y donación
+            </Button>
+          </Link>
+        </div>
       </div>
     </section>
   );
