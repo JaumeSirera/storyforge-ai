@@ -28,7 +28,7 @@ export function createGeminiProvider(apiKey: string) {
 }
 
 import type { AiModelId } from "./ai-models";
-import { resolveAiModel } from "./ai-models";
+import { resolveAiModel, GEMINI_FALLBACK_CHAIN, OPENAI_FALLBACK_CHAIN } from "./ai-models";
 import type { UserApiKeys } from "./user-keys.functions";
 
 /**
@@ -87,3 +87,111 @@ function missingKeysError() {
     "Configura tu clave de OpenAI o Google Gemini en Ajustes para generar contenido con IA.",
   );
 }
+
+// ---------------------------------------------------------------------------
+// Fallback automático de modelos
+// ---------------------------------------------------------------------------
+
+export type ResolvedTextModel = {
+  model: ReturnType<ReturnType<typeof createOpenAIProvider>>;
+  provider: "openai" | "gemini" | "lovable";
+  nativeId: string;
+};
+
+/**
+ * Construye la lista ordenada de modelos a intentar: primero el pedido,
+ * después alternativas del mismo proveedor, luego del otro proveedor con clave,
+ * y por último el gateway de la plataforma. Permite que un modelo nuevo que
+ * falle (404, rate limit, error del proveedor) no rompa el flujo del juego.
+ */
+export function resolveUserTextModelChain(
+  userKeys: UserApiKeys,
+  requestedId?: AiModelId,
+): ResolvedTextModel[] {
+  const requested = requestedId ? resolveAiModel(requestedId) : undefined;
+  const canOpenAI = !!userKeys.openaiKey;
+  const canGemini = !!userKeys.geminiKey;
+  const canLovable = !!userKeys.lovableKey;
+  if (!canOpenAI && !canGemini && !canLovable) throw missingKeysError();
+
+  const openaiProvider = canOpenAI ? createOpenAIProvider(userKeys.openaiKey!) : null;
+  const geminiProvider = canGemini ? createGeminiProvider(userKeys.geminiKey!) : null;
+  const lovableProvider = canLovable ? createLovableAiGatewayProvider(userKeys.lovableKey!) : null;
+
+  const chain: ResolvedTextModel[] = [];
+  const seen = new Set<string>();
+
+  const push = (provider: ResolvedTextModel["provider"], nativeId: string) => {
+    const key = `${provider}:${nativeId}`;
+    if (seen.has(key)) return;
+    const p =
+      provider === "openai" ? openaiProvider : provider === "gemini" ? geminiProvider : lovableProvider;
+    if (!p) return;
+    seen.add(key);
+    chain.push({ provider, nativeId, model: p(nativeId) });
+  };
+
+  const openaiChain = OPENAI_FALLBACK_CHAIN;
+  const geminiChain = GEMINI_FALLBACK_CHAIN;
+
+  // 1. Modelo solicitado (si hay clave del proveedor).
+  if (requested) push(requested.provider, requested.nativeId);
+
+  // 2. Alternativas del proveedor preferido.
+  const preferred: Array<"openai" | "gemini"> =
+    requested?.provider === "openai" || userKeys.textProvider === "openai"
+      ? ["openai", "gemini"]
+      : ["gemini", "openai"];
+
+  for (const prov of preferred) {
+    for (const id of prov === "openai" ? openaiChain : geminiChain) {
+      push(prov, resolveAiModel(id).nativeId);
+    }
+  }
+
+  // 3. Gateway de la plataforma como último recurso.
+  if (requested) push("lovable", requested.id);
+  push("lovable", "google/gemini-3.7-flash");
+  push("lovable", "google/gemini-2.5-flash");
+
+  return chain;
+}
+
+/**
+ * Ejecuta `run` con el primer modelo disponible y, si falla, reintenta con los
+ * siguientes de la cadena. Devuelve también qué modelo terminó funcionando.
+ */
+export async function runWithTextModelFallback<T>(
+  userKeys: UserApiKeys,
+  requestedId: AiModelId | undefined,
+  run: (resolved: ResolvedTextModel) => Promise<T>,
+  options?: { maxAttempts?: number; label?: string },
+): Promise<{ value: T; used: ResolvedTextModel; attempts: number; fellBack: boolean }> {
+  const chain = resolveUserTextModelChain(userKeys, requestedId);
+  const maxAttempts = Math.max(1, Math.min(options?.maxAttempts ?? 3, chain.length));
+  const label = options?.label ?? "ai";
+  let lastError: unknown;
+
+  for (let i = 0; i < maxAttempts; i++) {
+    const candidate = chain[i]!;
+    try {
+      const value = await run(candidate);
+      if (i > 0) {
+        console.warn(
+          `[${label}] fallback aplicado: se usó ${candidate.provider}/${candidate.nativeId} tras ${i} intento(s) fallido(s)`,
+        );
+      }
+      return { value, used: candidate, attempts: i + 1, fellBack: i > 0 };
+    } catch (err: any) {
+      lastError = err;
+      console.error(
+        `[${label}] modelo ${candidate.provider}/${candidate.nativeId} falló: ${err?.message ?? err}`,
+      );
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("No se pudo generar con ningún modelo de IA disponible.");
+}
+

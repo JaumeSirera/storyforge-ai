@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { generateText, Output } from "ai";
 import { z } from "zod";
-import { resolveUserTextModel } from "./ai-gateway.server";
+import { runWithTextModelFallback } from "./ai-gateway.server";
 import { loadUserKeys } from "./user-keys.functions";
 
 // Start a new session for a simulation.
@@ -297,7 +297,6 @@ export const generateReport = createServerFn({ method: "POST" })
     if (sess.report) return sess.report;
 
     const userKeys = await loadUserKeys(context.supabase, context.userId);
-    const { model: aiModel, provider: aiProvider, nativeId } = resolveUserTextModel(userKeys);
 
     const sim = sess.simulation as {
       title: string;
@@ -318,13 +317,19 @@ export const generateReport = createServerFn({ method: "POST" })
     let report: z.infer<typeof ReportSchema>;
     let usageIn = 0;
     let usageOut = 0;
+    let aiProvider: "openai" | "gemini" | "lovable" = "lovable";
+    let nativeId = "none";
     try {
-      const result = await generateText({
-        model: aiModel,
-        experimental_output: Output.object({ schema: ReportSchema }),
-        system:
-          "Eres un evaluador profesional. Generas un informe final breve, claro y útil sobre el desempeño del participante. Idioma: español. Devuelve SIEMPRE el JSON con todos los campos requeridos.",
-        prompt: `Simulación: ${sim.title}
+      const attempt = await runWithTextModelFallback(
+        userKeys,
+        undefined,
+        async ({ model }) => {
+          const result = await generateText({
+            model,
+            experimental_output: Output.object({ schema: ReportSchema }),
+            system:
+              "Eres un evaluador profesional. Generas un informe final breve, claro y útil sobre el desempeño del participante. Idioma: español. Devuelve SIEMPRE el JSON con todos los campos requeridos.",
+            prompt: `Simulación: ${sim.title}
 Objetivo: ${sim.objective}
 Puntuación total: ${score}
 Competencias y deltas: ${JSON.stringify(comp)}
@@ -334,12 +339,28 @@ Transcripción de decisiones del participante:
 ${transcript}
 
 Genera el veredicto (apto / apto_con_reservas / no_apto), un resumen ejecutivo (2-4 frases), fortalezas, áreas de mejora y logros desbloqueados.`,
-      });
-      report = result.experimental_output;
-      usageIn = (result.usage as { inputTokens?: number; promptTokens?: number } | undefined)?.inputTokens ?? (result.usage as { promptTokens?: number } | undefined)?.promptTokens ?? 0;
-      usageOut = (result.usage as { outputTokens?: number; completionTokens?: number } | undefined)?.outputTokens ?? (result.usage as { completionTokens?: number } | undefined)?.completionTokens ?? 0;
+          });
+          return {
+            report: result.experimental_output,
+            usageIn:
+              (result.usage as { inputTokens?: number; promptTokens?: number } | undefined)?.inputTokens ??
+              (result.usage as { promptTokens?: number } | undefined)?.promptTokens ??
+              0,
+            usageOut:
+              (result.usage as { outputTokens?: number; completionTokens?: number } | undefined)?.outputTokens ??
+              (result.usage as { completionTokens?: number } | undefined)?.completionTokens ??
+              0,
+          };
+        },
+        { label: "report", maxAttempts: 3 },
+      );
+      report = attempt.value.report;
+      usageIn = attempt.value.usageIn;
+      usageOut = attempt.value.usageOut;
+      aiProvider = attempt.used.provider;
+      nativeId = attempt.used.nativeId;
     } catch (e) {
-      console.error("generateReport: AI schema failed, using fallback", e);
+      console.error("generateReport: todos los modelos fallaron, usando informe local", e);
       report = buildFallbackReport(score, (sess.answers as any[]).length, !!sess.completed_at);
     }
 

@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { generateText, Output } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { resolveUserTextModel } from "./ai-gateway.server";
+import { runWithTextModelFallback } from "./ai-gateway.server";
 import { loadUserKeys } from "./user-keys.functions";
 import { formatSec, type SessionMetrics } from "./analyze-metrics";
 import type { SessionScene } from "./scenes.functions";
@@ -186,9 +186,11 @@ ${scenes}${notes ? `\nAnotaciones del profesional:\n${notes}` : ""}`;
     };
 
     const userKeys = await loadUserKeys(context.supabase, context.userId);
-    const { model, provider, nativeId } = resolveUserTextModel(userKeys);
-
-    const result = await generateText({
+    const attempt = await runWithTextModelFallback(
+      userKeys,
+      undefined,
+      async ({ model }) =>
+        await generateText({
       model,
       experimental_output: Output.object({ schema: ScenesComparisonSchema }),
       system: `Eres un copiloto experto que compara dos sesiones grabadas para un profesional (selección, formación, terapia, mediación).
@@ -204,7 +206,12 @@ ${describe(b, "B")}
 ${data.focus ? `\nFoco solicitado por el profesional: ${data.focus}` : ""}
 
 Compara ambas sesiones: patrones de comportamiento similares con evidencia temporal en cada una, diferencias observables y recomendaciones.`,
-    });
+        }),
+      { label: "compare-scenes", maxAttempts: 3 },
+    );
+    const result = attempt.value;
+    const provider = attempt.used.provider;
+    const nativeId = attempt.used.nativeId;
 
     const out = result.experimental_output;
     const clamp = (scenes: SessionScene[], span: number) => (v: number) =>

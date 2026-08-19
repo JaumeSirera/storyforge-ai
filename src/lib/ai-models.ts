@@ -147,3 +147,19 @@ export const AI_MODEL_IDS = AI_MODELS.map((m) => m.id) as [AiModelId, ...AiModel
 export function resolveAiModel(id: AiModelId) {
   return AI_MODELS.find((m) => m.id === id) ?? AI_MODELS[0];
 }
+
+/**
+ * Orden de preferencia para el fallback automático: si un modelo nuevo falla,
+ * se intenta el siguiente (misma familia, luego generación estable).
+ */
+export const GEMINI_FALLBACK_CHAIN: AiModelId[] = [
+  "google/gemini-3.7-flash",
+  "google/gemini-3.5-flash",
+  "google/gemini-2.5-flash",
+];
+
+export const OPENAI_FALLBACK_CHAIN: AiModelId[] = [
+  "openai/gpt-5.4-mini",
+  "openai/gpt-5-mini",
+  "openai/gpt-5",
+];

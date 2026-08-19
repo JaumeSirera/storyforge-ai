@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { resolveUserTextModel } from "./ai-gateway.server";
+import { runWithTextModelFallback } from "./ai-gateway.server";
 import {
   ANSWER_VERDICTS,
   FEEDBACK_TONE_INSTRUCTIONS,
@@ -180,7 +180,6 @@ export async function generateBlueprint(
   context: any,
 ): Promise<AssessmentBlueprint> {
   const userKeys = await loadUserKeys(context.supabase, context.userId);
-  const { model, provider, nativeId } = resolveUserTextModel(userKeys);
   const types = input.questionTypes && input.questionTypes.length > 0 ? input.questionTypes : ["narrative"];
   const system =
     "Eres un experto en evaluación educativa, pruebas psicotécnicas y procesos de selección. Diseñas pruebas escritas (desarrollo, test, verdadero/falso y ejercicios numéricos) con rúbricas analíticas defendibles. Cuando la pregunta es cerrada, la respuesta correcta es inequívoca y verificable. Respondes solo con un objeto JSON válido, en español, sin markdown.";
@@ -217,7 +216,15 @@ Cada pregunta es un objeto {id, prompt, type, maxPoints, keyElements, options, c
 Para psicotécnicos usa series numéricas, analogías, razonamiento lógico-abstracto o cálculo mental, siempre con una única alternativa correcta.
 La suma de maxPoints debe ser ${input.maxScore}. La suma de weightPct debe ser 100. Usa 4 niveles por criterio (Insuficiente 40, Suficiente 60, Notable 80, Excelente 100).`;
 
-  const result = await generateText({ model, system, prompt });
+  const attempt = await runWithTextModelFallback(
+    userKeys,
+    undefined,
+    async ({ model }) => await generateText({ model, system, prompt }),
+    { label: "assessment", maxAttempts: 3 },
+  );
+  const result = attempt.value;
+  const provider = attempt.used.provider;
+  const nativeId = attempt.used.nativeId;
   const raw = extractJson(result.text) as any;
   const allowedTypes = ["narrative", "single_choice", "multiple_choice", "true_false", "numeric"];
   const blueprint = BlueprintSchema.parse({
@@ -687,8 +694,7 @@ export async function gradeSubmissionHandler(data: { id: string }, context: any)
 
   try {
     const userKeys = await loadUserKeys(context.supabase, context.userId);
-    const { model, provider, nativeId } = resolveUserTextModel(userKeys);
-    const hwWeight = assessment.handwritingWeightPct;
+      const hwWeight = assessment.handwritingWeightPct;
     const contentWeight = 100 - hwWeight;
 
     const system = `Eres un corrector experto. Trabajas en dos capas independientes:
@@ -766,19 +772,28 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
     const toneRule = `\nESTILO DEL FEEDBACK: ${FEEDBACK_TONE_INSTRUCTIONS[assessment.feedbackTone]}\nAplica ese tono en explanation, feedback y nextStep de TODAS las preguntas, y también en summary, recommendations y conclusion. No cambies por ello la puntuación ni los hechos.`;
 
     const fileParts = pages.length > 0 ? await buildFileParts(pages) : [];
-    const result = await generateText({
-      model,
-      system,
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: instructions + objectiveRule + toneRule + annotationBrief },
-            ...fileParts,
+    const gradeAttempt = await runWithTextModelFallback(
+      userKeys,
+      undefined,
+      async ({ model }) =>
+        await generateText({
+          model,
+          system,
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: instructions + objectiveRule + toneRule + annotationBrief },
+                ...fileParts,
+              ],
+            } as any,
           ],
-        } as any,
-      ],
-    });
+        }),
+      { label: "assessment-grade", maxAttempts: 3 },
+    );
+    const result = gradeAttempt.value;
+    const provider = gradeAttempt.used.provider;
+    const nativeId = gradeAttempt.used.nativeId;
 
     const raw = extractJson(result.text) as any;
     const handwriting = HandwritingSchema.parse({
@@ -961,7 +976,6 @@ export async function validateAssessmentSourceHandler(data: { id: string }, cont
   if (!sourceText || sourceText.trim().length < 30) return empty;
 
   const userKeys = await loadUserKeys(context.supabase, context.userId);
-  const { model, provider, nativeId } = resolveUserTextModel(userKeys);
 
   const list = questions
     .map((q: any, i: number) => {
@@ -979,7 +993,15 @@ export async function validateAssessmentSourceHandler(data: { id: string }, cont
     "Eres un auditor de calidad de pruebas escritas. Compruebas si cada pregunta y su respuesta correcta se pueden responder y verificar ÚNICAMENTE con el TEXTO BASE aportado. No usas conocimiento externo. Respondes solo con un objeto JSON válido, en español, sin markdown.";
   const prompt = `TEXTO BASE:\n"""${sourceText.slice(0, 20000)}"""\n\nPREGUNTAS:\n${list}\n\nDevuelve {"items":[{"index":1,"status":"supported|partial|unsupported","evidence":"fragmento literal del TEXTO BASE que la respalda (vacío si no existe)","issue":"qué dato falta o se ha inventado (vacío si está soportada)"}]}.\nCriterio: supported = pregunta y respuesta correcta se verifican con el texto; partial = el tema aparece pero falta algún dato o la respuesta no es inequívoca; unsupported = requiere información que no está en el texto.\nIncluye una entrada por cada pregunta, en el mismo orden.`;
 
-  const result = await generateText({ model, system, prompt });
+  const attempt = await runWithTextModelFallback(
+    userKeys,
+    undefined,
+    async ({ model }) => await generateText({ model, system, prompt }),
+    { label: "assessment", maxAttempts: 3 },
+  );
+  const result = attempt.value;
+  const provider = attempt.used.provider;
+  const nativeId = attempt.used.nativeId;
   const raw = extractJson(result.text) as any;
   const rawItems: any[] = Array.isArray(raw?.items) ? raw.items : Array.isArray(raw?.preguntas) ? raw.preguntas : [];
 
@@ -1081,7 +1103,6 @@ export async function reocrSubmissionHandler(
   }
 
   const userKeys = await loadUserKeys(context.supabase, context.userId);
-  const { model, provider, nativeId } = resolveUserTextModel(userKeys);
 
   const system =
     "Eres un motor de OCR experto en manuscritos y documentos escaneados de baja calidad. Transcribes de forma literal, sin corregir ni completar lo que no puedas leer. Marcas lo ilegible como [ilegible]. Respondes solo con un objeto JSON válido, en español, sin markdown.";
@@ -1094,11 +1115,20 @@ Devuelve exactamente:
 Reglas: divide la transcripción en segmentos de 1 frase o línea; pageIndex empieza en 0; confidence es tu confianza real de lectura de ese segmento (baja si hay trazos dudosos); issues vacío si la lectura es clara.`;
 
   const fileParts = await buildFileParts(pages);
-  const result = await generateText({
-    model,
-    system,
-    messages: [{ role: "user", content: [{ type: "text", text: prompt }, ...fileParts] }] as any,
-  });
+  const ocrAttempt = await runWithTextModelFallback(
+    userKeys,
+    undefined,
+    async ({ model }) =>
+      await generateText({
+        model,
+        system,
+        messages: [{ role: "user", content: [{ type: "text", text: prompt }, ...fileParts] }] as any,
+      }),
+    { label: "assessment-ocr", maxAttempts: 3 },
+  );
+  const result = ocrAttempt.value;
+  const provider = ocrAttempt.used.provider;
+  const nativeId = ocrAttempt.used.nativeId;
 
   const raw = extractJson(result.text) as any;
   const transcription = String(raw?.transcription ?? "").trim();
