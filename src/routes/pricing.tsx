@@ -195,7 +195,9 @@ function DonationSection() {
             className="overflow-hidden border-border/60 bg-card/80 shadow-soft transition hover:shadow-glow"
           >
             <CardHeader className="text-center">
-              <div className="text-4xl" aria-hidden>{tier.emoji}</div>
+              <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary" aria-hidden>
+                <tier.Icon className="h-6 w-6" />
+              </div>
               <CardTitle className="mt-2 text-2xl font-bold">{tier.amount}€</CardTitle>
               <CardDescription>{tier.label}</CardDescription>
             </CardHeader>
