@@ -43,13 +43,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/app/capture/$id/analyze")({
   head: () => ({
     meta: [
-      { title: "Analizar — métricas de interacción | Playnalyze" },
+      { title: "Analizar — métricas de interacción | Xandralyze" },
       {
         name: "description",
         content:
           "Transcripción por hablante y métricas objetivas: turnos de palabra, tiempo hablando, interrupciones, silencios y red de interacción.",
       },
-      { property: "og:title", content: "Analizar — métricas de interacción | Playnalyze" },
+      { property: "og:title", content: "Analizar — métricas de interacción | Xandralyze" },
       {
         property: "og:description",
         content: "Evidencias observables de la sesión, trazables al minuto exacto de la grabación.",

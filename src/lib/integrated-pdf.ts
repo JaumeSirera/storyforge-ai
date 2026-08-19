@@ -261,7 +261,7 @@ export function generateIntegratedPdf(data: IntegratedPdfData): jsPDF {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(150);
-    doc.text("Playnalyze · Informe integrado (decisiones + comportamiento observable)", M, H - 28);
+    doc.text("Xandralyze · Informe integrado (decisiones + comportamiento observable)", M, H - 28);
     doc.text(`Página ${p} de ${pages}`, W - M, H - 28, { align: "right" });
   }
 

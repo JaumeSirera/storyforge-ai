@@ -57,7 +57,7 @@ export function AnalysisExportCard({ source }: { source: ExportSource }) {
           </Button>
           <p className="mt-2 text-xs text-muted-foreground">
             Incluye métricas, red de interacción, transcripción, anotaciones de escena y la línea de
-            tiempo por minuto (esquema <code>playnalyze.analysis.v1</code>).
+            tiempo por minuto (esquema <code>xandralyze.analysis.v1</code>).
           </p>
         </div>
 

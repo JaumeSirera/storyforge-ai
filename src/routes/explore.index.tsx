@@ -10,13 +10,13 @@ import { Play, Sparkles, Home, Gamepad2 } from "lucide-react";
 export const Route = createFileRoute("/explore/")({
   head: () => ({
     meta: [
-      { title: "Galería de juegos gamificados — Playnalyze" },
+      { title: "Galería de juegos gamificados — Xandralyze" },
       {
         name: "description",
         content:
           "Descubre vídeos convertidos en juegos interactivos: preguntas, decisiones, puntuación y informe de competencias. Creados con IA en minutos.",
       },
-      { property: "og:title", content: "Galería de juegos gamificados — Playnalyze" },
+      { property: "og:title", content: "Galería de juegos gamificados — Xandralyze" },
       {
         property: "og:description",
         content: "Juega vídeos interactivos profesionales generados con IA.",
@@ -35,7 +35,7 @@ function ExploreIndex() {
       <header className="border-b border-border bg-card/50">
         <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 font-semibold">
-            <Sparkles className="h-5 w-5 text-primary" /> Playnalyze
+            <Sparkles className="h-5 w-5 text-primary" /> Xandralyze
           </Link>
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost" size="sm">

@@ -31,13 +31,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/app/capture/$id/compare")({
   head: () => ({
     meta: [
-      { title: "Comparar escenas entre sesiones | Playnalyze" },
+      { title: "Comparar escenas entre sesiones | Xandralyze" },
       {
         name: "description",
         content:
           "Compara las escenas de dos sesiones grabadas y descubre patrones de comportamiento similares con evidencias temporales en cada sesión.",
       },
-      { property: "og:title", content: "Comparar escenas entre sesiones | Playnalyze" },
+      { property: "og:title", content: "Comparar escenas entre sesiones | Xandralyze" },
       {
         property: "og:description",
         content:

@@ -12,7 +12,7 @@ export const Route = createFileRoute("/reset-password")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Restablecer contraseña — Playnalyze" },
+      { title: "Restablecer contraseña — Xandralyze" },
       { name: "description", content: "Elige una nueva contraseña para tu cuenta." },
     ],
   }),
@@ -43,7 +43,7 @@ function ResetPasswordPage() {
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
             <Sparkles className="h-4 w-4" />
           </span>
-          Playnalyze
+          Xandralyze
         </Link>
         <Card className="shadow-glow">
           <CardHeader>

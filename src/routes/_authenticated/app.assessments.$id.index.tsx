@@ -59,13 +59,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/app/assessments/$id/")({
   head: () => ({
     meta: [
-      { title: "Prueba escrita y entregas | Playnalyze" },
+      { title: "Prueba escrita y entregas | Xandralyze" },
       {
         name: "description",
         content:
           "Revisa enunciados y rúbrica, sube entregas escaneadas o digitales y corrígelas con IA para obtener nota, análisis y conclusiones.",
       },
-      { property: "og:title", content: "Prueba escrita y entregas | Playnalyze" },
+      { property: "og:title", content: "Prueba escrita y entregas | Xandralyze" },
       {
         property: "og:description",
         content: "Enunciados, rúbrica y corrección con IA de entregas manuscritas o digitales.",

@@ -224,7 +224,7 @@ export function generateReportPdf(data: ReportPdfData): jsPDF {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(150);
-    doc.text("Informe generado automáticamente por Playnalyze", M, H - 28);
+    doc.text("Informe generado automáticamente por Xandralyze", M, H - 28);
     doc.text(`Página ${p} de ${pages}`, W - M, H - 28, { align: "right" });
   }
 

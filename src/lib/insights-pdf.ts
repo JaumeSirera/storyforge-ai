@@ -65,7 +65,7 @@ export function generateInsightsPdf(data: InsightsPdfData): jsPDF {
   doc.text(titleLines.slice(0, 2), M, 54);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
-  doc.text("Informe Insights · Playnalyze", M, 54 + titleLines.slice(0, 2).length * 22);
+  doc.text("Informe Insights · Xandralyze", M, 54 + titleLines.slice(0, 2).length * 22);
   doc.setFontSize(9);
   const roleLabel = data.insights.role ? ROLE_GUIDES[data.insights.role]?.label : null;
   const meta = [
@@ -159,7 +159,7 @@ export function generateInsightsPdf(data: InsightsPdfData): jsPDF {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(150);
-    doc.text("Playnalyze · Insights: hechos observables e hipótesis trazables", M, H - 28);
+    doc.text("Xandralyze · Insights: hechos observables e hipótesis trazables", M, H - 28);
     doc.text(`Página ${p} de ${pages}`, W - M, H - 28, { align: "right" });
   }
 

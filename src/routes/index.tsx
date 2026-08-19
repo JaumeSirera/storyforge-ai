@@ -22,13 +22,13 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Playnalyze — Simulaciones con IA y análisis de comportamiento" },
+      { title: "Xandralyze — Simulaciones con IA y análisis de comportamiento" },
       {
         name: "description",
         content:
           "Crea simulaciones en vídeo con IA, graba al candidato (cámara, pantalla y multicámara) y obtén un informe integrado de decisiones y comportamiento.",
       },
-      { property: "og:title", content: "Playnalyze — Simulaciones con IA y análisis de comportamiento" },
+      { property: "og:title", content: "Xandralyze — Simulaciones con IA y análisis de comportamiento" },
       {
         property: "og:description",
         content:
@@ -68,7 +68,7 @@ function Header() {
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
             <Sparkles className="h-4 w-4" />
           </span>
-          Playnalyze
+          Xandralyze
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
           <Link to="/explore" className="hover:text-foreground">Galería</Link>
@@ -111,7 +111,7 @@ function Hero() {
           </span>
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-balance text-lg text-muted-foreground">
-          La IA crea la simulación en vídeo con preguntas ramificadas. Playnalyze graba al
+          La IA crea la simulación en vídeo con preguntas ramificadas. Xandralyze graba al
           participante (cámara, pantalla y multicámara), analiza su comportamiento y entrega un
           informe integrado: qué decidió y cómo lo hizo.
         </p>
@@ -197,7 +197,7 @@ function Modules() {
       <div className="mx-auto max-w-7xl px-6 py-24">
         <div className="max-w-2xl">
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-            Qué hace exactamente Playnalyze
+            Qué hace exactamente Xandralyze
           </h2>
           <p className="mt-3 text-muted-foreground">
             Seis funciones encadenadas: crear, jugar, grabar, analizar, concluir y cumplir.
@@ -420,7 +420,7 @@ function CTA() {
 function Footer() {
   return (
     <footer className="border-t border-border/60 py-10 text-center text-sm text-muted-foreground">
-      © {new Date().getFullYear()} Playnalyze. Interacción humana impulsada por IA.
+      © {new Date().getFullYear()} Xandralyze. Interacción humana impulsada por IA.
     </footer>
   );
 }

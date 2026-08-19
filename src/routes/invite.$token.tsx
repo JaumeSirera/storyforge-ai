@@ -14,7 +14,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/invite/$token")({
   head: () => ({
     meta: [
-      { title: "Invitación privada · Playnalyze" },
+      { title: "Invitación privada · Xandralyze" },
       { name: "description", content: "Accede a una simulación gamificada por invitación privada." },
       { name: "robots", content: "noindex,nofollow" },
     ],

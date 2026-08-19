@@ -52,13 +52,13 @@ import {
 export const Route = createFileRoute("/_authenticated/app/capture/$id/insights")({
   head: () => ({
     meta: [
-      { title: "Conclusiones — informe de interacción | Playnalyze" },
+      { title: "Conclusiones — informe de interacción | Xandralyze" },
       {
         name: "description",
         content:
           "Informe profesional con hechos observables, hipótesis trazables y recomendaciones a partir de las métricas de la sesión.",
       },
-      { property: "og:title", content: "Conclusiones — informe de interacción | Playnalyze" },
+      { property: "og:title", content: "Conclusiones — informe de interacción | Xandralyze" },
       {
         property: "og:description",
         content:
