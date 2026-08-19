@@ -28,7 +28,7 @@ export function createGeminiProvider(apiKey: string) {
 }
 
 import type { AiModelId } from "./ai-models";
-import { resolveAiModel } from "./ai-models";
+import { resolveAiModel, GEMINI_FALLBACK_CHAIN, OPENAI_FALLBACK_CHAIN } from "./ai-models";
 import type { UserApiKeys } from "./user-keys.functions";
 
 /**
