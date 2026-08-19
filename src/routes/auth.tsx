@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
-import { Sparkles } from "lucide-react";
+import logoAsset from "@/assets/logo-xandralyze.png.asset.json";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -48,10 +48,14 @@ function AuthPage() {
   return (
     <div className="min-h-screen bg-hero grid place-items-center px-4 py-12">
       <div className="w-full max-w-md">
-        <Link to="/" className="mb-8 flex items-center justify-center gap-2 font-bold text-lg">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
-            <Sparkles className="h-4 w-4" />
-          </span>
+        <Link to="/" className="mb-8 flex items-center justify-center gap-2 font-bold text-lg" aria-label="Xandralyze — inicio">
+          <img
+            src={logoAsset.url}
+            alt="Logotipo de Xandralyze"
+            className="h-8 w-auto"
+            width={32}
+            height={32}
+          />
           Xandralyze
         </Link>
         <Card className="shadow-glow">

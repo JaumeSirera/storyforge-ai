@@ -4,8 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Sparkles, LayoutDashboard, Plus, LogOut, Library, Settings, Shield, CreditCard, Menu, X , Video, FileText} from "lucide-react";
+import { LayoutDashboard, Plus, LogOut, Library, Settings, Shield, CreditCard, Menu, X , Video, FileText} from "lucide-react";
 import { getMyAdminStatus } from "@/lib/admin.functions";
+import logoAsset from "@/assets/logo-xandralyze.png.asset.json";
 
 
 export const Route = createFileRoute("/_authenticated")({
@@ -37,10 +38,14 @@ function AppLayout() {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 gap-2">
-          <Link to="/app/dashboard" className="flex items-center gap-2 font-bold min-w-0">
-            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
-              <Sparkles className="h-3.5 w-3.5" />
-            </span>
+          <Link to="/app/dashboard" className="flex items-center gap-2 font-bold min-w-0" aria-label="Xandralyze — inicio">
+            <img
+              src={logoAsset.url}
+              alt="Logotipo de Xandralyze"
+              className="h-7 w-auto"
+              width={28}
+              height={28}
+            />
             <span className="truncate">Xandralyze</span>
           </Link>
           <nav className="hidden md:flex items-center gap-1 text-sm">
