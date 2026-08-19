@@ -1,6 +1,6 @@
 import { streamText } from "ai";
 import { formatSec, type InteractionNetwork, type SessionMetrics } from "./analyze-metrics";
-import { resolveUserTextModel } from "./ai-gateway.server";
+import { runWithTextModelFallback } from "./ai-gateway.server";
 import { InsightsSchema, ROLE_GUIDES, type ReportRole, type SessionInsights } from "./insights-shared";
 import { loadUserKeys } from "./user-keys.functions";
 
@@ -134,13 +134,24 @@ export async function generateSessionInsightsHandler(
   };
 
   const userKeys = await loadUserKeys(context.supabase, context.userId);
-  const { model, provider, nativeId } = resolveUserTextModel(userKeys);
   const guide = ROLE_GUIDES[data.role];
   const system = `Eres un copiloto experto en análisis de interacción humana. Escribes para un ${guide.audience}. ${guide.language}\nDescribe solo hechos observables y presenta las interpretaciones como hipótesis. No hagas diagnósticos ni inferencias sensibles. Responde en español con un único objeto JSON válido, sin markdown.`;
   const prompt = `Sesión: ${sessionRes.data.title}\nModo: ${sessionRes.data.mode} · Área: ${sessionRes.data.area_key ?? "general"}\nParticipantes: ${participants.map((participant: any) => `${participant.name} (${participant.role})`).join(", ") || "sin identificar"}\n${data.focus ? `Foco: ${data.focus}\n` : ""}Métricas:\n${JSON.stringify(metricsBrief)}\n\nTranscripción:\n${transcript}\n\nDevuelve exactamente estas claves JSON en inglés: headline (string), summary (string), observations (array de {fact,evidence}), hypotheses (array de {hypothesis,basis,confidence}), participants (array de {name,role,behaviours}), roleSections (array de {title,points}), recommendations (array de strings), followUpQuestions (array de strings). roleSections debe contener estos títulos: ${guide.sections.join(" | ")}.`;
 
-  const result = streamText({ model, system, prompt });
-  const text = await result.text;
+  const attempt = await runWithTextModelFallback(
+    userKeys,
+    undefined,
+    async ({ model }) => {
+      const result = streamText({ model, system, prompt });
+      const text = await result.text;
+      if (!text.trim()) throw new Error("respuesta vacía del modelo");
+      return { text, usage: await result.usage };
+    },
+    { label: "insights", maxAttempts: 3 },
+  );
+  const provider = attempt.used.provider;
+  const nativeId = attempt.used.nativeId;
+  const text = attempt.value.text;
   const insights = normalizeInsights(extractJson(text));
   const generatedAt = new Date().toISOString();
   const { error: saveErr } = await context.supabase.from("capture_analyses").upsert({
@@ -152,7 +163,7 @@ export async function generateSessionInsightsHandler(
   if (saveErr) throw new Error(saveErr.message);
 
   try {
-    const usage = await result.usage;
+    const usage = attempt.value.usage;
     const { recordUsage, userPaysPlatform } = await import("./usage.server");
     await recordUsage({
       userId: context.userId,
