@@ -37,6 +37,7 @@ import { Route as AuthenticatedAppSessionsIdRouteImport } from './routes/_authen
 import { Route as AuthenticatedAppSimulationsIndexRouteImport } from './routes/_authenticated/app.simulations.index'
 import { Route as ApiPublicRedsysChargeRecurringRouteImport } from './routes/api/public/redsys/charge-recurring'
 import { Route as ApiPublicRedsysNotificationRouteImport } from './routes/api/public/redsys/notification'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as AuthenticatedAppAssessmentsIdIndexRouteImport } from './routes/_authenticated/app.assessments.$id.index'
 import { Route as AuthenticatedAppCaptureIdIndexRouteImport } from './routes/_authenticated/app.capture.$id.index'
 import { Route as AuthenticatedAppCaptureIdAnalyzeRouteImport } from './routes/_authenticated/app.capture.$id.analyze'
@@ -200,6 +201,12 @@ const ApiPublicRedsysNotificationRoute =
     path: '/api/public/redsys/notification',
     getParentRoute: () => rootRouteImport,
   } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAppAssessmentsIdIndexRoute =
   AuthenticatedAppAssessmentsIdIndexRouteImport.update({
     id: '/app/assessments/$id/',
@@ -292,6 +299,7 @@ export interface FileRoutesByFullPath {
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/app/assessments/': typeof AuthenticatedAppAssessmentsIndexRoute
   '/app/capture/': typeof AuthenticatedAppCaptureIndexRoute
   '/app/simulations/': typeof AuthenticatedAppSimulationsIndexRoute
@@ -332,6 +340,7 @@ export interface FileRoutesByTo {
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/app/assessments': typeof AuthenticatedAppAssessmentsIndexRoute
   '/app/capture': typeof AuthenticatedAppCaptureIndexRoute
   '/app/simulations': typeof AuthenticatedAppSimulationsIndexRoute
@@ -374,6 +383,7 @@ export interface FileRoutesById {
   '/_authenticated/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/_authenticated/app/assessments/': typeof AuthenticatedAppAssessmentsIndexRoute
   '/_authenticated/app/capture/': typeof AuthenticatedAppCaptureIndexRoute
   '/_authenticated/app/simulations/': typeof AuthenticatedAppSimulationsIndexRoute
@@ -416,6 +426,7 @@ export interface FileRouteTypes {
     | '/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
     | '/api/public/redsys/notification'
+    | '/lovable/email/queue/process'
     | '/app/assessments/'
     | '/app/capture/'
     | '/app/simulations/'
@@ -456,6 +467,7 @@ export interface FileRouteTypes {
     | '/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
     | '/api/public/redsys/notification'
+    | '/lovable/email/queue/process'
     | '/app/assessments'
     | '/app/capture'
     | '/app/simulations'
@@ -497,6 +509,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
     | '/api/public/redsys/notification'
+    | '/lovable/email/queue/process'
     | '/_authenticated/app/assessments/'
     | '/_authenticated/app/capture/'
     | '/_authenticated/app/simulations/'
@@ -527,6 +540,7 @@ export interface RootRouteChildren {
   CaptureJoinTokenRoute: typeof CaptureJoinTokenRoute
   ApiPublicRedsysChargeRecurringRoute: typeof ApiPublicRedsysChargeRecurringRoute
   ApiPublicRedsysNotificationRoute: typeof ApiPublicRedsysNotificationRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -727,6 +741,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicRedsysNotificationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/app/assessments/$id/': {
       id: '/_authenticated/app/assessments/$id/'
       path: '/app/assessments/$id'
@@ -900,6 +921,7 @@ const rootRouteChildren: RootRouteChildren = {
   CaptureJoinTokenRoute: CaptureJoinTokenRoute,
   ApiPublicRedsysChargeRecurringRoute: ApiPublicRedsysChargeRecurringRoute,
   ApiPublicRedsysNotificationRoute: ApiPublicRedsysNotificationRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
