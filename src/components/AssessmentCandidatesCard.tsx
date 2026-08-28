@@ -143,6 +143,36 @@ export function AssessmentCandidatesCard({ assessmentId, canManage, submissions 
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // ── Envío de invitaciones por email ──
+  const listLogs = useServerFn(listCandidateInviteEmails);
+  const sendInvites = useServerFn(sendCandidateInviteEmails);
+
+  const logsQ = useQuery({
+    queryKey: ["candidate-invite-emails", assessmentId],
+    queryFn: () => listLogs({ data: { assessmentId } }),
+  });
+  const logByCandidate = useMemo(
+    () => new Map((logsQ.data?.logs ?? []).map((l) => [l.candidateId, l])),
+    [logsQ.data],
+  );
+
+  const sendMut = useMutation({
+    mutationFn: (payload: { candidateIds?: string[]; onlyPendingOrFailed?: boolean }) =>
+      sendInvites({ data: { assessmentId, ...payload } }),
+    onSuccess: (res) => {
+      const parts = [`${res.sent} enviado(s)`];
+      if (res.failed) parts.push(`${res.failed} fallido(s)`);
+      if (res.suppressed) parts.push(`${res.suppressed} de baja`);
+      if (res.skipped) parts.push(`${res.skipped} omitido(s)`);
+      toast.success(`Invitaciones: ${parts.join(" · ")}`);
+      qc.invalidateQueries({ queryKey: ["candidate-invite-emails", assessmentId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const withEmailCount = candidates.filter((c) => (c.email ?? "").includes("@")).length;
+
+
   const copyLink = async (c: AssessmentCandidate) => {
     const url = examUrl(c.token);
     try {
