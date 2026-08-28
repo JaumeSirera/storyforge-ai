@@ -378,7 +378,36 @@ export function AssessmentCandidatesCard({ assessmentId, canManage, submissions 
                         </Badge>
                       );
                     })()}
+                    {(() => {
+                      const log = logByCandidate.get(c.id);
+                      if (!log) {
+                        return (c.email ?? "").includes("@") ? (
+                          <Badge variant="outline">Email sin enviar</Badge>
+                        ) : null;
+                      }
+                      return (
+                        <Badge
+                          variant={
+                            log.status === "sent"
+                              ? "default"
+                              : log.status === "failed"
+                                ? "destructive"
+                                : "secondary"
+                          }
+                          title={log.errorMessage ?? undefined}
+                        >
+                          {EMAIL_STATUS_LABELS[log.status] ?? log.status}
+                          {log.attempts > 1 ? ` (${log.attempts} intentos)` : ""}
+                        </Badge>
+                      );
+                    })()}
                   </div>
+                  {(() => {
+                    const log = logByCandidate.get(c.id);
+                    return log?.status === "failed" && log.errorMessage ? (
+                      <p className="text-xs text-destructive">{log.errorMessage}</p>
+                    ) : null;
+                  })()}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button variant="outline" size="sm" onClick={() => copyLink(c)}>
@@ -393,6 +422,21 @@ export function AssessmentCandidatesCard({ assessmentId, canManage, submissions 
                   </Button>
                   {canManage && (
                     <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => sendMut.mutate({ candidateIds: [c.id] })}
+                        disabled={!(c.email ?? "").includes("@") || sendMut.isPending}
+                        title={
+                          (c.email ?? "").includes("@")
+                            ? "Enviar o reintentar la invitación"
+                            : "Este aspirante no tiene email"
+                        }
+                      >
+                        <Send className="mr-2 h-4 w-4" aria-hidden="true" />
+                        {logByCandidate.get(c.id) ? "Reintentar" : "Enviar email"}
+                      </Button>
+
                       <Button
                         variant="ghost"
                         size="sm"
