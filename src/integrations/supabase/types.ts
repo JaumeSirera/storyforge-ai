@@ -329,6 +329,66 @@ export type Database = {
         }
         Relationships: []
       }
+      candidate_invite_emails: {
+        Row: {
+          assessment_id: string
+          attempts: number
+          candidate_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          last_attempt_at: string | null
+          message_id: string | null
+          owner_id: string
+          recipient: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assessment_id: string
+          attempts?: number
+          candidate_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          message_id?: string | null
+          owner_id: string
+          recipient: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assessment_id?: string
+          attempts?: number
+          candidate_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          message_id?: string | null
+          owner_id?: string
+          recipient?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_invite_emails_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_invite_emails_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: true
+            referencedRelation: "assessment_candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       capture_analyses: {
         Row: {
           capture_session_id: string
