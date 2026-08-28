@@ -273,6 +273,46 @@ export function AssessmentCandidatesCard({ assessmentId, canManage, submissions 
           </div>
         )}
 
+        {canManage && (
+          <div className="space-y-3 rounded-lg border border-border/60 p-4">
+            <div className="flex items-start gap-2">
+              <Mail className="mt-0.5 h-4 w-4 text-primary" aria-hidden="true" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Envío de invitaciones por email</p>
+                <p className="text-xs text-muted-foreground">
+                  Cada aspirante con email recibe su enlace privado del examen. Puedes reintentar los
+                  envíos fallidos individualmente. {withEmailCount} de {candidates.length} aspirante(s)
+                  tienen email.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                onClick={() => sendMut.mutate({ onlyPendingOrFailed: true })}
+                disabled={withEmailCount === 0 || sendMut.isPending}
+              >
+                {sendMut.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Send className="mr-2 h-4 w-4" aria-hidden="true" />
+                )}
+                Enviar a los pendientes
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => sendMut.mutate({})}
+                disabled={withEmailCount === 0 || sendMut.isPending}
+              >
+                Reenviar a todos
+              </Button>
+            </div>
+          </div>
+        )}
+
+
+
         <div className="relative">
           <Search
             className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
