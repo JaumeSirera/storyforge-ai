@@ -8,6 +8,10 @@ import {
   updateAssessmentCandidate,
 } from "@/lib/assessment-candidates.functions";
 import {
+  listCandidateInviteEmails,
+  sendCandidateInviteEmails,
+} from "@/lib/candidate-invites.functions";
+import {
   CANDIDATE_STATUS_LABELS,
   examUrl,
   type AssessmentCandidate,
@@ -23,13 +27,23 @@ import {
   ClipboardCopy,
   ExternalLink,
   Loader2,
+  Mail,
   RotateCcw,
   Search,
+  Send,
   Trash2,
   UserPlus,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
+
+const EMAIL_STATUS_LABELS: Record<string, string> = {
+  sent: "Email enviado",
+  pending: "Email en cola",
+  failed: "Email fallido",
+  suppressed: "Baja de emails",
+};
+
 
 interface CandidateSubmissionInfo {
   id: string;
