@@ -152,10 +152,10 @@ export function AssessmentCandidatesCard({ assessmentId, canManage, submissions 
     queryKey: ["candidate-invite-emails", assessmentId],
     queryFn: () => listLogs({ data: { assessmentId } }),
   });
-  const logByCandidate = useMemo(
-    () => new Map((logsQ.data?.logs ?? []).map((l) => [l.candidateId, l])),
-    [logsQ.data],
-  );
+  const logByCandidate = useMemo(() => {
+    const logs = (logsQ.data?.logs ?? []) as InviteEmailLog[];
+    return new Map<string, InviteEmailLog>(logs.map((l) => [l.candidateId, l]));
+  }, [logsQ.data]);
 
   const sendMut = useMutation({
     mutationFn: (payload: { candidateIds?: string[]; onlyPendingOrFailed?: boolean }) =>
