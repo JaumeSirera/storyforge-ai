@@ -11,6 +11,7 @@ import {
   listCandidateInviteEmails,
   sendCandidateInviteEmails,
 } from "@/lib/candidate-invites.functions";
+import type { InviteEmailLog } from "@/lib/candidate-invites-shared";
 import {
   CANDIDATE_STATUS_LABELS,
   examUrl,
