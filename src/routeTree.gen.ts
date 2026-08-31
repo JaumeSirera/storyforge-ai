@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as InstallRouteImport } from './routes/install'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as ExamTokenRouteImport } from './routes/exam.$token'
 import { Route as ExploreIndexRouteImport } from './routes/explore.index'
@@ -81,6 +82,11 @@ const PricingRoute = PricingRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UnsubscribeRoute = UnsubscribeRouteImport.update({
+  id: '/unsubscribe',
+  path: '/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
@@ -306,6 +312,7 @@ export interface FileRoutesByFullPath {
   '/install': typeof InstallRoute
   '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/exam/$token': typeof ExamTokenRoute
   '/explore/$id': typeof ExploreIdRoute
@@ -351,6 +358,7 @@ export interface FileRoutesByTo {
   '/install': typeof InstallRoute
   '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/exam/$token': typeof ExamTokenRoute
   '/explore/$id': typeof ExploreIdRoute
@@ -398,6 +406,7 @@ export interface FileRoutesById {
   '/install': typeof InstallRoute
   '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/exam/$token': typeof ExamTokenRoute
   '/explore/$id': typeof ExploreIdRoute
@@ -445,6 +454,7 @@ export interface FileRouteTypes {
     | '/install'
     | '/pricing'
     | '/reset-password'
+    | '/unsubscribe'
     | '/email/unsubscribe'
     | '/exam/$token'
     | '/explore/$id'
@@ -490,6 +500,7 @@ export interface FileRouteTypes {
     | '/install'
     | '/pricing'
     | '/reset-password'
+    | '/unsubscribe'
     | '/email/unsubscribe'
     | '/exam/$token'
     | '/explore/$id'
@@ -536,6 +547,7 @@ export interface FileRouteTypes {
     | '/install'
     | '/pricing'
     | '/reset-password'
+    | '/unsubscribe'
     | '/email/unsubscribe'
     | '/exam/$token'
     | '/explore/$id'
@@ -583,6 +595,7 @@ export interface RootRouteChildren {
   InstallRoute: typeof InstallRoute
   PricingRoute: typeof PricingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  UnsubscribeRoute: typeof UnsubscribeRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   ExamTokenRoute: typeof ExamTokenRoute
   ExploreIdRoute: typeof ExploreIdRoute
@@ -639,6 +652,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/unsubscribe': {
+      id: '/unsubscribe'
+      path: '/unsubscribe'
+      fullPath: '/unsubscribe'
+      preLoaderRoute: typeof UnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/email/unsubscribe': {
@@ -996,6 +1016,7 @@ const rootRouteChildren: RootRouteChildren = {
   InstallRoute: InstallRoute,
   PricingRoute: PricingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  UnsubscribeRoute: UnsubscribeRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   ExamTokenRoute: ExamTokenRoute,
   ExploreIdRoute: ExploreIdRoute,
