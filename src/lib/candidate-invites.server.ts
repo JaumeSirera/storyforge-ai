@@ -1,11 +1,7 @@
-import * as React from "react";
-import { render } from "@react-email/render";
-import { TEMPLATES } from "./email-templates/registry";
+import { EmailAPIError } from "@lovable.dev/email-js";
+import { sendTemplateEmail } from "./email-templates/send-email";
 
-const SITE_NAME = "Xandralyze";
 const SITE_URL = "https://xandralyze.com";
-const SENDER_DOMAIN = "notify.xandralyze.com";
-const FROM_DOMAIN = "xandralyze.com";
 const TEMPLATE_NAME = "exam-invitation";
 
 export interface InviteEmailRow {
@@ -32,12 +28,6 @@ export function mapInviteEmail(row: any): InviteEmailRow {
   };
 }
 
-function randomToken() {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-}
-
 function formatDate(iso: string | null | undefined) {
   if (!iso) return null;
   try {
@@ -51,101 +41,55 @@ function formatDate(iso: string | null | undefined) {
   }
 }
 
-/** Encola una invitación individual para un aspirante (una acción → un destinatario). */
-async function enqueueInvitation(
+/** Envía una invitación individual a un aspirante (una acción → un destinatario). */
+async function sendInvitation(
   admin: any,
   args: {
     recipient: string;
-    messageId: string;
     idempotencyKey: string;
     templateData: Record<string, unknown>;
   },
-) {
+): Promise<{ status: "sent" | "failed" | "suppressed"; error: string | null }> {
   const normalized = args.recipient.toLowerCase();
 
-  const { data: suppressed, error: supErr } = await admin
-    .from("suppressed_emails")
-    .select("id")
-    .eq("email", normalized)
-    .maybeSingle();
-  if (supErr) throw new Error("No se ha podido comprobar la lista de bajas.");
-  if (suppressed) {
-    await admin.from("email_send_log").insert({
-      message_id: args.messageId,
+  const logSend = async (status: string, errorMessage?: string) => {
+    const { error } = await admin.from("email_send_log").insert({
       template_name: TEMPLATE_NAME,
       recipient_email: normalized,
-      status: "suppressed",
+      status,
+      ...(errorMessage ? { error_message: errorMessage.slice(0, 500) } : {}),
     });
-    return { status: "suppressed" as const, error: "El destinatario se dio de baja de los emails." };
-  }
+    if (error) {
+      console.error("Failed to write email_send_log", {
+        code: error.code,
+        message: error.message,
+      });
+    }
+  };
 
-  const { data: existing } = await admin
-    .from("email_unsubscribe_tokens")
-    .select("token, used_at")
-    .eq("email", normalized)
-    .maybeSingle();
-
-  let unsubscribeToken: string;
-  if (existing?.token && !existing.used_at) {
-    unsubscribeToken = existing.token;
-  } else {
-    unsubscribeToken = randomToken();
-    await admin
-      .from("email_unsubscribe_tokens")
-      .upsert({ token: unsubscribeToken, email: normalized }, { onConflict: "email", ignoreDuplicates: true });
-    const { data: stored } = await admin
-      .from("email_unsubscribe_tokens")
-      .select("token")
-      .eq("email", normalized)
-      .maybeSingle();
-    if (!stored?.token) throw new Error("No se ha podido preparar el enlace de baja.");
-    unsubscribeToken = stored.token;
-  }
-
-  const entry = TEMPLATES[TEMPLATE_NAME]!;
-  const element = React.createElement(entry.component, args.templateData as any);
-  const html = await render(element);
-  const text = await render(element, { plainText: true });
-  const subject =
-    typeof entry.subject === "function" ? entry.subject(args.templateData as any) : entry.subject;
-
-  await admin.from("email_send_log").insert({
-    message_id: args.messageId,
-    template_name: TEMPLATE_NAME,
-    recipient_email: normalized,
-    status: "pending",
-  });
-
-  const { error: qErr } = await admin.rpc("enqueue_email", {
-    queue_name: "transactional_emails",
-    payload: {
-      message_id: args.messageId,
-      to: normalized,
-      from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-      sender_domain: SENDER_DOMAIN,
-      subject,
-      html,
-      text,
-      purpose: "transactional",
-      label: TEMPLATE_NAME,
-      idempotency_key: args.idempotencyKey,
-      unsubscribe_token: unsubscribeToken,
-      queued_at: new Date().toISOString(),
-    },
-  });
-
-  if (qErr) {
-    await admin.from("email_send_log").insert({
-      message_id: args.messageId,
-      template_name: TEMPLATE_NAME,
-      recipient_email: normalized,
-      status: "failed",
-      error_message: qErr.message?.slice(0, 500) ?? "Failed to enqueue email",
+  try {
+    const result = await sendTemplateEmail(TEMPLATE_NAME, normalized, {
+      templateData: args.templateData,
+      idempotencyKey: args.idempotencyKey,
     });
-    return { status: "failed" as const, error: "No se ha podido poner el email en la cola de envío." };
-  }
 
-  return { status: "sent" as const, error: null };
+    if (!result.sent) {
+      await logSend("suppressed");
+      return { status: "suppressed", error: "El destinatario se dio de baja de los emails." };
+    }
+
+    await logSend("sent");
+    return { status: "sent", error: null };
+  } catch (e) {
+    const message =
+      e instanceof EmailAPIError
+        ? `${e.code}: ${e.message}`
+        : e instanceof Error
+          ? e.message
+          : "Error desconocido";
+    await logSend("failed", message);
+    return { status: "failed", error: message.slice(0, 400) };
+  }
 }
 
 /** Historial de envíos de invitación de una evaluación. */
@@ -210,28 +154,18 @@ export async function sendInviteEmailsHandler(
     }
 
     const attempts = (prev?.attempts ?? 0) + 1;
-    const messageId = crypto.randomUUID();
-    let result: { status: "sent" | "failed" | "suppressed"; error: string | null };
-    try {
-      result = await enqueueInvitation(supabaseAdmin, {
-        recipient: c.email,
-        messageId,
-        idempotencyKey: `exam-invite-${c.id}-${attempts}`,
-        templateData: {
-          candidateName: c.name,
-          assessmentTitle: assessment.title,
-          examLink: `${SITE_URL}/exam/${c.token}`,
-          expiresAt: formatDate(c.expires_at),
-          timeLimitMin: (assessment as any).time_limit_min ?? null,
-          instructions: (assessment as any).instructions ?? null,
-        },
-      });
-    } catch (e) {
-      result = {
-        status: "failed",
-        error: e instanceof Error ? e.message.slice(0, 400) : "Error desconocido",
-      };
-    }
+    const result = await sendInvitation(supabaseAdmin, {
+      recipient: c.email,
+      idempotencyKey: `exam-invite-${c.id}-${attempts}`,
+      templateData: {
+        candidateName: c.name,
+        assessmentTitle: assessment.title,
+        examLink: `${SITE_URL}/exam/${c.token}`,
+        expiresAt: formatDate(c.expires_at),
+        timeLimitMin: (assessment as any).time_limit_min ?? null,
+        instructions: (assessment as any).instructions ?? null,
+      },
+    });
 
     if (result.status === "sent") sent++;
     else if (result.status === "suppressed") suppressed++;
@@ -245,7 +179,6 @@ export async function sendInviteEmailsHandler(
         recipient: c.email.toLowerCase(),
         status: result.status,
         attempts,
-        message_id: messageId,
         error_message: result.error,
         last_attempt_at: new Date().toISOString(),
       } as any,
