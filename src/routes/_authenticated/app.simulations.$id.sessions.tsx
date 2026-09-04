@@ -9,7 +9,7 @@ import {
   markReportEmailSent,
 } from "@/lib/candidate.functions";
 import { getMyEmailSettings } from "@/lib/email-settings.functions";
-import { logReportEmail, listReportEmailLog } from "@/lib/report-email.functions";
+import { logReportEmail, listReportEmailLog, sendReportEmail } from "@/lib/report-email.functions";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { loadLogoDataUrl, renderTemplate, openMailClient } from "@/lib/email-report";
+import { loadLogoDataUrl, renderTemplate } from "@/lib/email-report";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -348,6 +348,7 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
   const loadEmailSettings = useServerFn(getMyEmailSettings);
   const markSent = useServerFn(markReportEmailSent);
   const logSend = useServerFn(logReportEmail);
+  const sendReport = useServerFn(sendReportEmail);
   const listLog = useServerFn(listReportEmailLog);
   const fetchIntegrated = useServerFn(getIntegratedReport);
   const qc = useQueryClient();
