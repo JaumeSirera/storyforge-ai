@@ -28,6 +28,7 @@ import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authent
 import { Route as AuthenticatedAppNewRouteImport } from './routes/_authenticated/app.new'
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
 import { Route as CaptureJoinTokenRouteImport } from './routes/capture.join.$token'
+import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as AuthenticatedAppAdminPricingRouteImport } from './routes/_authenticated/app.admin.pricing'
 import { Route as AuthenticatedAppAdminSimulationsRouteImport } from './routes/_authenticated/app.admin.simulations'
@@ -149,6 +150,11 @@ const AuthenticatedAppSettingsRoute =
 const CaptureJoinTokenRoute = CaptureJoinTokenRouteImport.update({
   id: '/capture/join/$token',
   path: '/capture/join/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
+  id: '/lovable/email/events',
+  path: '/lovable/email/events',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
@@ -325,6 +331,7 @@ export interface FileRoutesByFullPath {
   '/app/new': typeof AuthenticatedAppNewRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/capture/join/$token': typeof CaptureJoinTokenRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
@@ -371,6 +378,7 @@ export interface FileRoutesByTo {
   '/app/new': typeof AuthenticatedAppNewRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/capture/join/$token': typeof CaptureJoinTokenRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
@@ -419,6 +427,7 @@ export interface FileRoutesById {
   '/_authenticated/app/new': typeof AuthenticatedAppNewRoute
   '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
   '/capture/join/$token': typeof CaptureJoinTokenRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/_authenticated/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
@@ -467,6 +476,7 @@ export interface FileRouteTypes {
     | '/app/new'
     | '/app/settings'
     | '/capture/join/$token'
+    | '/lovable/email/events'
     | '/lovable/email/suppression'
     | '/app/admin/pricing'
     | '/app/admin/simulations'
@@ -513,6 +523,7 @@ export interface FileRouteTypes {
     | '/app/new'
     | '/app/settings'
     | '/capture/join/$token'
+    | '/lovable/email/events'
     | '/lovable/email/suppression'
     | '/app/admin/pricing'
     | '/app/admin/simulations'
@@ -560,6 +571,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/new'
     | '/_authenticated/app/settings'
     | '/capture/join/$token'
+    | '/lovable/email/events'
     | '/lovable/email/suppression'
     | '/_authenticated/app/admin/pricing'
     | '/_authenticated/app/admin/simulations'
@@ -602,6 +614,7 @@ export interface RootRouteChildren {
   InviteTokenRoute: typeof InviteTokenRoute
   ExploreIndexRoute: typeof ExploreIndexRoute
   CaptureJoinTokenRoute: typeof CaptureJoinTokenRoute
+  LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicRedsysChargeRecurringRoute: typeof ApiPublicRedsysChargeRecurringRoute
   ApiPublicRedsysNotificationRoute: typeof ApiPublicRedsysNotificationRoute
@@ -743,6 +756,13 @@ declare module '@tanstack/react-router' {
       path: '/capture/join/$token'
       fullPath: '/capture/join/$token'
       preLoaderRoute: typeof CaptureJoinTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/events': {
+      id: '/lovable/email/events'
+      path: '/lovable/email/events'
+      fullPath: '/lovable/email/events'
+      preLoaderRoute: typeof LovableEmailEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lovable/email/suppression': {
@@ -1023,6 +1043,7 @@ const rootRouteChildren: RootRouteChildren = {
   InviteTokenRoute: InviteTokenRoute,
   ExploreIndexRoute: ExploreIndexRoute,
   CaptureJoinTokenRoute: CaptureJoinTokenRoute,
+  LovableEmailEventsRoute: LovableEmailEventsRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicRedsysChargeRecurringRoute: ApiPublicRedsysChargeRecurringRoute,
   ApiPublicRedsysNotificationRoute: ApiPublicRedsysNotificationRoute,
