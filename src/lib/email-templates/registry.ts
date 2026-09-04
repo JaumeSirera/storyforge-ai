@@ -14,7 +14,9 @@ export interface TemplateEntry {
  * Import and register new templates here after creating them in this directory.
  */
 import { template as examInvitation } from './exam-invitation'
+import { template as sessionReport } from './session-report'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'exam-invitation': examInvitation,
+  'session-report': sessionReport,
 }
