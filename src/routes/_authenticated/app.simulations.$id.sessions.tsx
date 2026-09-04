@@ -640,11 +640,43 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
                       Generando informe…
                     </div>
                   ) : pdfPreviewUrl ? (
-                    <iframe
-                      src={pdfPreviewUrl}
-                      title="Vista previa del informe PDF"
-                      className="w-full h-[60vh] rounded-md border border-border bg-background"
-                    />
+                    <div className="space-y-2">
+                      <object
+                        data={pdfPreviewUrl}
+                        type="application/pdf"
+                        title="Vista previa del informe PDF"
+                        className="w-full h-[55vh] rounded-md border border-border bg-background"
+                      >
+                        <div className="h-[55vh] grid place-items-center gap-2 p-4 text-center text-sm text-muted-foreground">
+                          <p>
+                            Tu navegador o un bloqueador de contenido no permite mostrar el informe
+                            aquí. Ábrelo en una pestaña nueva o descárgalo para revisarlo.
+                          </p>
+                        </div>
+                      </object>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-2"
+                          onClick={() => window.open(pdfPreviewUrl, "_blank", "noopener")}
+                        >
+                          Abrir en una pestaña nueva
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-2"
+                          onClick={() => void downloadPdf()}
+                        >
+                          <Download className="h-4 w-4" /> Descargar informe
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Si ves un aviso de bloqueo, desactiva el bloqueador de anuncios o la VPN del
+                        navegador para esta página.
+                      </p>
+                    </div>
                   ) : (
                     <div className="h-[60vh] grid place-items-center">
                       <Button size="sm" variant="outline" onClick={() => void buildPdfPreview()}>
