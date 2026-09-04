@@ -159,7 +159,7 @@ export const sendReportEmail = createServerFn({ method: "POST" })
     const { data: sess, error: sErr } = await context.supabase
       .from("sessions")
       .select(
-        "id, simulation_id, candidate_name, candidate_email, stars, points, admin_feedback, simulation:simulations(owner_id, title)",
+        "id, simulation_id, candidate_name, candidate_email, stars, score, admin_feedback, simulation:simulations(owner_id, title)",
       )
       .eq("id", data.sessionId)
       .maybeSingle();
@@ -218,7 +218,7 @@ export const sendReportEmail = createServerFn({ method: "POST" })
           candidateName: sess.candidate_name,
           simulationTitle,
           stars: (sess as any).stars ?? null,
-          points: (sess as any).points ?? null,
+          points: (sess as any).score ?? null,
           feedback: (sess as any).admin_feedback ?? null,
           signature: (cfg as any)?.from_name ?? null,
         },
