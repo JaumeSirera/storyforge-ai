@@ -9,7 +9,7 @@ import {
   markReportEmailSent,
 } from "@/lib/candidate.functions";
 import { getMyEmailSettings } from "@/lib/email-settings.functions";
-import { logReportEmail, listReportEmailLog } from "@/lib/report-email.functions";
+import { logReportEmail, listReportEmailLog, sendReportEmail } from "@/lib/report-email.functions";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { loadLogoDataUrl, renderTemplate, openMailClient } from "@/lib/email-report";
+import { loadLogoDataUrl, renderTemplate } from "@/lib/email-report";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -348,6 +348,7 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
   const loadEmailSettings = useServerFn(getMyEmailSettings);
   const markSent = useServerFn(markReportEmailSent);
   const logSend = useServerFn(logReportEmail);
+  const sendReport = useServerFn(sendReportEmail);
   const listLog = useServerFn(listReportEmailLog);
   const fetchIntegrated = useServerFn(getIntegratedReport);
   const qc = useQueryClient();
@@ -489,58 +490,29 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
     setSendingMail(true);
     try {
       const logo = await loadLogoDataUrl(cfg?.logoUrl || null);
-      // Descarga el PDF para adjuntarlo en el correo: si la grabación está
-      // vinculada, se envía el informe integrado (decisiones + comportamiento).
+      // El correo no admite adjuntos: se descarga el PDF para el evaluador.
       if (integratedQ.data) {
         downloadIntegratedPdf({ report: integratedQ.data, branding: { logoDataUrl: logo } });
       } else {
         downloadReportPdf(pdfPayload(logo));
       }
 
-      const opened = openMailClient({
-        to,
-        subject: previewSubject,
-        body: previewBody,
-        replyTo: cfg?.replyTo || null,
-        fromEmail: cfg?.fromEmail || null,
-      });
-
+      const result: any = await sendReport({ data: { sessionId, recipient: to } });
       await markSent({ data: { sessionId, to } });
-      await logSend({
-        data: {
-          sessionId,
-          recipient: to,
-          subject: previewSubject,
-          status: opened ? "sent" : "failed",
-          ...(opened ? {} : { errorMessage: "No se pudo abrir el cliente de correo" }),
-        },
-      });
+
       setPreviewOpen(false);
       qc.invalidateQueries({ queryKey: ["sim-session", sessionId] });
       qc.invalidateQueries({ queryKey: ["report-email-log", sessionId] });
       onSaved();
 
-      if (opened) {
-        toast.success("Informe descargado y correo preparado. Adjunta el PDF y envíalo.");
+      if (result?.sent === false) {
+        toast.warning("Esta persona se dio de baja de los correos, así que no se le ha enviado.");
       } else {
-        toast.warning("Informe descargado, pero no se pudo abrir el cliente de correo.");
+        toast.success(`Informe enviado por correo a ${to}.`);
       }
     } catch (e: any) {
-      try {
-        await logSend({
-          data: {
-            sessionId,
-            recipient: to,
-            subject: previewSubject,
-            status: "failed",
-            errorMessage: String(e?.message ?? "Error desconocido").slice(0, 400),
-          },
-        });
-        qc.invalidateQueries({ queryKey: ["report-email-log", sessionId] });
-      } catch {
-        /* ignora fallos de registro */
-      }
-      toast.error(e.message || "No se pudo preparar el envío");
+      toast.error(e.message || "No se pudo enviar el correo");
+      qc.invalidateQueries({ queryKey: ["report-email-log", sessionId] });
     } finally {
       setSendingMail(false);
     }
