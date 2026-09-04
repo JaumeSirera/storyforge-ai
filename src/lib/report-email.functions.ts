@@ -142,3 +142,99 @@ export const queueAutoReportEmail = createServerFn({ method: "POST" })
     if (insErr) throw new Error(insErr.message);
     return { queued: true as const };
   });
+
+const SendInput = z.object({
+  sessionId: z.string().uuid(),
+  recipient: z.string().trim().email().max(255),
+});
+
+/**
+ * Envía realmente el informe al candidato por correo (vía el correo gestionado
+ * de Lovable) y registra el resultado en `report_email_log`.
+ */
+export const sendReportEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v: unknown) => SendInput.parse(v))
+  .handler(async ({ data, context }) => {
+    const { data: sess, error: sErr } = await context.supabase
+      .from("sessions")
+      .select(
+        "id, simulation_id, candidate_name, candidate_email, stars, points, admin_feedback, simulation:simulations(owner_id, title)",
+      )
+      .eq("id", data.sessionId)
+      .maybeSingle();
+    if (sErr) throw new Error(sErr.message);
+    if (!sess) throw new Error("Sesión no encontrada");
+    const ownerId = (sess as any).simulation?.owner_id as string | undefined;
+    if (ownerId !== context.userId) {
+      throw new Error("Solo el propietario de la simulación puede enviar el informe");
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: cfg } = await supabaseAdmin
+      .from("email_settings")
+      .select("subject_template, body_template, from_name, reply_to")
+      .eq("user_id", ownerId)
+      .maybeSingle();
+
+    const simulationTitle = (sess as any).simulation?.title ?? null;
+    const fill = (tpl: string) =>
+      tpl
+        .replaceAll("{{candidato}}", sess.candidate_name || "candidato/a")
+        .replaceAll("{{simulacion}}", simulationTitle || "la simulación");
+
+    const subject = fill(
+      (cfg as any)?.subject_template || "Tu informe de la simulación {{simulacion}}",
+    );
+    const message = fill((cfg as any)?.body_template || "Hola {{candidato}},");
+    const recipient = data.recipient.toLowerCase();
+
+    const logResult = async (status: "sent" | "failed", errorMessage?: string) => {
+      const { error } = await supabaseAdmin.from("report_email_log").insert({
+        session_id: data.sessionId,
+        simulation_id: sess.simulation_id,
+        owner_id: ownerId,
+        recipient,
+        subject,
+        status,
+        attempts: 1,
+        error_message: errorMessage ? errorMessage.slice(0, 500) : null,
+        auto: false,
+      } as any);
+      if (error) {
+        console.error("Failed to write report_email_log", {
+          code: error.code,
+          message: error.message,
+        });
+      }
+    };
+
+    try {
+      const { sendTemplateEmail } = await import("./email-templates/send-email");
+      const result = await sendTemplateEmail("session-report", recipient, {
+        templateData: {
+          subject,
+          message,
+          candidateName: sess.candidate_name,
+          simulationTitle,
+          stars: (sess as any).stars ?? null,
+          points: (sess as any).points ?? null,
+          feedback: (sess as any).admin_feedback ?? null,
+          signature: (cfg as any)?.from_name ?? null,
+        },
+        idempotencyKey: `session-report-${data.sessionId}-${recipient}-${Date.now()}`,
+        ...((cfg as any)?.reply_to ? { replyTo: (cfg as any).reply_to as string } : {}),
+      });
+
+      if (!result.sent) {
+        await logResult("failed", "El destinatario se dio de baja de los emails.");
+        return { sent: false as const, reason: "suppressed" as const };
+      }
+      await logResult("sent");
+      return { sent: true as const };
+    } catch (e: any) {
+      const message2 = String(e?.message ?? "Error desconocido");
+      await logResult("failed", message2);
+      throw new Error(message2);
+    }
+  });
