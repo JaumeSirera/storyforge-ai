@@ -9,7 +9,7 @@ import {
   markReportEmailSent,
 } from "@/lib/candidate.functions";
 import { getMyEmailSettings } from "@/lib/email-settings.functions";
-import { logReportEmail, listReportEmailLog, sendReportEmail } from "@/lib/report-email.functions";
+import { listReportEmailLog, sendReportEmail } from "@/lib/report-email.functions";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Star, Save, Plus, Trash2, MessageSquare, CheckCircle2, Download, Mail, Search, FilterX } from "lucide-react";
+import { ArrowLeft, Star, Save, Plus, Trash2, MessageSquare, CheckCircle2, Download, Mail, Search, FilterX, ExternalLink } from "lucide-react";
 import { downloadReportPdf, generateReportPdf } from "@/lib/report-pdf";
 import { IntegratedReportButton } from "@/components/IntegratedReportButton";
 import { getIntegratedReport } from "@/lib/integrated-report.functions";
@@ -347,7 +347,6 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
   const send = useServerFn(submitAdminFeedback);
   const loadEmailSettings = useServerFn(getMyEmailSettings);
   const markSent = useServerFn(markReportEmailSent);
-  const logSend = useServerFn(logReportEmail);
   const sendReport = useServerFn(sendReportEmail);
   const listLog = useServerFn(listReportEmailLog);
   const fetchIntegrated = useServerFn(getIntegratedReport);
@@ -489,14 +488,6 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
     }
     setSendingMail(true);
     try {
-      const logo = await loadLogoDataUrl(cfg?.logoUrl || null);
-      // El correo no admite adjuntos: se descarga el PDF para el evaluador.
-      if (integratedQ.data) {
-        downloadIntegratedPdf({ report: integratedQ.data, branding: { logoDataUrl: logo } });
-      } else {
-        downloadReportPdf(pdfPayload(logo));
-      }
-
       const result: any = await sendReport({ data: { sessionId, recipient: to } });
       await markSent({ data: { sessionId, to } });
 
@@ -626,7 +617,7 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
                     {previewBody}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Se adjunta el informe PDF (se descarga al confirmar) con tu logo y marca.
+                    El email incluye un enlace para abrir el informe completo y descargarlo en PDF.
                   </p>
                 </TabsContent>
                 <TabsContent value="pdf" className="space-y-2">
@@ -655,13 +646,10 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
                         </div>
                       </object>
                       <div className="flex flex-wrap gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-2"
-                          onClick={() => window.open(pdfPreviewUrl, "_blank", "noopener")}
-                        >
-                          Abrir en una pestaña nueva
+                        <Button asChild size="sm" variant="outline" className="gap-2">
+                          <a href={`/app/sessions/${sessionId}`} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-4 w-4" /> Abrir informe en una pestaña nueva
+                          </a>
                         </Button>
                         <Button
                           size="sm"
@@ -673,8 +661,8 @@ function SessionDetailPanel({ sessionId, onSaved }: { sessionId: string; onSaved
                         </Button>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Si ves un aviso de bloqueo, desactiva el bloqueador de anuncios o la VPN del
-                        navegador para esta página.
+                        La pestaña nueva usa una página normal de Xandralyze para evitar el bloqueo de
+                        direcciones temporales de Opera.
                       </p>
                     </div>
                   ) : (
