@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Body,
+  Button,
   Container,
   Head,
   Heading,
@@ -20,6 +21,7 @@ interface Props {
   points?: number | null;
   feedback?: string | null;
   signature?: string | null;
+  reportUrl?: string | null;
 }
 
 const Email = ({
@@ -30,6 +32,7 @@ const Email = ({
   points,
   feedback,
   signature,
+  reportUrl,
 }: Props) => (
   <Html lang="es" dir="ltr">
     <Head />
@@ -54,6 +57,16 @@ const Email = ({
             <Text style={text}>{feedback}</Text>
           </>
         ) : null}
+        {reportUrl ? (
+          <Section style={actionSection}>
+            <Button href={reportUrl} style={actionButton}>
+              Abrir informe completo
+            </Button>
+            <Text style={linkHelp}>
+              El informe se abre en una página segura de Xandralyze, donde también puede descargarse en PDF.
+            </Text>
+          </Section>
+        ) : null}
         <Hr style={hr} />
         <Text style={small}>{signature || "Equipo Xandralyze"}</Text>
       </Container>
@@ -72,6 +85,7 @@ export const template = {
     stars: 2,
     points: 65,
     message: "Hola Ana García,",
+    reportUrl: "https://xandralyze.com/app/sessions/ejemplo",
   },
 } satisfies TemplateEntry;
 
@@ -98,5 +112,22 @@ const infoBox = {
   borderRadius: "10px",
   padding: "14px 16px",
   margin: "8px 0 4px",
+};
+const actionSection = { margin: "22px 0 8px", textAlign: "center" as const };
+const actionButton = {
+  backgroundColor: "#253e7a",
+  borderRadius: "6px",
+  color: "#ffffff",
+  display: "inline-block",
+  fontSize: "14px",
+  fontWeight: 700,
+  padding: "12px 20px",
+  textDecoration: "none",
+};
+const linkHelp = {
+  fontSize: "12px",
+  lineHeight: "18px",
+  color: "#6b7280",
+  margin: "12px 0 0",
 };
 const hr = { borderColor: "#e5e7eb", margin: "20px 0" };
