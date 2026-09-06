@@ -889,6 +889,8 @@ function FinalReport({ sessionId, sess, sim }: { sessionId: string; sess: any; s
     queryFn: () => gen({ data: { sessionId } }),
   });
   const navigate = useNavigate();
+  const { pdf: autoPdf } = Route.useSearch();
+  const autoPdfDone = useRef(false);
 
   // Envío automático del informe al finalizar (si está activado en Ajustes → Correo de envío).
   useEffect(() => {
@@ -897,6 +899,35 @@ function FinalReport({ sessionId, sess, sim }: { sessionId: string; sess: any; s
       /* el propietario puede enviarlo manualmente */
     });
   }, [report.data, sessionId, queueAuto]);
+
+  function downloadPdf() {
+    const rep = report.data as any;
+    if (!rep) return;
+    downloadReportPdf({
+      simulation: { title: sim.title, objective: sim.objective },
+      candidate: { name: sess.candidate_name, email: sess.candidate_email },
+      session: {
+        id: sessionId,
+        startedAt: sess.started_at,
+        completedAt: sess.completed_at,
+        adminFeedback: sess.admin_feedback,
+      },
+      report: rep,
+      answers: (sess.answers ?? []) as any[],
+      criteriaLabels: Object.fromEntries(
+        new Map((sim.evaluation_criteria as any[]).map((c) => [c.key, c.label])) as any,
+      ),
+    });
+  }
+
+  // Al llegar desde el enlace del correo (?pdf=1) se descarga el informe solo.
+  useEffect(() => {
+    if (!autoPdf || !report.data || autoPdfDone.current) return;
+    autoPdfDone.current = true;
+    downloadPdf();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPdf, report.data]);
+
 
 
   if (report.isLoading) {
