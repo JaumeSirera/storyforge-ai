@@ -24,8 +24,7 @@ export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => 
         <Text style={text}>Usa este código para confirmar tu identidad:</Text>
         <Text style={codeStyle}>{token}</Text>
         <Text style={footer}>
-          Este código caduca en breve. Si no lo has solicitado, puedes
-          safely ignore this email.
+          Este código caduca en breve. Si no lo has solicitado, puedes ignorar este correo.
         </Text>
       </Container>
     </Body>

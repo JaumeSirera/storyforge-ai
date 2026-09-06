@@ -29,8 +29,7 @@ export const MagicLinkEmail = ({
       <Container style={container}>
         <Heading style={h1}>Tu enlace de acceso</Heading>
         <Text style={text}>
-          Pulsa el botón para entrar en {siteName}. Este enlace caduca
-          shortly.
+          Pulsa el botón para entrar en {siteName}. Este enlace caduca en breve.
         </Text>
         <Button className="dm-btn" style={button} href={confirmationUrl}>
           Entrar

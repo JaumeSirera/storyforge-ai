@@ -36,15 +36,13 @@ export const InviteEmail = ({
           <Link href={siteUrl} style={link}>
             <strong>{siteName}</strong>
           </Link>
-          . Click the button below to accept the invitation and create your
-          account.
+          . Pulsa el botón para aceptar la invitación y crear tu cuenta.
         </Text>
         <Button className="dm-btn" style={button} href={confirmationUrl}>
           Aceptar invitación
         </Button>
         <Text style={footer}>
-          Si no esperabas esta invitación, puedes ignorar este
-          email.
+          Si no esperabas esta invitación, puedes ignorar este correo.
         </Text>
       </Container>
     </Body>
