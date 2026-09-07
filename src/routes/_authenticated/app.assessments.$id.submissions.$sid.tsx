@@ -3,7 +3,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getSubmission, gradeSubmission } from "@/lib/assessments.functions";
-import { APPROVAL_LABELS, gradeLabel, VERDICT_LABELS } from "@/lib/assessments-shared";
+import {
+  APPROVAL_LABELS,
+  gradeLabel,
+  VERDICT_LABELS,
+  DIMENSION_LABELS,
+  DIMENSION_DESCRIPTIONS,
+  DIMENSION_STATUS_LABELS,
+  dimensionStatus,
+} from "@/lib/assessments-shared";
 import { setSubmissionApproval } from "@/lib/assessment-roles.functions";
 import { COLLABORATOR_ROLE_LABELS } from "@/lib/assessment-roles-shared";
 import { Textarea } from "@/components/ui/textarea";
@@ -331,6 +339,70 @@ function SubmissionReport() {
               </CardContent>
             </Card>
           )}
+
+          {evaluation.breakdown.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Desglose de la nota final</CardTitle>
+                <CardDescription>
+                  Contenido, estructura, corrección lingüística y grafismo, con el peso de cada
+                  dimensión, el umbral mínimo exigido y las evidencias de la entrega.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {evaluation.breakdown.map((dim) => {
+                  const status = dimensionStatus(dim.score, dim.threshold);
+                  return (
+                    <div key={dim.key} className="rounded-md border border-border p-3 space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">{DIMENSION_LABELS[dim.key]}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {DIMENSION_DESCRIPTIONS[dim.key]}
+                          </p>
+                        </div>
+                        <Badge
+                          variant={
+                            status === "below"
+                              ? "destructive"
+                              : status === "exceeds"
+                                ? "default"
+                                : "secondary"
+                          }
+                        >
+                          {DIMENSION_STATUS_LABELS[status]}
+                        </Badge>
+                      </div>
+                      <div className="relative">
+                        <Bar label={`Puntuación (umbral ${dim.threshold})`} value={dim.score} />
+                        <div
+                          className="absolute bottom-0 h-2 w-0.5 bg-foreground/60"
+                          style={{ left: `${Math.min(100, Math.max(0, dim.threshold))}%` }}
+                          role="presentation"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Peso {dim.weightPct}% · aporta {dim.contribution.toFixed(2)} de{" "}
+                        {evaluation.maxScore} puntos
+                      </p>
+                      {dim.justification && <p className="text-sm">{dim.justification}</p>}
+                      {dim.evidence.length > 0 && (
+                        <div>
+                          <p className="text-xs font-medium">Evidencias</p>
+                          <ul className="list-disc pl-5 text-xs text-muted-foreground">
+                            {dim.evidence.map((e, i) => (
+                              <li key={i}>{e}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
+
 
           {evaluation.criteria.length > 0 && (
             <Card>

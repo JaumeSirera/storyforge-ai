@@ -4,6 +4,10 @@ import {
   FEEDBACK_TONE_LABELS,
   ANNOTATION_KIND_LABELS,
   gradeLabel,
+  DIMENSION_LABELS,
+  DIMENSION_DESCRIPTIONS,
+  DIMENSION_STATUS_LABELS,
+  dimensionStatus,
   type AssessmentEvaluation,
   type AssessmentRecord,
   type SubmissionAnnotation,
@@ -149,7 +153,28 @@ export function generateAssessmentPdf(data: AssessmentPdfData): jsPDF {
     }
   }
 
+  if (evaluation.breakdown.length > 0) {
+    heading("Desglose de la nota final");
+    for (const dim of evaluation.breakdown) {
+      const status = DIMENSION_STATUS_LABELS[dimensionStatus(dim.score, dim.threshold)];
+      body(
+        `${DIMENSION_LABELS[dim.key]}: ${dim.score}/100 · umbral ${dim.threshold} · ${status}`,
+        { bold: true },
+      );
+      body(
+        `Peso ${dim.weightPct}% · aporta ${dim.contribution.toFixed(2)} de ${evaluation.maxScore} puntos. ${DIMENSION_DESCRIPTIONS[dim.key]}`,
+        { indent: 12, size: 9 },
+      );
+      if (dim.justification) body(dim.justification, { indent: 12 });
+      if (dim.evidence.length) {
+        body("Evidencias:", { bold: true, indent: 12, size: 9 });
+        bullets(dim.evidence, 24);
+      }
+    }
+  }
+
   if (evaluation.criteria.length > 0) {
+
     heading("Rúbrica");
     for (const criterion of evaluation.criteria) {
       body(`${criterion.name}: ${criterion.score} / ${criterion.maxScore}`, { bold: true });

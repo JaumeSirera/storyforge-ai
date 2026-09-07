@@ -10,6 +10,11 @@ import {
   ScanQualitySchema,
   TranscriptionSegmentSchema,
   CONFIDENCE_THRESHOLD_LOW,
+  SCORE_DIMENSIONS,
+  DIMENSION_THRESHOLDS,
+  defaultDimensionWeights,
+  type ScoreDimension,
+  type ScoreDimensionKey,
   type TranscriptionSegment,
   type AnswerVerdict,
   type AssessmentBlueprint,
@@ -18,6 +23,7 @@ import {
   type SubmissionPage,
   type SubmissionRecord,
 } from "./assessments-shared";
+
 import { loadUserKeys } from "./user-keys.functions";
 
 const BUCKET = "assessments";
@@ -40,6 +46,74 @@ function normalizeVerdict(raw: unknown, score: number, maxPoints: number): Answe
   if (score >= maxPoints) return "correct";
   return "partial";
 }
+
+const DIMENSION_ALIASES: Record<string, ScoreDimensionKey> = {
+  content: "content",
+  contenido: "content",
+  structure: "structure",
+  estructura: "structure",
+  language: "language",
+  lengua: "language",
+  linguistica: "language",
+  "correccion linguistica": "language",
+  handwriting: "handwriting",
+  grafismo: "handwriting",
+  caligrafia: "handwriting",
+};
+
+function normalizeDimensionKey(raw: unknown): ScoreDimensionKey | null {
+  const v = String(raw ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  return DIMENSION_ALIASES[v] ?? null;
+}
+
+/**
+ * Construye el desglose de la nota por dimensiones. Toma lo que devuelva la IA y
+ * completa pesos, umbrales y la aportación en puntos de forma determinista.
+ */
+function buildBreakdown(
+  raw: any,
+  opts: { maxScore: number; handwritingWeightPct: number; contentScore: number; handwritingScore: number },
+): ScoreDimension[] {
+  const weights = defaultDimensionWeights(opts.handwritingWeightPct);
+  const byKey = new Map<ScoreDimensionKey, any>();
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      const key = normalizeDimensionKey(item?.key ?? item?.dimension ?? item?.name);
+      if (key && !byKey.has(key)) byKey.set(key, item);
+    }
+  }
+  const contentPct =
+    opts.maxScore > 0 ? Math.max(0, Math.min(100, (opts.contentScore / opts.maxScore) * 100)) : 0;
+
+  return SCORE_DIMENSIONS.map((key) => {
+    const item = byKey.get(key);
+    const fallbackScore = key === "handwriting" ? opts.handwritingScore : contentPct;
+    const score = Math.max(0, Math.min(100, Number(item?.score ?? fallbackScore) || 0));
+    const weightPct = weights[key];
+    const threshold = Math.max(
+      0,
+      Math.min(100, Number(item?.threshold ?? DIMENSION_THRESHOLDS[key]) || DIMENSION_THRESHOLDS[key]),
+    );
+    return {
+      key,
+      score: Math.round(score),
+      weightPct,
+      threshold,
+      contribution: Number(((score / 100) * (weightPct / 100) * opts.maxScore).toFixed(2)),
+      justification: String(item?.justification ?? item?.justificacion ?? ""),
+      evidence: Array.isArray(item?.evidence)
+        ? item.evidence.map((e: any) => String(e)).filter(Boolean)
+        : Array.isArray(item?.evidencias)
+          ? item.evidencias.map((e: any) => String(e)).filter(Boolean)
+          : [],
+    };
+  });
+}
+
 
 const ASSESSMENT_COLUMNS =
   "id, title, area_key, prompt, instructions, questions, rubric, max_score, handwriting_weight_pct, time_limit_min, feedback_tone, status, created_at, updated_at";
@@ -750,10 +824,17 @@ Para CADA pregunta, sin excepción, incluye:
 - feedback: feedback individual dirigido al candidato en segunda persona, concreto y respetuoso, basado solo en lo que ha escrito.
 - nextStep: una acción concreta para mejorar en esa pregunta (qué repasar o cómo estructurar la respuesta).
 criteria (array de {name, score sobre 100, maxScore:100, justification}),
+breakdown (array con EXACTAMENTE estas cuatro dimensiones, en este orden, cada una {key, score 0-100, threshold 0-100, justification, evidence (array de 1-3 citas textuales o hechos concretos de la entrega que respaldan la puntuación)}):
+- key "content" → exactitud, cobertura de los elementos clave y calidad del razonamiento (umbral por defecto ${DIMENSION_THRESHOLDS.content}).
+- key "structure" → orden de las ideas, párrafos, progresión y cierre de las respuestas (umbral por defecto ${DIMENSION_THRESHOLDS.structure}).
+- key "language" → ortografía, puntuación, gramática, léxico y registro (umbral por defecto ${DIMENSION_THRESHOLDS.language}).
+- key "handwriting" → legibilidad, limpieza, espaciado y consistencia del trazo (umbral por defecto ${DIMENSION_THRESHOLDS.handwriting}).
+Cada evidence debe ser verificable en la entrega (cita entre comillas o hecho observable), nunca una valoración genérica. Mantén los umbrales por defecto salvo que la rúbrica exija otro, y en ese caso justifícalo.
 competencies (array de {name, level, evidence}),
 handwriting ({legibility, structure, cleanliness, spacing, consistency, score — todos 0-100 —, corrections (string), observations (array de strings con hechos observables), hypotheses (array de {hypothesis, basis, confidence})}),
 recommendations (array de strings), conclusion (string).
 score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafismo al ${hwWeight}%.`;
+
 
     const { listAnnotationsHandler } = await import("./assessment-annotations.server");
     const { annotations } = await listAnnotationsHandler({ submissionId: row.id }, context);
@@ -860,6 +941,13 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
           }))
         : [],
       handwriting,
+      breakdown: buildBreakdown(raw?.breakdown ?? raw?.desglose, {
+        maxScore: assessment.maxScore,
+        handwritingWeightPct: assessment.handwritingWeightPct,
+        contentScore: Number(raw?.contentScore ?? 0) || 0,
+        handwritingScore: handwriting.score,
+      }),
+
       recommendations: Array.isArray(raw?.recommendations)
         ? raw.recommendations.map((s: any) => String(s))
         : [],
