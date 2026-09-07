@@ -47,6 +47,74 @@ function normalizeVerdict(raw: unknown, score: number, maxPoints: number): Answe
   return "partial";
 }
 
+const DIMENSION_ALIASES: Record<string, ScoreDimensionKey> = {
+  content: "content",
+  contenido: "content",
+  structure: "structure",
+  estructura: "structure",
+  language: "language",
+  lengua: "language",
+  linguistica: "language",
+  "correccion linguistica": "language",
+  handwriting: "handwriting",
+  grafismo: "handwriting",
+  caligrafia: "handwriting",
+};
+
+function normalizeDimensionKey(raw: unknown): ScoreDimensionKey | null {
+  const v = String(raw ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  return DIMENSION_ALIASES[v] ?? null;
+}
+
+/**
+ * Construye el desglose de la nota por dimensiones. Toma lo que devuelva la IA y
+ * completa pesos, umbrales y la aportación en puntos de forma determinista.
+ */
+function buildBreakdown(
+  raw: any,
+  opts: { maxScore: number; handwritingWeightPct: number; contentScore: number; handwritingScore: number },
+): ScoreDimension[] {
+  const weights = defaultDimensionWeights(opts.handwritingWeightPct);
+  const byKey = new Map<ScoreDimensionKey, any>();
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      const key = normalizeDimensionKey(item?.key ?? item?.dimension ?? item?.name);
+      if (key && !byKey.has(key)) byKey.set(key, item);
+    }
+  }
+  const contentPct =
+    opts.maxScore > 0 ? Math.max(0, Math.min(100, (opts.contentScore / opts.maxScore) * 100)) : 0;
+
+  return SCORE_DIMENSIONS.map((key) => {
+    const item = byKey.get(key);
+    const fallbackScore = key === "handwriting" ? opts.handwritingScore : contentPct;
+    const score = Math.max(0, Math.min(100, Number(item?.score ?? fallbackScore) || 0));
+    const weightPct = weights[key];
+    const threshold = Math.max(
+      0,
+      Math.min(100, Number(item?.threshold ?? DIMENSION_THRESHOLDS[key]) || DIMENSION_THRESHOLDS[key]),
+    );
+    return {
+      key,
+      score: Math.round(score),
+      weightPct,
+      threshold,
+      contribution: Number(((score / 100) * (weightPct / 100) * opts.maxScore).toFixed(2)),
+      justification: String(item?.justification ?? item?.justificacion ?? ""),
+      evidence: Array.isArray(item?.evidence)
+        ? item.evidence.map((e: any) => String(e)).filter(Boolean)
+        : Array.isArray(item?.evidencias)
+          ? item.evidencias.map((e: any) => String(e)).filter(Boolean)
+          : [],
+    };
+  });
+}
+
+
 const ASSESSMENT_COLUMNS =
   "id, title, area_key, prompt, instructions, questions, rubric, max_score, handwriting_weight_pct, time_limit_min, feedback_tone, status, created_at, updated_at";
 const SUBMISSION_COLUMNS =
