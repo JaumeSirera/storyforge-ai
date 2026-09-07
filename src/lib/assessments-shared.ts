@@ -185,10 +185,13 @@ export const EvaluationSchema = z.object({
     )
     .default([]),
   handwriting: HandwritingSchema.default(() => HandwritingSchema.parse({})),
+  /** Desglose de la nota final por dimensiones (contenido, estructura, lengua, grafismo). */
+  breakdown: z.array(ScoreDimensionSchema).default([]),
   recommendations: z.array(z.string()).default([]),
   conclusion: z.string().default(""),
 });
 export type AssessmentEvaluation = z.infer<typeof EvaluationSchema>;
+
 
 /** Tono/estilo con el que la IA redacta explicaciones y feedback por pregunta. */
 export const FEEDBACK_TONES = ["formativo", "breve", "motivacional", "tecnico"] as const;
