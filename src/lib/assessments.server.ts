@@ -10,6 +10,11 @@ import {
   ScanQualitySchema,
   TranscriptionSegmentSchema,
   CONFIDENCE_THRESHOLD_LOW,
+  SCORE_DIMENSIONS,
+  DIMENSION_THRESHOLDS,
+  defaultDimensionWeights,
+  type ScoreDimension,
+  type ScoreDimensionKey,
   type TranscriptionSegment,
   type AnswerVerdict,
   type AssessmentBlueprint,
@@ -18,6 +23,7 @@ import {
   type SubmissionPage,
   type SubmissionRecord,
 } from "./assessments-shared";
+
 import { loadUserKeys } from "./user-keys.functions";
 
 const BUCKET = "assessments";
