@@ -3,7 +3,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getSubmission, gradeSubmission } from "@/lib/assessments.functions";
-import { APPROVAL_LABELS, gradeLabel, VERDICT_LABELS } from "@/lib/assessments-shared";
+import {
+  APPROVAL_LABELS,
+  gradeLabel,
+  VERDICT_LABELS,
+  DIMENSION_LABELS,
+  DIMENSION_DESCRIPTIONS,
+  DIMENSION_STATUS_LABELS,
+  dimensionStatus,
+} from "@/lib/assessments-shared";
 import { setSubmissionApproval } from "@/lib/assessment-roles.functions";
 import { COLLABORATOR_ROLE_LABELS } from "@/lib/assessment-roles-shared";
 import { Textarea } from "@/components/ui/textarea";
