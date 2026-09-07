@@ -28,9 +28,8 @@ import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/sessions/$id")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    pdf: search.pdf === "1" || search.pdf === 1 || search.pdf === true ? true : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { pdf?: boolean } =>
+    search.pdf === "1" || search.pdf === 1 || search.pdf === true ? { pdf: true } : {},
   component: PlayerPage,
 });
 
