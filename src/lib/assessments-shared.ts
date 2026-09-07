@@ -123,6 +123,77 @@ export const HandwritingSchema = z.object({
 });
 export type HandwritingAnalysis = z.infer<typeof HandwritingSchema>;
 
+/**
+ * Dimensiones en las que se desglosa la nota final. Cada una se puntúa 0-100,
+ * tiene un peso sobre la nota y un umbral mínimo exigido.
+ */
+export const SCORE_DIMENSIONS = ["content", "structure", "language", "handwriting"] as const;
+export type ScoreDimensionKey = (typeof SCORE_DIMENSIONS)[number];
+
+export const DIMENSION_LABELS: Record<ScoreDimensionKey, string> = {
+  content: "Contenido",
+  structure: "Estructura",
+  language: "Corrección lingüística",
+  handwriting: "Grafismo",
+};
+
+export const DIMENSION_DESCRIPTIONS: Record<ScoreDimensionKey, string> = {
+  content: "Exactitud, cobertura de los elementos clave y calidad del razonamiento.",
+  structure: "Orden de las ideas, párrafos, progresión y cierre de las respuestas.",
+  language: "Ortografía, puntuación, gramática, léxico y registro.",
+  handwriting: "Legibilidad, limpieza, espaciado y consistencia del trazo.",
+};
+
+/** Umbral mínimo (0-100) exigido por defecto en cada dimensión. */
+export const DIMENSION_THRESHOLDS: Record<ScoreDimensionKey, number> = {
+  content: 60,
+  structure: 55,
+  language: 55,
+  handwriting: 50,
+};
+
+export const ScoreDimensionSchema = z.object({
+  key: z.enum(SCORE_DIMENSIONS).default("content"),
+  score: z.number().default(0),
+  /** Peso de la dimensión sobre la nota final, en %. */
+  weightPct: z.number().default(0),
+  /** Umbral mínimo exigido (0-100). */
+  threshold: z.number().default(60),
+  /** Puntos que aporta a la nota final. */
+  contribution: z.number().default(0),
+  justification: z.string().default(""),
+  /** Citas o hechos concretos de la entrega que respaldan la puntuación. */
+  evidence: z.array(z.string()).default([]),
+});
+export type ScoreDimension = z.infer<typeof ScoreDimensionSchema>;
+
+export type DimensionStatus = "below" | "meets" | "exceeds";
+
+export function dimensionStatus(score: number, threshold: number): DimensionStatus {
+  if (score < threshold) return "below";
+  if (score >= Math.min(100, threshold + 20)) return "exceeds";
+  return "meets";
+}
+
+export const DIMENSION_STATUS_LABELS: Record<DimensionStatus, string> = {
+  below: "Por debajo del umbral",
+  meets: "Cumple el umbral",
+  exceeds: "Supera con holgura",
+};
+
+/** Reparto por defecto de los pesos de cada dimensión según el peso del grafismo. */
+export function defaultDimensionWeights(handwritingWeightPct: number): Record<ScoreDimensionKey, number> {
+  const hw = Math.max(0, Math.min(100, handwritingWeightPct));
+  const contentBlock = 100 - hw;
+  return {
+    content: Math.round(contentBlock * 0.6),
+    structure: Math.round(contentBlock * 0.2),
+    language: contentBlock - Math.round(contentBlock * 0.6) - Math.round(contentBlock * 0.2),
+    handwriting: hw,
+  };
+}
+
+
 /** Veredicto por pregunta usado en el feedback individual del informe. */
 export const ANSWER_VERDICTS = ["correct", "partial", "incorrect", "unanswered"] as const;
 export type AnswerVerdict = (typeof ANSWER_VERDICTS)[number];
