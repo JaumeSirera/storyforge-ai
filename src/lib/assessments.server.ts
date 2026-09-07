@@ -941,6 +941,13 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
           }))
         : [],
       handwriting,
+      breakdown: buildBreakdown(raw?.breakdown ?? raw?.desglose, {
+        maxScore: assessment.maxScore,
+        handwritingWeightPct: assessment.handwritingWeightPct,
+        contentScore: Number(raw?.contentScore ?? 0) || 0,
+        handwritingScore: handwriting.score,
+      }),
+
       recommendations: Array.isArray(raw?.recommendations)
         ? raw.recommendations.map((s: any) => String(s))
         : [],
