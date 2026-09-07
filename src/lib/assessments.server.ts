@@ -824,10 +824,17 @@ Para CADA pregunta, sin excepción, incluye:
 - feedback: feedback individual dirigido al candidato en segunda persona, concreto y respetuoso, basado solo en lo que ha escrito.
 - nextStep: una acción concreta para mejorar en esa pregunta (qué repasar o cómo estructurar la respuesta).
 criteria (array de {name, score sobre 100, maxScore:100, justification}),
+breakdown (array con EXACTAMENTE estas cuatro dimensiones, en este orden, cada una {key, score 0-100, threshold 0-100, justification, evidence (array de 1-3 citas textuales o hechos concretos de la entrega que respaldan la puntuación)}):
+- key "content" → exactitud, cobertura de los elementos clave y calidad del razonamiento (umbral por defecto ${DIMENSION_THRESHOLDS.content}).
+- key "structure" → orden de las ideas, párrafos, progresión y cierre de las respuestas (umbral por defecto ${DIMENSION_THRESHOLDS.structure}).
+- key "language" → ortografía, puntuación, gramática, léxico y registro (umbral por defecto ${DIMENSION_THRESHOLDS.language}).
+- key "handwriting" → legibilidad, limpieza, espaciado y consistencia del trazo (umbral por defecto ${DIMENSION_THRESHOLDS.handwriting}).
+Cada evidence debe ser verificable en la entrega (cita entre comillas o hecho observable), nunca una valoración genérica. Mantén los umbrales por defecto salvo que la rúbrica exija otro, y en ese caso justifícalo.
 competencies (array de {name, level, evidence}),
 handwriting ({legibility, structure, cleanliness, spacing, consistency, score — todos 0-100 —, corrections (string), observations (array de strings con hechos observables), hypotheses (array de {hypothesis, basis, confidence})}),
 recommendations (array de strings), conclusion (string).
 score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafismo al ${hwWeight}%.`;
+
 
     const { listAnnotationsHandler } = await import("./assessment-annotations.server");
     const { annotations } = await listAnnotationsHandler({ submissionId: row.id }, context);
