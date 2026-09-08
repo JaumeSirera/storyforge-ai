@@ -221,7 +221,7 @@ export const sendReportEmail = createServerFn({ method: "POST" })
           points: (sess as any).score ?? null,
           feedback: (sess as any).admin_feedback ?? null,
           signature: (cfg as any)?.from_name ?? null,
-          reportUrl: `https://xandralyze.com/app/sessions/${encodeURIComponent(data.sessionId)}`,
+          reportUrl: `https://xandralyze.com/app/sessions/${encodeURIComponent(data.sessionId)}?pdf=1`,
         },
         idempotencyKey: `session-report-${data.sessionId}-${recipient}-${Date.now()}`,
         ...((cfg as any)?.reply_to ? { replyTo: (cfg as any).reply_to as string } : {}),
