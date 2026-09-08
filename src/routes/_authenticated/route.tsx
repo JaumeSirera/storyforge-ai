@@ -13,7 +13,19 @@ export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
     const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
+    if (error || !data.user) {
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem(
+            "postAuthRedirect",
+            window.location.pathname + window.location.search,
+          );
+        } catch {
+          /* almacenamiento no disponible */
+        }
+      }
+      throw redirect({ to: "/auth" });
+    }
     return { user: data.user };
   },
   component: AppLayout,
