@@ -92,8 +92,9 @@ function GoogleButton() {
       disabled={loading}
       onClick={async () => {
         setLoading(true);
+        const pending = consumePostAuthRedirect();
         const result = await lovable.auth.signInWithOAuth("google", {
-          redirect_uri: window.location.origin + "/app/dashboard",
+          redirect_uri: window.location.origin + (pending ?? "/app/dashboard"),
         });
         if (result.error) {
           toast.error("No se pudo iniciar sesión con Google");
@@ -101,7 +102,7 @@ function GoogleButton() {
           return;
         }
         if (result.redirected) return;
-        window.location.href = consumePostAuthRedirect() ?? "/app/dashboard";
+        window.location.href = pending ?? "/app/dashboard";
       }}
     >
       Continuar con Google
