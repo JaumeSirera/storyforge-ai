@@ -14,6 +14,7 @@ import { AssessmentCollaboratorsCard } from "@/components/AssessmentCollaborator
 import { AssessmentCandidatesCard } from "@/components/AssessmentCandidatesCard";
 import { ExamAuditLogCard } from "@/components/ExamAuditLogCard";
 import { CandidateAttemptsCard } from "@/components/CandidateAttemptsCard";
+import { CandidateBreakdownPanel } from "@/components/CandidateBreakdownPanel";
 import { RubricEditor } from "@/components/RubricEditor";
 import { SourceValidationCard } from "@/components/SourceValidationCard";
 
@@ -46,6 +47,7 @@ import {
   ListChecks,
   Loader2,
   RefreshCw,
+  Gauge,
   ScrollText,
   ShieldCheck,
   Sparkles,
@@ -86,7 +88,8 @@ type SectionKey =
   | "rubric"
   | "collaborators"
   | "upload"
-  | "submissions";
+  | "submissions"
+  | "tracking";
 
 function AssessmentDetail() {
   const { id } = Route.useParams();
@@ -183,6 +186,7 @@ function AssessmentDetail() {
     collaborators: "Permisos y colaboradores",
     upload: "Nueva entrega",
     submissions: `Entregas (${submissions.length})`,
+    tracking: "Seguimiento por candidato",
   };
 
   const isOwner = permissions?.isOwner !== false;
@@ -304,6 +308,12 @@ function AssessmentDetail() {
               : `${gradedCount} corregida(s) · informes con nota y conclusiones`
           }
           onClick={() => setOpen("submissions")}
+        />
+        <SectionCard
+          icon={Gauge}
+          title="Seguimiento por candidato"
+          summary="Nota y desglose por dimensiones, con aviso si no alcanza el umbral"
+          onClick={() => setOpen("tracking")}
         />
       </div>
 
@@ -432,6 +442,10 @@ function AssessmentDetail() {
               canManage={isOwner}
               submissions={submissions}
             />
+          )}
+
+          {open === "tracking" && (
+            <CandidateBreakdownPanel assessmentId={id} submissions={submissions as any} />
           )}
 
           {open === "attempts" && <CandidateAttemptsCard assessmentId={id} />}
