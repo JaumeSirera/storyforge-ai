@@ -162,7 +162,7 @@ export function MultiFilePicker({
           variant="outline"
           size="sm"
           disabled={disabled}
-          onClick={() => cameraRef.current?.click()}
+          onClick={() => void openCamera()}
           className="gap-2"
         >
           <Camera className="h-4 w-4" aria-hidden="true" />
