@@ -1,5 +1,12 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Camera, FolderOpen, Scan, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,6 +38,69 @@ export function MultiFilePicker({
 }: Props) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const filesRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [camOpen, setCamOpen] = useState(false);
+  const [camReady, setCamReady] = useState(false);
+
+  function stopCam() {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setCamReady(false);
+  }
+
+  useEffect(() => () => stopCam(), []);
+
+  async function openCamera() {
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      cameraRef.current?.click();
+      return;
+    }
+    setCamOpen(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play().catch(() => {});
+      }
+      setCamReady(true);
+    } catch {
+      setCamOpen(false);
+      toast.error("No se pudo abrir la cámara. Se abrirá el selector de archivos.");
+      cameraRef.current?.click();
+    }
+  }
+
+  async function shoot() {
+    const video = videoRef.current;
+    if (!video) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.92),
+    );
+    if (!blob) {
+      toast.error("No se pudo capturar la foto");
+      return;
+    }
+    const file = new File([blob], `foto-${Date.now()}.jpg`, {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    add(dt.files);
+    toast.success("Foto añadida");
+  }
+
 
   function add(selected: FileList | null) {
     if (!selected || selected.length === 0) return;
@@ -92,7 +162,7 @@ export function MultiFilePicker({
           variant="outline"
           size="sm"
           disabled={disabled}
-          onClick={() => cameraRef.current?.click()}
+          onClick={() => void openCamera()}
           className="gap-2"
         >
           <Camera className="h-4 w-4" aria-hidden="true" />
@@ -165,6 +235,49 @@ export function MultiFilePicker({
           ))}
         </ul>
       )}
+
+      <Dialog
+        open={camOpen}
+        onOpenChange={(open) => {
+          setCamOpen(open);
+          if (!open) stopCam();
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Hacer foto</DialogTitle>
+            <DialogDescription>
+              Encuadra la página y pulsa “Capturar”. Puedes hacer varias fotos seguidas.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-hidden rounded-md border border-border bg-black">
+            <video
+              ref={videoRef}
+              playsInline
+              muted
+              autoPlay
+              className="h-auto w-full"
+              aria-label="Vista previa de la cámara"
+            />
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setCamOpen(false);
+                stopCam();
+              }}
+            >
+              Cerrar
+            </Button>
+            <Button type="button" disabled={!camReady} onClick={() => void shoot()} className="gap-2">
+              <Camera className="h-4 w-4" aria-hidden="true" />
+              Capturar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
