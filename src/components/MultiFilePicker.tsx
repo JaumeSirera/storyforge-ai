@@ -235,6 +235,49 @@ export function MultiFilePicker({
           ))}
         </ul>
       )}
+
+      <Dialog
+        open={camOpen}
+        onOpenChange={(open) => {
+          setCamOpen(open);
+          if (!open) stopCam();
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Hacer foto</DialogTitle>
+            <DialogDescription>
+              Encuadra la página y pulsa “Capturar”. Puedes hacer varias fotos seguidas.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-hidden rounded-md border border-border bg-black">
+            <video
+              ref={videoRef}
+              playsInline
+              muted
+              autoPlay
+              className="h-auto w-full"
+              aria-label="Vista previa de la cámara"
+            />
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setCamOpen(false);
+                stopCam();
+              }}
+            >
+              Cerrar
+            </Button>
+            <Button type="button" disabled={!camReady} onClick={() => void shoot()} className="gap-2">
+              <Camera className="h-4 w-4" aria-hidden="true" />
+              Capturar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
