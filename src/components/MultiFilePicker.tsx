@@ -38,6 +38,69 @@ export function MultiFilePicker({
 }: Props) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const filesRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [camOpen, setCamOpen] = useState(false);
+  const [camReady, setCamReady] = useState(false);
+
+  function stopCam() {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setCamReady(false);
+  }
+
+  useEffect(() => () => stopCam(), []);
+
+  async function openCamera() {
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      cameraRef.current?.click();
+      return;
+    }
+    setCamOpen(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play().catch(() => {});
+      }
+      setCamReady(true);
+    } catch {
+      setCamOpen(false);
+      toast.error("No se pudo abrir la cámara. Se abrirá el selector de archivos.");
+      cameraRef.current?.click();
+    }
+  }
+
+  async function shoot() {
+    const video = videoRef.current;
+    if (!video) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.92),
+    );
+    if (!blob) {
+      toast.error("No se pudo capturar la foto");
+      return;
+    }
+    const file = new File([blob], `foto-${Date.now()}.jpg`, {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    add(dt.files);
+    toast.success("Foto añadida");
+  }
+
 
   function add(selected: FileList | null) {
     if (!selected || selected.length === 0) return;
