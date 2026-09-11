@@ -111,7 +111,7 @@ function AssessmentDetail() {
   const [candidateId, setCandidateId] = useState("");
   const [sourceKind, setSourceKind] = useState<"handwritten" | "digital">("handwritten");
   const [typedText, setTypedText] = useState("");
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [pages, setPages] = useState<File[]>([]);
   const [open, setOpen] = useState<SectionKey | null>(null);
 
   const invalidate = () => void qc.invalidateQueries({ queryKey: ["assessment", id] });
