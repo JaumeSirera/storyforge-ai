@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { extractDocumentText } from "@/lib/document-parse.functions";
 import { listAssessments, createAssessment, deleteAssessment } from "@/lib/assessments.functions";
 import { listPracticeAreas } from "@/lib/areas.functions";
 import {
@@ -28,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Database, FileText, Loader2, Plus, Search, Sparkles, Trash2 } from "lucide-react";
+import { Database, FileText, Loader2, Plus, Search, Sparkles, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/assessments/")({
@@ -74,6 +75,32 @@ function AssessmentsIndex() {
   const [types, setTypes] = useState<QuestionType[]>(["narrative"]);
   const [sourceText, setSourceText] = useState("");
   const [allowOutsideSource, setAllowOutsideSource] = useState(false);
+  const docsRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const extractDoc = useServerFn(extractDocumentText);
+
+  async function importDocs(selected: FileList | null) {
+    const list = Array.from(selected ?? []).filter((f) => f.size > 0);
+    if (list.length === 0) return;
+    setImporting(true);
+    let ok = 0;
+    for (const file of list) {
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        const result = await extractDoc({ data: fd });
+        setSourceText((prev) => {
+          const block = `--- ${result.filename} ---\n${result.text}`;
+          return prev.trim() ? `${prev.trim()}\n\n${block}` : block;
+        });
+        ok++;
+      } catch (err: any) {
+        toast.error(`${file.name}: ${err?.message ?? "no se pudo leer"}`);
+      }
+    }
+    setImporting(false);
+    if (ok > 0) toast.success(`${ok} documento(s) importados`);
+  }
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -234,7 +261,37 @@ function AssessmentsIndex() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="a-source">Texto o tema base (opcional)</Label>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Label htmlFor="a-source">Texto o tema base (opcional)</Label>
+              <div>
+                <input
+                  ref={docsRef}
+                  type="file"
+                  multiple
+                  accept=".pdf,.docx,.pptx,.txt,.md"
+                  className="hidden"
+                  onChange={(e) => {
+                    void importDocs(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={importing}
+                  onClick={() => docsRef.current?.click()}
+                  className="gap-2"
+                >
+                  {importing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  {importing ? "Leyendo..." : "Importar documentos"}
+                </Button>
+              </div>
+            </div>
             <Textarea
               id="a-source"
               rows={5}
