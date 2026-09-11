@@ -17,6 +17,7 @@ import { CandidateAttemptsCard } from "@/components/CandidateAttemptsCard";
 import { CandidateBreakdownPanel } from "@/components/CandidateBreakdownPanel";
 import { RubricEditor } from "@/components/RubricEditor";
 import { SourceValidationCard } from "@/components/SourceValidationCard";
+import { MultiFilePicker } from "@/components/MultiFilePicker";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -140,7 +141,7 @@ function AssessmentDetail() {
       fd.set("candidateIdentifier", candidateId.trim());
       fd.set("sourceKind", sourceKind);
       fd.set("typedText", typedText);
-      for (const file of Array.from(fileRef.current?.files ?? [])) fd.append("files", file);
+      for (const file of pages) fd.append("files", file);
       const res: any = await createSub({ data: fd });
       return grade({ data: { id: res.submission.id } });
     },
@@ -149,7 +150,7 @@ function AssessmentDetail() {
       setCandidateName("");
       setCandidateId("");
       setTypedText("");
-      if (fileRef.current) fileRef.current.value = "";
+      setPages([]);
       invalidate();
     },
     onError: (e: any) => toast.error(e?.message ?? "No se pudo corregir la entrega"),
@@ -501,13 +502,11 @@ function AssessmentDetail() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="s-files">Páginas (imágenes o PDF, máx. 12 · 15 MB cada una)</Label>
-                <Input
-                  id="s-files"
-                  ref={fileRef}
-                  type="file"
-                  multiple
-                  accept="image/*,application/pdf"
+                <Label>Páginas (fotos, imágenes o PDF · máx. 12 · 15 MB cada una)</Label>
+                <MultiFilePicker
+                  files={pages}
+                  onChange={setPages}
+                  disabled={uploadMut.isPending}
                 />
               </div>
 
