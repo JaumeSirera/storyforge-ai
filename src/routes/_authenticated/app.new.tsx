@@ -139,6 +139,13 @@ function NewSimulation() {
 
 
 
+  async function handleFiles(files: File[]) {
+    for (const file of files.filter((f) => f.size > 0)) {
+      await handleFile(file);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
   async function handleFile(file: File) {
     if (file.size > MAX_BYTES) {
       toast.error("El archivo supera los 10 MB");
@@ -319,11 +326,11 @@ function NewSimulation() {
                 <input
                   ref={fileInputRef}
                   type="file"
+                  multiple
                   accept={ACCEPTED}
                   className="hidden"
                   onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) handleFile(f);
+                    void handleFiles(Array.from(e.target.files ?? []));
                   }}
                 />
                 <Button
