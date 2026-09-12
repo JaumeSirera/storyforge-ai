@@ -47,6 +47,7 @@ final class Repo
             'json' => [],
             'insertable' => ['id', 'submission_id', 'page_path', 'page_index', 'kind', 'x', 'y', 'w', 'h', 'correction', 'comment'],
             'updatable' => ['kind', 'x', 'y', 'w', 'h', 'correction', 'comment'],
+            'defaults' => ['correction' => '', 'comment' => '', 'page_index' => 0],
         ],
         'assessment_collaborators' => [
             'owner' => 'owner_id',
