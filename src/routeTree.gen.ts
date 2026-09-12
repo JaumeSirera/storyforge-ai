@@ -25,6 +25,7 @@ import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
 import { Route as AuthenticatedAppNewRouteImport } from './routes/_authenticated/app.new'
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
+import { Route as ApiPublicMigrateAssessmentsRouteImport } from './routes/api/public/migrate-assessments'
 import { Route as CaptureJoinTokenRouteImport } from './routes/capture.join.$token'
 import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
 import { Route as AuthenticatedAppAdminPricingRouteImport } from './routes/_authenticated/app.admin.pricing'
@@ -133,6 +134,12 @@ const AuthenticatedAppSettingsRoute =
     id: '/app/settings',
     path: '/app/settings',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const ApiPublicMigrateAssessmentsRoute =
+  ApiPublicMigrateAssessmentsRouteImport.update({
+    id: '/api/public/migrate-assessments',
+    path: '/api/public/migrate-assessments',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const CaptureJoinTokenRoute = CaptureJoinTokenRouteImport.update({
   id: '/capture/join/$token',
@@ -308,6 +315,7 @@ export interface FileRoutesByFullPath {
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/new': typeof AuthenticatedAppNewRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/api/public/migrate-assessments': typeof ApiPublicMigrateAssessmentsRoute
   '/capture/join/$token': typeof CaptureJoinTokenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
@@ -352,6 +360,7 @@ export interface FileRoutesByTo {
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/new': typeof AuthenticatedAppNewRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/api/public/migrate-assessments': typeof ApiPublicMigrateAssessmentsRoute
   '/capture/join/$token': typeof CaptureJoinTokenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
@@ -398,6 +407,7 @@ export interface FileRoutesById {
   '/_authenticated/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/_authenticated/app/new': typeof AuthenticatedAppNewRoute
   '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/api/public/migrate-assessments': typeof ApiPublicMigrateAssessmentsRoute
   '/capture/join/$token': typeof CaptureJoinTokenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/_authenticated/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
@@ -444,6 +454,7 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/new'
     | '/app/settings'
+    | '/api/public/migrate-assessments'
     | '/capture/join/$token'
     | '/lovable/email/events'
     | '/app/admin/pricing'
@@ -488,6 +499,7 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/new'
     | '/app/settings'
+    | '/api/public/migrate-assessments'
     | '/capture/join/$token'
     | '/lovable/email/events'
     | '/app/admin/pricing'
@@ -533,6 +545,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/dashboard'
     | '/_authenticated/app/new'
     | '/_authenticated/app/settings'
+    | '/api/public/migrate-assessments'
     | '/capture/join/$token'
     | '/lovable/email/events'
     | '/_authenticated/app/admin/pricing'
@@ -573,6 +586,7 @@ export interface RootRouteChildren {
   ExploreIdRoute: typeof ExploreIdRoute
   InviteTokenRoute: typeof InviteTokenRoute
   ExploreIndexRoute: typeof ExploreIndexRoute
+  ApiPublicMigrateAssessmentsRoute: typeof ApiPublicMigrateAssessmentsRoute
   CaptureJoinTokenRoute: typeof CaptureJoinTokenRoute
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   ApiPublicRedsysChargeRecurringRoute: typeof ApiPublicRedsysChargeRecurringRoute
@@ -695,6 +709,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/settings'
       preLoaderRoute: typeof AuthenticatedAppSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/migrate-assessments': {
+      id: '/api/public/migrate-assessments'
+      path: '/api/public/migrate-assessments'
+      fullPath: '/api/public/migrate-assessments'
+      preLoaderRoute: typeof ApiPublicMigrateAssessmentsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/capture/join/$token': {
       id: '/capture/join/$token'
@@ -978,6 +999,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExploreIdRoute: ExploreIdRoute,
   InviteTokenRoute: InviteTokenRoute,
   ExploreIndexRoute: ExploreIndexRoute,
+  ApiPublicMigrateAssessmentsRoute: ApiPublicMigrateAssessmentsRoute,
   CaptureJoinTokenRoute: CaptureJoinTokenRoute,
   LovableEmailEventsRoute: LovableEmailEventsRoute,
   ApiPublicRedsysChargeRecurringRoute: ApiPublicRedsysChargeRecurringRoute,
