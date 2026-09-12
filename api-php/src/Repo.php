@@ -29,6 +29,7 @@ final class Repo
             'json' => [],
             'insertable' => ['id', 'assessment_id', 'name', 'email', 'identifier', 'token', 'status', 'note', 'expires_at'],
             'updatable' => ['name', 'email', 'identifier', 'status', 'submission_id', 'expires_at', 'started_at', 'submitted_at', 'note', 'time_expired'],
+            'defaults' => ['note' => '', 'status' => 'pendiente'],
         ],
         'assessment_submissions' => [
             'owner' => 'owner_id',
