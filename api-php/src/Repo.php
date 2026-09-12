@@ -279,8 +279,9 @@ final class Repo
         );
         $args = ['id' => $id];
         if ($scope !== null) {
-            $args['owner'] = $userId;
+            $args = array_merge($args, $this->scopeParams($meta, (string) $userId));
         }
+
         return $this->db->run($sql, $args);
     }
 
