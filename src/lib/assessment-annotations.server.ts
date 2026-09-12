@@ -1,9 +1,9 @@
 import {
-import { assessDb } from "./assessments-repo.server";
   ANNOTATION_KINDS,
   type AnnotationKind,
   type SubmissionAnnotation,
 } from "./assessments-shared";
+import { assessDb } from "./assessments-repo.server";
 
 const COLUMNS =
   "id, submission_id, page_path, page_index, kind, x, y, w, h, correction, comment, created_at, updated_at";
