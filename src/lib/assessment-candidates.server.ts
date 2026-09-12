@@ -8,6 +8,7 @@ import type {
 import { mapAssessment } from "./assessments.server";
 import { logExamAudit } from "./exam-audit.server";
 import type { AssessmentQuestion } from "./assessments-shared";
+import { assessDb, assessAdminDb } from "./assessments-repo.server";
 
 const CANDIDATE_COLUMNS =
   "id, assessment_id, name, email, identifier, token, status, submission_id, expires_at, started_at, submitted_at, note, created_at, time_expired";
@@ -40,7 +41,7 @@ function newToken() {
 // ───────────────────────────── Panel del evaluador ─────────────────────────────
 
 export async function listCandidatesHandler(data: { assessmentId: string }, context: any) {
-  const { data: rows, error } = await context.supabase
+  const { data: rows, error } = await assessDb(context)
     .from("assessment_candidates")
     .select(CANDIDATE_COLUMNS)
     .eq("assessment_id", data.assessmentId)
@@ -57,7 +58,7 @@ export async function addCandidatesHandler(
   },
   context: any,
 ) {
-  const { data: assessment, error: aErr } = await context.supabase
+  const { data: assessment, error: aErr } = await assessDb(context)
     .from("assessments")
     .select("id")
     .eq("id", data.assessmentId)
@@ -78,7 +79,7 @@ export async function addCandidatesHandler(
     }));
   if (rows.length === 0) throw new Error("Indica al menos un nombre de aspirante.");
 
-  const { data: inserted, error } = await context.supabase
+  const { data: inserted, error } = await assessDb(context)
     .from("assessment_candidates")
     .insert(rows)
     .select(CANDIDATE_COLUMNS);
@@ -114,7 +115,7 @@ export async function updateCandidateHandler(
     patch['submission_id'] = null;
   }
 
-  const { data: row, error } = await context.supabase
+  const { data: row, error } = await assessDb(context)
     .from("assessment_candidates")
     .update(patch)
     .eq("id", data.id)
@@ -126,7 +127,7 @@ export async function updateCandidateHandler(
 }
 
 export async function deleteCandidateHandler(data: { id: string }, context: any) {
-  const { error } = await context.supabase
+  const { error } = await assessDb(context)
     .from("assessment_candidates")
     .delete()
     .eq("id", data.id)
@@ -148,7 +149,7 @@ function toExamQuestion(q: AssessmentQuestion, index: number): ExamQuestion {
 }
 
 async function loadByToken(token: string) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const supabaseAdmin = await assessAdminDb();
   const { data: candidate, error } = await supabaseAdmin
     .from("assessment_candidates")
     .select(`${CANDIDATE_COLUMNS}, owner_id`)

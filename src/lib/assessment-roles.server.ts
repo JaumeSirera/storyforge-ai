@@ -1,4 +1,5 @@
 import {
+import { assessDb, assessAdminDb } from "./assessments-repo.server";
   COLLABORATOR_ROLES,
   type AssessmentPermissions,
   type Collaborator,
@@ -47,7 +48,7 @@ export async function resolvePermissions(
   assessmentId: string,
   context: any,
 ): Promise<AssessmentPermissions> {
-  const { data: owned } = await context.supabase
+  const { data: owned } = await assessDb(context)
     .from("assessments")
     .select("id")
     .eq("id", assessmentId)
@@ -55,7 +56,7 @@ export async function resolvePermissions(
     .maybeSingle();
   if (owned) return OWNER_PERMISSIONS;
 
-  const { data: collab } = await context.supabase
+  const { data: collab } = await assessDb(context)
     .from("assessment_collaborators")
     .select("role")
     .eq("assessment_id", assessmentId)
@@ -77,7 +78,7 @@ export async function resolvePermissions(
 
 /** Igual que resolvePermissions pero partiendo de una entrega. */
 export async function resolveSubmissionPermissions(submissionId: string, context: any) {
-  const { data: row, error } = await context.supabase
+  const { data: row, error } = await assessDb(context)
     .from("assessment_submissions")
     .select("id, assessment_id")
     .eq("id", submissionId)
@@ -123,7 +124,7 @@ export async function assertSubmissionPermission(
 
 export async function listCollaboratorsHandler(data: { assessmentId: string }, context: any) {
   const permissions = await assertAssessmentPermission(data.assessmentId, "view", context);
-  const { data: rows, error } = await context.supabase
+  const { data: rows, error } = await assessDb(context)
     .from("assessment_collaborators")
     .select(COLUMNS)
     .eq("assessment_id", data.assessmentId)
@@ -139,7 +140,7 @@ export async function upsertCollaboratorHandler(
   await assertAssessmentPermission(data.assessmentId, "manage", context);
   const email = data.email.trim().toLowerCase();
 
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const supabaseAdmin = await assessAdminDb();
   const { data: profile, error: pErr } = await supabaseAdmin
     .from("profiles")
     .select("id, email")
@@ -149,7 +150,7 @@ export async function upsertCollaboratorHandler(
   if (!profile) throw new Error("No existe ninguna cuenta con ese email. Pídele que se registre primero.");
   if (profile.id === context.userId) throw new Error("Ya eres la persona propietaria de la evaluación.");
 
-  const { data: row, error } = await context.supabase
+  const { data: row, error } = await assessDb(context)
     .from("assessment_collaborators")
     .upsert(
       {
@@ -168,7 +169,7 @@ export async function upsertCollaboratorHandler(
 }
 
 export async function removeCollaboratorHandler(data: { id: string }, context: any) {
-  const { error } = await context.supabase
+  const { error } = await assessDb(context)
     .from("assessment_collaborators")
     .delete()
     .eq("id", data.id)
@@ -184,7 +185,7 @@ export async function setSubmissionApprovalHandler(
   context: any,
 ) {
   await assertSubmissionPermission(data.id, "approve", context);
-  const { data: row, error } = await context.supabase
+  const { data: row, error } = await assessDb(context)
     .from("assessment_submissions")
     .update({
       approval_status: data.decision,
