@@ -1,46 +1,31 @@
+# Migrar las evaluaciones a tu base de datos
 
-## Qué cambia
+Tu servidor externo ya responde correctamente (`api.xandralyze.com`, comprobado ahora). El siguiente paso es que todo el módulo de evaluaciones (evaluaciones, aspirantes, entregas, anotaciones, colaboradores, banco de preguntas y registro de examen) lea y escriba en tu base de datos MySQL en lugar de la base de datos de Lovable Cloud.
 
-Hoy, tras enviar un comentario, el selector solo ofrece **FIN** o **saltar a otra escena**. Vamos a ampliarlo con dos destinos nuevos:
+## Qué se mantiene igual
 
-1. **FIN** — termina la simulación (siempre disponible).
-2. **Ir a otra escena** — como ahora (lista de escenas).
-3. **Continuar con el vídeo** — no salta de escena; se cierra el comentario y el vídeo sigue reproduciéndose. Las preguntas/comentarios posteriores de la misma escena podrán dispararse en su momento (por tiempo o al final del clip).
-4. **Ir a otra pregunta o comentario** — dentro de la misma escena, salta a la pregunta/comentario indicado y lo muestra de inmediato (ignorando su trigger).
+- Las cuentas y contraseñas siguen en Lovable Cloud (así lo decidimos).
+- Las fotos, escaneos y PDF de las entregas siguen guardándose en el almacenamiento de Lovable Cloud, porque tu API todavía no guarda archivos. Los datos sí pasan a tu servidor.
+- Simulaciones, capturas de vídeo, informes de sesión y facturación siguen donde están; son fases posteriores.
+- La pantalla y el funcionamiento para el usuario no cambian.
 
-Esto permite encadenar varios comentarios, pasar de un comentario a una pregunta, o simplemente dejar continuar el vídeo tras el comentario.
+## Qué se hace
 
-## Cambios técnicos
+1. **Capa de datos única para evaluaciones.** Todo el código de evaluaciones deja de hablar directamente con la base de datos de Lovable Cloud y pasa por una única pieza intermedia que decide el destino: tu servidor si está configurado, o la base actual si no lo está. Así, si tu servidor cae, se puede volver atrás quitando un ajuste.
+2. **Permisos de colaboradores en tu servidor.** Hoy las reglas de "quién puede corregir, anotar o aprobar" viven dentro de la base de datos de Lovable. Se replican en tu API (PHP) para que sigan aplicándose igual con los datos en MySQL.
+3. **Acceso del aspirante por enlace.** La página pública del examen (`/exam/<enlace>`) también se pasa a tu base de datos, con las mismas comprobaciones de enlace válido, caducidad y entrega bloqueada.
+4. **Copia de los datos existentes.** Se copian tus evaluaciones actuales de Lovable Cloud a MySQL (evaluaciones, aspirantes, entregas, anotaciones, colaboradores, banco de preguntas y registro), conservando identificadores para que los enlaces ya enviados sigan funcionando. Los datos originales no se borran: quedan como respaldo.
+5. **Comprobación real.** Con la sesión iniciada: crear una evaluación, invitar a un aspirante, entregar, corregir y aprobar, verificando que las filas aparecen en tu MySQL.
 
-**Modelo (`src/lib/story-types.ts`)**
-- `Choice.nextKind?: "end" | "scene" | "continue" | "question"` (opcional; compat: si falta, se deduce de `next`: `null` → `end`, string → `scene`).
-- `Choice.nextQuestionId?: string` — id de la pregunta destino cuando `nextKind === "question"`.
+## Detalles técnicos
 
-**Validador (`src/lib/simulations.functions.ts`)**
-- Ampliar el schema Zod de `Choice` para aceptar los dos nuevos campos opcionales.
+- Nuevo módulo `src/lib/assessments-repo.server.ts`: funciones (`listAssessments`, `getAssessment`, `insertSubmission`, …) con dos implementaciones — cliente externo (`external-data.server.ts`) y Supabase — seleccionadas por `isExternalApiEnabled()`.
+- Se reescriben los puntos de acceso a datos de `assessments.server.ts`, `assessment-candidates.server.ts`, `assessment-annotations.server.ts`, `assessment-roles.server.ts`, `question-bank.server.ts`, `exam-audit.server.ts`, `candidate-invites.server.ts` y `candidate.functions.ts` para usar ese módulo; la lógica de IA, OCR y PDF no se toca.
+- `api-php`: se amplía `Repo.php`/`index.php` con endpoints para acceso por token de aspirante, comprobación de permisos de colaborador (equivalente a `assessment_can`/`submission_can`) e inserción del registro de auditoría; se añaden a `schema.mysql.sql` las columnas que falten.
+- La copia de datos se hace con un script puntual que lee de Lovable Cloud y escribe vía tu API con el token de aplicación.
+- Tras cada bloque: `bunx tsgo --noEmit`, `php -l` en los archivos PHP y prueba funcional en el navegador.
 
-**Editor (`app.simulations.$id.edit.tsx`)**
-- En el bloque `kind === "comment"`, reemplazar el selector actual por un selector de "Tipo de destino" con las 4 opciones + un segundo selector contextual:
-  - `end` → nada más.
-  - `scene` → lista de escenas.
-  - `continue` → nada más.
-  - `question` → lista de preguntas/comentarios de la **misma escena** (excluyendo la actual), mostrando "Comentario/Pregunta N — extracto del texto".
-- Guardar `nextKind`, `next` (nodeId cuando aplica) y `nextQuestionId`.
+## Lo que necesitarás hacer tú
 
-**Reproducción (`StoryPreview.tsx` y `app.sessions.$id.tsx`)**
-- Añadir estado `answeredQuestionIds: Set<string>` por escena (se resetea al cambiar de nodo).
-- `activeQuestion` local que además filtre las ya contestadas y respete un `forcedQuestionId` cuando venimos de `nextKind === "question"`.
-- Al elegir/enviar:
-  - `end` → mismo comportamiento que hoy con `next = null`.
-  - `scene` → salta a `next` (nodo).
-  - `continue` → marca la pregunta como contestada, cierra la UI y reanuda el vídeo (sin cambiar de nodo, sin marcar `ended`).
-  - `question` → marca la pregunta como contestada y activa la pregunta indicada con `questionReady = true`.
-
-**Backend (`src/lib/sessions.functions.ts`, `submitAnswer`)**
-- Reproducir la misma lógica de destino en el servidor: calcular `nextId` según `choice.nextKind`; en `continue` y `question` NO se cambia `current_node_id` ni se completa la sesión; se devuelve `stayInScene: true` y, en `question`, `forcedQuestionId`.
-- Mantener respuesta compatible (`nextNodeId`, `completed`) para el cliente actual.
-
-## Fuera de alcance
-
-- Solo se toca el destino de los **comentarios**. Las preguntas normales y los enlaces `goto` no cambian su selector.
-- No se toca la generación con IA ni el modelo de escenas.
+- Volver a subir a `api.xandralyze.com` los archivos PHP actualizados (te aviso cuándo y cuáles).
+- Ejecutar en tu base de datos el archivo de esquema actualizado.
