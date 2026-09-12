@@ -149,3 +149,38 @@ CREATE TABLE IF NOT EXISTS exam_audit_log (
   KEY idx_audit_owner (owner_id, created_at),
   KEY idx_audit_candidate (candidate_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS question_bank_versions (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  item_id CHAR(36) NOT NULL,
+  owner_id CHAR(36) NOT NULL,
+  version INT NOT NULL DEFAULT 1,
+  question JSON NOT NULL,
+  note TEXT NOT NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  KEY idx_bank_version_item (item_id, version),
+  KEY idx_bank_version_owner (owner_id, created_at),
+  CONSTRAINT fk_bank_version_item FOREIGN KEY (item_id)
+    REFERENCES question_bank_items (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS candidate_invite_emails (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  assessment_id CHAR(36) NOT NULL,
+  candidate_id CHAR(36) NOT NULL,
+  owner_id CHAR(36) NOT NULL,
+  recipient VARCHAR(320) NOT NULL,
+  status VARCHAR(40) NOT NULL DEFAULT 'pending',
+  attempts INT NOT NULL DEFAULT 0,
+  message_id VARCHAR(200) NULL,
+  error_message TEXT NULL,
+  last_attempt_at TIMESTAMP(3) NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  UNIQUE KEY uq_invite_candidate (candidate_id),
+  KEY idx_invite_assessment (assessment_id, created_at),
+  CONSTRAINT fk_invite_candidate FOREIGN KEY (candidate_id)
+    REFERENCES assessment_candidates (id) ON DELETE CASCADE,
+  CONSTRAINT fk_invite_assessment FOREIGN KEY (assessment_id)
+    REFERENCES assessments (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

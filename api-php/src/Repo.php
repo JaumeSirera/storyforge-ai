@@ -61,6 +61,14 @@ final class Repo
             'insertable' => ['id', 'prompt', 'type', 'subject', 'area_key', 'tags', 'question', 'source_assessment_id'],
             'updatable' => ['prompt', 'type', 'subject', 'area_key', 'tags', 'question', 'version', 'times_used'],
         ],
+        'question_bank_versions' => [
+            'owner' => 'owner_id',
+            'columns' => ['id', 'item_id', 'owner_id', 'version', 'question', 'note', 'created_at'],
+            'json' => ['question'],
+            'insertable' => ['id', 'item_id', 'version', 'question', 'note'],
+            'updatable' => [],
+            'immutable' => true,
+        ],
         'candidate_invite_emails' => [
             'owner' => 'owner_id',
             'shared' => 'assessment_id',
