@@ -77,6 +77,8 @@ function SettingsPage() {
 
       <TurnSettingsCard />
 
+      <ExternalDatabaseCard />
+
 
 
       <Card>
