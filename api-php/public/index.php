@@ -47,8 +47,8 @@ if ($segments === ['health']) {
 }
 
 $auth = new Auth(
-    Env::require('SUPABASE_URL'),
-    Env::require('SUPABASE_ANON_KEY'),
+    $_SERVER['HTTP_X_IDENTITY_URL'] ?? Env::get('SUPABASE_URL', '') ?? '',
+    $_SERVER['HTTP_X_IDENTITY_KEY'] ?? Env::get('SUPABASE_ANON_KEY', '') ?? '',
     Env::require('APP_TOKEN'),
 );
 $auth->assertAppToken();
