@@ -36,10 +36,12 @@ export const checkExternalDatabase = createServerFn({ method: "GET" })
           : "El servidor externo respondió, pero no está listo.",
       };
     } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      console.error("[external-api] health check falló:", detail);
       const message =
         error instanceof ExternalApiError
           ? error.message
-          : "No se ha podido contactar con el servidor externo.";
+          : `No se ha podido contactar con el servidor externo: ${detail}`;
       return { configured: true as const, ok: false, message };
     }
   });
