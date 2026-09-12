@@ -57,14 +57,14 @@ export const getIntegratedReport = createServerFn({ method: "POST" })
           .limit(20);
         const ref = cap.started_at ?? cap.created_at;
         const best = (candidates ?? [])
-          .map((s) => ({
+          .map((s: any) => ({
             s,
             dist:
               ref && s.started_at
                 ? Math.abs(new Date(s.started_at).getTime() - new Date(ref).getTime())
                 : Number.POSITIVE_INFINITY,
           }))
-          .sort((a, b) => a.dist - b.dist)[0];
+          .sort((a: any, b: any) => a.dist - b.dist)[0];
         if (!best || best.dist > 6 * 3600 * 1000) return null;
         gameSessionId = best.s.id;
       } else {
