@@ -235,8 +235,9 @@ final class Repo
         $sets = [];
         $params = ['id' => $id];
         if ($scope !== null) {
-            $params['owner'] = $userId;
+            $params = array_merge($params, $this->scopeParams($meta, (string) $userId));
         }
+
         foreach ($meta['updatable'] as $column) {
             if (!array_key_exists($column, $input)) {
                 continue;
