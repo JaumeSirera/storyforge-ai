@@ -95,7 +95,9 @@ async function request<T>(options: RequestOptions): Promise<T> {
     );
   }
 
-  return (parsed as { data: T } | null)?.data as T;
+  const payload = parsed as { data?: T } | null;
+  // Algunos endpoints (health) responden en la raíz, sin envoltorio "data".
+  return (payload && "data" in payload ? payload.data : (parsed as T)) as T;
 }
 
 export const externalApi = {
