@@ -58,7 +58,7 @@ function wrap<T>(client: T, service: boolean): T {
 }
 
 /** Cliente para las consultas del usuario firmado. */
-export function assessDb<T>(context: { supabase: T }): T {
+export function assessDb(context: { supabase: any }): any {
   if (!isExternalApiEnabled()) return context.supabase;
   return wrap(context.supabase, false);
 }
