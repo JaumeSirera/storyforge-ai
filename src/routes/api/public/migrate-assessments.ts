@@ -5,6 +5,13 @@ import { createFileRoute } from "@tanstack/react-router";
  * Protegida con la clave compartida (X-App-Token) del servidor externo.
  */
 const TABLES = [
+  "simulations",
+  "simulation_characters",
+  "sessions",
+  "simulation_invitations",
+  "simulation_revisions",
+  "report_email_log",
+  "usage_events",
   "assessments",
   "assessment_submissions",
   "assessment_candidates",
@@ -19,7 +26,7 @@ const TABLES = [
 type Table = (typeof TABLES)[number];
 
 /** Tablas de solo escritura: no se pueden actualizar una vez copiadas. */
-const IMMUTABLE: ReadonlySet<string> = new Set(["question_bank_versions", "exam_audit_log"]);
+const IMMUTABLE: ReadonlySet<string> = new Set(["question_bank_versions", "exam_audit_log", "simulation_revisions"]);
 
 export const Route = createFileRoute("/api/public/migrate-assessments")({
   server: {
