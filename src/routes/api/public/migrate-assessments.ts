@@ -59,6 +59,7 @@ export const Route = createFileRoute("/api/public/migrate-assessments")({
                 .catch(() => null);
 
               if (existing && existing["id"]) {
+                if (IMMUTABLE.has(table)) continue;
                 await externalApi.update("", table as Table, id, row);
                 entry.updated += 1;
                 continue;
@@ -66,7 +67,9 @@ export const Route = createFileRoute("/api/public/migrate-assessments")({
 
               await externalApi.create("", table as Table, row);
               entry.copied += 1;
-              await externalApi.update("", table as Table, id, row).catch(() => undefined);
+              if (!IMMUTABLE.has(table)) {
+                await externalApi.update("", table as Table, id, row).catch(() => undefined);
+              }
             } catch (err) {
               entry.failed += 1;
               const message = err instanceof Error ? err.message : String(err);
