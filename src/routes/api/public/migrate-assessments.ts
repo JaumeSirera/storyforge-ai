@@ -6,8 +6,8 @@ import { createFileRoute } from "@tanstack/react-router";
  */
 const TABLES = [
   "assessments",
-  "assessment_candidates",
   "assessment_submissions",
+  "assessment_candidates",
   "assessment_annotations",
   "assessment_collaborators",
   "question_bank_items",
@@ -17,6 +17,9 @@ const TABLES = [
 ] as const;
 
 type Table = (typeof TABLES)[number];
+
+/** Tablas de solo escritura: no se pueden actualizar una vez copiadas. */
+const IMMUTABLE: ReadonlySet<string> = new Set(["question_bank_versions", "exam_audit_log"]);
 
 export const Route = createFileRoute("/api/public/migrate-assessments")({
   server: {
