@@ -89,6 +89,62 @@ final class Repo
             'updatable' => [],
             'immutable' => true,
         ],
+        'simulations' => [
+            'owner' => 'owner_id',
+            'columns' => ['id', 'owner_id', 'title', 'objective', 'prompt', 'topic', 'duration_min', 'status', 'is_public', 'cover_image_url', 'story', 'evaluation_criteria', 'videos', 'candidate_fields', 'area_key', 'created_at', 'updated_at'],
+            'json' => ['story', 'evaluation_criteria', 'videos', 'candidate_fields'],
+            'insertable' => ['id', 'title', 'objective', 'prompt', 'topic', 'duration_min', 'status', 'is_public', 'cover_image_url', 'story', 'evaluation_criteria', 'videos', 'candidate_fields', 'area_key'],
+            'updatable' => ['title', 'objective', 'prompt', 'topic', 'duration_min', 'status', 'is_public', 'cover_image_url', 'story', 'evaluation_criteria', 'videos', 'candidate_fields', 'area_key'],
+            'defaults' => ['story' => [], 'evaluation_criteria' => [], 'videos' => [], 'candidate_fields' => []],
+        ],
+        'simulation_characters' => [
+            'owner' => 'user_id',
+            'columns' => ['id', 'user_id', 'simulation_id', 'name', 'description', 'image_path', 'consent_acknowledged', 'created_at', 'updated_at'],
+            'json' => [],
+            'insertable' => ['id', 'simulation_id', 'name', 'description', 'image_path', 'consent_acknowledged'],
+            'updatable' => ['simulation_id', 'name', 'description', 'image_path', 'consent_acknowledged'],
+        ],
+        'simulation_revisions' => [
+            'owner' => 'actor_id',
+            'shared' => 'simulation_id',
+            'columns' => ['id', 'simulation_id', 'actor_id', 'action', 'from_status', 'to_status', 'note', 'summary', 'snapshot', 'created_at'],
+            'json' => ['summary', 'snapshot'],
+            'insertable' => ['id', 'simulation_id', 'action', 'from_status', 'to_status', 'note', 'summary', 'snapshot'],
+            'defaults' => ['summary' => [], 'snapshot' => []],
+            'updatable' => [],
+            'immutable' => true,
+        ],
+        'simulation_invitations' => [
+            'owner' => 'created_by',
+            'shared' => 'simulation_id',
+            'columns' => ['id', 'simulation_id', 'token', 'note', 'expires_at', 'max_uses', 'uses_count', 'revoked_at', 'created_by', 'created_at'],
+            'json' => [],
+            'insertable' => ['id', 'simulation_id', 'token', 'note', 'expires_at', 'max_uses', 'uses_count'],
+            'updatable' => ['note', 'expires_at', 'max_uses', 'uses_count', 'revoked_at'],
+        ],
+        'sessions' => [
+            'owner' => 'user_id',
+            'shared' => 'simulation_id',
+            'columns' => ['id', 'simulation_id', 'user_id', 'current_node_id', 'score', 'stars', 'achievements', 'answers', 'competency_scores', 'report', 'started_at', 'completed_at', 'updated_at', 'candidate_name', 'candidate_email', 'candidate_fields_data', 'admin_feedback', 'admin_feedback_at', 'report_email_sent_at', 'report_email_to'],
+            'json' => ['achievements', 'answers', 'competency_scores', 'report', 'candidate_fields_data'],
+            'insertable' => ['id', 'simulation_id', 'current_node_id', 'score', 'stars', 'achievements', 'answers', 'competency_scores', 'report', 'started_at', 'completed_at', 'candidate_name', 'candidate_email', 'candidate_fields_data'],
+            'defaults' => ['achievements' => [], 'answers' => [], 'competency_scores' => [], 'candidate_fields_data' => []],
+            'updatable' => ['current_node_id', 'score', 'stars', 'achievements', 'answers', 'competency_scores', 'report', 'completed_at', 'candidate_name', 'candidate_email', 'candidate_fields_data', 'admin_feedback', 'admin_feedback_at', 'report_email_sent_at', 'report_email_to'],
+        ],
+        'report_email_log' => [
+            'owner' => 'owner_id',
+            'columns' => ['id', 'session_id', 'simulation_id', 'owner_id', 'recipient', 'subject', 'status', 'attempts', 'error_message', 'auto', 'created_at', 'updated_at'],
+            'json' => [],
+            'insertable' => ['id', 'session_id', 'simulation_id', 'recipient', 'subject', 'status', 'attempts', 'error_message', 'auto'],
+            'updatable' => ['status', 'attempts', 'error_message'],
+        ],
+        'usage_events' => [
+            'owner' => 'user_id',
+            'columns' => ['id', 'user_id', 'simulation_id', 'action', 'provider', 'model', 'input_tokens', 'output_tokens', 'seconds', 'characters', 'units', 'cost_raw_cents', 'margin_pct', 'total_cents', 'pays_platform', 'billed', 'metadata', 'created_at'],
+            'json' => ['metadata'],
+            'insertable' => ['id', 'user_id', 'simulation_id', 'action', 'provider', 'model', 'input_tokens', 'output_tokens', 'seconds', 'characters', 'units', 'cost_raw_cents', 'margin_pct', 'total_cents', 'pays_platform', 'billed', 'metadata'],
+            'updatable' => ['billed'],
+        ],
     ];
 
     public function __construct(private Db $db)
@@ -319,6 +375,9 @@ final class Repo
         }
         if ($shared === 'assessment_id') {
             return "({$owner} OR `assessment_id` IN (SELECT `assessment_id` FROM `assessment_collaborators` WHERE `user_id` = :owner2))";
+        }
+        if ($shared === 'simulation_id') {
+            return "({$owner} OR `simulation_id` IN (SELECT `id` FROM `simulations` WHERE `owner_id` = :owner2))";
         }
         if ($shared === 'submission_id') {
             return "({$owner} OR `submission_id` IN (SELECT s.`id` FROM `assessment_submissions` s"

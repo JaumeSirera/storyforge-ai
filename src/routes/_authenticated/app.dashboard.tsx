@@ -47,8 +47,8 @@ function Dashboard() {
   const completedCount = (sess.data ?? []).filter((s: any) => !!s.completed_at).length;
   const inProgressCount = (sess.data ?? []).length - completedCount;
 
-  const totalScore = (sess.data ?? []).reduce((acc, s: any) => acc + (s.score ?? 0), 0);
-  const totalStars = (sess.data ?? []).reduce((acc, s: any) => acc + (s.stars ?? 0), 0);
+  const totalScore = (sess.data ?? []).reduce((acc: number, s: any) => acc + (s.score ?? 0), 0);
+  const totalStars = (sess.data ?? []).reduce((acc: number, s: any) => acc + (s.stars ?? 0), 0);
 
   return (
     <div className="space-y-8">

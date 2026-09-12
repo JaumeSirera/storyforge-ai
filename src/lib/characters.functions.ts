@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { loadUserKeys } from "./user-keys.functions";
+import { xdb, xAdminDb } from "./assessments-repo.server";
 
 const SIGNED_URL_TTL = 60 * 60 * 24 * 30; // 30 días
 
@@ -18,13 +19,13 @@ export interface CharacterDTO {
 export const listCharacters = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<CharacterDTO[]> => {
-    const { data, error } = await context.supabase
+    const { data, error } = await xdb(context)
       .from("simulation_characters")
       .select("id, name, description, image_path, consent_acknowledged, created_at")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     const results: CharacterDTO[] = [];
     for (const row of data ?? []) {
       const { data: signed } = await supabaseAdmin.storage
@@ -70,14 +71,14 @@ export const createCharacter = createServerFn({ method: "POST" })
     const { contentType, buffer, ext } = parseDataUrl(data.imageDataUrl);
     if (buffer.byteLength > 8 * 1024 * 1024) throw new Error("La imagen supera 8 MB");
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     const path = `${context.userId}/${crypto.randomUUID()}.${ext}`;
     const { error: upErr } = await supabaseAdmin.storage
       .from("characters")
       .upload(path, buffer, { contentType, upsert: false });
     if (upErr) throw new Error(upErr.message);
 
-    const { data: inserted, error } = await context.supabase
+    const { data: inserted, error } = await xdb(context)
       .from("simulation_characters")
       .insert({
         user_id: context.userId,
@@ -111,20 +112,20 @@ export const deleteCharacter = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => DeleteInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { data: row } = await context.supabase
+    const { data: row } = await xdb(context)
       .from("simulation_characters")
       .select("image_path")
       .eq("id", data.id)
       .maybeSingle();
 
-    const { error } = await context.supabase
+    const { error } = await xdb(context)
       .from("simulation_characters")
       .delete()
       .eq("id", data.id);
     if (error) throw new Error(error.message);
 
     if (row?.image_path) {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const supabaseAdmin = await xAdminDb();
       await supabaseAdmin.storage.from("characters").remove([row.image_path]);
     }
     return { ok: true };
@@ -145,7 +146,7 @@ export const generateCharacterImage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => GenerateInput.parse(input))
   .handler(async ({ data, context }): Promise<{ imageDataUrl: string; model: string }> => {
-    const keys = await loadUserKeys(context.supabase, context.userId);
+    const keys = await loadUserKeys(xdb(context), context.userId);
     if (!keys.geminiKey) {
       throw new Error("Configura tu clave de Google Gemini en Ajustes para generar imágenes.");
     }

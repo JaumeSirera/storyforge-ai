@@ -6,6 +6,7 @@
  * Records one billable event per AI action and updates the user's running balance.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { xAdminDb } from "./assessments-repo.server";
 
 export type UsageAction = "text" | "image" | "video" | "lipsync" | "tts";
 export type UsageProvider = "openai" | "gemini" | "replicate" | "elevenlabs" | "lovable";
@@ -96,7 +97,8 @@ export async function recordUsage(input: RecordUsageInput): Promise<void> {
     const marginCents = rawCents * (marginPct / 100);
     const totalCents = billableBase + marginCents;
 
-    const { error: insertErr } = await supabaseAdmin.from("usage_events").insert({
+    const usageDb = await xAdminDb();
+    const { error: insertErr } = await usageDb.from("usage_events").insert({
       user_id: input.userId,
       simulation_id: input.simulationId ?? null,
       action: input.action,

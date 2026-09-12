@@ -1,16 +1,17 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { xdb, xAdminDb } from "./assessments-repo.server";
 
 /** Guardián: verifica que el usuario autenticado es admin y devuelve el cliente admin. */
 async function ensureAdmin(context: { supabase: any; userId: string }) {
-  const { data, error } = await context.supabase.rpc("has_role", {
+  const { data, error } = await xdb(context).rpc("has_role", {
     _user_id: context.userId,
     _role: "admin",
   });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden");
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const supabaseAdmin = await xAdminDb();
   return supabaseAdmin;
 }
 
@@ -18,7 +19,7 @@ async function ensureAdmin(context: { supabase: any; userId: string }) {
 export const getMyAdminStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data } = await context.supabase.rpc("has_role", {
+    const { data } = await xdb(context).rpc("has_role", {
       _user_id: context.userId,
       _role: "admin",
     });

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { runWithTextModelFallback } from "./ai-gateway.server";
 import { AI_MODEL_IDS, DEFAULT_AI_MODEL } from "./ai-models";
 import { loadUserKeys } from "./user-keys.functions";
+import { xdb, xAdminDb } from "./assessments-repo.server";
 
 
 // ---------- Generate a simulation with AI ----------
@@ -417,7 +418,7 @@ export const generateSimulation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => GenerateInput.parse(input))
   .handler(async ({ data, context }) => {
-    const userKeys = await loadUserKeys(context.supabase, context.userId);
+    const userKeys = await loadUserKeys(xdb(context), context.userId);
     const sanitizedPrompt = (sanitizeCreatorPrompt(data.prompt) || data.prompt).slice(0, 40000);
     const generationData = { ...data, prompt: sanitizedPrompt };
 
@@ -555,7 +556,7 @@ Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
     };
 
     // Persist the simulation immediately as draft, owned by the caller.
-    const { data: inserted, error } = await context.supabase
+    const { data: inserted, error } = await xdb(context)
       .from("simulations")
       .insert({
         owner_id: context.userId,
@@ -584,7 +585,7 @@ Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
 export const listMySimulations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+    const { data, error } = await xdb(context)
       .from("simulations")
       .select("id,title,objective,topic,status,is_public,created_at,duration_min")
       .eq("owner_id", context.userId)
@@ -599,7 +600,7 @@ export const getSimulation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: sim, error } = await context.supabase
+    const { data: sim, error } = await xdb(context)
       .from("simulations")
       .select("*")
       .eq("id", data.id)
@@ -615,7 +616,7 @@ export const deleteSimulation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await xdb(context)
       .from("simulations")
       .delete()
       .eq("id", data.id)
@@ -632,7 +633,7 @@ export const setSimulationPublic = createServerFn({ method: "POST" })
     z.object({ id: z.string().uuid(), isPublic: z.boolean() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await xdb(context)
       .from("simulations")
       .update({ is_public: data.isPublic })
       .eq("id", data.id)
@@ -821,7 +822,7 @@ export const updateSimulationStory = createServerFn({ method: "POST" })
 
 
     // Block edits when the simulation is locked (in_review or published) and load previous snapshot for diffing.
-    const { data: current, error: readErr } = await context.supabase
+    const { data: current, error: readErr } = await xdb(context)
       .from("simulations")
       .select("status, owner_id, story, evaluation_criteria")
       .eq("id", data.id)
@@ -835,7 +836,7 @@ export const updateSimulationStory = createServerFn({ method: "POST" })
       );
     }
 
-    const { error } = await context.supabase
+    const { error } = await xdb(context)
       .from("simulations")
       .update({
         story: data.story as any,
@@ -879,7 +880,7 @@ async function logRevision(
     snapshot?: Record<string, unknown>;
   },
 ) {
-  await context.supabase.from("simulation_revisions").insert({
+  await xdb(context).from("simulation_revisions").insert({
     simulation_id: simulationId,
     actor_id: context.userId,
     action: entry.action,
@@ -955,7 +956,7 @@ async function setStatus(
   action: "submit" | "publish" | "revert",
   note?: string | null,
 ) {
-  const { data: current, error: readErr } = await context.supabase
+  const { data: current, error: readErr } = await xdb(context)
     .from("simulations")
     .select("status, owner_id, story, evaluation_criteria")
     .eq("id", id)
@@ -968,7 +969,7 @@ async function setStatus(
       `No se puede pasar a "${patch.status}" desde el estado actual "${current.status}".`,
     );
   }
-  const { error } = await context.supabase
+  const { error } = await xdb(context)
     .from("simulations")
     .update(patch)
     .eq("id", id)
@@ -1034,7 +1035,7 @@ export const listPreviewDrafts = createServerFn({ method: "POST" })
     z.object({ simulationId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    const { data: rows, error } = await xdb(context)
       .from("sessions")
       .select("id, score, current_node_id, started_at, updated_at, answers, achievements")
       .eq("simulation_id", data.simulationId)
@@ -1054,7 +1055,7 @@ export const listSimulationHistory = createServerFn({ method: "POST" })
     z.object({ simulationId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    const { data: rows, error } = await xdb(context)
       .from("simulation_revisions")
       .select("id, actor_id, action, from_status, to_status, note, summary, created_at")
       .eq("simulation_id", data.simulationId)
@@ -1064,7 +1065,7 @@ export const listSimulationHistory = createServerFn({ method: "POST" })
     const actorIds = Array.from(new Set((rows ?? []).map((r: any) => r.actor_id)));
     let actors: Record<string, { full_name: string | null; email: string | null }> = {};
     if (actorIds.length > 0) {
-      const { data: profiles } = await context.supabase
+      const { data: profiles } = await xdb(context)
         .from("profiles")
         .select("id, full_name, email")
         .in("id", actorIds);

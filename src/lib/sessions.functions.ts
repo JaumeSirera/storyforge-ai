@@ -4,6 +4,7 @@ import { generateText, Output } from "ai";
 import { z } from "zod";
 import { runWithTextModelFallback } from "./ai-gateway.server";
 import { loadUserKeys } from "./user-keys.functions";
+import { xdb, xAdminDb } from "./assessments-repo.server";
 
 // Start a new session for a simulation.
 export const startSession = createServerFn({ method: "POST" })
@@ -14,7 +15,7 @@ export const startSession = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     // Modo pruebas: cualquier participante autenticado puede jugar, incluso
     // borradores (RLS los oculta a quien no es propietario).
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     const { data: sim, error: simErr } = await supabaseAdmin
       .from("simulations")
       .select("id, story")
@@ -26,7 +27,7 @@ export const startSession = createServerFn({ method: "POST" })
     const startId = (sim.story as { startNodeId?: string })?.startNodeId;
     if (!startId) throw new Error("La simulación no tiene nodo inicial");
 
-    const { data: sess, error } = await context.supabase
+    const { data: sess, error } = await xdb(context)
       .from("sessions")
       .insert({
         simulation_id: data.simulationId,
@@ -49,7 +50,7 @@ export const getSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: sess, error } = await context.supabase
+    const { data: sess, error } = await xdb(context)
       .from("sessions")
       .select("*, simulation:simulations(*)")
       .eq("id", data.id)
@@ -72,7 +73,7 @@ export const submitAnswer = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => AnswerInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { data: sess, error } = await context.supabase
+    const { data: sess, error } = await xdb(context)
       .from("sessions")
       .select("*, simulation:simulations(story)")
       .eq("id", data.sessionId)
@@ -144,7 +145,7 @@ export const submitAnswer = createServerFn({ method: "POST" })
     const completed = !stayInScene && (!nextNode || nextNode.isEnding);
     const completedAt = completed && nextNode ? new Date().toISOString() : null;
 
-    const { error: updErr } = await context.supabase
+    const { error: updErr } = await xdb(context)
       .from("sessions")
       .update({
         answers: answers as any,
@@ -179,7 +180,7 @@ export const returnToNode = createServerFn({ method: "POST" })
     z.object({ sessionId: z.string().uuid(), nodeId: z.string() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: sess, error } = await context.supabase
+    const { data: sess, error } = await xdb(context)
       .from("sessions")
       .select("simulation:simulations(story)")
       .eq("id", data.sessionId)
@@ -189,7 +190,7 @@ export const returnToNode = createServerFn({ method: "POST" })
     const story = (sess.simulation as { story: { nodes: Record<string, any> } }).story;
     if (!story?.nodes?.[data.nodeId]) throw new Error("Nodo no encontrado");
 
-    const { error: updErr } = await context.supabase
+    const { error: updErr } = await xdb(context)
       .from("sessions")
       .update({ current_node_id: data.nodeId })
       .eq("id", data.sessionId)
@@ -206,7 +207,7 @@ export const abortSession = createServerFn({ method: "POST" })
     z.object({ sessionId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: sess, error } = await context.supabase
+    const { data: sess, error } = await xdb(context)
       .from("sessions")
       .select("id, completed_at")
       .eq("id", data.sessionId)
@@ -216,7 +217,7 @@ export const abortSession = createServerFn({ method: "POST" })
     if (!sess) throw new Error("Sesión no encontrada");
     if (sess.completed_at) return { ok: true, alreadyCompleted: true };
 
-    const { error: updErr } = await context.supabase
+    const { error: updErr } = await xdb(context)
       .from("sessions")
       .update({ completed_at: new Date().toISOString(), current_node_id: null })
       .eq("id", data.sessionId)
@@ -286,7 +287,7 @@ export const generateReport = createServerFn({ method: "POST" })
     z.object({ sessionId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: sess, error } = await context.supabase
+    const { data: sess, error } = await xdb(context)
       .from("sessions")
       .select("*, simulation:simulations(title,objective,evaluation_criteria)")
       .eq("id", data.sessionId)
@@ -296,7 +297,7 @@ export const generateReport = createServerFn({ method: "POST" })
 
     if (sess.report) return sess.report;
 
-    const userKeys = await loadUserKeys(context.supabase, context.userId);
+    const userKeys = await loadUserKeys(xdb(context), context.userId);
 
     const sim = sess.simulation as {
       title: string;
@@ -396,7 +397,7 @@ Genera el veredicto (apto / apto_con_reservas / no_apto), un resumen ejecutivo (
       competencyScores: comp,
     };
 
-    const { error: updErr } = await context.supabase
+    const { error: updErr } = await xdb(context)
       .from("sessions")
       .update({
         report: fullReport,
@@ -415,7 +416,7 @@ Genera el veredicto (apto / apto_con_reservas / no_apto), un resumen ejecutivo (
 export const listMySessions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+    const { data, error } = await xdb(context)
       .from("sessions")
       .select(
         "id, score, stars, started_at, completed_at, admin_feedback, admin_feedback_at, simulation:simulations(title)",
@@ -455,7 +456,7 @@ export const savePreviewAsDraft = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => SavePreviewDraftInput.parse(input))
   .handler(async ({ data, context }) => {
     // Confirm the caller owns the simulation (preview drafts only for owners).
-    const { data: sim, error: simErr } = await context.supabase
+    const { data: sim, error: simErr } = await xdb(context)
       .from("simulations")
       .select("id, owner_id")
       .eq("id", data.simulationId)
@@ -474,7 +475,7 @@ export const savePreviewAsDraft = createServerFn({ method: "POST" })
     const achievements = ["__preview_draft__"];
 
     if (data.resumeSessionId) {
-      const { error: updErr } = await context.supabase
+      const { error: updErr } = await xdb(context)
         .from("sessions")
         .update({
           current_node_id: data.currentNodeId,
@@ -491,7 +492,7 @@ export const savePreviewAsDraft = createServerFn({ method: "POST" })
       return { id: data.resumeSessionId };
     }
 
-    const { data: sess, error } = await context.supabase
+    const { data: sess, error } = await xdb(context)
       .from("sessions")
       .insert({
         simulation_id: data.simulationId,

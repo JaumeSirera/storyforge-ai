@@ -184,3 +184,147 @@ CREATE TABLE IF NOT EXISTS candidate_invite_emails (
   CONSTRAINT fk_invite_assessment FOREIGN KEY (assessment_id)
     REFERENCES assessments (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------------
+-- Fase 2: simulaciones, partidas, informes y consumo de IA.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS simulations (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  owner_id CHAR(36) NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  objective TEXT NOT NULL,
+  prompt TEXT NOT NULL,
+  topic VARCHAR(200) NULL,
+  duration_min INT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'draft',
+  is_public TINYINT(1) NOT NULL DEFAULT 0,
+  cover_image_url TEXT NULL,
+  story JSON NOT NULL,
+  evaluation_criteria JSON NOT NULL,
+  videos JSON NOT NULL,
+  candidate_fields JSON NOT NULL,
+  area_key VARCHAR(80) NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  KEY idx_simulations_owner (owner_id, created_at),
+  KEY idx_simulations_public (is_public, status, updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS simulation_characters (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  user_id CHAR(36) NOT NULL,
+  simulation_id CHAR(36) NULL,
+  name VARCHAR(200) NOT NULL,
+  description TEXT NULL,
+  image_path VARCHAR(500) NOT NULL,
+  consent_acknowledged TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  KEY idx_characters_user (user_id, created_at),
+  CONSTRAINT fk_characters_simulation FOREIGN KEY (simulation_id)
+    REFERENCES simulations (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS sessions (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  simulation_id CHAR(36) NOT NULL,
+  user_id CHAR(36) NOT NULL,
+  current_node_id VARCHAR(120) NULL,
+  score INT NOT NULL DEFAULT 0,
+  stars INT NOT NULL DEFAULT 0,
+  achievements JSON NOT NULL,
+  answers JSON NOT NULL,
+  competency_scores JSON NOT NULL,
+  report JSON NULL,
+  candidate_name VARCHAR(200) NULL,
+  candidate_email VARCHAR(320) NULL,
+  candidate_fields_data JSON NOT NULL,
+  admin_feedback TEXT NULL,
+  admin_feedback_at TIMESTAMP(3) NULL,
+  report_email_sent_at TIMESTAMP(3) NULL,
+  report_email_to VARCHAR(320) NULL,
+  started_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  completed_at TIMESTAMP(3) NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  KEY idx_sessions_user (user_id, created_at),
+  KEY idx_sessions_simulation (simulation_id, created_at),
+  CONSTRAINT fk_sessions_simulation FOREIGN KEY (simulation_id)
+    REFERENCES simulations (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS simulation_invitations (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  simulation_id CHAR(36) NOT NULL,
+  token VARCHAR(120) NOT NULL,
+  note TEXT NULL,
+  expires_at TIMESTAMP(3) NULL,
+  max_uses INT NULL,
+  uses_count INT NOT NULL DEFAULT 0,
+  revoked_at TIMESTAMP(3) NULL,
+  created_by CHAR(36) NOT NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  UNIQUE KEY uq_sim_invitations_token (token),
+  KEY idx_sim_invitations_simulation (simulation_id, created_at),
+  CONSTRAINT fk_sim_invitations_simulation FOREIGN KEY (simulation_id)
+    REFERENCES simulations (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS simulation_revisions (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  simulation_id CHAR(36) NOT NULL,
+  actor_id CHAR(36) NOT NULL,
+  action VARCHAR(60) NOT NULL,
+  from_status VARCHAR(30) NULL,
+  to_status VARCHAR(30) NULL,
+  note TEXT NULL,
+  summary JSON NOT NULL,
+  snapshot JSON NOT NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  KEY idx_sim_revisions_simulation (simulation_id, created_at),
+  CONSTRAINT fk_sim_revisions_simulation FOREIGN KEY (simulation_id)
+    REFERENCES simulations (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS report_email_log (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  session_id CHAR(36) NOT NULL,
+  simulation_id CHAR(36) NULL,
+  owner_id CHAR(36) NOT NULL,
+  recipient VARCHAR(320) NOT NULL,
+  subject VARCHAR(300) NULL,
+  status VARCHAR(40) NOT NULL DEFAULT 'pending',
+  attempts INT NOT NULL DEFAULT 0,
+  error_message TEXT NULL,
+  auto TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  KEY idx_report_email_owner (owner_id, created_at),
+  KEY idx_report_email_session (session_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS usage_events (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  user_id CHAR(36) NOT NULL,
+  simulation_id CHAR(36) NULL,
+  action VARCHAR(30) NOT NULL,
+  provider VARCHAR(30) NOT NULL,
+  model VARCHAR(120) NULL,
+  input_tokens INT NULL,
+  output_tokens INT NULL,
+  seconds DECIMAL(12,3) NULL,
+  characters INT NULL,
+  units INT NULL,
+  cost_raw_cents DECIMAL(12,4) NOT NULL DEFAULT 0,
+  margin_pct DECIMAL(8,3) NOT NULL DEFAULT 0,
+  total_cents DECIMAL(12,4) NOT NULL DEFAULT 0,
+  pays_platform TINYINT(1) NOT NULL DEFAULT 0,
+  billed TINYINT(1) NOT NULL DEFAULT 0,
+  metadata JSON NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  KEY idx_usage_user (user_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

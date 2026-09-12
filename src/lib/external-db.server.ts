@@ -17,7 +17,22 @@ type Res<T> = { data: T; error: { message: string } | null };
 type Filter =
   | { op: "eq"; column: string; value: unknown }
   | { op: "in"; column: string; values: unknown[] }
-  | { op: "ilike"; column: string; pattern: string };
+  | { op: "ilike"; column: string; pattern: string }
+  | { op: "isnull"; column: string }
+  | { op: "notnull"; column: string };
+
+/** Relación incrustada del estilo `alias:tabla(columnas)`. */
+interface Embed {
+  alias: string;
+  table: string;
+  fk: string;
+}
+
+const EMBED_RE = /(?:(\w+)\s*:\s*)?(\w+)\s*\(([^()]*)\)/g;
+
+function foreignKeyFor(table: string): string {
+  return `${table.replace(/ies$/, "y").replace(/s$/, "")}_id`;
+}
 
 type Mode = "select" | "insert" | "update" | "delete" | "upsert";
 
@@ -27,11 +42,20 @@ interface Ctx {
   service: boolean;
 }
 
+/** Normaliza para comparar: los booleanos llegan de MySQL como 1/0. */
+function norm(value: unknown): string {
+  if (value === true) return "1";
+  if (value === false) return "0";
+  return String(value ?? "");
+}
+
 function matches(row: Row, filters: Filter[]): boolean {
   return filters.every((f) => {
     const value = row[f.column];
-    if (f.op === "eq") return String(value ?? "") === String(f.value ?? "");
-    if (f.op === "in") return f.values.some((v) => String(v ?? "") === String(value ?? ""));
+    if (f.op === "isnull") return value === null || value === undefined;
+    if (f.op === "notnull") return value !== null && value !== undefined;
+    if (f.op === "eq") return norm(value) === norm(f.value);
+    if (f.op === "in") return f.values.some((v) => norm(v) === norm(value));
     const needle = f.pattern.replace(/%/g, "").toLowerCase();
     return String(value ?? "").toLowerCase().includes(needle);
   });
@@ -43,6 +67,7 @@ class ExternalQuery<T> implements PromiseLike<Res<T>> {
   private limitN: number | null = null;
   private wantSingle: false | "single" | "maybe" = false;
   private returnRows = true;
+  private embeds: Embed[] = [];
 
   constructor(
     private table: ExternalTable,
@@ -54,8 +79,14 @@ class ExternalQuery<T> implements PromiseLike<Res<T>> {
     if (mode !== "select") this.returnRows = false;
   }
 
-  select(_columns?: string) {
+  select(columns?: string) {
     this.returnRows = true;
+    this.embeds = [];
+    for (const match of (columns ?? "").matchAll(EMBED_RE)) {
+      const table = match[2] ?? "";
+      if (!table) continue;
+      this.embeds.push({ alias: match[1] ?? table, table, fk: foreignKeyFor(table) });
+    }
     return this as unknown as ExternalQuery<Row[]>;
   }
 
@@ -71,6 +102,17 @@ class ExternalQuery<T> implements PromiseLike<Res<T>> {
 
   ilike(column: string, pattern: string) {
     this.filters.push({ op: "ilike", column, pattern });
+    return this;
+  }
+
+  is(column: string, value: unknown) {
+    this.filters.push(value === null ? { op: "isnull", column } : { op: "eq", column, value });
+    return this;
+  }
+
+  not(column: string, operator: string, value: unknown) {
+    if (operator === "is" && value === null) this.filters.push({ op: "notnull", column });
+    else if (operator === "eq") this.filters.push({ op: "notnull", column });
     return this;
   }
 
@@ -108,7 +150,7 @@ class ExternalQuery<T> implements PromiseLike<Res<T>> {
   private async fetchRows(): Promise<Row[]> {
     const query: Record<string, string | number | boolean | undefined> = {};
     for (const f of this.filters) {
-      if (f.op === "eq") query[f.column] = String(f.value ?? "");
+      if (f.op === "eq") query[f.column] = norm(f.value);
     }
     if (this.orderBy) query["order"] = `${this.orderBy.column}.${this.orderBy.ascending ? "asc" : "desc"}`;
     query["limit"] = Math.min(200, this.limitN ?? 200);
@@ -128,9 +170,34 @@ class ExternalQuery<T> implements PromiseLike<Res<T>> {
     return rows.filter((row) => matches(row, this.filters));
   }
 
+  /** Rellena las relaciones incrustadas (`alias:tabla(...)`) con una consulta por fila. */
+  private async hydrate(rows: Row[]): Promise<Row[]> {
+    if (this.embeds.length === 0 || rows.length === 0) return rows;
+    const token = this.token();
+    for (const embed of this.embeds) {
+      const cache = new Map<string, Row | null>();
+      for (const row of rows) {
+        const id = row[embed.fk];
+        if (id === null || id === undefined || id === "") {
+          row[embed.alias] = null;
+          continue;
+        }
+        const key = String(id);
+        if (!cache.has(key)) {
+          const parent = await externalApi
+            .get<Row>(token, embed.table as ExternalResource, key)
+            .catch(() => null);
+          cache.set(key, parent ?? null);
+        }
+        row[embed.alias] = cache.get(key) ?? null;
+      }
+    }
+    return rows;
+  }
+
   private async run(): Promise<Res<T>> {
     try {
-      const rows = await this.execute();
+      const rows = await this.hydrate(await this.execute());
       const limited = this.limitN !== null ? rows.slice(0, this.limitN) : rows;
       if (this.wantSingle === "single") {
         if (limited.length === 0) {

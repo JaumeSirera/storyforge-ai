@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { xdb, xAdminDb } from "./assessments-repo.server";
 
 /** Start a session as a candidate, storing candidate info + custom fields. */
 const StartInput = z.object({
@@ -17,7 +18,7 @@ export const startCandidateSession = createServerFn({ method: "POST" })
     // Cualquier participante autenticado puede jugar la simulación, incluso si
     // aún es borrador o no es pública (modo pruebas). Leemos con privilegios de
     // servidor porque RLS oculta los borradores a quien no es propietario.
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     const { data: sim, error: simErr } = await supabaseAdmin
       .from("simulations")
       .select("id, story")
@@ -28,7 +29,7 @@ export const startCandidateSession = createServerFn({ method: "POST" })
     const startId = (sim.story as { startNodeId?: string })?.startNodeId;
     if (!startId) throw new Error("La simulación no tiene nodo inicial");
 
-    const { data: sess, error } = await context.supabase
+    const { data: sess, error } = await xdb(context)
       .from("sessions")
       .insert({
         simulation_id: data.simulationId,
@@ -54,7 +55,7 @@ export const listSimulationSessions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v: unknown) => z.object({ simulationId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
-    const { data: sim, error: sErr } = await context.supabase
+    const { data: sim, error: sErr } = await xdb(context)
       .from("simulations")
       .select("id, title, owner_id, candidate_fields")
       .eq("id", data.simulationId)
@@ -62,7 +63,7 @@ export const listSimulationSessions = createServerFn({ method: "POST" })
     if (sErr) throw new Error(sErr.message);
     if (!sim) throw new Error("Simulación no encontrada");
 
-    const { data: sessions, error } = await context.supabase
+    const { data: sessions, error } = await xdb(context)
       .from("sessions")
       .select(
         "id, user_id, candidate_name, candidate_email, candidate_fields_data, score, stars, started_at, completed_at, admin_feedback, admin_feedback_at, report, report_email_sent_at, report_email_to",
@@ -86,7 +87,7 @@ export const getSimulationSessionDetail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v: unknown) => z.object({ sessionId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
-    const { data: sess, error } = await context.supabase
+    const { data: sess, error } = await xdb(context)
       .from("sessions")
       .select("*, simulation:simulations(id, title, owner_id, objective, evaluation_criteria)")
       .eq("id", data.sessionId)
@@ -108,7 +109,7 @@ export const submitAdminFeedback = createServerFn({ method: "POST" })
       .parse(v),
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await xdb(context)
       .from("sessions")
       .update({
         admin_feedback: data.feedback || null,
@@ -131,7 +132,7 @@ export const markReportEmailSent = createServerFn({ method: "POST" })
       .parse(v),
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await xdb(context)
       .from("sessions")
       .update({
         report_email_sent_at: new Date().toISOString(),
@@ -160,7 +161,7 @@ export const updateCandidateFields = createServerFn({ method: "POST" })
       .parse(v),
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await xdb(context)
       .from("simulations")
       .update({ candidate_fields: data.fields as any })
       .eq("id", data.simulationId)
@@ -175,7 +176,7 @@ export const getPlayableSimulation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v: unknown) => z.object({ id: z.string().uuid() }).parse(v))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     const { data: sim, error } = await supabaseAdmin
       .from("simulations")
       .select(
