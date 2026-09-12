@@ -121,8 +121,9 @@ final class Repo
         $scope = $this->scopeWhere($resource, $meta, $userId);
         if ($scope !== null) {
             $where[] = $scope;
-            $params['owner'] = $userId;
+            $params = array_merge($params, $this->scopeParams($meta, (string) $userId));
         }
+
         foreach ($query as $key => $value) {
             if (!in_array($key, $columns, true)) {
                 continue;
