@@ -22,6 +22,14 @@ const EXTERNAL_TABLES = new Set<string>([
   "question_bank_versions",
   "candidate_invite_emails",
   "exam_audit_log",
+]);
+
+/**
+ * Fase 2 (simulaciones, partidas, informes y consumo). Solo se activa cuando
+ * el secreto EXTERNAL_API_PHASE2 vale "1", es decir, cuando el servidor propio
+ * ya tiene creadas estas tablas.
+ */
+const PHASE2_TABLES = new Set<string>([
   "simulations",
   "simulation_characters",
   "simulation_revisions",
@@ -30,6 +38,11 @@ const EXTERNAL_TABLES = new Set<string>([
   "report_email_log",
   "usage_events",
 ]);
+
+function isExternal(table: string): boolean {
+  if (EXTERNAL_TABLES.has(table)) return true;
+  return process.env["EXTERNAL_API_PHASE2"] === "1" && PHASE2_TABLES.has(table);
+}
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -53,7 +66,7 @@ function wrap<T extends object>(client: T, service: boolean): T {
     get(target, prop, receiver) {
       if (prop === "from") {
         return (table: string): any =>
-          EXTERNAL_TABLES.has(table)
+          isExternal(table)
             ? externalTable(table as ExternalResource, ctx)
             : (target as any).from(table);
       }
