@@ -32,7 +32,7 @@ function SimulationsList() {
   const statuses = useMemo(
     () =>
       Array.from(
-        new Set((sims.data ?? []).map((s: any) => String(s.status ?? "")).filter(Boolean)),
+        new Set<string>((sims.data ?? []).map((s: any) => String(s.status ?? "")).filter(Boolean)),
       ),
     [sims.data],
   );
