@@ -29,6 +29,8 @@ type AnyClient = {
   storage: unknown;
 };
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 function currentAccessToken(): string {
   try {
     return (getRequestHeader("authorization") ?? "").replace(/^Bearer\s+/i, "");
@@ -37,25 +39,26 @@ function currentAccessToken(): string {
   }
 }
 
-function wrap<T extends AnyClient>(client: T, service: boolean): T {
+function wrap<T>(client: T, service: boolean): T {
+  const base = client as unknown as AnyClient;
   const accessToken = service ? "" : currentAccessToken();
   const ctx = { accessToken, service: service || accessToken === "" };
   return {
-    ...client,
-    from(table: string) {
+    ...(base as object),
+    from(table: string): any {
       if (EXTERNAL_TABLES.has(table)) {
         return externalTable(table as ExternalResource, ctx);
       }
-      return client.from(table);
+      return base.from(table);
     },
     get storage() {
-      return client.storage;
+      return base.storage;
     },
   } as unknown as T;
 }
 
 /** Cliente para las consultas del usuario firmado. */
-export function assessDb<T extends AnyClient>(context: { supabase: T }): T {
+export function assessDb<T>(context: { supabase: T }): T {
   if (!isExternalApiEnabled()) return context.supabase;
   return wrap(context.supabase, false);
 }
@@ -64,5 +67,5 @@ export function assessDb<T extends AnyClient>(context: { supabase: T }): T {
 export async function assessAdminDb() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   if (!isExternalApiEnabled()) return supabaseAdmin;
-  return wrap(supabaseAdmin as unknown as AnyClient, true) as unknown as typeof supabaseAdmin;
+  return wrap(supabaseAdmin, true);
 }
