@@ -22,12 +22,14 @@ const EXTERNAL_TABLES = new Set<string>([
   "question_bank_versions",
   "candidate_invite_emails",
   "exam_audit_log",
+  "simulations",
+  "simulation_characters",
+  "simulation_revisions",
+  "simulation_invitations",
+  "sessions",
+  "report_email_log",
+  "usage_events",
 ]);
-
-type AnyClient = {
-  from: (table: string) => unknown;
-  storage: unknown;
-};
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -39,22 +41,26 @@ function currentAccessToken(): string {
   }
 }
 
-function wrap<T>(client: T, service: boolean): T {
-  const base = client as unknown as AnyClient;
+/**
+ * Devuelve un cliente con la misma forma que el de Lovable Cloud, pero que
+ * redirige a la base externa las tablas ya migradas. El resto (cuentas,
+ * archivos, correo, capturas) sigue igual.
+ */
+function wrap<T extends object>(client: T, service: boolean): T {
   const accessToken = service ? "" : currentAccessToken();
   const ctx = { accessToken, service: service || accessToken === "" };
-  return {
-    ...(base as object),
-    from(table: string): any {
-      if (EXTERNAL_TABLES.has(table)) {
-        return externalTable(table as ExternalResource, ctx);
+  return new Proxy(client, {
+    get(target, prop, receiver) {
+      if (prop === "from") {
+        return (table: string): any =>
+          EXTERNAL_TABLES.has(table)
+            ? externalTable(table as ExternalResource, ctx)
+            : (target as any).from(table);
       }
-      return base.from(table);
+      const value = Reflect.get(target, prop, receiver);
+      return typeof value === "function" ? (value as any).bind(target) : value;
     },
-    get storage() {
-      return base.storage;
-    },
-  } as unknown as T;
+  }) as T;
 }
 
 /** Cliente para las consultas del usuario firmado. */
@@ -69,3 +75,7 @@ export async function assessAdminDb() {
   if (!isExternalApiEnabled()) return supabaseAdmin;
   return wrap(supabaseAdmin, true);
 }
+
+/** Alias genéricos (evaluaciones, simulaciones, partidas, informes y consumo). */
+export const xdb = assessDb;
+export const xAdminDb = assessAdminDb;

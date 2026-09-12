@@ -17,7 +17,14 @@ export type ExternalResource =
   | "question_bank_items"
   | "question_bank_versions"
   | "candidate_invite_emails"
-  | "exam_audit_log";
+  | "exam_audit_log"
+  | "simulations"
+  | "simulation_characters"
+  | "simulation_revisions"
+  | "simulation_invitations"
+  | "sessions"
+  | "report_email_log"
+  | "usage_events";
 
 export interface ExternalApiConfig {
   baseUrl: string;
