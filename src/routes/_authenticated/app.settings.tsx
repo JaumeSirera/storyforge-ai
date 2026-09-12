@@ -6,6 +6,7 @@ import { getMyEmailSettings, saveMyEmailSettings } from "@/lib/email-settings.fu
 import { supabase } from "@/integrations/supabase/client";
 import { loadLogoDataUrl } from "@/lib/email-report";
 import { TurnSettingsCard } from "@/components/TurnSettingsCard";
+import { ExternalDatabaseCard } from "@/components/ExternalDatabaseCard";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
