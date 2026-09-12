@@ -29,13 +29,15 @@ final class Repo
             'json' => [],
             'insertable' => ['id', 'assessment_id', 'name', 'email', 'identifier', 'token', 'status', 'note', 'expires_at'],
             'updatable' => ['name', 'email', 'identifier', 'status', 'submission_id', 'expires_at', 'started_at', 'submitted_at', 'note', 'time_expired'],
+            'defaults' => ['note' => '', 'status' => 'pendiente'],
         ],
         'assessment_submissions' => [
             'owner' => 'owner_id',
             'shared' => 'assessment_id',
             'columns' => ['id', 'assessment_id', 'owner_id', 'candidate_name', 'candidate_identifier', 'source_kind', 'pages', 'extracted_text', 'handwriting', 'evaluation', 'score', 'max_score', 'status', 'error_message', 'graded_at', 'approval_status', 'approval_note', 'approved_by', 'approved_at', 'transcription_segments', 'scan_quality', 'ocr_updated_at', 'created_at', 'updated_at'],
             'json' => ['pages', 'handwriting', 'evaluation', 'transcription_segments', 'scan_quality'],
-            'insertable' => ['id', 'assessment_id', 'candidate_name', 'candidate_identifier', 'source_kind', 'pages', 'extracted_text', 'status'],
+            'insertable' => ['id', 'assessment_id', 'candidate_name', 'candidate_identifier', 'source_kind', 'pages', 'extracted_text', 'handwriting', 'evaluation', 'score', 'max_score', 'status', 'error_message', 'graded_at', 'approval_status', 'approval_note', 'approved_by', 'approved_at', 'transcription_segments', 'scan_quality', 'ocr_updated_at'],
+            'defaults' => ['approval_status' => 'pendiente', 'approval_note' => '', 'transcription_segments' => []],
             'updatable' => ['pages', 'extracted_text', 'handwriting', 'evaluation', 'score', 'max_score', 'status', 'error_message', 'graded_at', 'approval_status', 'approval_note', 'approved_by', 'approved_at', 'transcription_segments', 'scan_quality', 'ocr_updated_at'],
         ],
         'assessment_annotations' => [
@@ -45,6 +47,7 @@ final class Repo
             'json' => [],
             'insertable' => ['id', 'submission_id', 'page_path', 'page_index', 'kind', 'x', 'y', 'w', 'h', 'correction', 'comment'],
             'updatable' => ['kind', 'x', 'y', 'w', 'h', 'correction', 'comment'],
+            'defaults' => ['correction' => '', 'comment' => '', 'page_index' => 0],
         ],
         'assessment_collaborators' => [
             'owner' => 'owner_id',
@@ -66,6 +69,7 @@ final class Repo
             'columns' => ['id', 'item_id', 'owner_id', 'version', 'question', 'note', 'created_at'],
             'json' => ['question'],
             'insertable' => ['id', 'item_id', 'version', 'question', 'note'],
+            'defaults' => ['note' => ''],
             'updatable' => [],
             'immutable' => true,
         ],
@@ -203,6 +207,16 @@ final class Repo
             }
             $values[$column] = $this->encode($column, $input[$column], $meta['json']);
         }
+
+        // Columnas obligatorias sin valor: se rellenan con su valor por defecto.
+        /** @var array<string,mixed> $defaults */
+        $defaults = $meta['defaults'] ?? [];
+        foreach ($defaults as $column => $default) {
+            if (!array_key_exists($column, $values) || $values[$column] === null) {
+                $values[$column] = $this->encode($column, $default, $meta['json']);
+            }
+        }
+
 
         $names = array_keys($values);
         $sql = sprintf(
