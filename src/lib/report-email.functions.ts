@@ -1,13 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { xdb, xAdminDb } from "./assessments-repo.server";
 
 /** Historial de envíos del informe de una sesión (solo el propietario de la simulación). */
 export const listReportEmailLog = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v: unknown) => z.object({ sessionId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    const { data: rows, error } = await xdb(context)
       .from("report_email_log")
       .select("id, recipient, subject, status, attempts, error_message, auto, created_at, updated_at")
       .eq("session_id", data.sessionId)
@@ -30,7 +31,7 @@ export const logReportEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v: unknown) => LogInput.parse(v))
   .handler(async ({ data, context }) => {
-    const { data: sess, error: sErr } = await context.supabase
+    const { data: sess, error: sErr } = await xdb(context)
       .from("sessions")
       .select("id, simulation_id, simulation:simulations(owner_id)")
       .eq("id", data.sessionId)
@@ -41,7 +42,7 @@ export const logReportEmail = createServerFn({ method: "POST" })
       throw new Error("Solo el propietario de la simulación puede registrar envíos");
     }
 
-    const { data: existing } = await context.supabase
+    const { data: existing } = await xdb(context)
       .from("report_email_log")
       .select("id, attempts")
       .eq("session_id", data.sessionId)
@@ -52,7 +53,7 @@ export const logReportEmail = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (existing) {
-      const { error } = await context.supabase
+      const { error } = await xdb(context)
         .from("report_email_log")
         .update({
           status: data.status,
@@ -65,7 +66,7 @@ export const logReportEmail = createServerFn({ method: "POST" })
       return { id: existing.id };
     }
 
-    const { data: row, error } = await context.supabase
+    const { data: row, error } = await xdb(context)
       .from("report_email_log")
       .insert({
         session_id: data.sessionId,
@@ -92,7 +93,7 @@ export const queueAutoReportEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v: unknown) => z.object({ sessionId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
-    const { data: sess, error } = await context.supabase
+    const { data: sess, error } = await xdb(context)
       .from("sessions")
       .select("id, user_id, simulation_id, candidate_email, completed_at, simulation:simulations(owner_id, title)")
       .eq("id", data.sessionId)
@@ -108,7 +109,7 @@ export const queueAutoReportEmail = createServerFn({ method: "POST" })
     const to = (sess.candidate_email ?? "").trim();
     if (!to || !ownerId) return { queued: false, reason: "no_recipient" as const };
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
 
     const { data: cfg } = await supabaseAdmin
       .from("email_settings")
@@ -156,7 +157,7 @@ export const sendReportEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v: unknown) => SendInput.parse(v))
   .handler(async ({ data, context }) => {
-    const { data: sess, error: sErr } = await context.supabase
+    const { data: sess, error: sErr } = await xdb(context)
       .from("sessions")
       .select(
         "id, simulation_id, candidate_name, candidate_email, stars, score, admin_feedback, simulation:simulations(owner_id, title)",
@@ -170,7 +171,7 @@ export const sendReportEmail = createServerFn({ method: "POST" })
       throw new Error("Solo el propietario de la simulación puede enviar el informe");
     }
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     const { data: cfg } = await supabaseAdmin
       .from("email_settings")
       .select("subject_template, body_template, from_name, reply_to")

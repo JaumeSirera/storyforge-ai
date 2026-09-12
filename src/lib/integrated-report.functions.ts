@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
+import { xdb, xAdminDb } from "./assessments-repo.server";
   alignAnswersWithRecording,
   buildCompetencySignals,
   pickCaptureForSession,
@@ -34,7 +35,7 @@ export const getIntegratedReport = createServerFn({ method: "POST" })
     let linkedExplicitly = false;
 
     if (!gameSessionId && data.captureSessionId) {
-      const { data: cap, error } = await context.supabase
+      const { data: cap, error } = await xdb(context)
         .from("capture_sessions")
         .select(CAPTURE_COLUMNS)
         .eq("id", data.captureSessionId)
@@ -47,7 +48,7 @@ export const getIntegratedReport = createServerFn({ method: "POST" })
         gameSessionId = cap.game_session_id;
         linkedExplicitly = true;
       } else if (cap.simulation_id) {
-        const { data: candidates } = await context.supabase
+        const { data: candidates } = await xdb(context)
           .from("sessions")
           .select("id, started_at")
           .eq("simulation_id", cap.simulation_id)
@@ -73,7 +74,7 @@ export const getIntegratedReport = createServerFn({ method: "POST" })
 
     if (!gameSessionId) return null;
 
-    const { data: sess, error: sErr } = await context.supabase
+    const { data: sess, error: sErr } = await xdb(context)
       .from("sessions")
       .select(
         "id, simulation_id, score, stars, report, answers, competency_scores, started_at, completed_at, admin_feedback, candidate_name, candidate_email, simulation:simulations(id, owner_id, title, objective, evaluation_criteria)",
@@ -87,7 +88,7 @@ export const getIntegratedReport = createServerFn({ method: "POST" })
     if (!sim || sim.owner_id !== context.userId) return null;
 
     if (!captureRow) {
-      const { data: captures, error: cErr } = await context.supabase
+      const { data: captures, error: cErr } = await xdb(context)
         .from("capture_sessions")
         .select(CAPTURE_COLUMNS)
         .eq("owner_id", context.userId)
@@ -110,20 +111,20 @@ export const getIntegratedReport = createServerFn({ method: "POST" })
 
     if (captureRow) {
       const [analysisRes, segRes, partRes] = await Promise.all([
-        context.supabase
+        xdb(context)
           .from("capture_analyses")
           .select("metrics, interactions, insights, insights_generated_at")
           .eq("capture_session_id", captureRow.id)
           .eq("owner_id", context.userId)
           .maybeSingle(),
-        context.supabase
+        xdb(context)
           .from("capture_transcript_segments")
           .select("participant_id, speaker_label, start_sec, end_sec, text")
           .eq("capture_session_id", captureRow.id)
           .eq("owner_id", context.userId)
           .order("start_sec", { ascending: true })
           .limit(1500),
-        context.supabase
+        xdb(context)
           .from("capture_participants")
           .select("id, name, role")
           .eq("capture_session_id", captureRow.id)
@@ -199,7 +200,7 @@ export const linkCaptureGameSession = createServerFn({ method: "POST" })
       .parse(v),
   )
   .handler(async ({ data, context }) => {
-    const { data: sess } = await context.supabase
+    const { data: sess } = await xdb(context)
       .from("sessions")
       .select("id")
       .eq("id", data.gameSessionId)
@@ -207,7 +208,7 @@ export const linkCaptureGameSession = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!sess) return { linked: false as const, reason: "session_not_found" as const };
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
 
     const { data: cap } = await supabaseAdmin
       .from("capture_sessions")

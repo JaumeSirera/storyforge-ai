@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { xdb, xAdminDb } from "./assessments-repo.server";
 
 function newToken(len = 24) {
   const bytes = new Uint8Array(len);
@@ -16,7 +17,7 @@ export const listInvitations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v: unknown) => z.object({ simulationId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    const { data: rows, error } = await xdb(context)
       .from("simulation_invitations" as any)
       .select("*")
       .eq("simulation_id", data.simulationId)
@@ -44,7 +45,7 @@ export const createInvitation = createServerFn({ method: "POST" })
       ? new Date(Date.now() + data.expiresInDays * 86400_000).toISOString()
       : null;
     const token = newToken(28);
-    const { data: row, error } = await context.supabase
+    const { data: row, error } = await xdb(context)
       .from("simulation_invitations" as any)
       .insert({
         simulation_id: data.simulationId,
@@ -65,7 +66,7 @@ export const revokeInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v: unknown) => z.object({ id: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await xdb(context)
       .from("simulation_invitations" as any)
       .update({ revoked_at: new Date().toISOString() })
       .eq("id", data.id);
@@ -78,7 +79,7 @@ export const deleteInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v: unknown) => z.object({ id: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await xdb(context)
       .from("simulation_invitations" as any)
       .delete()
       .eq("id", data.id);
@@ -90,7 +91,7 @@ export const deleteInvitation = createServerFn({ method: "POST" })
 export const validateInvitation = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => z.object({ token: z.string().min(8).max(128) }).parse(v))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     const { data: inv, error } = await supabaseAdmin
       .from("simulation_invitations" as any)
       .select("*")
@@ -135,7 +136,7 @@ export const startInvitedSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v: unknown) => StartInvitedInput.parse(v))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     const { data: inv, error } = await supabaseAdmin
       .from("simulation_invitations" as any)
       .select("*")

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { loadUserKeys } from "./user-keys.functions";
+import { xdb, xAdminDb } from "./assessments-repo.server";
 
 const REPLICATE_DIRECT = "https://api.replicate.com/v1";
 const REPLICATE_GATEWAY = "https://connector-gateway.lovable.dev/replicate/v1";
@@ -74,12 +75,12 @@ export const startAiVideoGeneration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => StartInput.parse(input))
   .handler(async ({ data, context }) => {
-    const auth = await getReplicateAuth(context.supabase, context.userId);
+    const auth = await getReplicateAuth(xdb(context), context.userId);
     let imageUrl: string | null = null;
     let characterName: string | undefined;
 
     if (data.characterId) {
-      const { data: row, error } = await context.supabase
+      const { data: row, error } = await xdb(context)
         .from("simulation_characters")
         .select("name, image_path")
         .eq("id", data.characterId)
@@ -87,7 +88,7 @@ export const startAiVideoGeneration = createServerFn({ method: "POST" })
       if (error || !row) throw new Error("Personaje no encontrado");
       characterName = row.name;
 
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const supabaseAdmin = await xAdminDb();
       const { data: file, error: dlErr } = await supabaseAdmin.storage
         .from("characters")
         .download(row.image_path);
@@ -185,7 +186,7 @@ export const pollAiVideoGeneration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => PollInput.parse(input))
   .handler(async ({ data, context }): Promise<PollResult> => {
-    const auth = await getReplicateAuth(context.supabase, context.userId);
+    const auth = await getReplicateAuth(xdb(context), context.userId);
     const res = await fetch(`${auth.base}/predictions/${data.predictionId}`, {
       headers: auth.headers,
     });
@@ -231,7 +232,7 @@ export const pollAiVideoGeneration = createServerFn({ method: "POST" })
     const buf = new Uint8Array(await videoRes.arrayBuffer());
 
     const storagePath = `ai/${context.userId}/${data.simulationId}/${data.predictionId}.mp4`;
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     const { error: upErr } = await supabaseAdmin.storage
       .from("videos")
       .upload(storagePath, buf, { contentType: "video/mp4", upsert: true });

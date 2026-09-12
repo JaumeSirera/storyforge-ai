@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { xdb, xAdminDb } from "./assessments-repo.server";
 
 export interface BillingSummary {
   subscriptionStatus: string | null;
@@ -24,14 +25,14 @@ export interface BillingSummary {
 export const getMyBilling = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<BillingSummary> => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     const [{ data: pricing }, { data: billing }] = await Promise.all([
       supabaseAdmin
         .from("pricing_config")
         .select("subscription_included_cents, currency")
         .eq("id", true)
         .maybeSingle(),
-      context.supabase
+      xdb(context)
         .from("user_billing")
         .select("*")
         .eq("user_id", context.userId)
@@ -59,7 +60,7 @@ export const setDonationToCredits = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ enabled: z.boolean() }).parse(input))
   .handler(async ({ data, context }): Promise<{ ok: true; enabled: boolean }> => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     await supabaseAdmin
       .from("user_billing")
       .upsert(
@@ -77,7 +78,7 @@ export const listMyUsage = createServerFn({ method: "GET" })
     z.object({ limit: z.number().int().min(1).max(200).default(50) }).parse(input ?? {}),
   )
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    const { data: rows, error } = await xdb(context)
       .from("usage_events")
       .select("id, action, provider, model, input_tokens, output_tokens, seconds, characters, units, cost_raw_cents, margin_pct, total_cents, pays_platform, created_at")
       .eq("user_id", context.userId)
@@ -106,7 +107,7 @@ export const listMyPayments = createServerFn({ method: "GET" })
     z.object({ limit: z.number().int().min(1).max(500).default(100) }).parse(input ?? {}),
   )
   .handler(async ({ data, context }): Promise<PaymentRow[]> => {
-    const { data: rows, error } = await context.supabase
+    const { data: rows, error } = await xdb(context)
       .from("redsys_payments")
       .select("id, order_code, amount_cents, currency, kind, status, response_code, auth_code, created_at")
       .eq("user_id", context.userId)
@@ -121,7 +122,7 @@ export const getMyPaymentReceipt = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ paymentId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: pay, error } = await context.supabase
+    const { data: pay, error } = await xdb(context)
       .from("redsys_payments")
       .select("id, order_code, amount_cents, currency, kind, status, auth_code, response_code, created_at")
       .eq("id", data.paymentId)
@@ -129,9 +130,9 @@ export const getMyPaymentReceipt = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!pay) throw new Error("Pago no encontrado");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     const [{ data: profile }, { data: pricing }] = await Promise.all([
-      context.supabase.from("profiles").select("full_name, email").eq("id", context.userId).maybeSingle(),
+      xdb(context).from("profiles").select("full_name, email").eq("id", context.userId).maybeSingle(),
       supabaseAdmin.from("pricing_config").select("vat_pct").eq("id", true).maybeSingle(),
     ]);
     const product =
@@ -177,7 +178,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       const { getRedsysConfig, newOrderCode, buildCheckoutParams, signRequest } = await import(
         "./redsys.server"
       );
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const supabaseAdmin = await xAdminDb();
       const cfg = getRedsysConfig();
 
       let amountCents = data.amountCents;
@@ -249,7 +250,7 @@ export const payExtraNow = createServerFn({ method: "POST" })
     > => {
       const { getRedsysConfig, newOrderCode, buildCheckoutParams, signRequest, chargeRecurringREST } =
         await import("./redsys.server");
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const supabaseAdmin = await xAdminDb();
       const cfg = getRedsysConfig();
 
       const { data: billing } = await supabaseAdmin
@@ -328,7 +329,7 @@ export const payExtraNow = createServerFn({ method: "POST" })
 export const cancelSubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ ok: true }> => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     await supabaseAdmin
       .from("user_billing")
       .update({

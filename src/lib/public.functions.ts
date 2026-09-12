@@ -1,11 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { xdb, xAdminDb } from "./assessments-repo.server";
 
 /** Public gallery — anyone (no login) can view published + public simulations.
  * Uses supabaseAdmin (bypasses RLS) but ONLY projects safe, non-sensitive columns.
  * Sensitive fields (prompt, story, evaluation_criteria) are NEVER exposed here. */
 export const listPublicSimulations = createServerFn({ method: "GET" }).handler(async () => {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const supabaseAdmin = await xAdminDb();
   const { data, error } = await supabaseAdmin
     .from("simulations")
     .select("id, title, objective, topic, duration_min, cover_image_url, updated_at")
@@ -22,7 +23,7 @@ export const listPublicSimulations = createServerFn({ method: "GET" }).handler(a
 export const getPublicSimulation = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => z.object({ id: z.string().uuid() }).parse(v))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     const { data: sim, error } = await supabaseAdmin
       .from("simulations")
       .select(
