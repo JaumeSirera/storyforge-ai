@@ -52,7 +52,10 @@ $auth = new Auth(
     Env::require('APP_TOKEN'),
 );
 $auth->assertAppToken();
-$userId = $auth->userId();
+// Modo servicio: la propia aplicación (con la clave compartida) actúa sin
+// usuario, igual que antes hacía con la clave de servicio de Lovable Cloud.
+$service = ($_SERVER['HTTP_X_SERVICE'] ?? '') === '1';
+$userId = $service ? null : $auth->userId();
 
 $resource = $segments[0] ?? '';
 $id = $segments[1] ?? null;

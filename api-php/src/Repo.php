@@ -16,6 +16,7 @@ final class Repo
     private const RESOURCES = [
         'assessments' => [
             'owner' => 'owner_id',
+            'shared' => 'self',
             'columns' => ['id', 'owner_id', 'title', 'area_key', 'prompt', 'instructions', 'questions', 'rubric', 'max_score', 'handwriting_weight_pct', 'status', 'feedback_tone', 'time_limit_min', 'created_at', 'updated_at'],
             'json' => ['questions', 'rubric'],
             'insertable' => ['id', 'title', 'area_key', 'prompt', 'instructions', 'questions', 'rubric', 'max_score', 'handwriting_weight_pct', 'status', 'feedback_tone', 'time_limit_min'],
@@ -23,6 +24,7 @@ final class Repo
         ],
         'assessment_candidates' => [
             'owner' => 'owner_id',
+            'shared' => 'assessment_id',
             'columns' => ['id', 'assessment_id', 'owner_id', 'name', 'email', 'identifier', 'token', 'status', 'submission_id', 'expires_at', 'started_at', 'submitted_at', 'note', 'time_expired', 'created_at', 'updated_at'],
             'json' => [],
             'insertable' => ['id', 'assessment_id', 'name', 'email', 'identifier', 'token', 'status', 'note', 'expires_at'],
@@ -30,6 +32,7 @@ final class Repo
         ],
         'assessment_submissions' => [
             'owner' => 'owner_id',
+            'shared' => 'assessment_id',
             'columns' => ['id', 'assessment_id', 'owner_id', 'candidate_name', 'candidate_identifier', 'source_kind', 'pages', 'extracted_text', 'handwriting', 'evaluation', 'score', 'max_score', 'status', 'error_message', 'graded_at', 'approval_status', 'approval_note', 'approved_by', 'approved_at', 'transcription_segments', 'scan_quality', 'ocr_updated_at', 'created_at', 'updated_at'],
             'json' => ['pages', 'handwriting', 'evaluation', 'transcription_segments', 'scan_quality'],
             'insertable' => ['id', 'assessment_id', 'candidate_name', 'candidate_identifier', 'source_kind', 'pages', 'extracted_text', 'status'],
@@ -37,6 +40,7 @@ final class Repo
         ],
         'assessment_annotations' => [
             'owner' => 'owner_id',
+            'shared' => 'submission_id',
             'columns' => ['id', 'submission_id', 'owner_id', 'page_path', 'page_index', 'kind', 'x', 'y', 'w', 'h', 'correction', 'comment', 'created_at', 'updated_at'],
             'json' => [],
             'insertable' => ['id', 'submission_id', 'page_path', 'page_index', 'kind', 'x', 'y', 'w', 'h', 'correction', 'comment'],
@@ -44,6 +48,7 @@ final class Repo
         ],
         'assessment_collaborators' => [
             'owner' => 'owner_id',
+            'shared' => 'assessment_id',
             'columns' => ['id', 'assessment_id', 'owner_id', 'user_id', 'email', 'role', 'created_at', 'updated_at'],
             'json' => [],
             'insertable' => ['id', 'assessment_id', 'user_id', 'email', 'role'],
@@ -55,6 +60,14 @@ final class Repo
             'json' => ['tags', 'question'],
             'insertable' => ['id', 'prompt', 'type', 'subject', 'area_key', 'tags', 'question', 'source_assessment_id'],
             'updatable' => ['prompt', 'type', 'subject', 'area_key', 'tags', 'question', 'version', 'times_used'],
+        ],
+        'candidate_invite_emails' => [
+            'owner' => 'owner_id',
+            'shared' => 'assessment_id',
+            'columns' => ['id', 'assessment_id', 'candidate_id', 'owner_id', 'recipient', 'status', 'attempts', 'message_id', 'error_message', 'last_attempt_at', 'created_at', 'updated_at'],
+            'json' => [],
+            'insertable' => ['id', 'assessment_id', 'candidate_id', 'recipient', 'status', 'attempts', 'message_id', 'error_message', 'last_attempt_at'],
+            'updatable' => ['status', 'attempts', 'message_id', 'error_message', 'last_attempt_at'],
         ],
         'exam_audit_log' => [
             'owner' => 'owner_id',
@@ -88,15 +101,20 @@ final class Repo
      * @param array<string,string> $query
      * @return list<array<string,mixed>>
      */
-    public function list(string $resource, string $userId, array $query): array
+    public function list(string $resource, ?string $userId, array $query): array
     {
         $meta = self::meta($resource);
         /** @var list<string> $columns */
         $columns = $meta['columns'];
         $owner = (string) $meta['owner'];
 
-        $where = ["`{$owner}` = :owner"];
-        $params = ['owner' => $userId];
+        $where = [];
+        $params = [];
+        $scope = $this->scopeWhere($resource, $meta, $userId);
+        if ($scope !== null) {
+            $where[] = $scope;
+            $params['owner'] = $userId;
+        }
         foreach ($query as $key => $value) {
             if (!in_array($key, $columns, true)) {
                 continue;
@@ -119,7 +137,7 @@ final class Repo
             'SELECT %s FROM `%s` WHERE %s ORDER BY `%s` %s LIMIT %d OFFSET %d',
             $this->select($columns),
             $resource,
-            implode(' AND ', $where),
+            $where === [] ? '1 = 1' : implode(' AND ', $where),
             $orderColumn,
             $orderDir,
             $limit,
@@ -133,16 +151,21 @@ final class Repo
     }
 
     /** @return array<string,mixed>|null */
-    public function find(string $resource, string $userId, string $id): ?array
+    public function find(string $resource, ?string $userId, string $id): ?array
     {
         $meta = self::meta($resource);
+        $scope = $this->scopeWhere($resource, $meta, $userId);
         $sql = sprintf(
-            'SELECT %s FROM `%s` WHERE `id` = :id AND `%s` = :owner LIMIT 1',
+            'SELECT %s FROM `%s` WHERE `id` = :id%s LIMIT 1',
             $this->select($meta['columns']),
             $resource,
-            $meta['owner'],
+            $scope === null ? '' : ' AND ' . $scope,
         );
-        $row = $this->db->one($sql, ['id' => $id, 'owner' => $userId]);
+        $args = ['id' => $id];
+        if ($scope !== null) {
+            $args['owner'] = $userId;
+        }
+        $row = $this->db->one($sql, $args);
         return $row === null ? null : $this->decode($row, $meta['json']);
     }
 
@@ -150,16 +173,22 @@ final class Repo
      * @param array<string,mixed> $input
      * @return array<string,mixed>
      */
-    public function create(string $resource, string $userId, array $input): array
+    public function create(string $resource, ?string $userId, array $input): array
     {
         $meta = self::meta($resource);
         $id = isset($input['id']) && is_string($input['id']) && $input['id'] !== ''
             ? $input['id']
             : self::uuid();
 
-        $values = ['id' => $id, (string) $meta['owner'] => $userId];
+        $ownerColumn = (string) $meta['owner'];
+        $owner = $userId ?? (isset($input[$ownerColumn]) ? (string) $input[$ownerColumn] : '');
+        if ($owner === '') {
+            Http::fail('Falta el propietario del registro', 400, 'missing_owner');
+        }
+
+        $values = ['id' => $id, $ownerColumn => $owner];
         foreach ($meta['insertable'] as $column) {
-            if ($column === 'id' || !array_key_exists($column, $input)) {
+            if ($column === 'id' || $column === $ownerColumn || !array_key_exists($column, $input)) {
                 continue;
             }
             $values[$column] = $this->encode($column, $input[$column], $meta['json']);
@@ -174,7 +203,7 @@ final class Repo
         );
         $this->db->run($sql, $values);
 
-        $created = $this->find($resource, $userId, $id);
+        $created = $this->find($resource, $userId ?? $owner, $id);
         if ($created === null) {
             Http::fail('No se ha podido guardar', 500, 'insert_failed');
         }
@@ -185,15 +214,19 @@ final class Repo
      * @param array<string,mixed> $input
      * @return array<string,mixed>
      */
-    public function update(string $resource, string $userId, string $id, array $input): array
+    public function update(string $resource, ?string $userId, string $id, array $input): array
     {
         $meta = self::meta($resource);
         if (($meta['immutable'] ?? false) === true) {
             Http::fail('Este recurso no se puede modificar', 405, 'immutable');
         }
 
+        $scope = $this->scopeWhere($resource, $meta, $userId);
         $sets = [];
-        $params = ['id' => $id, 'owner' => $userId];
+        $params = ['id' => $id];
+        if ($scope !== null) {
+            $params['owner'] = $userId;
+        }
         foreach ($meta['updatable'] as $column) {
             if (!array_key_exists($column, $input)) {
                 continue;
@@ -207,10 +240,10 @@ final class Repo
         $sets[] = '`updated_at` = CURRENT_TIMESTAMP(3)';
 
         $sql = sprintf(
-            'UPDATE `%s` SET %s WHERE `id` = :id AND `%s` = :owner',
+            'UPDATE `%s` SET %s WHERE `id` = :id%s',
             $resource,
             implode(', ', $sets),
-            $meta['owner'],
+            $scope === null ? '' : ' AND ' . $scope,
         );
         $this->db->run($sql, $params);
 
@@ -221,14 +254,52 @@ final class Repo
         return $updated;
     }
 
-    public function delete(string $resource, string $userId, string $id): int
+    public function delete(string $resource, ?string $userId, string $id): int
     {
         $meta = self::meta($resource);
         if (($meta['immutable'] ?? false) === true) {
             Http::fail('Este recurso no se puede borrar', 405, 'immutable');
         }
-        $sql = sprintf('DELETE FROM `%s` WHERE `id` = :id AND `%s` = :owner', $resource, $meta['owner']);
-        return $this->db->run($sql, ['id' => $id, 'owner' => $userId]);
+        $scope = $this->scopeWhere($resource, $meta, $userId);
+        $sql = sprintf(
+            'DELETE FROM `%s` WHERE `id` = :id%s',
+            $resource,
+            $scope === null ? '' : ' AND ' . $scope,
+        );
+        $args = ['id' => $id];
+        if ($scope !== null) {
+            $args['owner'] = $userId;
+        }
+        return $this->db->run($sql, $args);
+    }
+
+    /**
+     * Condición de acceso: el dueño de la fila o un colaborador de la
+     * evaluación (equivale a las reglas que antes vivían en la base de datos).
+     * Devuelve null cuando la llamada es de servicio (sin usuario).
+     *
+     * @param array<string,mixed> $meta
+     */
+    private function scopeWhere(string $resource, array $meta, ?string $userId): ?string
+    {
+        if ($userId === null) {
+            return null;
+        }
+        $owner = "`{$meta['owner']}` = :owner";
+        $shared = $meta['shared'] ?? null;
+
+        if ($shared === 'self') {
+            return "({$owner} OR `id` IN (SELECT `assessment_id` FROM `assessment_collaborators` WHERE `user_id` = :owner))";
+        }
+        if ($shared === 'assessment_id') {
+            return "({$owner} OR `assessment_id` IN (SELECT `assessment_id` FROM `assessment_collaborators` WHERE `user_id` = :owner))";
+        }
+        if ($shared === 'submission_id') {
+            return "({$owner} OR `submission_id` IN (SELECT s.`id` FROM `assessment_submissions` s"
+                . " JOIN `assessment_collaborators` c ON c.`assessment_id` = s.`assessment_id`"
+                . " WHERE c.`user_id` = :owner))";
+        }
+        return $owner;
     }
 
     /** @param list<string> $columns */
