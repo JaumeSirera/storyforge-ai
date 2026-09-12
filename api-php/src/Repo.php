@@ -206,6 +206,16 @@ final class Repo
             $values[$column] = $this->encode($column, $input[$column], $meta['json']);
         }
 
+        // Columnas obligatorias sin valor: se rellenan con su valor por defecto.
+        /** @var array<string,mixed> $defaults */
+        $defaults = $meta['defaults'] ?? [];
+        foreach ($defaults as $column => $default) {
+            if (!array_key_exists($column, $values) || $values[$column] === null) {
+                $values[$column] = $this->encode($column, $default, $meta['json']);
+            }
+        }
+
+
         $names = array_keys($values);
         $sql = sprintf(
             'INSERT INTO `%s` (%s) VALUES (%s)',
