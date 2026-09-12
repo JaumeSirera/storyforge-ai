@@ -172,8 +172,9 @@ final class Repo
         );
         $args = ['id' => $id];
         if ($scope !== null) {
-            $args['owner'] = $userId;
+            $args = array_merge($args, $this->scopeParams($meta, (string) $userId));
         }
+
         $row = $this->db->one($sql, $args);
         return $row === null ? null : $this->decode($row, $meta['json']);
     }
