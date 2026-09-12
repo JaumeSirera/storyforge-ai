@@ -69,6 +69,8 @@ async function request<T>(options: RequestOptions): Promise<T> {
     headers: {
       Authorization: `Bearer ${options.accessToken}`,
       "X-App-Token": config.appToken,
+      "X-Identity-Url": process.env.SUPABASE_URL ?? "",
+      "X-Identity-Key": process.env.SUPABASE_PUBLISHABLE_KEY ?? "",
       Accept: "application/json",
       ...(options.body !== undefined ? { "Content-Type": "application/json" } : {}),
     },
