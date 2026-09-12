@@ -8,14 +8,20 @@ use Xandralyze\Env;
 use Xandralyze\Http;
 use Xandralyze\Repo;
 
-require __DIR__ . '/../src/Env.php';
-require __DIR__ . '/../src/Http.php';
-require __DIR__ . '/../src/Auth.php';
-require __DIR__ . '/../src/Db.php';
-require __DIR__ . '/../src/Repo.php';
+// Admite dos formas de instalación:
+//  1) public/ como raíz web y src/ + .env una carpeta por encima
+//  2) todo (index.php, src/, .env) en la misma carpeta raíz del subdominio
+$base = is_dir(__DIR__ . '/../src') ? __DIR__ . '/..' : __DIR__;
 
-Env::load(__DIR__ . '/../.env');
+require $base . '/src/Env.php';
+require $base . '/src/Http.php';
+require $base . '/src/Auth.php';
+require $base . '/src/Db.php';
+require $base . '/src/Repo.php';
+
+Env::load($base . '/.env');
 Http::cors(Env::get('ALLOWED_ORIGINS', '') ?? '');
+
 
 set_exception_handler(static function (Throwable $e): void {
     error_log('[api] ' . $e->getMessage());
