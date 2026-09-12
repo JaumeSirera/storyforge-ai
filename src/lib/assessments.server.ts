@@ -25,6 +25,7 @@ import {
 } from "./assessments-shared";
 
 import { loadUserKeys } from "./user-keys.functions";
+import { assessDb, assessAdminDb } from "./assessments-repo.server";
 
 const BUCKET = "assessments";
 const MAX_PAGE_BYTES = 15 * 1024 * 1024;
@@ -206,7 +207,7 @@ function slug(n: number) {
 
 export async function listAssessmentsHandler(context: any) {
   // RLS deja ver las propias y las compartidas como colaborador.
-  const { data, error } = await context.supabase
+  const { data, error } = await assessDb(context)
     .from("assessments")
     .select(`${ASSESSMENT_COLUMNS}, owner_id`)
     .order("updated_at", { ascending: false });
@@ -224,8 +225,8 @@ export async function getAssessmentHandler(data: { id: string }, context: any) {
   const permissions = await assertAssessmentPermission(data.id, "view", context);
 
   const [assessmentRes, submissionsRes] = await Promise.all([
-    context.supabase.from("assessments").select(ASSESSMENT_COLUMNS).eq("id", data.id).single(),
-    context.supabase
+    assessDb(context).from("assessments").select(ASSESSMENT_COLUMNS).eq("id", data.id).single(),
+    assessDb(context)
       .from("assessment_submissions")
       .select(SUBMISSION_COLUMNS)
       .eq("assessment_id", data.id)
@@ -404,7 +405,7 @@ export async function createAssessmentHandler(
     );
   }
 
-  const { data: row, error } = await context.supabase
+  const { data: row, error } = await assessDb(context)
     .from("assessments")
     .insert({
       owner_id: context.userId,
@@ -473,7 +474,7 @@ export async function regenerateAssessmentHandler(
   },
   context: any,
 ) {
-  const { data: current, error: curErr } = await context.supabase
+  const { data: current, error: curErr } = await assessDb(context)
     .from("assessments")
     .select("max_score, area_key, prompt")
     .eq("id", data.id)
@@ -505,7 +506,7 @@ export async function regenerateAssessmentHandler(
     context,
   );
 
-  const { data: row, error } = await context.supabase
+  const { data: row, error } = await assessDb(context)
     .from("assessments")
     .update({
       prompt: packPrompt(data.prompt, subject, questionTypes, sourceText),
@@ -551,7 +552,7 @@ export async function updateAssessmentBlueprintHandler(
     if (data.rubric.length > 0) patch.status = "ready";
   }
 
-  const { data: row, error } = await context.supabase
+  const { data: row, error } = await assessDb(context)
     .from("assessments")
     .update(patch)
     .eq("id", data.id)
@@ -564,7 +565,7 @@ export async function updateAssessmentBlueprintHandler(
 
 export async function deleteAssessmentHandler(data: { id: string }, context: any) {
 
-  const { error } = await context.supabase
+  const { error } = await assessDb(context)
     .from("assessments")
     .delete()
     .eq("id", data.id)
@@ -586,7 +587,7 @@ export async function createSubmissionHandler(
   },
   context: any,
 ) {
-  const { data: assessment, error: aErr } = await context.supabase
+  const { data: assessment, error: aErr } = await assessDb(context)
     .from("assessments")
     .select("id, max_score")
     .eq("id", data.assessmentId)
@@ -594,7 +595,7 @@ export async function createSubmissionHandler(
     .single();
   if (aErr) throw new Error(aErr.message);
 
-  const { data: row, error } = await context.supabase
+  const { data: row, error } = await assessDb(context)
     .from("assessment_submissions")
     .insert({
       assessment_id: assessment.id,
@@ -610,7 +611,7 @@ export async function createSubmissionHandler(
     .single();
   if (error) throw new Error(error.message);
 
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const supabaseAdmin = await assessAdminDb();
   const pages: SubmissionPage[] = [];
   for (let i = 0; i < data.files.length; i++) {
     const file = data.files[i];
@@ -630,7 +631,7 @@ export async function createSubmissionHandler(
   }
 
   if (pages.length > 0) {
-    const { error: pErr } = await context.supabase
+    const { error: pErr } = await assessDb(context)
       .from("assessment_submissions")
       .update({ pages })
       .eq("id", row.id)
@@ -652,7 +653,7 @@ export function validateFiles(files: File[]) {
 }
 
 export async function deleteSubmissionHandler(data: { id: string }, context: any) {
-  const { data: row } = await context.supabase
+  const { data: row } = await assessDb(context)
     .from("assessment_submissions")
     .select("pages")
     .eq("id", data.id)
@@ -660,10 +661,10 @@ export async function deleteSubmissionHandler(data: { id: string }, context: any
     .maybeSingle();
   const pages: SubmissionPage[] = Array.isArray(row?.pages) ? row!.pages : [];
   if (pages.length > 0) {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await assessAdminDb();
     await supabaseAdmin.storage.from(BUCKET).remove(pages.map((p) => p.path));
   }
-  const { error } = await context.supabase
+  const { error } = await assessDb(context)
     .from("assessment_submissions")
     .delete()
     .eq("id", data.id)
@@ -676,20 +677,20 @@ export async function getSubmissionHandler(data: { id: string }, context: any) {
   const { assertSubmissionPermission } = await import("./assessment-roles.server");
   const { permissions } = await assertSubmissionPermission(data.id, "view", context);
 
-  const { data: row, error } = await context.supabase
+  const { data: row, error } = await assessDb(context)
     .from("assessment_submissions")
     .select(SUBMISSION_COLUMNS)
     .eq("id", data.id)
     .single();
   if (error) throw new Error(error.message);
-  const { data: assessment, error: aErr } = await context.supabase
+  const { data: assessment, error: aErr } = await assessDb(context)
     .from("assessments")
     .select(ASSESSMENT_COLUMNS)
     .eq("id", row.assessment_id)
     .single();
   if (aErr) throw new Error(aErr.message);
 
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const supabaseAdmin = await assessAdminDb();
   const pages: SubmissionPage[] = Array.isArray(row.pages) ? row.pages : [];
   const pageUrls: { path: string; url: string | null; mimeType: string; name: string }[] = [];
   for (const page of pages) {
@@ -718,7 +719,7 @@ export async function getSubmissionHandler(data: { id: string }, context: any) {
 
 /** Descarga las páginas y las convierte en partes multimodales para el modelo. */
 async function buildFileParts(pages: SubmissionPage[]) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const supabaseAdmin = await assessAdminDb();
   const parts: any[] = [];
   for (const page of pages) {
     const { data: blob, error } = await supabaseAdmin.storage.from(BUCKET).download(page.path);
@@ -737,14 +738,14 @@ export async function gradeSubmissionHandler(data: { id: string }, context: any)
   const { assertSubmissionPermission } = await import("./assessment-roles.server");
   await assertSubmissionPermission(data.id, "grade", context);
 
-  const { data: row, error } = await context.supabase
+  const { data: row, error } = await assessDb(context)
     .from("assessment_submissions")
     .select(SUBMISSION_COLUMNS)
     .eq("id", data.id)
     .single();
   if (error) throw new Error(error.message);
 
-  const { data: assessmentRow, error: aErr } = await context.supabase
+  const { data: assessmentRow, error: aErr } = await assessDb(context)
     .from("assessments")
     .select(ASSESSMENT_COLUMNS)
     .eq("id", row.assessment_id)
@@ -761,7 +762,7 @@ export async function gradeSubmissionHandler(data: { id: string }, context: any)
     throw new Error("La evaluación no tiene preguntas. Genera la prueba antes de corregir.");
   }
 
-  await context.supabase
+  await assessDb(context)
     .from("assessment_submissions")
     .update({ status: "grading", error_message: null })
     .eq("id", row.id);
@@ -957,7 +958,7 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
     const transcription = typed || String(raw?.transcription ?? "").trim() || null;
     const segments = parseSegments(raw?.transcriptionSegments ?? raw?.segmentos, transcription);
     const gradedAt = new Date().toISOString();
-    const { data: saved, error: saveErr } = await context.supabase
+    const { data: saved, error: saveErr } = await assessDb(context)
       .from("assessment_submissions")
       .update({
         evaluation,
@@ -1000,7 +1001,7 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
     return { submission: mapSubmission(saved) };
   } catch (err: any) {
     const message = err?.message ?? "No se pudo corregir la entrega";
-    await context.supabase
+    await assessDb(context)
       .from("assessment_submissions")
       .update({ status: "failed", error_message: message })
       .eq("id", row.id);
@@ -1042,7 +1043,7 @@ export async function validateAssessmentSourceHandler(data: { id: string }, cont
   const { assertAssessmentPermission } = await import("./assessment-roles.server");
   await assertAssessmentPermission(data.id, "view", context);
 
-  const { data: row, error } = await context.supabase
+  const { data: row, error } = await assessDb(context)
     .from("assessments")
     .select("prompt, questions")
     .eq("id", data.id)
@@ -1178,7 +1179,7 @@ export async function reocrSubmissionHandler(
   const { assertSubmissionPermission } = await import("./assessment-roles.server");
   await assertSubmissionPermission(data.id, "grade", context);
 
-  const { data: row, error } = await context.supabase
+  const { data: row, error } = await assessDb(context)
     .from("assessment_submissions")
     .select(SUBMISSION_COLUMNS)
     .eq("id", data.id)
@@ -1234,7 +1235,7 @@ Reglas: divide la transcripción en segmentos de 1 frase o línea; pageIndex emp
   };
   if (data.replaceText !== false && transcription) update.extracted_text = transcription;
 
-  const { data: saved, error: saveErr } = await context.supabase
+  const { data: saved, error: saveErr } = await assessDb(context)
     .from("assessment_submissions")
     .update(update)
     .eq("id", row.id)

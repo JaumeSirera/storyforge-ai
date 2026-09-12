@@ -3,6 +3,7 @@ import {
   type AnnotationKind,
   type SubmissionAnnotation,
 } from "./assessments-shared";
+import { assessDb } from "./assessments-repo.server";
 
 const COLUMNS =
   "id, submission_id, page_path, page_index, kind, x, y, w, h, correction, comment, created_at, updated_at";
@@ -31,7 +32,7 @@ export function mapAnnotation(row: any): SubmissionAnnotation {
 export async function listAnnotationsHandler(data: { submissionId: string }, context: any) {
   const { assertSubmissionPermission } = await import("./assessment-roles.server");
   await assertSubmissionPermission(data.submissionId, "view", context);
-  const { data: rows, error } = await context.supabase
+  const { data: rows, error } = await assessDb(context)
     .from("assessment_annotations")
     .select(COLUMNS)
     .eq("submission_id", data.submissionId)
@@ -75,7 +76,7 @@ export async function saveAnnotationHandler(data: SaveAnnotationInput, context: 
   };
 
   if (data.id) {
-    const { data: row, error } = await context.supabase
+    const { data: row, error } = await assessDb(context)
       .from("assessment_annotations")
       .update(payload)
       .eq("id", data.id)
@@ -85,7 +86,7 @@ export async function saveAnnotationHandler(data: SaveAnnotationInput, context: 
     return { annotation: mapAnnotation(row) };
   }
 
-  const { data: row, error } = await context.supabase
+  const { data: row, error } = await assessDb(context)
     .from("assessment_annotations")
     .insert(payload)
     .select(COLUMNS)
@@ -95,7 +96,7 @@ export async function saveAnnotationHandler(data: SaveAnnotationInput, context: 
 }
 
 export async function deleteAnnotationHandler(data: { id: string }, context: any) {
-  const { error } = await context.supabase
+  const { error } = await assessDb(context)
     .from("assessment_annotations")
     .delete()
     .eq("id", data.id);

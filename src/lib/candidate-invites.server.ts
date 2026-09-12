@@ -1,5 +1,6 @@
 import { EmailAPIError } from "@lovable.dev/email-js";
 import { sendTemplateEmail } from "./email-templates/send-email";
+import { assessDb, assessAdminDb } from "./assessments-repo.server";
 
 const SITE_URL = "https://xandralyze.com";
 const TEMPLATE_NAME = "exam-invitation";
@@ -94,7 +95,7 @@ async function sendInvitation(
 
 /** Historial de envíos de invitación de una evaluación. */
 export async function listInviteEmailsHandler(data: { assessmentId: string }, context: any) {
-  const { data: rows, error } = await context.supabase
+  const { data: rows, error } = await assessDb(context)
     .from("candidate_invite_emails")
     .select("id, candidate_id, recipient, status, attempts, error_message, last_attempt_at, updated_at")
     .eq("assessment_id", data.assessmentId);
@@ -110,7 +111,7 @@ export async function sendInviteEmailsHandler(
   data: { assessmentId: string; candidateIds?: string[]; onlyPendingOrFailed?: boolean },
   context: any,
 ) {
-  const { data: assessment, error: aErr } = await context.supabase
+  const { data: assessment, error: aErr } = await assessDb(context)
     .from("assessments")
     .select("id, title, instructions, time_limit_min")
     .eq("id", data.assessmentId)
@@ -120,7 +121,7 @@ export async function sendInviteEmailsHandler(
     throw new Error("Solo el propietario de la evaluación puede enviar las invitaciones.");
   }
 
-  let query = context.supabase
+  let query = assessDb(context)
     .from("assessment_candidates")
     .select("id, name, email, token, expires_at")
     .eq("assessment_id", data.assessmentId);
@@ -131,7 +132,7 @@ export async function sendInviteEmailsHandler(
   const withEmail = (candidates ?? []).filter((c: any) => (c.email ?? "").includes("@"));
   const skippedNoEmail = (candidates ?? []).length - withEmail.length;
 
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const supabaseAdmin = await assessAdminDb();
 
   const { data: existingLogs } = await supabaseAdmin
     .from("candidate_invite_emails")

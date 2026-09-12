@@ -1,4 +1,5 @@
 import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
+import { assessDb, assessAdminDb } from "./assessments-repo.server";
 
 /** Eventos auditables del examen del aspirante. */
 export type ExamAuditEvent =
@@ -30,7 +31,7 @@ export async function logExamAudit(params: {
       /* fuera de contexto de petición */
     }
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await assessAdminDb();
     await supabaseAdmin.from("exam_audit_log").insert({
       owner_id: params.ownerId,
       assessment_id: params.assessmentId,
@@ -51,7 +52,7 @@ export async function listExamAuditHandler(
   data: { assessmentId: string; candidateId?: string | null },
   context: any,
 ) {
-  const { data: assessment, error: aErr } = await context.supabase
+  const { data: assessment, error: aErr } = await assessDb(context)
     .from("assessments")
     .select("id")
     .eq("id", data.assessmentId)
@@ -61,7 +62,7 @@ export async function listExamAuditHandler(
   if (!assessment)
     throw new Error("Solo el propietario de la evaluación puede consultar el log de auditoría.");
 
-  let query = context.supabase
+  let query = assessDb(context)
     .from("exam_audit_log")
     .select("id, candidate_id, event, ip, user_agent, client_version, detail, created_at")
     .eq("assessment_id", data.assessmentId)
@@ -72,7 +73,7 @@ export async function listExamAuditHandler(
   const { data: rows, error } = await query;
   if (error) throw new Error(error.message);
 
-  const { data: candidates } = await context.supabase
+  const { data: candidates } = await assessDb(context)
     .from("assessment_candidates")
     .select("id, name")
     .eq("assessment_id", data.assessmentId);

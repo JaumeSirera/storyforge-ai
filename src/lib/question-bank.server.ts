@@ -1,5 +1,6 @@
 import { QuestionSchema, type AssessmentQuestion } from "./assessments-shared";
 import { generateBlueprint } from "./assessments.server";
+import { assessDb } from "./assessments-repo.server";
 
 const ITEM_COLUMNS =
   "id, prompt, type, subject, area_key, tags, question, version, times_used, source_assessment_id, created_at, updated_at";
@@ -63,7 +64,7 @@ export async function listBankItemsHandler(
   data: { subject?: string | null; type?: string | null; areaKey?: string | null; search?: string | null },
   context: any,
 ) {
-  let query = context.supabase
+  let query = assessDb(context)
     .from("question_bank_items")
     .select(ITEM_COLUMNS)
     .eq("owner_id", context.userId)
@@ -79,7 +80,7 @@ export async function listBankItemsHandler(
 }
 
 export async function listBankVersionsHandler(data: { id: string }, context: any) {
-  const { data: rows, error } = await context.supabase
+  const { data: rows, error } = await assessDb(context)
     .from("question_bank_versions")
     .select("id, version, question, note, created_at")
     .eq("item_id", data.id)
@@ -99,7 +100,7 @@ async function insertItems(
   const clean = questions.filter((q) => q.prompt.trim().length > 0);
   if (clean.length === 0) return { items: [] as BankItem[] };
 
-  const { data: rows, error } = await context.supabase
+  const { data: rows, error } = await assessDb(context)
     .from("question_bank_items")
     .insert(
       clean.map((question) => ({
@@ -118,7 +119,7 @@ async function insertItems(
   if (error) throw new Error(error.message);
 
   const items: BankItem[] = (rows ?? []).map(mapItem);
-  const { error: vError } = await context.supabase.from("question_bank_versions").insert(
+  const { error: vError } = await assessDb(context).from("question_bank_versions").insert(
     items.map((item) => ({
       item_id: item.id,
       owner_id: context.userId,
@@ -168,7 +169,7 @@ export async function importAssessmentQuestionsHandler(
   data: { assessmentId: string; tags?: string[] },
   context: any,
 ) {
-  const { data: row, error } = await context.supabase
+  const { data: row, error } = await assessDb(context)
     .from("assessments")
     .select("id, area_key, questions, prompt")
     .eq("id", data.assessmentId)
@@ -193,7 +194,7 @@ export async function updateBankItemHandler(
   data: { id: string; question: AssessmentQuestion; tags?: string[]; note?: string },
   context: any,
 ) {
-  const { data: current, error: cErr } = await context.supabase
+  const { data: current, error: cErr } = await assessDb(context)
     .from("question_bank_items")
     .select("id, version")
     .eq("id", data.id)
@@ -204,7 +205,7 @@ export async function updateBankItemHandler(
   const nextVersion = Number(current.version ?? 1) + 1;
   const question = QuestionSchema.parse(data.question);
 
-  const { data: row, error } = await context.supabase
+  const { data: row, error } = await assessDb(context)
     .from("question_bank_items")
     .update({
       prompt: question.prompt.slice(0, 2000),
@@ -219,7 +220,7 @@ export async function updateBankItemHandler(
     .single();
   if (error) throw new Error(error.message);
 
-  const { error: vErr } = await context.supabase.from("question_bank_versions").insert({
+  const { error: vErr } = await assessDb(context).from("question_bank_versions").insert({
     item_id: data.id,
     owner_id: context.userId,
     version: nextVersion,
@@ -235,7 +236,7 @@ export async function restoreBankVersionHandler(
   data: { id: string; version: number },
   context: any,
 ) {
-  const { data: version, error } = await context.supabase
+  const { data: version, error } = await assessDb(context)
     .from("question_bank_versions")
     .select("question")
     .eq("item_id", data.id)
@@ -254,7 +255,7 @@ export async function restoreBankVersionHandler(
 }
 
 export async function deleteBankItemHandler(data: { id: string }, context: any) {
-  const { error } = await context.supabase
+  const { error } = await assessDb(context)
     .from("question_bank_items")
     .delete()
     .eq("id", data.id)
@@ -274,7 +275,7 @@ export async function createAssessmentFromBankHandler(
   },
   context: any,
 ) {
-  const { data: rows, error } = await context.supabase
+  const { data: rows, error } = await assessDb(context)
     .from("question_bank_items")
     .select(ITEM_COLUMNS)
     .eq("owner_id", context.userId)
@@ -322,7 +323,7 @@ export async function createAssessmentFromBankHandler(
     },
   ];
 
-  const { data: assessment, error: aErr } = await context.supabase
+  const { data: assessment, error: aErr } = await assessDb(context)
     .from("assessments")
     .insert({
       owner_id: context.userId,
@@ -344,7 +345,7 @@ export async function createAssessmentFromBankHandler(
 
   await Promise.all(
     ordered.map((item) =>
-      context.supabase
+      assessDb(context)
         .from("question_bank_items")
         .update({ times_used: item.timesUsed + 1 })
         .eq("id", item.id)

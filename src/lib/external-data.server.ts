@@ -15,6 +15,8 @@ export type ExternalResource =
   | "assessment_annotations"
   | "assessment_collaborators"
   | "question_bank_items"
+  | "question_bank_versions"
+  | "candidate_invite_emails"
   | "exam_audit_log";
 
 export interface ExternalApiConfig {
@@ -67,7 +69,10 @@ async function request<T>(options: RequestOptions): Promise<T> {
   const response = await fetch(url, {
     method: options.method ?? "GET",
     headers: {
-      Authorization: `Bearer ${options.accessToken}`,
+      // Sin token de usuario => modo servicio: la clave compartida basta.
+      ...(options.accessToken
+        ? { Authorization: `Bearer ${options.accessToken}` }
+        : { "X-Service": "1" }),
       "X-App-Token": config.appToken,
       "X-Identity-Url": process.env.SUPABASE_URL ?? "",
       "X-Identity-Key": process.env.SUPABASE_PUBLISHABLE_KEY ?? "",
