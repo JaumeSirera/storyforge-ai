@@ -69,6 +69,7 @@ final class Repo
             'columns' => ['id', 'item_id', 'owner_id', 'version', 'question', 'note', 'created_at'],
             'json' => ['question'],
             'insertable' => ['id', 'item_id', 'version', 'question', 'note'],
+            'defaults' => ['note' => ''],
             'updatable' => [],
             'immutable' => true,
         ],
