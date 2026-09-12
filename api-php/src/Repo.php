@@ -297,18 +297,34 @@ final class Repo
         $shared = $meta['shared'] ?? null;
 
         if ($shared === 'self') {
-            return "({$owner} OR `id` IN (SELECT `assessment_id` FROM `assessment_collaborators` WHERE `user_id` = :owner))";
+            return "({$owner} OR `id` IN (SELECT `assessment_id` FROM `assessment_collaborators` WHERE `user_id` = :owner2))";
         }
         if ($shared === 'assessment_id') {
-            return "({$owner} OR `assessment_id` IN (SELECT `assessment_id` FROM `assessment_collaborators` WHERE `user_id` = :owner))";
+            return "({$owner} OR `assessment_id` IN (SELECT `assessment_id` FROM `assessment_collaborators` WHERE `user_id` = :owner2))";
         }
         if ($shared === 'submission_id') {
             return "({$owner} OR `submission_id` IN (SELECT s.`id` FROM `assessment_submissions` s"
                 . " JOIN `assessment_collaborators` c ON c.`assessment_id` = s.`assessment_id`"
-                . " WHERE c.`user_id` = :owner))";
+                . " WHERE c.`user_id` = :owner2))";
         }
         return $owner;
     }
+
+    /**
+     * Parámetros que necesita la condición de acceso.
+     *
+     * @param array<string,mixed> $meta
+     * @return array<string,string>
+     */
+    private function scopeParams(array $meta, string $userId): array
+    {
+        $params = ['owner' => $userId];
+        if (isset($meta['shared'])) {
+            $params['owner2'] = $userId;
+        }
+        return $params;
+    }
+
 
     /** @param list<string> $columns */
     private function select(array $columns): string
