@@ -121,8 +121,9 @@ final class Repo
         $scope = $this->scopeWhere($resource, $meta, $userId);
         if ($scope !== null) {
             $where[] = $scope;
-            $params['owner'] = $userId;
+            $params = array_merge($params, $this->scopeParams($meta, (string) $userId));
         }
+
         foreach ($query as $key => $value) {
             if (!in_array($key, $columns, true)) {
                 continue;
@@ -171,8 +172,9 @@ final class Repo
         );
         $args = ['id' => $id];
         if ($scope !== null) {
-            $args['owner'] = $userId;
+            $args = array_merge($args, $this->scopeParams($meta, (string) $userId));
         }
+
         $row = $this->db->one($sql, $args);
         return $row === null ? null : $this->decode($row, $meta['json']);
     }
@@ -233,8 +235,9 @@ final class Repo
         $sets = [];
         $params = ['id' => $id];
         if ($scope !== null) {
-            $params['owner'] = $userId;
+            $params = array_merge($params, $this->scopeParams($meta, (string) $userId));
         }
+
         foreach ($meta['updatable'] as $column) {
             if (!array_key_exists($column, $input)) {
                 continue;
@@ -276,8 +279,9 @@ final class Repo
         );
         $args = ['id' => $id];
         if ($scope !== null) {
-            $args['owner'] = $userId;
+            $args = array_merge($args, $this->scopeParams($meta, (string) $userId));
         }
+
         return $this->db->run($sql, $args);
     }
 
@@ -297,18 +301,34 @@ final class Repo
         $shared = $meta['shared'] ?? null;
 
         if ($shared === 'self') {
-            return "({$owner} OR `id` IN (SELECT `assessment_id` FROM `assessment_collaborators` WHERE `user_id` = :owner))";
+            return "({$owner} OR `id` IN (SELECT `assessment_id` FROM `assessment_collaborators` WHERE `user_id` = :owner2))";
         }
         if ($shared === 'assessment_id') {
-            return "({$owner} OR `assessment_id` IN (SELECT `assessment_id` FROM `assessment_collaborators` WHERE `user_id` = :owner))";
+            return "({$owner} OR `assessment_id` IN (SELECT `assessment_id` FROM `assessment_collaborators` WHERE `user_id` = :owner2))";
         }
         if ($shared === 'submission_id') {
             return "({$owner} OR `submission_id` IN (SELECT s.`id` FROM `assessment_submissions` s"
                 . " JOIN `assessment_collaborators` c ON c.`assessment_id` = s.`assessment_id`"
-                . " WHERE c.`user_id` = :owner))";
+                . " WHERE c.`user_id` = :owner2))";
         }
         return $owner;
     }
+
+    /**
+     * Parámetros que necesita la condición de acceso.
+     *
+     * @param array<string,mixed> $meta
+     * @return array<string,string>
+     */
+    private function scopeParams(array $meta, string $userId): array
+    {
+        $params = ['owner' => $userId];
+        if (isset($meta['shared'])) {
+            $params['owner2'] = $userId;
+        }
+        return $params;
+    }
+
 
     /** @param list<string> $columns */
     private function select(array $columns): string
