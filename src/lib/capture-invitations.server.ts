@@ -1,4 +1,5 @@
 /** Helpers server-only para invitaciones de sesiones de grabación. */
+import { xdb, xAdminDb } from "./assessments-repo.server";
 
 export function newCaptureToken(len = 28) {
   const bytes = new Uint8Array(len);
@@ -16,7 +17,7 @@ export interface LoadedInvitation {
 
 /** Valida un token y devuelve la invitación + la sesión de captura asociada. */
 export async function loadCaptureInvitation(token: string): Promise<LoadedInvitation> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const supabaseAdmin = await xAdminDb();
   const { data: inv, error } = await supabaseAdmin
     .from("capture_invitations" as any)
     .select("*")
@@ -49,7 +50,7 @@ export async function loadCaptureInvitation(token: string): Promise<LoadedInvita
 
 /** Devuelve la ficha del participante vinculada a este usuario en esta sesión. */
 export async function requireLinkedParticipant(captureSessionId: string, userId: string) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const supabaseAdmin = await xAdminDb();
   const { data, error } = await supabaseAdmin
     .from("capture_participants")
     .select("id, name, role, capture_session_id, owner_id")

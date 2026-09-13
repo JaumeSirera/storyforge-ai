@@ -3,6 +3,7 @@ import { formatSec, type InteractionNetwork, type SessionMetrics } from "./analy
 import { runWithTextModelFallback } from "./ai-gateway.server";
 import { InsightsSchema, ROLE_GUIDES, type ReportRole, type SessionInsights } from "./insights-shared";
 import { loadUserKeys } from "./user-keys.functions";
+import { xdb, xAdminDb } from "./assessments-repo.server";
 
 const INSIGHT_COLUMNS = "insights, insights_generated_at, metrics, interactions, status";
 
@@ -78,7 +79,7 @@ function normalizeInsights(value: unknown) {
 }
 
 export async function getSessionInsightsHandler(data: { captureSessionId: string }, context: any) {
-  const { data: row, error } = await context.supabase
+  const { data: row, error } = await xdb(context)
     .from("capture_analyses")
     .select(INSIGHT_COLUMNS)
     .eq("capture_session_id", data.captureSessionId)
@@ -93,10 +94,10 @@ export async function generateSessionInsightsHandler(
   context: any,
 ) {
   const [analysisRes, sessionRes, participantsRes, segmentsRes] = await Promise.all([
-    context.supabase.from("capture_analyses").select(INSIGHT_COLUMNS).eq("capture_session_id", data.captureSessionId).eq("owner_id", context.userId).maybeSingle(),
-    context.supabase.from("capture_sessions").select("id, title, mode, area_key").eq("id", data.captureSessionId).eq("owner_id", context.userId).single(),
-    context.supabase.from("capture_participants").select("id, name, role").eq("capture_session_id", data.captureSessionId).eq("owner_id", context.userId),
-    context.supabase.from("capture_transcript_segments").select("participant_id, speaker_label, start_sec, end_sec, text").eq("capture_session_id", data.captureSessionId).eq("owner_id", context.userId).order("start_sec", { ascending: true }).limit(1200),
+    xdb(context).from("capture_analyses").select(INSIGHT_COLUMNS).eq("capture_session_id", data.captureSessionId).eq("owner_id", context.userId).maybeSingle(),
+    xdb(context).from("capture_sessions").select("id, title, mode, area_key").eq("id", data.captureSessionId).eq("owner_id", context.userId).single(),
+    xdb(context).from("capture_participants").select("id, name, role").eq("capture_session_id", data.captureSessionId).eq("owner_id", context.userId),
+    xdb(context).from("capture_transcript_segments").select("participant_id, speaker_label, start_sec, end_sec, text").eq("capture_session_id", data.captureSessionId).eq("owner_id", context.userId).order("start_sec", { ascending: true }).limit(1200),
   ]);
   if (analysisRes.error) throw new Error(analysisRes.error.message);
   if (sessionRes.error) throw new Error(sessionRes.error.message);
@@ -133,7 +134,7 @@ export async function generateSessionInsightsHandler(
     redInteraccion: (interactions?.edges ?? []).slice(0, 25).map((edge) => `${nameOf(edge.from)} responde a ${nameOf(edge.to)} (${edge.count} veces)`),
   };
 
-  const userKeys = await loadUserKeys(context.supabase, context.userId);
+  const userKeys = await loadUserKeys(xdb(context), context.userId);
   const guide = ROLE_GUIDES[data.role];
   const system = `Eres un copiloto experto en análisis de interacción humana. Escribes para un ${guide.audience}. ${guide.language}\nDescribe solo hechos observables y presenta las interpretaciones como hipótesis. No hagas diagnósticos ni inferencias sensibles. Responde en español con un único objeto JSON válido, sin markdown.`;
   const prompt = `Sesión: ${sessionRes.data.title}\nModo: ${sessionRes.data.mode} · Área: ${sessionRes.data.area_key ?? "general"}\nParticipantes: ${participants.map((participant: any) => `${participant.name} (${participant.role})`).join(", ") || "sin identificar"}\n${data.focus ? `Foco: ${data.focus}\n` : ""}Métricas:\n${JSON.stringify(metricsBrief)}\n\nTranscripción:\n${transcript}\n\nDevuelve exactamente estas claves JSON en inglés: headline (string), summary (string), observations (array de {fact,evidence}), hypotheses (array de {hypothesis,basis,confidence}), participants (array de {name,role,behaviours}), roleSections (array de {title,points}), recommendations (array de strings), followUpQuestions (array de strings). roleSections debe contener estos títulos: ${guide.sections.join(" | ")}.`;
@@ -154,7 +155,7 @@ export async function generateSessionInsightsHandler(
   const text = attempt.value.text;
   const insights = normalizeInsights(extractJson(text));
   const generatedAt = new Date().toISOString();
-  const { error: saveErr } = await context.supabase.from("capture_analyses").upsert({
+  const { error: saveErr } = await xdb(context).from("capture_analyses").upsert({
     capture_session_id: data.captureSessionId,
     owner_id: context.userId,
     insights: { ...insights, role: data.role },
@@ -181,7 +182,7 @@ export async function generateSessionInsightsHandler(
 }
 
 export async function deleteSessionInsightsHandler(data: { captureSessionId: string }, context: any) {
-  const { error } = await context.supabase.from("capture_analyses").update({ insights: {}, insights_generated_at: null }).eq("capture_session_id", data.captureSessionId).eq("owner_id", context.userId);
+  const { error } = await xdb(context).from("capture_analyses").update({ insights: {}, insights_generated_at: null }).eq("capture_session_id", data.captureSessionId).eq("owner_id", context.userId);
   if (error) throw new Error(error.message);
   return { ok: true };
 }
