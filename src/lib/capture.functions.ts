@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { xdb, xAdminDb } from "./assessments-repo.server";
 
 /** Roles disponibles para un participante de la sesión. */
 export const PARTICIPANT_ROLES = [
@@ -114,7 +115,7 @@ const SESSION_COLUMNS =
 export const listCaptureSessions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<CaptureSession[]> => {
-    const { data, error } = await context.supabase
+    const { data, error } = await xdb(context)
       .from("capture_sessions")
       .select(SESSION_COLUMNS)
       .eq("owner_id", context.userId)
@@ -130,7 +131,7 @@ export const listCaptureSessionsBySimulation = createServerFn({ method: "POST" }
     z.object({ simulationId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }): Promise<CaptureSession[]> => {
-    const { data: rows, error } = await context.supabase
+    const { data: rows, error } = await xdb(context)
       .from("capture_sessions")
       .select(SESSION_COLUMNS)
       .eq("owner_id", context.userId)
@@ -147,7 +148,7 @@ export const getCaptureSession = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: session, error } = await context.supabase
+    const { data: session, error } = await xdb(context)
       .from("capture_sessions")
       .select(SESSION_COLUMNS)
       .eq("id", data.id)
@@ -156,12 +157,12 @@ export const getCaptureSession = createServerFn({ method: "GET" })
     if (!session) throw new Error("Sesión no encontrada");
 
     const [{ data: participants }, { data: recordings }] = await Promise.all([
-      context.supabase
+      xdb(context)
         .from("capture_participants")
         .select("id, name, identifier, role, photo_path, color, joined_at_sec, is_late")
         .eq("capture_session_id", data.id)
         .order("created_at", { ascending: true }),
-      context.supabase
+      xdb(context)
         .from("capture_recordings")
         .select(
           "id, participant_id, kind, storage_path, mime_type, size_bytes, duration_sec, sync_offset_ms, status, created_at",
@@ -215,7 +216,7 @@ export const createCaptureSession = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const deleteAfter = new Date(Date.now() + data.retentionDays * 86400_000).toISOString();
-    const { data: row, error } = await context.supabase
+    const { data: row, error } = await xdb(context)
       .from("capture_sessions")
       .insert({
         owner_id: context.userId,
@@ -281,7 +282,7 @@ export const updateCaptureSession = createServerFn({ method: "POST" })
     };
 
 
-    const { error } = await context.supabase
+    const { error } = await xdb(context)
       .from("capture_sessions")
       .update(patch)
       .eq("id", data.id)
@@ -294,14 +295,14 @@ export const deleteCaptureSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: recs } = await context.supabase
+    const { data: recs } = await xdb(context)
       .from("capture_recordings")
       .select("storage_path")
       .eq("capture_session_id", data.id);
     const paths = (recs ?? []).map((r) => r.storage_path).filter(Boolean);
-    if (paths.length > 0) await context.supabase.storage.from("recordings").remove(paths);
+    if (paths.length > 0) await xdb(context).storage.from("recordings").remove(paths);
 
-    const { error } = await context.supabase
+    const { error } = await xdb(context)
       .from("capture_sessions")
       .delete()
       .eq("id", data.id)
@@ -343,7 +344,7 @@ export const upsertParticipant = createServerFn({ method: "POST" })
     };
 
     if (data.id) {
-      const { error } = await context.supabase
+      const { error } = await xdb(context)
         .from("capture_participants")
         .update(base)
         .eq("id", data.id)
@@ -352,7 +353,7 @@ export const upsertParticipant = createServerFn({ method: "POST" })
       return { id: data.id };
     }
 
-    const { data: row, error } = await context.supabase
+    const { data: row, error } = await xdb(context)
       .from("capture_participants")
       .insert(base)
       .select("id")
@@ -365,7 +366,7 @@ export const deleteParticipant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await xdb(context)
       .from("capture_participants")
       .delete()
       .eq("id", data.id)
@@ -393,7 +394,7 @@ export const registerRecording = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: row, error } = await context.supabase
+    const { data: row, error } = await xdb(context)
       .from("capture_recordings")
       .insert({
         capture_session_id: data.captureSessionId,
@@ -417,13 +418,13 @@ export const deleteRecording = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: rec } = await context.supabase
+    const { data: rec } = await xdb(context)
       .from("capture_recordings")
       .select("storage_path")
       .eq("id", data.id)
       .maybeSingle();
-    if (rec?.storage_path) await context.supabase.storage.from("recordings").remove([rec.storage_path]);
-    const { error } = await context.supabase
+    if (rec?.storage_path) await xdb(context).storage.from("recordings").remove([rec.storage_path]);
+    const { error } = await xdb(context)
       .from("capture_recordings")
       .delete()
       .eq("id", data.id)
@@ -437,14 +438,14 @@ export const getRecordingUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: rec, error } = await context.supabase
+    const { data: rec, error } = await xdb(context)
       .from("capture_recordings")
       .select("storage_path")
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!rec?.storage_path) throw new Error("Grabación no encontrada");
-    const { data: signed, error: sErr } = await context.supabase.storage
+    const { data: signed, error: sErr } = await xdb(context).storage
       .from("recordings")
       .createSignedUrl(rec.storage_path, 3600);
     if (sErr) throw new Error(sErr.message);
@@ -470,7 +471,7 @@ export const recordConsent = createServerFn({ method: "POST" })
     const { getRequestHeader } = await import("@tanstack/react-start/server");
     const { CONSENT_VERSION } = await import("./consent-version");
     const now = new Date().toISOString();
-    const { error } = await context.supabase.from("capture_consents").insert({
+    const { error } = await xdb(context).from("capture_consents").insert({
       capture_session_id: data.captureSessionId,
       participant_id: data.participantId ?? null,
       owner_id: context.userId,
@@ -492,7 +493,7 @@ export const listConsents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ captureSessionId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    const { data: rows, error } = await xdb(context)
       .from("capture_consents")
       .select("id, participant_id, scope, granted, granted_at, created_at")
       .eq("capture_session_id", data.captureSessionId)
@@ -506,7 +507,7 @@ export const listConsentAudit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ captureSessionId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: sess, error: sErr } = await context.supabase
+    const { data: sess, error: sErr } = await xdb(context)
       .from("capture_sessions")
       .select("id")
       .eq("id", data.captureSessionId)
@@ -516,14 +517,14 @@ export const listConsentAudit = createServerFn({ method: "POST" })
     if (!sess) throw new Error("Sesión no encontrada");
 
     const [{ data: rows, error }, { data: parts }] = await Promise.all([
-      context.supabase
+      xdb(context)
         .from("capture_consents")
         .select(
           "id, participant_id, scope, granted, granted_at, recorded_at, created_at, consent_version, consent_text, user_agent, source, user_id",
         )
         .eq("capture_session_id", data.captureSessionId)
         .order("recorded_at", { ascending: false }),
-      context.supabase
+      xdb(context)
         .from("capture_participants")
         .select("id, name, role")
         .eq("capture_session_id", data.captureSessionId),
@@ -554,7 +555,7 @@ export const listConsentAudit = createServerFn({ method: "POST" })
 export const getCapturePreferences = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+    const { data, error } = await xdb(context)
       .from("capture_preferences")
       .select("area_key, mode, capture_mode, record_screen, retention_days, updated_at")
       .eq("user_id", context.userId)
@@ -585,7 +586,7 @@ export const saveCapturePreferences = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: prev } = await context.supabase
+    const { data: prev } = await xdb(context)
       .from("capture_preferences")
       .select("area_key, mode, capture_mode, record_screen, retention_days")
       .eq("user_id", context.userId)
@@ -598,7 +599,7 @@ export const saveCapturePreferences = createServerFn({ method: "POST" })
       record_screen: data.recordScreen ?? prev?.record_screen ?? false,
       retention_days: data.retentionDays ?? prev?.retention_days ?? 30,
     };
-    const { error } = await context.supabase
+    const { error } = await xdb(context)
       .from("capture_preferences")
       .upsert(row, { onConflict: "user_id" });
     if (error) throw new Error(error.message);
