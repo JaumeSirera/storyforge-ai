@@ -201,7 +201,8 @@ class ExternalQuery<T> implements PromiseLike<Res<T>> {
     if (this.orderBy) query["order"] = `${this.orderBy.column}.${this.orderBy.ascending ? "asc" : "desc"}`;
     query["limit"] = Math.min(200, this.limitN ?? 200);
 
-    const idFilter = this.filters.find((f) => f.op === "eq" && f.column === "id");
+    const pk = pkFor(this.table);
+    const idFilter = this.filters.find((f) => f.op === "eq" && f.column === pk);
     if (idFilter && this.filters.length === 1) {
       try {
         const row = await externalApi.get<Row>(this.token(), this.table, String((idFilter as { value: unknown }).value));
@@ -277,13 +278,13 @@ class ExternalQuery<T> implements PromiseLike<Res<T>> {
     if (this.mode === "upsert") {
       const saved: Row[] = [];
       for (const body of this.payload) {
-        const keys = this.conflict.length > 0 ? this.conflict : ["id"];
+        const keys = this.conflict.length > 0 ? this.conflict : [pkFor(this.table)];
         const lookup: Record<string, string | number | boolean | undefined> = {};
         for (const key of keys) lookup[key] = String(body[key] ?? "");
         const existing = (await externalApi.list<Row>(token, this.table, { ...lookup, limit: 1 }))[0];
         saved.push(
           existing
-            ? await externalApi.update<Row>(token, this.table, String(existing["id"]), body)
+            ? await externalApi.update<Row>(token, this.table, String(existing[pkFor(this.table)]), body)
             : await externalApi.create<Row>(token, this.table, body),
         );
       }
@@ -293,7 +294,7 @@ class ExternalQuery<T> implements PromiseLike<Res<T>> {
     const targets = await this.fetchRows();
     const result: Row[] = [];
     for (const row of targets) {
-      const id = String(row["id"]);
+      const id = String(row[pkFor(this.table)]);
       if (this.mode === "update") {
         result.push(await externalApi.update<Row>(token, this.table, id, this.payload[0] ?? {}));
       } else {
