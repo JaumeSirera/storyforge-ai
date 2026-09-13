@@ -290,6 +290,20 @@ final class Repo
         return self::RESOURCES[$resource];
     }
 
+    /** Nombre de la clave primaria (algunas tablas usan user_id). */
+    private static function pk(array $meta): string
+    {
+        return (string) ($meta['pk'] ?? 'id');
+    }
+
+    /** Tablas que solo la propia aplicación (modo servicio) puede escribir. */
+    private static function assertWritable(array $meta, ?string $userId): void
+    {
+        if (($meta['service_write'] ?? false) === true && $userId !== null) {
+            Http::fail('Este recurso es de solo lectura', 403, 'read_only');
+        }
+    }
+
     /**
      * @param array<string,string> $query
      * @return list<array<string,mixed>>
@@ -349,10 +363,12 @@ final class Repo
     {
         $meta = self::meta($resource);
         $scope = $this->scopeWhere($resource, $meta, $userId);
+        $pk = self::pk($meta);
         $sql = sprintf(
-            'SELECT %s FROM `%s` WHERE `id` = :id%s LIMIT 1',
+            'SELECT %s FROM `%s` WHERE `%s` = :id%s LIMIT 1',
             $this->select($meta['columns']),
             $resource,
+            $pk,
             $scope === null ? '' : ' AND ' . $scope,
         );
         $args = ['id' => $id];
@@ -371,9 +387,8 @@ final class Repo
     public function create(string $resource, ?string $userId, array $input): array
     {
         $meta = self::meta($resource);
-        $id = isset($input['id']) && is_string($input['id']) && $input['id'] !== ''
-            ? $input['id']
-            : self::uuid();
+        self::assertWritable($meta, $userId);
+        $pk = self::pk($meta);
 
         $ownerColumn = (string) $meta['owner'];
         $owner = $userId ?? (isset($input[$ownerColumn]) ? (string) $input[$ownerColumn] : '');
@@ -381,9 +396,13 @@ final class Repo
             Http::fail('Falta el propietario del registro', 400, 'missing_owner');
         }
 
-        $values = ['id' => $id, $ownerColumn => $owner];
+        $id = isset($input[$pk]) && (is_string($input[$pk]) || is_int($input[$pk])) && (string) $input[$pk] !== ''
+            ? (string) $input[$pk]
+            : ($pk === $ownerColumn ? $owner : self::uuid());
+
+        $values = [$pk => $id, $ownerColumn => $owner];
         foreach ($meta['insertable'] as $column) {
-            if ($column === 'id' || $column === $ownerColumn || !array_key_exists($column, $input)) {
+            if ($column === $pk || $column === $ownerColumn || !array_key_exists($column, $input)) {
                 continue;
             }
             $values[$column] = $this->encode($column, $input[$column], $meta['json']);
@@ -422,6 +441,7 @@ final class Repo
     public function update(string $resource, ?string $userId, string $id, array $input): array
     {
         $meta = self::meta($resource);
+        self::assertWritable($meta, $userId);
         if (($meta['immutable'] ?? false) === true) {
             Http::fail('Este recurso no se puede modificar', 405, 'immutable');
         }
@@ -446,9 +466,10 @@ final class Repo
         $sets[] = '`updated_at` = CURRENT_TIMESTAMP(3)';
 
         $sql = sprintf(
-            'UPDATE `%s` SET %s WHERE `id` = :id%s',
+            'UPDATE `%s` SET %s WHERE `%s` = :id%s',
             $resource,
             implode(', ', $sets),
+            self::pk($meta),
             $scope === null ? '' : ' AND ' . $scope,
         );
         $this->db->run($sql, $params);
@@ -463,13 +484,15 @@ final class Repo
     public function delete(string $resource, ?string $userId, string $id): int
     {
         $meta = self::meta($resource);
+        self::assertWritable($meta, $userId);
         if (($meta['immutable'] ?? false) === true) {
             Http::fail('Este recurso no se puede borrar', 405, 'immutable');
         }
         $scope = $this->scopeWhere($resource, $meta, $userId);
         $sql = sprintf(
-            'DELETE FROM `%s` WHERE `id` = :id%s',
+            'DELETE FROM `%s` WHERE `%s` = :id%s',
             $resource,
+            self::pk($meta),
             $scope === null ? '' : ' AND ' . $scope,
         );
         $args = ['id' => $id];
@@ -489,7 +512,7 @@ final class Repo
      */
     private function scopeWhere(string $resource, array $meta, ?string $userId): ?string
     {
-        if ($userId === null) {
+        if ($userId === null || ($meta['global'] ?? false) === true) {
             return null;
         }
         $owner = "`{$meta['owner']}` = :owner";
@@ -503,6 +526,9 @@ final class Repo
         }
         if ($shared === 'simulation_id') {
             return "({$owner} OR `simulation_id` IN (SELECT `id` FROM `simulations` WHERE `owner_id` = :owner2))";
+        }
+        if ($shared === 'capture_session_id') {
+            return "({$owner} OR `capture_session_id` IN (SELECT `id` FROM `capture_sessions` WHERE `owner_id` = :owner2))";
         }
         if ($shared === 'submission_id') {
             return "({$owner} OR `submission_id` IN (SELECT s.`id` FROM `assessment_submissions` s"
