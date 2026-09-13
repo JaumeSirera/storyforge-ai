@@ -18,6 +18,7 @@ require $base . '/src/Http.php';
 require $base . '/src/Auth.php';
 require $base . '/src/Db.php';
 require $base . '/src/Repo.php';
+require $base . '/src/Files.php';
 
 Env::load($base . '/.env');
 Http::cors(Env::get('ALLOWED_ORIGINS', '') ?? '');
@@ -56,6 +57,52 @@ $auth->assertAppToken();
 // usuario, igual que antes hacía con la clave de servicio de Lovable Cloud.
 $service = ($_SERVER['HTTP_X_SERVICE'] ?? '') === '1';
 $userId = $service ? null : $auth->userId();
+
+// ---- Archivos ----------------------------------------------------------
+$filesRoot = Env::get('FILES_DIR', $base . '/storage') ?? ($base . '/storage');
+$files = new Files($db, $filesRoot, Env::require('APP_TOKEN'));
+
+// Enlace temporal firmado: GET /api/v1/file/{token}
+if (($segments[0] ?? '') === 'file' && isset($segments[1]) && $method === 'GET') {
+    [$bucket, $path] = $files->verify(implode('/', array_slice($segments, 1)));
+    $files->stream($bucket, $path);
+}
+
+if (($segments[0] ?? '') === 'files') {
+    // POST /api/v1/files/sign  { bucket, path, expires_in }
+    if ($method === 'POST' && ($segments[1] ?? '') === 'sign' && count($segments) === 2) {
+        $body = Http::body();
+        $bucket = (string) ($body['bucket'] ?? '');
+        if (!Files::isBucket($bucket)) {
+            Http::fail('Contenedor no válido', 404, 'unknown_bucket');
+        }
+        $path = Files::cleanPath((string) ($body['path'] ?? ''));
+        $token = $files->sign($bucket, $path, (int) ($body['expires_in'] ?? 3600));
+        Http::json(['data' => ['token' => $token, 'url' => '/api/v1/file/' . $token]]);
+    }
+
+    $bucket = $segments[1] ?? '';
+    if (!Files::isBucket($bucket) || count($segments) < 3) {
+        Http::fail('Ruta no válida', 404, 'unknown_route');
+    }
+    $path = Files::cleanPath(implode('/', array_slice($segments, 2)));
+
+    if ($method === 'POST') {
+        $contents = file_get_contents('php://input');
+        if (!is_string($contents) || $contents === '') {
+            Http::fail('No se ha recibido ningún archivo', 400, 'empty_body');
+        }
+        $mime = $_SERVER['CONTENT_TYPE'] ?? 'application/octet-stream';
+        Http::json(['data' => $files->put($bucket, $path, $userId, $contents, (string) $mime)], 201);
+    }
+    if ($method === 'GET') {
+        $files->stream($bucket, $path);
+    }
+    if ($method === 'DELETE') {
+        Http::json(['data' => ['path' => $path, 'deleted' => $files->remove($bucket, $path)]]);
+    }
+    Http::fail('Método no permitido', 405, 'method_not_allowed');
+}
 
 $resource = $segments[0] ?? '';
 $id = $segments[1] ?? null;
