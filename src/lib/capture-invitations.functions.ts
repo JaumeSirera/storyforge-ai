@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { PARTICIPANT_ROLES } from "./capture.functions";
+import { xdb, xAdminDb } from "./assessments-repo.server";
 
 /* ---------------- Anfitrión (propietario de la sesión) ---------------- */
 
@@ -9,7 +10,7 @@ export const listCaptureInvitations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v: unknown) => z.object({ captureSessionId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    const { data: rows, error } = await xdb(context)
       .from("capture_invitations" as any)
       .select("*")
       .eq("capture_session_id", data.captureSessionId)
@@ -32,7 +33,7 @@ export const createCaptureInvitation = createServerFn({ method: "POST" })
       .parse(v),
   )
   .handler(async ({ data, context }) => {
-    const { data: sess, error: sErr } = await context.supabase
+    const { data: sess, error: sErr } = await xdb(context)
       .from("capture_sessions")
       .select("id")
       .eq("id", data.captureSessionId)
@@ -45,7 +46,7 @@ export const createCaptureInvitation = createServerFn({ method: "POST" })
       ? new Date(Date.now() + data.expiresInDays * 86400_000).toISOString()
       : null;
 
-    const { data: row, error } = await context.supabase
+    const { data: row, error } = await xdb(context)
       .from("capture_invitations" as any)
       .insert({
         capture_session_id: data.captureSessionId,
@@ -66,7 +67,7 @@ export const revokeCaptureInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v: unknown) => z.object({ id: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await xdb(context)
       .from("capture_invitations" as any)
       .update({ revoked_at: new Date().toISOString() })
       .eq("id", data.id)
@@ -79,7 +80,7 @@ export const deleteCaptureInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((v: unknown) => z.object({ id: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await xdb(context)
       .from("capture_invitations" as any)
       .delete()
       .eq("id", data.id)
@@ -132,7 +133,7 @@ export const joinCaptureInvitation = createServerFn({ method: "POST" })
     if (!data.consentRecording) throw new Error("Debes aceptar el consentimiento de grabación");
     const { loadCaptureInvitation } = await import("./capture-invitations.server");
     const { invitation, session } = await loadCaptureInvitation(data.token);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
 
     // ¿Ya estaba vinculado este usuario?
     const { data: existing } = await supabaseAdmin
@@ -236,7 +237,7 @@ export const getCaptureJoinState = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { loadCaptureInvitation } = await import("./capture-invitations.server");
     const { session } = await loadCaptureInvitation(data.token);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     const { data: p } = await supabaseAdmin
       .from("capture_participants")
       .select("id, name, role")
@@ -265,7 +266,7 @@ export const createParticipantUploadTicket = createServerFn({ method: "POST" })
     const { loadCaptureInvitation, requireLinkedParticipant } = await import("./capture-invitations.server");
     const { session } = await loadCaptureInvitation(data.token);
     const participant = await requireLinkedParticipant(session.id, context.userId);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     const path = `${session.owner_id}/${session.id}/${data.kind}-${participant.id}-${Date.now()}.${data.ext}`;
     const { data: signed, error } = await supabaseAdmin.storage
       .from("recordings")
@@ -297,7 +298,7 @@ export const registerParticipantRecording = createServerFn({ method: "POST" })
     if (!data.storagePath.startsWith(`${session.owner_id}/${session.id}/`)) {
       throw new Error("Ruta de grabación no válida");
     }
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     const { data: row, error } = await supabaseAdmin
       .from("capture_recordings")
       .insert({
@@ -343,7 +344,7 @@ export const recordInvitedConsent = createServerFn({ method: "POST" })
     );
     const { session } = await loadCaptureInvitation(data.token);
     const participant = await requireLinkedParticipant(session.id, context.userId);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     const { getRequestHeader } = await import("@tanstack/react-start/server");
     const { CONSENT_VERSION } = await import("./consent-version");
 

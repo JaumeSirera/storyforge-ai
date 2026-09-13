@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { xdb, xAdminDb } from "./assessments-repo.server";
 
 /** Anotación del profesional sobre una escena de la película resumen. */
 export type SceneAnnotation = {
@@ -36,7 +37,7 @@ export const listSceneAnnotations = createServerFn({ method: "GET" })
     z.object({ captureSessionId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    const { data: rows, error } = await xdb(context)
       .from("capture_scene_annotations")
       .select(COLUMNS)
       .eq("capture_session_id", data.captureSessionId)
@@ -67,7 +68,7 @@ export const saveSceneAnnotation = createServerFn({ method: "POST" })
     const note = data.note.trim();
 
     if (!note && tags.length === 0) {
-      const { error } = await context.supabase
+      const { error } = await xdb(context)
         .from("capture_scene_annotations")
         .delete()
         .eq("capture_session_id", data.captureSessionId)
@@ -77,7 +78,7 @@ export const saveSceneAnnotation = createServerFn({ method: "POST" })
       return { annotation: null };
     }
 
-    const { data: row, error } = await context.supabase
+    const { data: row, error } = await xdb(context)
       .from("capture_scene_annotations")
       .upsert(
         {
@@ -108,7 +109,7 @@ export const deleteSceneAnnotation = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await xdb(context)
       .from("capture_scene_annotations")
       .delete()
       .eq("capture_session_id", data.captureSessionId)

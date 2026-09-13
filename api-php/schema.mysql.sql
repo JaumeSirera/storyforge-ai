@@ -328,3 +328,272 @@ CREATE TABLE IF NOT EXISTS usage_events (
   updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   KEY idx_usage_user (user_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================================
+-- Fase 3: grabaciones de captura y facturación
+-- =====================================================================
+
+CREATE TABLE IF NOT EXISTS capture_sessions (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  owner_id CHAR(36) NOT NULL,
+  simulation_id CHAR(36) NULL,
+  game_session_id CHAR(36) NULL,
+  title VARCHAR(300) NOT NULL,
+  area_key VARCHAR(80) NULL,
+  mode VARCHAR(40) NOT NULL DEFAULT 'individual',
+  capture_mode VARCHAR(40) NOT NULL DEFAULT 'camera',
+  record_screen TINYINT(1) NOT NULL DEFAULT 0,
+  consent_recording TINYINT(1) NOT NULL DEFAULT 0,
+  consent_face_analysis TINYINT(1) NOT NULL DEFAULT 0,
+  consent_text TEXT NULL,
+  status VARCHAR(40) NOT NULL DEFAULT 'draft',
+  retention_days INT NOT NULL DEFAULT 30,
+  delete_after TIMESTAMP(3) NULL,
+  started_at TIMESTAMP(3) NULL,
+  ended_at TIMESTAMP(3) NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  KEY idx_capture_sessions_owner (owner_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS capture_participants (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  capture_session_id CHAR(36) NOT NULL,
+  owner_id CHAR(36) NOT NULL,
+  name VARCHAR(200) NOT NULL,
+  identifier VARCHAR(120) NULL,
+  role VARCHAR(60) NOT NULL DEFAULT 'participante',
+  photo_path VARCHAR(500) NULL,
+  color VARCHAR(20) NULL,
+  joined_at_sec DECIMAL(12,3) NULL,
+  is_late TINYINT(1) NOT NULL DEFAULT 0,
+  user_id CHAR(36) NULL,
+  joined_at TIMESTAMP(3) NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  KEY idx_capture_participants_session (capture_session_id),
+  KEY idx_capture_participants_owner (owner_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS capture_recordings (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  capture_session_id CHAR(36) NOT NULL,
+  participant_id CHAR(36) NULL,
+  owner_id CHAR(36) NOT NULL,
+  kind VARCHAR(40) NOT NULL,
+  storage_path VARCHAR(500) NOT NULL,
+  mime_type VARCHAR(120) NULL,
+  size_bytes BIGINT NULL,
+  duration_sec DECIMAL(12,3) NULL,
+  sync_offset_ms INT NOT NULL DEFAULT 0,
+  status VARCHAR(40) NOT NULL DEFAULT 'ready',
+  error_message TEXT NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  KEY idx_capture_recordings_session (capture_session_id),
+  KEY idx_capture_recordings_owner (owner_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS capture_transcript_segments (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  capture_session_id CHAR(36) NOT NULL,
+  recording_id CHAR(36) NOT NULL,
+  owner_id CHAR(36) NOT NULL,
+  participant_id CHAR(36) NULL,
+  speaker_label VARCHAR(120) NULL,
+  start_sec DECIMAL(12,3) NOT NULL DEFAULT 0,
+  end_sec DECIMAL(12,3) NOT NULL DEFAULT 0,
+  text MEDIUMTEXT NOT NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  KEY idx_transcript_session (capture_session_id, start_sec),
+  KEY idx_transcript_owner (owner_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS capture_analyses (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  capture_session_id CHAR(36) NOT NULL,
+  owner_id CHAR(36) NOT NULL,
+  status VARCHAR(40) NOT NULL DEFAULT 'pending',
+  stage VARCHAR(80) NULL,
+  error_message TEXT NULL,
+  transcription_model VARCHAR(80) NULL,
+  metrics JSON NULL,
+  interactions JSON NULL,
+  insights JSON NULL,
+  insights_generated_at TIMESTAMP(3) NULL,
+  scenes JSON NULL,
+  scenes_generated_at TIMESTAMP(3) NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  UNIQUE KEY uq_capture_analyses_session (capture_session_id),
+  KEY idx_capture_analyses_owner (owner_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS capture_scene_annotations (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  capture_session_id CHAR(36) NOT NULL,
+  owner_id CHAR(36) NOT NULL,
+  scene_index INT NOT NULL DEFAULT 0,
+  scene_title VARCHAR(300) NULL,
+  start_sec DECIMAL(12,3) NOT NULL DEFAULT 0,
+  end_sec DECIMAL(12,3) NOT NULL DEFAULT 0,
+  note MEDIUMTEXT NOT NULL,
+  tags JSON NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  KEY idx_scene_annotations_session (capture_session_id, scene_index),
+  KEY idx_scene_annotations_owner (owner_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS capture_hypothesis_reviews (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  capture_session_id CHAR(36) NOT NULL,
+  owner_id CHAR(36) NOT NULL,
+  hypothesis_index INT NOT NULL DEFAULT 0,
+  hypothesis_text MEDIUMTEXT NOT NULL,
+  status VARCHAR(40) NOT NULL DEFAULT 'pending',
+  adjusted_text MEDIUMTEXT NULL,
+  confidence VARCHAR(40) NOT NULL DEFAULT 'media',
+  comment MEDIUMTEXT NOT NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  KEY idx_hyp_reviews_session (capture_session_id, hypothesis_index),
+  KEY idx_hyp_reviews_owner (owner_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS capture_hypothesis_review_events (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  review_id CHAR(36) NOT NULL,
+  capture_session_id CHAR(36) NOT NULL,
+  owner_id CHAR(36) NOT NULL,
+  hypothesis_index INT NOT NULL DEFAULT 0,
+  action VARCHAR(40) NOT NULL,
+  status VARCHAR(40) NOT NULL,
+  adjusted_text MEDIUMTEXT NULL,
+  confidence VARCHAR(40) NOT NULL DEFAULT 'media',
+  comment MEDIUMTEXT NOT NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  KEY idx_hyp_events_review (review_id, created_at),
+  KEY idx_hyp_events_owner (owner_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS capture_consents (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  capture_session_id CHAR(36) NOT NULL,
+  participant_id CHAR(36) NULL,
+  owner_id CHAR(36) NOT NULL,
+  scope VARCHAR(60) NOT NULL,
+  granted TINYINT(1) NOT NULL DEFAULT 0,
+  consent_text MEDIUMTEXT NULL,
+  granted_at TIMESTAMP(3) NULL,
+  consent_version VARCHAR(40) NOT NULL DEFAULT '1',
+  user_id CHAR(36) NULL,
+  user_agent VARCHAR(500) NULL,
+  recorded_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  source VARCHAR(40) NOT NULL DEFAULT 'app',
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  KEY idx_capture_consents_session (capture_session_id),
+  KEY idx_capture_consents_owner (owner_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS capture_invitations (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  capture_session_id CHAR(36) NOT NULL,
+  participant_id CHAR(36) NULL,
+  owner_id CHAR(36) NOT NULL,
+  token VARCHAR(80) NOT NULL,
+  note TEXT NULL,
+  expires_at TIMESTAMP(3) NULL,
+  max_uses INT NULL,
+  uses_count INT NOT NULL DEFAULT 0,
+  revoked_at TIMESTAMP(3) NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  UNIQUE KEY uq_capture_invitations_token (token),
+  KEY idx_capture_invitations_session (capture_session_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS capture_preferences (
+  user_id CHAR(36) NOT NULL PRIMARY KEY,
+  area_key VARCHAR(80) NULL,
+  mode VARCHAR(40) NOT NULL DEFAULT 'individual',
+  capture_mode VARCHAR(40) NOT NULL DEFAULT 'camera',
+  record_screen TINYINT(1) NOT NULL DEFAULT 0,
+  retention_days INT NOT NULL DEFAULT 30,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_billing (
+  user_id CHAR(36) NOT NULL PRIMARY KEY,
+  subscription_status VARCHAR(40) NULL,
+  current_period_start TIMESTAMP(3) NULL,
+  current_period_end TIMESTAMP(3) NULL,
+  included_used_cents DECIMAL(14,4) NOT NULL DEFAULT 0,
+  extra_pending_cents DECIMAL(14,4) NOT NULL DEFAULT 0,
+  redsys_card_token VARCHAR(120) NULL,
+  redsys_card_brand VARCHAR(40) NULL,
+  redsys_card_expiry VARCHAR(20) NULL,
+  redsys_original_auth_code VARCHAR(40) NULL,
+  redsys_original_order VARCHAR(40) NULL,
+  next_charge_at TIMESTAMP(3) NULL,
+  donation_to_credits TINYINT(1) NOT NULL DEFAULT 1,
+  credit_balance_cents DECIMAL(14,4) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  KEY idx_user_billing_next_charge (subscription_status, next_charge_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS redsys_payments (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  user_id CHAR(36) NOT NULL,
+  order_code VARCHAR(40) NOT NULL,
+  amount_cents INT NOT NULL,
+  currency VARCHAR(10) NOT NULL DEFAULT 'EUR',
+  kind VARCHAR(40) NOT NULL,
+  status VARCHAR(40) NOT NULL DEFAULT 'pending',
+  response_code VARCHAR(20) NULL,
+  auth_code VARCHAR(40) NULL,
+  card_token VARCHAR(120) NULL,
+  card_brand VARCHAR(40) NULL,
+  card_expiry VARCHAR(20) NULL,
+  raw_response JSON NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  UNIQUE KEY uq_redsys_order (order_code),
+  KEY idx_redsys_user (user_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS pricing_config (
+  id TINYINT(1) NOT NULL PRIMARY KEY DEFAULT 1,
+  openai_input_per_1k DECIMAL(14,6) NOT NULL DEFAULT 0,
+  openai_output_per_1k DECIMAL(14,6) NOT NULL DEFAULT 0,
+  gemini_input_per_1k DECIMAL(14,6) NOT NULL DEFAULT 0,
+  gemini_output_per_1k DECIMAL(14,6) NOT NULL DEFAULT 0,
+  replicate_video_per_second DECIMAL(14,6) NOT NULL DEFAULT 0,
+  replicate_lipsync_per_second DECIMAL(14,6) NOT NULL DEFAULT 0,
+  replicate_image_per_unit DECIMAL(14,6) NOT NULL DEFAULT 0,
+  elevenlabs_per_1k_chars DECIMAL(14,6) NOT NULL DEFAULT 0,
+  margin_user_pays_pct DECIMAL(8,3) NOT NULL DEFAULT 0,
+  margin_platform_pays_pct DECIMAL(8,3) NOT NULL DEFAULT 0,
+  subscription_price_cents INT NOT NULL DEFAULT 0,
+  subscription_included_cents INT NOT NULL DEFAULT 0,
+  currency VARCHAR(10) NOT NULL DEFAULT 'EUR',
+  vat_pct DECIMAL(8,3) NOT NULL DEFAULT 21,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Archivos: índice de los ficheros guardados en disco por la API.
+CREATE TABLE IF NOT EXISTS stored_files (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  bucket VARCHAR(60) NOT NULL,
+  path VARCHAR(600) NOT NULL,
+  owner_id CHAR(36) NULL,
+  mime_type VARCHAR(160) NULL,
+  size_bytes BIGINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  UNIQUE KEY uq_stored_files (bucket, path(255))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -24,7 +24,22 @@ export type ExternalResource =
   | "simulation_invitations"
   | "sessions"
   | "report_email_log"
-  | "usage_events";
+  | "usage_events"
+  | "capture_sessions"
+  | "capture_participants"
+  | "capture_recordings"
+  | "capture_transcript_segments"
+  | "capture_analyses"
+  | "capture_scene_annotations"
+  | "capture_hypothesis_reviews"
+  | "capture_hypothesis_review_events"
+  | "capture_consents"
+  | "capture_invitations"
+  | "capture_preferences"
+  | "user_billing"
+  | "redsys_payments"
+  | "pricing_config";
+
 
 export interface ExternalApiConfig {
   baseUrl: string;

@@ -6,6 +6,7 @@ import { runWithTextModelFallback } from "./ai-gateway.server";
 import { loadUserKeys } from "./user-keys.functions";
 import { formatSec, type SessionMetrics } from "./analyze-metrics";
 import type { SessionScene } from "./scenes.functions";
+import { xdb, xAdminDb } from "./assessments-repo.server";
 
 /** Comparativa de escenas entre dos sesiones: patrones similares con evidencia temporal en ambas. */
 export const ScenesComparisonSchema = z.object({
@@ -63,7 +64,7 @@ export type ScenesComparison = z.infer<typeof ScenesComparisonSchema> & {
 export const listComparableSessions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+    const { data, error } = await xdb(context)
       .from("capture_analyses")
       .select("capture_session_id, scenes, scenes_generated_at, capture_sessions(title, created_at)")
       .eq("owner_id", context.userId)
@@ -99,24 +100,24 @@ export const compareSessionScenes = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<ScenesComparison> => {
     const loadSide = async (sessionId: string) => {
       const [analysisRes, sessionRes, participantsRes, annotationsRes] = await Promise.all([
-        context.supabase
+        xdb(context)
           .from("capture_analyses")
           .select("scenes, metrics")
           .eq("capture_session_id", sessionId)
           .eq("owner_id", context.userId)
           .maybeSingle(),
-        context.supabase
+        xdb(context)
           .from("capture_sessions")
           .select("id, title, mode, area_key")
           .eq("id", sessionId)
           .eq("owner_id", context.userId)
           .single(),
-        context.supabase
+        xdb(context)
           .from("capture_participants")
           .select("id, name, role")
           .eq("capture_session_id", sessionId)
           .eq("owner_id", context.userId),
-        context.supabase
+        xdb(context)
           .from("capture_scene_annotations")
           .select("scene_title, start_sec, end_sec, note, tags")
           .eq("capture_session_id", sessionId)
@@ -185,7 +186,7 @@ Escenas:
 ${scenes}${notes ? `\nAnotaciones del profesional:\n${notes}` : ""}`;
     };
 
-    const userKeys = await loadUserKeys(context.supabase, context.userId);
+    const userKeys = await loadUserKeys(xdb(context), context.userId);
     const attempt = await runWithTextModelFallback(
       userKeys,
       undefined,

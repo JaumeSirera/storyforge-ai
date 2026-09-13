@@ -145,7 +145,132 @@ final class Repo
             'insertable' => ['id', 'user_id', 'simulation_id', 'action', 'provider', 'model', 'input_tokens', 'output_tokens', 'seconds', 'characters', 'units', 'cost_raw_cents', 'margin_pct', 'total_cents', 'pays_platform', 'billed', 'metadata'],
             'updatable' => ['billed'],
         ],
+
+        // ---- Grabaciones de captura ----
+        'capture_sessions' => [
+            'owner' => 'owner_id',
+            'columns' => ['id', 'owner_id', 'simulation_id', 'game_session_id', 'title', 'area_key', 'mode', 'capture_mode', 'record_screen', 'consent_recording', 'consent_face_analysis', 'consent_text', 'status', 'retention_days', 'delete_after', 'started_at', 'ended_at', 'created_at', 'updated_at'],
+            'json' => [],
+            'insertable' => ['id', 'simulation_id', 'game_session_id', 'title', 'area_key', 'mode', 'capture_mode', 'record_screen', 'consent_recording', 'consent_face_analysis', 'consent_text', 'status', 'retention_days', 'delete_after', 'started_at', 'ended_at'],
+            'updatable' => ['simulation_id', 'game_session_id', 'title', 'area_key', 'mode', 'capture_mode', 'record_screen', 'consent_recording', 'consent_face_analysis', 'consent_text', 'status', 'retention_days', 'delete_after', 'started_at', 'ended_at'],
+        ],
+        'capture_participants' => [
+            'owner' => 'owner_id',
+            'shared' => 'capture_session_id',
+            'columns' => ['id', 'capture_session_id', 'owner_id', 'name', 'identifier', 'role', 'photo_path', 'color', 'joined_at_sec', 'is_late', 'user_id', 'joined_at', 'created_at', 'updated_at'],
+            'json' => [],
+            'insertable' => ['id', 'capture_session_id', 'name', 'identifier', 'role', 'photo_path', 'color', 'joined_at_sec', 'is_late', 'user_id', 'joined_at'],
+            'updatable' => ['name', 'identifier', 'role', 'photo_path', 'color', 'joined_at_sec', 'is_late', 'user_id', 'joined_at'],
+        ],
+        'capture_recordings' => [
+            'owner' => 'owner_id',
+            'shared' => 'capture_session_id',
+            'columns' => ['id', 'capture_session_id', 'participant_id', 'owner_id', 'kind', 'storage_path', 'mime_type', 'size_bytes', 'duration_sec', 'sync_offset_ms', 'status', 'error_message', 'created_at', 'updated_at'],
+            'json' => [],
+            'insertable' => ['id', 'capture_session_id', 'participant_id', 'kind', 'storage_path', 'mime_type', 'size_bytes', 'duration_sec', 'sync_offset_ms', 'status', 'error_message'],
+            'updatable' => ['participant_id', 'kind', 'storage_path', 'mime_type', 'size_bytes', 'duration_sec', 'sync_offset_ms', 'status', 'error_message'],
+        ],
+        'capture_transcript_segments' => [
+            'owner' => 'owner_id',
+            'shared' => 'capture_session_id',
+            'columns' => ['id', 'capture_session_id', 'recording_id', 'owner_id', 'participant_id', 'speaker_label', 'start_sec', 'end_sec', 'text', 'created_at', 'updated_at'],
+            'json' => [],
+            'insertable' => ['id', 'capture_session_id', 'recording_id', 'participant_id', 'speaker_label', 'start_sec', 'end_sec', 'text'],
+            'updatable' => ['participant_id', 'speaker_label', 'start_sec', 'end_sec', 'text'],
+        ],
+        'capture_analyses' => [
+            'owner' => 'owner_id',
+            'shared' => 'capture_session_id',
+            'columns' => ['id', 'capture_session_id', 'owner_id', 'status', 'stage', 'error_message', 'transcription_model', 'metrics', 'interactions', 'insights', 'insights_generated_at', 'scenes', 'scenes_generated_at', 'created_at', 'updated_at'],
+            'json' => ['metrics', 'interactions', 'insights', 'scenes'],
+            'insertable' => ['id', 'capture_session_id', 'status', 'stage', 'error_message', 'transcription_model', 'metrics', 'interactions', 'insights', 'insights_generated_at', 'scenes', 'scenes_generated_at'],
+            'defaults' => ['metrics' => [], 'interactions' => [], 'insights' => [], 'scenes' => []],
+            'updatable' => ['status', 'stage', 'error_message', 'transcription_model', 'metrics', 'interactions', 'insights', 'insights_generated_at', 'scenes', 'scenes_generated_at'],
+        ],
+        'capture_scene_annotations' => [
+            'owner' => 'owner_id',
+            'shared' => 'capture_session_id',
+            'columns' => ['id', 'capture_session_id', 'owner_id', 'scene_index', 'scene_title', 'start_sec', 'end_sec', 'note', 'tags', 'created_at', 'updated_at'],
+            'json' => ['tags'],
+            'insertable' => ['id', 'capture_session_id', 'scene_index', 'scene_title', 'start_sec', 'end_sec', 'note', 'tags'],
+            'defaults' => ['note' => '', 'tags' => []],
+            'updatable' => ['scene_index', 'scene_title', 'start_sec', 'end_sec', 'note', 'tags'],
+        ],
+        'capture_hypothesis_reviews' => [
+            'owner' => 'owner_id',
+            'shared' => 'capture_session_id',
+            'columns' => ['id', 'capture_session_id', 'owner_id', 'hypothesis_index', 'hypothesis_text', 'status', 'adjusted_text', 'confidence', 'comment', 'created_at', 'updated_at'],
+            'json' => [],
+            'insertable' => ['id', 'capture_session_id', 'hypothesis_index', 'hypothesis_text', 'status', 'adjusted_text', 'confidence', 'comment'],
+            'defaults' => ['comment' => '', 'confidence' => 'media', 'status' => 'pending'],
+            'updatable' => ['hypothesis_text', 'status', 'adjusted_text', 'confidence', 'comment'],
+        ],
+        'capture_hypothesis_review_events' => [
+            'owner' => 'owner_id',
+            'shared' => 'capture_session_id',
+            'columns' => ['id', 'review_id', 'capture_session_id', 'owner_id', 'hypothesis_index', 'action', 'status', 'adjusted_text', 'confidence', 'comment', 'created_at'],
+            'json' => [],
+            'insertable' => ['id', 'review_id', 'capture_session_id', 'hypothesis_index', 'action', 'status', 'adjusted_text', 'confidence', 'comment'],
+            'defaults' => ['comment' => '', 'confidence' => 'media'],
+            'updatable' => [],
+            'immutable' => true,
+        ],
+        'capture_consents' => [
+            'owner' => 'owner_id',
+            'shared' => 'capture_session_id',
+            'columns' => ['id', 'capture_session_id', 'participant_id', 'owner_id', 'scope', 'granted', 'consent_text', 'granted_at', 'consent_version', 'user_id', 'user_agent', 'recorded_at', 'source', 'created_at'],
+            'json' => [],
+            'insertable' => ['id', 'capture_session_id', 'participant_id', 'scope', 'granted', 'consent_text', 'granted_at', 'consent_version', 'user_id', 'user_agent', 'recorded_at', 'source'],
+            'defaults' => ['consent_version' => '1', 'source' => 'app'],
+            'updatable' => [],
+            'immutable' => true,
+        ],
+        'capture_invitations' => [
+            'owner' => 'owner_id',
+            'shared' => 'capture_session_id',
+            'columns' => ['id', 'capture_session_id', 'participant_id', 'owner_id', 'token', 'note', 'expires_at', 'max_uses', 'uses_count', 'revoked_at', 'created_at', 'updated_at'],
+            'json' => [],
+            'insertable' => ['id', 'capture_session_id', 'participant_id', 'token', 'note', 'expires_at', 'max_uses', 'uses_count'],
+            'updatable' => ['participant_id', 'note', 'expires_at', 'max_uses', 'uses_count', 'revoked_at'],
+        ],
+        'capture_preferences' => [
+            'owner' => 'user_id',
+            'pk' => 'user_id',
+            'columns' => ['user_id', 'area_key', 'mode', 'capture_mode', 'record_screen', 'retention_days', 'created_at', 'updated_at'],
+            'json' => [],
+            'insertable' => ['user_id', 'area_key', 'mode', 'capture_mode', 'record_screen', 'retention_days'],
+            'updatable' => ['area_key', 'mode', 'capture_mode', 'record_screen', 'retention_days'],
+        ],
+
+        // ---- Facturación (solo escritura en modo servicio) ----
+        'user_billing' => [
+            'owner' => 'user_id',
+            'pk' => 'user_id',
+            'service_write' => true,
+            'columns' => ['user_id', 'subscription_status', 'current_period_start', 'current_period_end', 'included_used_cents', 'extra_pending_cents', 'redsys_card_token', 'redsys_card_brand', 'redsys_card_expiry', 'redsys_original_auth_code', 'redsys_original_order', 'next_charge_at', 'donation_to_credits', 'credit_balance_cents', 'created_at', 'updated_at'],
+            'json' => [],
+            'insertable' => ['user_id', 'subscription_status', 'current_period_start', 'current_period_end', 'included_used_cents', 'extra_pending_cents', 'redsys_card_token', 'redsys_card_brand', 'redsys_card_expiry', 'redsys_original_auth_code', 'redsys_original_order', 'next_charge_at', 'donation_to_credits', 'credit_balance_cents'],
+            'updatable' => ['subscription_status', 'current_period_start', 'current_period_end', 'included_used_cents', 'extra_pending_cents', 'redsys_card_token', 'redsys_card_brand', 'redsys_card_expiry', 'redsys_original_auth_code', 'redsys_original_order', 'next_charge_at', 'donation_to_credits', 'credit_balance_cents'],
+        ],
+        'redsys_payments' => [
+            'owner' => 'user_id',
+            'service_write' => true,
+            'columns' => ['id', 'user_id', 'order_code', 'amount_cents', 'currency', 'kind', 'status', 'response_code', 'auth_code', 'card_token', 'card_brand', 'card_expiry', 'raw_response', 'created_at', 'updated_at'],
+            'json' => ['raw_response'],
+            'insertable' => ['id', 'user_id', 'order_code', 'amount_cents', 'currency', 'kind', 'status', 'response_code', 'auth_code', 'card_token', 'card_brand', 'card_expiry', 'raw_response'],
+            'updatable' => ['status', 'response_code', 'auth_code', 'card_token', 'card_brand', 'card_expiry', 'raw_response'],
+        ],
+        'pricing_config' => [
+            'owner' => 'id',
+            'global' => true,
+            'service_write' => true,
+            'columns' => ['id', 'openai_input_per_1k', 'openai_output_per_1k', 'gemini_input_per_1k', 'gemini_output_per_1k', 'replicate_video_per_second', 'replicate_lipsync_per_second', 'replicate_image_per_unit', 'elevenlabs_per_1k_chars', 'margin_user_pays_pct', 'margin_platform_pays_pct', 'subscription_price_cents', 'subscription_included_cents', 'currency', 'vat_pct', 'created_at', 'updated_at'],
+            'json' => [],
+            'insertable' => ['id', 'openai_input_per_1k', 'openai_output_per_1k', 'gemini_input_per_1k', 'gemini_output_per_1k', 'replicate_video_per_second', 'replicate_lipsync_per_second', 'replicate_image_per_unit', 'elevenlabs_per_1k_chars', 'margin_user_pays_pct', 'margin_platform_pays_pct', 'subscription_price_cents', 'subscription_included_cents', 'currency', 'vat_pct'],
+            'updatable' => ['openai_input_per_1k', 'openai_output_per_1k', 'gemini_input_per_1k', 'gemini_output_per_1k', 'replicate_video_per_second', 'replicate_lipsync_per_second', 'replicate_image_per_unit', 'elevenlabs_per_1k_chars', 'margin_user_pays_pct', 'margin_platform_pays_pct', 'subscription_price_cents', 'subscription_included_cents', 'currency', 'vat_pct'],
+        ],
     ];
+
 
     public function __construct(private Db $db)
     {
@@ -163,6 +288,20 @@ final class Repo
             Http::fail('Recurso no disponible', 404, 'unknown_resource');
         }
         return self::RESOURCES[$resource];
+    }
+
+    /** Nombre de la clave primaria (algunas tablas usan user_id). */
+    private static function pk(array $meta): string
+    {
+        return (string) ($meta['pk'] ?? 'id');
+    }
+
+    /** Tablas que solo la propia aplicación (modo servicio) puede escribir. */
+    private static function assertWritable(array $meta, ?string $userId): void
+    {
+        if (($meta['service_write'] ?? false) === true && $userId !== null) {
+            Http::fail('Este recurso es de solo lectura', 403, 'read_only');
+        }
     }
 
     /**
@@ -224,10 +363,12 @@ final class Repo
     {
         $meta = self::meta($resource);
         $scope = $this->scopeWhere($resource, $meta, $userId);
+        $pk = self::pk($meta);
         $sql = sprintf(
-            'SELECT %s FROM `%s` WHERE `id` = :id%s LIMIT 1',
+            'SELECT %s FROM `%s` WHERE `%s` = :id%s LIMIT 1',
             $this->select($meta['columns']),
             $resource,
+            $pk,
             $scope === null ? '' : ' AND ' . $scope,
         );
         $args = ['id' => $id];
@@ -246,9 +387,8 @@ final class Repo
     public function create(string $resource, ?string $userId, array $input): array
     {
         $meta = self::meta($resource);
-        $id = isset($input['id']) && is_string($input['id']) && $input['id'] !== ''
-            ? $input['id']
-            : self::uuid();
+        self::assertWritable($meta, $userId);
+        $pk = self::pk($meta);
 
         $ownerColumn = (string) $meta['owner'];
         $owner = $userId ?? (isset($input[$ownerColumn]) ? (string) $input[$ownerColumn] : '');
@@ -256,9 +396,13 @@ final class Repo
             Http::fail('Falta el propietario del registro', 400, 'missing_owner');
         }
 
-        $values = ['id' => $id, $ownerColumn => $owner];
+        $id = isset($input[$pk]) && (is_string($input[$pk]) || is_int($input[$pk])) && (string) $input[$pk] !== ''
+            ? (string) $input[$pk]
+            : ($pk === $ownerColumn ? $owner : self::uuid());
+
+        $values = [$pk => $id, $ownerColumn => $owner];
         foreach ($meta['insertable'] as $column) {
-            if ($column === 'id' || $column === $ownerColumn || !array_key_exists($column, $input)) {
+            if ($column === $pk || $column === $ownerColumn || !array_key_exists($column, $input)) {
                 continue;
             }
             $values[$column] = $this->encode($column, $input[$column], $meta['json']);
@@ -297,6 +441,7 @@ final class Repo
     public function update(string $resource, ?string $userId, string $id, array $input): array
     {
         $meta = self::meta($resource);
+        self::assertWritable($meta, $userId);
         if (($meta['immutable'] ?? false) === true) {
             Http::fail('Este recurso no se puede modificar', 405, 'immutable');
         }
@@ -321,9 +466,10 @@ final class Repo
         $sets[] = '`updated_at` = CURRENT_TIMESTAMP(3)';
 
         $sql = sprintf(
-            'UPDATE `%s` SET %s WHERE `id` = :id%s',
+            'UPDATE `%s` SET %s WHERE `%s` = :id%s',
             $resource,
             implode(', ', $sets),
+            self::pk($meta),
             $scope === null ? '' : ' AND ' . $scope,
         );
         $this->db->run($sql, $params);
@@ -338,13 +484,15 @@ final class Repo
     public function delete(string $resource, ?string $userId, string $id): int
     {
         $meta = self::meta($resource);
+        self::assertWritable($meta, $userId);
         if (($meta['immutable'] ?? false) === true) {
             Http::fail('Este recurso no se puede borrar', 405, 'immutable');
         }
         $scope = $this->scopeWhere($resource, $meta, $userId);
         $sql = sprintf(
-            'DELETE FROM `%s` WHERE `id` = :id%s',
+            'DELETE FROM `%s` WHERE `%s` = :id%s',
             $resource,
+            self::pk($meta),
             $scope === null ? '' : ' AND ' . $scope,
         );
         $args = ['id' => $id];
@@ -364,7 +512,7 @@ final class Repo
      */
     private function scopeWhere(string $resource, array $meta, ?string $userId): ?string
     {
-        if ($userId === null) {
+        if ($userId === null || ($meta['global'] ?? false) === true) {
             return null;
         }
         $owner = "`{$meta['owner']}` = :owner";
@@ -378,6 +526,9 @@ final class Repo
         }
         if ($shared === 'simulation_id') {
             return "({$owner} OR `simulation_id` IN (SELECT `id` FROM `simulations` WHERE `owner_id` = :owner2))";
+        }
+        if ($shared === 'capture_session_id') {
+            return "({$owner} OR `capture_session_id` IN (SELECT `id` FROM `capture_sessions` WHERE `owner_id` = :owner2))";
         }
         if ($shared === 'submission_id') {
             return "({$owner} OR `submission_id` IN (SELECT s.`id` FROM `assessment_submissions` s"

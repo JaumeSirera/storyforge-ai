@@ -7,6 +7,8 @@ import {
   type SessionMetrics,
   type TranscriptSegment,
 } from "./analyze-metrics";
+import { xdb, xAdminDb } from "./assessments-repo.server";
+
 
 const TRANSCRIPTION_MODEL = "scribe_v2";
 // Límite del proveedor de transcripción (1 GB por archivo).
@@ -67,13 +69,13 @@ export const getSessionAnalysis = createServerFn({ method: "GET" })
   )
   .handler(async ({ data, context }) => {
     const [analysis, segments] = await Promise.all([
-      context.supabase
+      xdb(context)
         .from("capture_analyses")
         .select(ANALYSIS_COLUMNS)
         .eq("capture_session_id", data.captureSessionId)
         .eq("owner_id", context.userId)
         .maybeSingle(),
-      context.supabase
+      xdb(context)
         .from("capture_transcript_segments")
         .select("id, recording_id, participant_id, speaker_label, start_sec, end_sec, text")
         .eq("capture_session_id", data.captureSessionId)
@@ -110,7 +112,7 @@ export const transcribeRecording = createServerFn({ method: "POST" })
     const apiKey = process.env["ELEVENLABS_API_KEY"];
     if (!apiKey) throw new Error("Falta la conexión de transcripción. Conéctala en Ajustes.");
 
-    const { data: rec, error: recErr } = await context.supabase
+    const { data: rec, error: recErr } = await xdb(context)
       .from("capture_recordings")
       .select("id, capture_session_id, storage_path, mime_type, size_bytes, participant_id")
       .eq("id", data.recordingId)
@@ -141,7 +143,7 @@ export const transcribeRecording = createServerFn({ method: "POST" })
       if (sizeBytes > INLINE_UPLOAD_BYTES) {
         // Grabaciones grandes: el proveedor descarga el fichero desde una URL firmada
         // (evita cargar cientos de MB en memoria del servidor).
-        const signed = await context.supabase.storage
+        const signed = await xdb(context).storage
           .from("recordings")
           .createSignedUrl(rec.storage_path, 60 * 60);
         if (signed.error || !signed.data?.signedUrl) {
@@ -149,7 +151,7 @@ export const transcribeRecording = createServerFn({ method: "POST" })
         }
         form.append("cloud_storage_url", signed.data.signedUrl);
       } else {
-        const file = await context.supabase.storage.from("recordings").download(rec.storage_path);
+        const file = await xdb(context).storage.from("recordings").download(rec.storage_path);
         if (file.error || !file.data) throw new Error("No se pudo leer la grabación almacenada");
         form.append("file", file.data, "recording.webm");
       }
@@ -174,7 +176,7 @@ export const transcribeRecording = createServerFn({ method: "POST" })
       if (segments.length === 0) throw new Error("No se detectó voz en la grabación");
 
       // Reemplaza los segmentos previos de esta grabación.
-      await context.supabase
+      await xdb(context)
         .from("capture_transcript_segments")
         .delete()
         .eq("recording_id", rec.id)
@@ -193,7 +195,7 @@ export const transcribeRecording = createServerFn({ method: "POST" })
       }));
 
       for (let i = 0; i < rows.length; i += 500) {
-        const { error } = await context.supabase
+        const { error } = await xdb(context)
           .from("capture_transcript_segments")
           .insert(rows.slice(i, i + 500));
         if (error) throw new Error(error.message);
@@ -224,7 +226,7 @@ export const assignSpeaker = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { error } = await xdb(context)
       .from("capture_transcript_segments")
       .update({ participant_id: data.participantId })
       .eq("capture_session_id", data.captureSessionId)
@@ -252,12 +254,12 @@ export const deleteSessionAnalysis = createServerFn({ method: "POST" })
     z.object({ captureSessionId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    await context.supabase
+    await xdb(context)
       .from("capture_transcript_segments")
       .delete()
       .eq("capture_session_id", data.captureSessionId)
       .eq("owner_id", context.userId);
-    await context.supabase
+    await xdb(context)
       .from("capture_analyses")
       .delete()
       .eq("capture_session_id", data.captureSessionId)
@@ -272,7 +274,7 @@ async function upsertAnalysis(
   captureSessionId: string,
   patch: Record<string, unknown>,
 ) {
-  const { error } = await context.supabase.from("capture_analyses").upsert(
+  const { error } = await xdb(context).from("capture_analyses").upsert(
     {
       capture_session_id: captureSessionId,
       owner_id: context.userId,
@@ -287,7 +289,7 @@ async function recomputeMetrics(
   context: { supabase: any; userId: string },
   captureSessionId: string,
 ) {
-  const { data, error } = await context.supabase
+  const { data, error } = await xdb(context)
     .from("capture_transcript_segments")
     .select("id, recording_id, participant_id, speaker_label, start_sec, end_sec, text")
     .eq("capture_session_id", captureSessionId)

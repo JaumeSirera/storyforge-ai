@@ -19,7 +19,22 @@ type Filter =
   | { op: "in"; column: string; values: unknown[] }
   | { op: "ilike"; column: string; pattern: string }
   | { op: "isnull"; column: string }
-  | { op: "notnull"; column: string };
+  | { op: "notnull"; column: string }
+  | { op: "cmp"; column: string; kind: "lt" | "lte" | "gt" | "gte"; value: unknown };
+
+/**
+ * Clave primaria por tabla. La mayoría usa `id`; las tablas de una fila por
+ * usuario usan `user_id`.
+ */
+const PRIMARY_KEYS: Record<string, string> = {
+  capture_preferences: "user_id",
+  user_billing: "user_id",
+};
+
+function pkFor(table: string): string {
+  return PRIMARY_KEYS[table] ?? "id";
+}
+
 
 /** Relación incrustada del estilo `alias:tabla(columnas)`. */
 interface Embed {
@@ -56,10 +71,20 @@ function matches(row: Row, filters: Filter[]): boolean {
     if (f.op === "notnull") return value !== null && value !== undefined;
     if (f.op === "eq") return norm(value) === norm(f.value);
     if (f.op === "in") return f.values.some((v) => norm(v) === norm(value));
+    if (f.op === "cmp") {
+      if (value === null || value === undefined) return false;
+      const a = norm(value);
+      const b = norm(f.value);
+      if (f.kind === "lt") return a < b;
+      if (f.kind === "lte") return a <= b;
+      if (f.kind === "gt") return a > b;
+      return a >= b;
+    }
     const needle = f.pattern.replace(/%/g, "").toLowerCase();
     return String(value ?? "").toLowerCase().includes(needle);
   });
 }
+
 
 class ExternalQuery<T> implements PromiseLike<Res<T>> {
   private filters: Filter[] = [];
@@ -116,6 +141,27 @@ class ExternalQuery<T> implements PromiseLike<Res<T>> {
     return this;
   }
 
+  lt(column: string, value: unknown) {
+    this.filters.push({ op: "cmp", column, kind: "lt", value });
+    return this;
+  }
+
+  lte(column: string, value: unknown) {
+    this.filters.push({ op: "cmp", column, kind: "lte", value });
+    return this;
+  }
+
+  gt(column: string, value: unknown) {
+    this.filters.push({ op: "cmp", column, kind: "gt", value });
+    return this;
+  }
+
+  gte(column: string, value: unknown) {
+    this.filters.push({ op: "cmp", column, kind: "gte", value });
+    return this;
+  }
+
+
   order(column: string, options?: { ascending?: boolean }) {
     this.orderBy = { column, ascending: options?.ascending !== false };
     return this;
@@ -155,7 +201,8 @@ class ExternalQuery<T> implements PromiseLike<Res<T>> {
     if (this.orderBy) query["order"] = `${this.orderBy.column}.${this.orderBy.ascending ? "asc" : "desc"}`;
     query["limit"] = Math.min(200, this.limitN ?? 200);
 
-    const idFilter = this.filters.find((f) => f.op === "eq" && f.column === "id");
+    const pk = pkFor(this.table);
+    const idFilter = this.filters.find((f) => f.op === "eq" && f.column === pk);
     if (idFilter && this.filters.length === 1) {
       try {
         const row = await externalApi.get<Row>(this.token(), this.table, String((idFilter as { value: unknown }).value));
@@ -231,13 +278,13 @@ class ExternalQuery<T> implements PromiseLike<Res<T>> {
     if (this.mode === "upsert") {
       const saved: Row[] = [];
       for (const body of this.payload) {
-        const keys = this.conflict.length > 0 ? this.conflict : ["id"];
+        const keys = this.conflict.length > 0 ? this.conflict : [pkFor(this.table)];
         const lookup: Record<string, string | number | boolean | undefined> = {};
         for (const key of keys) lookup[key] = String(body[key] ?? "");
         const existing = (await externalApi.list<Row>(token, this.table, { ...lookup, limit: 1 }))[0];
         saved.push(
           existing
-            ? await externalApi.update<Row>(token, this.table, String(existing["id"]), body)
+            ? await externalApi.update<Row>(token, this.table, String(existing[pkFor(this.table)]), body)
             : await externalApi.create<Row>(token, this.table, body),
         );
       }
@@ -247,7 +294,7 @@ class ExternalQuery<T> implements PromiseLike<Res<T>> {
     const targets = await this.fetchRows();
     const result: Row[] = [];
     for (const row of targets) {
-      const id = String(row["id"]);
+      const id = String(row[pkFor(this.table)]);
       if (this.mode === "update") {
         result.push(await externalApi.update<Row>(token, this.table, id, this.payload[0] ?? {}));
       } else {

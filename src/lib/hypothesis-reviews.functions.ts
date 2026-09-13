@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { xdb, xAdminDb } from "./assessments-repo.server";
 
 export const REVIEW_STATUSES = ["pending", "validated", "adjusted", "rejected"] as const;
 export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
@@ -69,13 +70,13 @@ export const listHypothesisReviews = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ captureSessionId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const [reviewsRes, eventsRes] = await Promise.all([
-      context.supabase
+      xdb(context)
         .from("capture_hypothesis_reviews")
         .select(REVIEW_COLUMNS)
         .eq("capture_session_id", data.captureSessionId)
         .eq("owner_id", context.userId)
         .order("hypothesis_index", { ascending: true }),
-      context.supabase
+      xdb(context)
         .from("capture_hypothesis_review_events")
         .select(EVENT_COLUMNS)
         .eq("capture_session_id", data.captureSessionId)
@@ -120,7 +121,7 @@ export const saveHypothesisReview = createServerFn({ method: "POST" })
       updated_at: new Date().toISOString(),
     };
 
-    const { data: existing } = await context.supabase
+    const { data: existing } = await xdb(context)
       .from("capture_hypothesis_reviews")
       .select("id")
       .eq("capture_session_id", data.captureSessionId)
@@ -128,14 +129,14 @@ export const saveHypothesisReview = createServerFn({ method: "POST" })
       .eq("hypothesis_index", data.hypothesisIndex)
       .maybeSingle();
 
-    const { data: row, error } = await context.supabase
+    const { data: row, error } = await xdb(context)
       .from("capture_hypothesis_reviews")
       .upsert(payload, { onConflict: "capture_session_id,hypothesis_index" })
       .select(REVIEW_COLUMNS)
       .single();
     if (error) throw new Error(error.message);
 
-    const { error: evError } = await context.supabase
+    const { error: evError } = await xdb(context)
       .from("capture_hypothesis_review_events")
       .insert({
         review_id: row.id,

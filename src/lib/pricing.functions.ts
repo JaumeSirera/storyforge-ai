@@ -1,12 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { xdb, xAdminDb } from "./assessments-repo.server";
 
 /** Public: read current pricing (anyone signed in). */
 export const getPricingConfig = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+    const { data, error } = await xdb(context)
       .from("pricing_config")
       .select("*")
       .eq("id", true)
@@ -43,13 +44,13 @@ export const updatePricingConfig = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => UpdateInput.parse(input))
   .handler(async ({ data, context }) => {
     // Guard: only admins
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+    const { data: isAdmin } = await xdb(context).rpc("has_role", {
       _user_id: context.userId,
       _role: "admin",
     });
     if (!isAdmin) throw new Error("No autorizado");
 
-    const { error } = await context.supabase
+    const { error } = await xdb(context)
       .from("pricing_config")
       .update(data)
       .eq("id", true);
