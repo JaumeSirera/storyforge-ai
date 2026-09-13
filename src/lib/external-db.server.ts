@@ -141,6 +141,27 @@ class ExternalQuery<T> implements PromiseLike<Res<T>> {
     return this;
   }
 
+  lt(column: string, value: unknown) {
+    this.filters.push({ op: "cmp", column, kind: "lt", value });
+    return this;
+  }
+
+  lte(column: string, value: unknown) {
+    this.filters.push({ op: "cmp", column, kind: "lte", value });
+    return this;
+  }
+
+  gt(column: string, value: unknown) {
+    this.filters.push({ op: "cmp", column, kind: "gt", value });
+    return this;
+  }
+
+  gte(column: string, value: unknown) {
+    this.filters.push({ op: "cmp", column, kind: "gte", value });
+    return this;
+  }
+
+
   order(column: string, options?: { ascending?: boolean }) {
     this.orderBy = { column, ascending: options?.ascending !== false };
     return this;
