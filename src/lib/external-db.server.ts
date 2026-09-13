@@ -19,7 +19,22 @@ type Filter =
   | { op: "in"; column: string; values: unknown[] }
   | { op: "ilike"; column: string; pattern: string }
   | { op: "isnull"; column: string }
-  | { op: "notnull"; column: string };
+  | { op: "notnull"; column: string }
+  | { op: "cmp"; column: string; kind: "lt" | "lte" | "gt" | "gte"; value: unknown };
+
+/**
+ * Clave primaria por tabla. La mayoría usa `id`; las tablas de una fila por
+ * usuario usan `user_id`.
+ */
+const PRIMARY_KEYS: Record<string, string> = {
+  capture_preferences: "user_id",
+  user_billing: "user_id",
+};
+
+function pkFor(table: string): string {
+  return PRIMARY_KEYS[table] ?? "id";
+}
+
 
 /** Relación incrustada del estilo `alias:tabla(columnas)`. */
 interface Embed {
