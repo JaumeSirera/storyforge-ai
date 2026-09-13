@@ -2,12 +2,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
-import { xdb, xAdminDb } from "./assessments-repo.server";
   computeSessionMetrics,
   type InteractionNetwork,
   type SessionMetrics,
   type TranscriptSegment,
 } from "./analyze-metrics";
+import { xdb, xAdminDb } from "./assessments-repo.server";
+
 
 const TRANSCRIPTION_MODEL = "scribe_v2";
 // Límite del proveedor de transcripción (1 GB por archivo).
