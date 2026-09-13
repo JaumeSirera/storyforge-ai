@@ -99,11 +99,12 @@ function wrap<T extends object>(client: T, service: boolean): T {
   }) as T;
 }
 
-/** Cliente para las consultas del usuario firmado. */
-export function assessDb(context: { supabase: any }): any {
+/** Cliente para las consultas del usuario firmado. Conserva el tipo original. */
+export function assessDb<T extends object>(context: { supabase: T }): T {
   if (!isExternalApiEnabled()) return context.supabase;
   return wrap(context.supabase, false);
 }
+
 
 /** Cliente de servicio (equivale a la clave de servicio de Lovable Cloud). */
 export async function assessAdminDb() {
