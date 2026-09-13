@@ -71,10 +71,20 @@ function matches(row: Row, filters: Filter[]): boolean {
     if (f.op === "notnull") return value !== null && value !== undefined;
     if (f.op === "eq") return norm(value) === norm(f.value);
     if (f.op === "in") return f.values.some((v) => norm(v) === norm(value));
+    if (f.op === "cmp") {
+      if (value === null || value === undefined) return false;
+      const a = norm(value);
+      const b = norm(f.value);
+      if (f.kind === "lt") return a < b;
+      if (f.kind === "lte") return a <= b;
+      if (f.kind === "gt") return a > b;
+      return a >= b;
+    }
     const needle = f.pattern.replace(/%/g, "").toLowerCase();
     return String(value ?? "").toLowerCase().includes(needle);
   });
 }
+
 
 class ExternalQuery<T> implements PromiseLike<Res<T>> {
   private filters: Filter[] = [];
