@@ -39,10 +39,33 @@ const PHASE2_TABLES = new Set<string>([
   "usage_events",
 ]);
 
+/**
+ * Fase 3 (grabaciones de captura y facturación). Se activa con el secreto
+ * EXTERNAL_API_PHASE3 = "1".
+ */
+const PHASE3_TABLES = new Set<string>([
+  "capture_sessions",
+  "capture_participants",
+  "capture_recordings",
+  "capture_transcript_segments",
+  "capture_analyses",
+  "capture_scene_annotations",
+  "capture_hypothesis_reviews",
+  "capture_hypothesis_review_events",
+  "capture_consents",
+  "capture_invitations",
+  "capture_preferences",
+  "user_billing",
+  "redsys_payments",
+  "pricing_config",
+]);
+
 function isExternal(table: string): boolean {
   if (EXTERNAL_TABLES.has(table)) return true;
-  return process.env["EXTERNAL_API_PHASE2"] === "1" && PHASE2_TABLES.has(table);
+  if (process.env["EXTERNAL_API_PHASE2"] === "1" && PHASE2_TABLES.has(table)) return true;
+  return process.env["EXTERNAL_API_PHASE3"] === "1" && PHASE3_TABLES.has(table);
 }
+
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
