@@ -123,16 +123,19 @@ final class Files
     }
 
     /** Enlace temporal firmado: /api/v1/file/{token}. */
-    public function sign(string $bucket, string $path, int $seconds): string
+    public function sign(string $bucket, string $path, int $seconds, string $mode = 'read'): string
     {
         $expires = time() + max(30, min(60 * 60 * 24 * 7, $seconds));
-        $payload = base64_encode(json_encode(['b' => $bucket, 'p' => $path, 'e' => $expires], JSON_UNESCAPED_SLASHES) ?: '');
+        $payload = base64_encode(json_encode(
+            ['b' => $bucket, 'p' => $path, 'e' => $expires, 'm' => $mode === 'write' ? 'write' : 'read'],
+            JSON_UNESCAPED_SLASHES,
+        ) ?: '');
         $payload = rtrim(strtr($payload, '+/', '-_'), '=');
         $signature = rtrim(strtr(base64_encode(hash_hmac('sha256', $payload, $this->signingKey, true)), '+/', '-_'), '=');
         return $payload . '.' . $signature;
     }
 
-    /** Comprueba un enlace firmado y devuelve contenedor y ruta. */
+    /** Comprueba un enlace firmado y devuelve contenedor, ruta y permiso. */
     public function verify(string $token): array
     {
         $parts = explode('.', $token);
@@ -156,6 +159,7 @@ final class Files
         if (!self::isBucket($bucket)) {
             Http::fail('Contenedor no válido', 404, 'unknown_bucket');
         }
-        return [$bucket, (string) $data['p']];
+        $mode = ($data['m'] ?? 'read') === 'write' ? 'write' : 'read';
+        return [$bucket, (string) $data['p'], $mode];
     }
 }

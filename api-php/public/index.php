@@ -18,7 +18,6 @@ require $base . '/src/Http.php';
 require $base . '/src/Auth.php';
 require $base . '/src/Db.php';
 require $base . '/src/Repo.php';
-require $base . '/src/Files.php';
 
 Env::load($base . '/.env');
 Http::cors(Env::get('ALLOWED_ORIGINS', '') ?? '');
@@ -47,6 +46,36 @@ if ($segments === ['health']) {
     Http::json(['ok' => true, 'time' => gmdate('c')]);
 }
 
+require $base . '/src/Files.php';
+$filesRoot = Env::get('FILES_DIR', $base . '/storage') ?? ($base . '/storage');
+$filesEarly = new Files($db, $filesRoot, Env::require('APP_TOKEN'));
+
+// Enlace temporal firmado: no necesita la clave compartida, basta la firma.
+//   GET  /api/v1/file/{token}  -> descarga
+//   POST /api/v1/file/{token}  -> subida directa desde el navegador
+if (($segments[0] ?? '') === 'file' && isset($segments[1])) {
+    $token = implode('/', array_slice($segments, 1));
+    [$bucket, $path, $mode] = $filesEarly->verify($token);
+    if ($method === 'GET') {
+        if ($mode !== 'read') {
+            Http::fail('Enlace no válido', 403, 'bad_token');
+        }
+        $filesEarly->stream($bucket, $path);
+    }
+    if ($method === 'POST') {
+        if ($mode !== 'write') {
+            Http::fail('Enlace no válido', 403, 'bad_token');
+        }
+        $contents = file_get_contents('php://input');
+        if (!is_string($contents) || $contents === '') {
+            Http::fail('No se ha recibido ningún archivo', 400, 'empty_body');
+        }
+        $mime = (string) ($_SERVER['CONTENT_TYPE'] ?? 'application/octet-stream');
+        Http::json(['data' => $filesEarly->put($bucket, $path, null, $contents, $mime)], 201);
+    }
+    Http::fail('Método no permitido', 405, 'method_not_allowed');
+}
+
 $auth = new Auth(
     $_SERVER['HTTP_X_IDENTITY_URL'] ?? Env::get('SUPABASE_URL', '') ?? '',
     $_SERVER['HTTP_X_IDENTITY_KEY'] ?? Env::get('SUPABASE_ANON_KEY', '') ?? '',
@@ -59,14 +88,7 @@ $service = ($_SERVER['HTTP_X_SERVICE'] ?? '') === '1';
 $userId = $service ? null : $auth->userId();
 
 // ---- Archivos ----------------------------------------------------------
-$filesRoot = Env::get('FILES_DIR', $base . '/storage') ?? ($base . '/storage');
-$files = new Files($db, $filesRoot, Env::require('APP_TOKEN'));
-
-// Enlace temporal firmado: GET /api/v1/file/{token}
-if (($segments[0] ?? '') === 'file' && isset($segments[1]) && $method === 'GET') {
-    [$bucket, $path] = $files->verify(implode('/', array_slice($segments, 1)));
-    $files->stream($bucket, $path);
-}
+$files = $filesEarly;
 
 if (($segments[0] ?? '') === 'files') {
     // POST /api/v1/files/sign  { bucket, path, expires_in }
@@ -77,8 +99,9 @@ if (($segments[0] ?? '') === 'files') {
             Http::fail('Contenedor no válido', 404, 'unknown_bucket');
         }
         $path = Files::cleanPath((string) ($body['path'] ?? ''));
-        $token = $files->sign($bucket, $path, (int) ($body['expires_in'] ?? 3600));
-        Http::json(['data' => ['token' => $token, 'url' => '/api/v1/file/' . $token]]);
+        $mode = ($body['mode'] ?? 'read') === 'write' ? 'write' : 'read';
+        $token = $files->sign($bucket, $path, (int) ($body['expires_in'] ?? 3600), $mode);
+        Http::json(['data' => ['token' => $token, 'url' => '/api/v1/file/' . $token, 'mode' => $mode]]);
     }
 
     $bucket = $segments[1] ?? '';
