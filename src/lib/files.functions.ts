@@ -35,3 +35,26 @@ export const signFileUpload = createServerFn({ method: "POST" })
     if (error || !signed) throw new Error(error?.message ?? "No se ha podido preparar la subida");
     return { uploadUrl: signed.signedUrl, path: signed.path };
   });
+
+export const signFileDownload = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v: unknown) =>
+    z
+      .object({
+        bucket: z.enum(BUCKETS),
+        path: z.string().min(3).max(500),
+      })
+      .parse(v),
+  )
+  .handler(async ({ data, context }): Promise<{ url: string } | null> => {
+    const { isExternalFilesEnabled, externalStorage } = await import("./external-storage.server");
+    if (!isExternalFilesEnabled()) return null;
+    if (!data.path.startsWith(`${context.userId}/`)) {
+      throw new Error("Ruta de archivo no válida");
+    }
+    const { data: signed, error } = await externalStorage
+      .from(data.bucket)
+      .createSignedUrl(data.path, 3600);
+    if (error || !signed) throw new Error(error?.message ?? "No se ha podido preparar la descarga");
+    return { url: signed.signedUrl };
+  });

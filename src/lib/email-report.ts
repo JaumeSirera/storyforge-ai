@@ -1,11 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
+import { signFileDownload } from "./files.functions";
 
 /** Descarga el logo guardado en el bucket privado y lo convierte a data URL. */
 export async function loadLogoDataUrl(path?: string | null): Promise<string | null> {
   if (!path) return null;
   try {
-    const { data, error } = await supabase.storage.from("branding").download(path);
-    if (error || !data) return null;
+    // Con los archivos en el servidor propio se usa un enlace temporal.
+    const link = await signFileDownload({ data: { bucket: "branding", path } }).catch(() => null);
+    const data = link
+      ? await fetch(link.url).then((r) => (r.ok ? r.blob() : null)).catch(() => null)
+      : (await supabase.storage.from("branding").download(path)).data;
+    if (!data) return null;
     return await new Promise<string | null>((resolve) => {
       const reader = new FileReader();
       reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : null);
