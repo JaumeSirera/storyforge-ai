@@ -21,12 +21,39 @@ const TABLES = [
   "question_bank_versions",
   "candidate_invite_emails",
   "exam_audit_log",
+  // Fase 3: grabaciones de captura y facturación
+  "pricing_config",
+  "user_billing",
+  "redsys_payments",
+  "capture_sessions",
+  "capture_participants",
+  "capture_recordings",
+  "capture_transcript_segments",
+  "capture_analyses",
+  "capture_scene_annotations",
+  "capture_hypothesis_reviews",
+  "capture_hypothesis_review_events",
+  "capture_consents",
+  "capture_invitations",
+  "capture_preferences",
 ] as const;
 
 type Table = (typeof TABLES)[number];
 
 /** Tablas de solo escritura: no se pueden actualizar una vez copiadas. */
-const IMMUTABLE: ReadonlySet<string> = new Set(["question_bank_versions", "exam_audit_log", "simulation_revisions"]);
+const IMMUTABLE: ReadonlySet<string> = new Set([
+  "question_bank_versions",
+  "exam_audit_log",
+  "simulation_revisions",
+  "capture_hypothesis_review_events",
+  "capture_consents",
+]);
+
+/** Tablas cuya clave principal no es "id". */
+const PRIMARY_KEY: Record<string, string> = {
+  capture_preferences: "user_id",
+  user_billing: "user_id",
+};
 
 export const Route = createFileRoute("/api/public/migrate-assessments")({
   server: {
@@ -59,7 +86,7 @@ export const Route = createFileRoute("/api/public/migrate-assessments")({
           }
 
           for (const row of (data ?? []) as Array<Record<string, unknown>>) {
-            const id = String(row["id"]);
+            const id = String(row[PRIMARY_KEY[table] ?? "id"]);
             try {
               const existing = await externalApi
                 .get<Record<string, unknown> | null>("", table as Table, id)
