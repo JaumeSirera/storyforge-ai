@@ -112,7 +112,7 @@ function externalBucket(bucket: string) {
     async createSignedUploadUrl(
       path: string,
       expiresIn = 3600,
-    ): Promise<Res<{ signedUrl: string; path: string } | null>> {
+    ): Promise<Res<{ signedUrl: string; path: string; token: string } | null>> {
       try {
         const config = getExternalApiConfig();
         const clean = cleanPath(path);
@@ -125,7 +125,7 @@ function externalBucket(bucket: string) {
         const token = payload.data?.token ?? "";
         if (!token) throw new Error("No se ha podido firmar el enlace de subida");
         return {
-          data: { signedUrl: `${config!.baseUrl}/api/v1/file/${token}`, path: clean },
+          data: { signedUrl: `${config!.baseUrl}/api/v1/file/${token}`, path: clean, token },
           error: null,
         };
       } catch (error) {

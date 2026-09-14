@@ -272,7 +272,13 @@ export const createParticipantUploadTicket = createServerFn({ method: "POST" })
       .from("recordings")
       .createSignedUploadUrl(path);
     if (error) throw new Error(error.message);
-    return { path, uploadToken: signed.token, participantId: participant.id as string };
+    const { isExternalFilesEnabled } = await import("./external-storage.server");
+    return {
+      path,
+      uploadToken: signed.token as string,
+      uploadUrl: isExternalFilesEnabled() ? ((signed as { signedUrl?: string }).signedUrl ?? "") : "",
+      participantId: participant.id as string,
+    };
   });
 
 /** El invitado registra la grabación subida (queda a nombre del anfitrión). */
