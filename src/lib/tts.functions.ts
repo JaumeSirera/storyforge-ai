@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { loadUserKeys } from "./user-keys.functions";
+import { xAdminDb } from "./assessments-repo.server";
 
 const SIGNED_URL_TTL = 60 * 60 * 24 * 365 * 10;
 
@@ -63,7 +64,7 @@ export const generateClipDialogue = createServerFn({ method: "POST" })
 
     const buffer = new Uint8Array(await res.arrayBuffer());
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     const path = `ai-audio/${context.userId}/${data.simulationId}/${crypto.randomUUID()}.mp3`;
     const { error: upErr } = await supabaseAdmin.storage
       .from("videos")

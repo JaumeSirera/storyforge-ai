@@ -25,6 +25,7 @@ import {
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { KeyRound, Trash2, Mail, ExternalLink, FlaskConical } from "lucide-react";
+import { uploadFile } from "@/lib/upload-file";
 
 export const Route = createFileRoute("/_authenticated/app/settings")({
   component: SettingsPage,
@@ -331,10 +332,10 @@ function EmailSettingsCard() {
         ? "jpg"
         : "png";
       const path = `${uid}/logo-${Date.now()}.${ext}`;
-      const { error } = await supabase.storage
-        .from("branding")
-        .upload(path, file, { upsert: true, contentType: file.type || `image/${ext}` });
-      if (error) throw new Error(error.message);
+      await uploadFile("branding", path, file, {
+        upsert: true,
+        contentType: file.type || `image/${ext}`,
+      });
       setLogoUrl(path);
       await persist({ data: { logoUrl: path } });
       qc.invalidateQueries({ queryKey: ["my-email-settings"] });

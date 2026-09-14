@@ -73,6 +73,7 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { uploadFile } from "@/lib/upload-file";
 
 export const Route = createFileRoute("/_authenticated/app/capture/$id/")({
   head: () => ({
@@ -216,10 +217,7 @@ function CaptureSessionPage() {
       if (!uid) throw new Error("Sesión caducada");
       const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const path = `${uid}/${id}/${crypto.randomUUID()}.${ext}`;
-      const { error } = await supabase.storage
-        .from("participants")
-        .upload(path, file, { contentType: file.type || "image/jpeg" });
-      if (error) throw new Error(error.message);
+      await uploadFile("participants", path, file, { contentType: file.type || "image/jpeg" });
       setPPhoto(path);
       toast.success("Fotografía subida");
     } catch (e: any) {

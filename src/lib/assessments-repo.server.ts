@@ -11,6 +11,7 @@
 import { getRequestHeader } from "@tanstack/react-start/server";
 import { isExternalApiEnabled, type ExternalResource } from "./external-data.server";
 import { externalTable } from "./external-db.server";
+import { externalStorage, isExternalFilesEnabled } from "./external-storage.server";
 
 const EXTERNAL_TABLES = new Set<string>([
   "assessments",
@@ -87,6 +88,9 @@ function wrap<T extends object>(client: T, service: boolean): T {
   const ctx = { accessToken, service: service || accessToken === "" };
   return new Proxy(client, {
     get(target, prop, receiver) {
+      if (prop === "storage" && isExternalFilesEnabled()) {
+        return externalStorage;
+      }
       if (prop === "from") {
         return (table: string): any =>
           isExternal(table)

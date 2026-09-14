@@ -51,6 +51,7 @@ import {
 import { toast } from "sonner";
 import { MediaDeviceSelector, type MediaDeviceSelection } from "./MediaDeviceSelector";
 import { PreviewViewControls, usePreviewView } from "./PreviewViewControls";
+import { uploadFile, uploadWithTicket } from "@/lib/upload-file";
 
 function fmt(sec: number) {
   const m = Math.floor(sec / 60);
@@ -156,12 +157,12 @@ export function CaptureRecorder({
     // Modo invitado: subida con URL firmada al espacio del anfitrión.
     if (inviteToken) {
       const ticket = await createTicket({ data: { token: inviteToken, kind, ext: ext0 } });
-      const { error } = await supabase.storage
-        .from("recordings")
-        .uploadToSignedUrl(ticket.path, ticket.uploadToken, blob, {
-          contentType: blob.type || "video/webm",
-        });
-      if (error) throw new Error(error.message);
+      await uploadWithTicket(
+        "recordings",
+        { path: ticket.path, uploadToken: ticket.uploadToken, uploadUrl: ticket.uploadUrl || undefined },
+        blob,
+        blob.type || "video/webm",
+      );
       await registerInvited({
         data: {
           token: inviteToken,
@@ -180,11 +181,10 @@ export function CaptureRecorder({
     const uid = auth.user?.id;
     if (!uid) throw new Error("Sesión caducada");
     const path = `${uid}/${captureSessionId}/${kind}-${participantId ?? "session"}-${Date.now()}.${ext0}`;
-    const { error } = await supabase.storage.from("recordings").upload(path, blob, {
+    await uploadFile("recordings", path, blob, {
       contentType: blob.type || "video/webm",
       upsert: false,
     });
-    if (error) throw new Error(error.message);
     await register({
       data: {
         captureSessionId,
