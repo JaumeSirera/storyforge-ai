@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { loadUserKeys } from "./user-keys.functions";
+import { xAdminDb } from "./assessments-repo.server";
 
 const REPLICATE_DIRECT = "https://api.replicate.com/v1";
 const REPLICATE_GATEWAY = "https://connector-gateway.lovable.dev/replicate/v1";
@@ -77,7 +78,7 @@ async function readMediaAsset(options: {
     if (!options.allowedPrefixes.some((prefix) => storagePath.startsWith(prefix))) {
       throw new Error(`${options.filename} no pertenece a tu simulación.`);
     }
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     const { data: file, error } = await supabaseAdmin.storage.from("videos").download(storagePath);
     if (error || !file) {
       throw new Error(`No se pudo leer ${options.filename} desde Storage: ${error?.message ?? "sin archivo"}`);
@@ -270,7 +271,7 @@ export const pollLipsync = createServerFn({ method: "POST" })
     const buf = new Uint8Array(await videoRes.arrayBuffer());
 
     const storagePath = `lipsync/${context.userId}/${data.simulationId}/${data.predictionId}.mp4`;
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await xAdminDb();
     const { error: upErr } = await supabaseAdmin.storage
       .from("videos")
       .upload(storagePath, buf, { contentType: "video/mp4", upsert: true });
