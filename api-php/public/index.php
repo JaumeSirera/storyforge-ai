@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Xandralyze\Auth;
 use Xandralyze\Db;
 use Xandralyze\Env;
+use Xandralyze\Files;
 use Xandralyze\Http;
 use Xandralyze\Repo;
 
