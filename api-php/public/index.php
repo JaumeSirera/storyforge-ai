@@ -16,8 +16,10 @@ $base = is_dir(__DIR__ . '/../src') ? __DIR__ . '/..' : __DIR__;
 
 require $base . '/src/Env.php';
 require $base . '/src/Http.php';
+require $base . '/src/Jwt.php';
 require $base . '/src/Auth.php';
 require $base . '/src/Db.php';
+require $base . '/src/Accounts.php';
 require $base . '/src/Repo.php';
 
 Env::load($base . '/.env');
