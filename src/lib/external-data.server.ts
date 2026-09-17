@@ -127,6 +127,11 @@ async function request<T>(options: RequestOptions): Promise<T> {
   return (payload && "data" in payload ? payload.data : (parsed as T)) as T;
 }
 
+/** Petición libre a la API (rutas fuera del CRUD por recurso, p. ej. /auth/*). */
+export function externalRequest<T>(options: RequestOptions): Promise<T> {
+  return request<T>(options);
+}
+
 export const externalApi = {
   health(accessToken: string) {
     return request<{ ok: boolean; time: string }>({ accessToken, path: "/health" });
