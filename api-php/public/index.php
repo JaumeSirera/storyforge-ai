@@ -79,15 +79,75 @@ if (($segments[0] ?? '') === 'file' && isset($segments[1])) {
     Http::fail('Método no permitido', 405, 'method_not_allowed');
 }
 
+$jwtSecret = Env::get('AUTH_JWT_SECRET', '') ?? '';
+
 $auth = new Auth(
     $_SERVER['HTTP_X_IDENTITY_URL'] ?? Env::get('SUPABASE_URL', '') ?? '',
     $_SERVER['HTTP_X_IDENTITY_KEY'] ?? Env::get('SUPABASE_ANON_KEY', '') ?? '',
     Env::require('APP_TOKEN'),
+    $jwtSecret,
 );
 $auth->assertAppToken();
 // Modo servicio: la propia aplicación (con la clave compartida) actúa sin
 // usuario, igual que antes hacía con la clave de servicio de Lovable Cloud.
 $service = ($_SERVER['HTTP_X_SERVICE'] ?? '') === '1';
+
+// ---- Cuentas propias ----------------------------------------------------
+if (($segments[0] ?? '') === 'auth') {
+    if ($jwtSecret === '') {
+        Http::fail('Las cuentas propias no están configuradas (falta AUTH_JWT_SECRET)', 503, 'auth_not_configured');
+    }
+    $accounts = new Accounts($db, new Jwt($jwtSecret));
+    $action = $segments[1] ?? '';
+    if (count($segments) > 2) {
+        Http::fail('Ruta no válida', 404, 'unknown_route');
+    }
+
+    // Acciones públicas (la app las llama con su clave compartida).
+    if ($method === 'POST') {
+        switch ($action) {
+            case 'register':
+                Http::json(['data' => $accounts->register(Http::body())], 201);
+                // no break
+            case 'login':
+                Http::json(['data' => $accounts->login(Http::body())]);
+                // no break
+            case 'refresh':
+                Http::json(['data' => $accounts->refresh(Http::body())]);
+                // no break
+            case 'logout':
+                Http::json(['data' => $accounts->logout(Http::body())]);
+                // no break
+            case 'forgot':
+                Http::json(['data' => $accounts->forgot(Http::body())]);
+                // no break
+            case 'reset':
+                Http::json(['data' => $accounts->reset(Http::body())]);
+                // no break
+            case 'verify':
+                Http::json(['data' => $accounts->verify(Http::body())]);
+                // no break
+            case 'import':
+                if (!$service) {
+                    Http::fail('Operación no permitida', 403, 'service_only');
+                }
+                Http::json(['data' => $accounts->import(Http::body())]);
+                // no break
+            case 'password':
+                Http::json(['data' => $accounts->changePassword($auth->userId(), Http::body())]);
+                // no break
+        }
+    }
+    if ($method === 'GET' && $action === 'me') {
+        Http::json(['data' => $accounts->me($auth->userId())]);
+    }
+    if ($method === 'PATCH' && $action === 'profile') {
+        Http::json(['data' => $accounts->updateProfile($auth->userId(), Http::body())]);
+    }
+
+    Http::fail('Ruta no válida', 404, 'unknown_route');
+}
+
 $userId = $service ? null : $auth->userId();
 
 // ---- Archivos ----------------------------------------------------------
