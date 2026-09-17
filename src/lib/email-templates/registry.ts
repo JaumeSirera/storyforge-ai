@@ -15,8 +15,10 @@ export interface TemplateEntry {
  */
 import { template as examInvitation } from './exam-invitation'
 import { template as sessionReport } from './session-report'
+import { template as accountPassword } from './account-password'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'exam-invitation': examInvitation,
   'session-report': sessionReport,
+  'account-password': accountPassword,
 }

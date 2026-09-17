@@ -597,3 +597,62 @@ CREATE TABLE IF NOT EXISTS stored_files (
   updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   UNIQUE KEY uq_stored_files (bucket, path(255))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
+-- Cuentas propias (fase A: la identidad pasa a este servidor)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS app_users (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  email VARCHAR(255) NOT NULL,
+  password_hash VARCHAR(255) NULL,
+  full_name VARCHAR(200) NULL,
+  email_verified TINYINT(1) NOT NULL DEFAULT 0,
+  disabled TINYINT(1) NOT NULL DEFAULT 0,
+  last_login_at TIMESTAMP(3) NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  UNIQUE KEY uq_app_users_email (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS app_user_roles (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  user_id CHAR(36) NOT NULL,
+  role VARCHAR(40) NOT NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  UNIQUE KEY uq_app_user_role (user_id, role)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS app_sessions (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  user_id CHAR(36) NOT NULL,
+  refresh_hash CHAR(64) NOT NULL,
+  user_agent VARCHAR(255) NULL,
+  ip VARCHAR(60) NULL,
+  revoked_at TIMESTAMP(3) NULL,
+  expires_at TIMESTAMP(3) NOT NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  UNIQUE KEY uq_app_sessions_hash (refresh_hash),
+  KEY idx_app_sessions_user (user_id, expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS app_auth_tokens (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  user_id CHAR(36) NOT NULL,
+  kind VARCHAR(20) NOT NULL,
+  token_hash CHAR(64) NOT NULL,
+  used_at TIMESTAMP(3) NULL,
+  expires_at TIMESTAMP(3) NOT NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  UNIQUE KEY uq_app_auth_tokens_hash (token_hash),
+  KEY idx_app_auth_tokens_user (user_id, kind)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS app_login_attempts (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  email VARCHAR(255) NOT NULL,
+  ip VARCHAR(60) NULL,
+  success TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  KEY idx_app_login_attempts (email, ip, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
