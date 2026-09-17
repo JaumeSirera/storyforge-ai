@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
+use Xandralyze\Accounts;
 use Xandralyze\Auth;
 use Xandralyze\Db;
 use Xandralyze\Env;
 use Xandralyze\Files;
 use Xandralyze\Http;
+use Xandralyze\Jwt;
 use Xandralyze\Repo;
 
 // Admite dos formas de instalación:
