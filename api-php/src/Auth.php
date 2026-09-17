@@ -16,7 +16,17 @@ final class Auth
         private string $identityUrl,
         private string $identityKey,
         private string $appToken,
+        private string $jwtSecret = '',
     ) {
+    }
+
+    /** @var array<string,mixed>|null Claims del token propio, si lo hubiera. */
+    private ?array $claims = null;
+
+    /** @return array<string,mixed>|null */
+    public function claims(): ?array
+    {
+        return $this->claims;
     }
 
     /** Comprueba la clave compartida entre la app y esta API. */
@@ -34,6 +44,20 @@ final class Auth
         $token = Http::bearer();
         if ($token === null) {
             Http::fail('Falta el token del usuario', 401, 'missing_token');
+        }
+
+        // 1) Token propio de la API (cuentas en este servidor).
+        if ($this->jwtSecret !== '') {
+            $claims = (new Jwt($this->jwtSecret))->verify($token);
+            if (is_array($claims) && isset($claims['sub']) && (string) $claims['sub'] !== '') {
+                $this->claims = $claims;
+                return (string) $claims['sub'];
+            }
+        }
+
+        // 2) Respaldo temporal: token del sistema de cuentas anterior.
+        if ($this->identityUrl === '' || $this->identityKey === '') {
+            Http::fail('Sesión no válida o caducada', 401, 'invalid_token');
         }
 
         $cached = $this->readCache($token);
