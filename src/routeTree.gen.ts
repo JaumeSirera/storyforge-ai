@@ -25,6 +25,7 @@ import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
 import { Route as AuthenticatedAppNewRouteImport } from './routes/_authenticated/app.new'
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
+import { Route as ApiPublicMigrateAccountsRouteImport } from './routes/api/public/migrate-accounts'
 import { Route as ApiPublicMigrateAssessmentsRouteImport } from './routes/api/public/migrate-assessments'
 import { Route as ApiPublicMigrateFilesRouteImport } from './routes/api/public/migrate-files'
 import { Route as CaptureJoinTokenRouteImport } from './routes/capture.join.$token'
@@ -135,6 +136,12 @@ const AuthenticatedAppSettingsRoute =
     id: '/app/settings',
     path: '/app/settings',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const ApiPublicMigrateAccountsRoute =
+  ApiPublicMigrateAccountsRouteImport.update({
+    id: '/api/public/migrate-accounts',
+    path: '/api/public/migrate-accounts',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicMigrateAssessmentsRoute =
   ApiPublicMigrateAssessmentsRouteImport.update({
@@ -321,6 +328,7 @@ export interface FileRoutesByFullPath {
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/new': typeof AuthenticatedAppNewRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/api/public/migrate-accounts': typeof ApiPublicMigrateAccountsRoute
   '/api/public/migrate-assessments': typeof ApiPublicMigrateAssessmentsRoute
   '/api/public/migrate-files': typeof ApiPublicMigrateFilesRoute
   '/capture/join/$token': typeof CaptureJoinTokenRoute
@@ -367,6 +375,7 @@ export interface FileRoutesByTo {
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/new': typeof AuthenticatedAppNewRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/api/public/migrate-accounts': typeof ApiPublicMigrateAccountsRoute
   '/api/public/migrate-assessments': typeof ApiPublicMigrateAssessmentsRoute
   '/api/public/migrate-files': typeof ApiPublicMigrateFilesRoute
   '/capture/join/$token': typeof CaptureJoinTokenRoute
@@ -415,6 +424,7 @@ export interface FileRoutesById {
   '/_authenticated/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/_authenticated/app/new': typeof AuthenticatedAppNewRoute
   '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/api/public/migrate-accounts': typeof ApiPublicMigrateAccountsRoute
   '/api/public/migrate-assessments': typeof ApiPublicMigrateAssessmentsRoute
   '/api/public/migrate-files': typeof ApiPublicMigrateFilesRoute
   '/capture/join/$token': typeof CaptureJoinTokenRoute
@@ -463,6 +473,7 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/new'
     | '/app/settings'
+    | '/api/public/migrate-accounts'
     | '/api/public/migrate-assessments'
     | '/api/public/migrate-files'
     | '/capture/join/$token'
@@ -509,6 +520,7 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/new'
     | '/app/settings'
+    | '/api/public/migrate-accounts'
     | '/api/public/migrate-assessments'
     | '/api/public/migrate-files'
     | '/capture/join/$token'
@@ -556,6 +568,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/dashboard'
     | '/_authenticated/app/new'
     | '/_authenticated/app/settings'
+    | '/api/public/migrate-accounts'
     | '/api/public/migrate-assessments'
     | '/api/public/migrate-files'
     | '/capture/join/$token'
@@ -598,6 +611,7 @@ export interface RootRouteChildren {
   ExploreIdRoute: typeof ExploreIdRoute
   InviteTokenRoute: typeof InviteTokenRoute
   ExploreIndexRoute: typeof ExploreIndexRoute
+  ApiPublicMigrateAccountsRoute: typeof ApiPublicMigrateAccountsRoute
   ApiPublicMigrateAssessmentsRoute: typeof ApiPublicMigrateAssessmentsRoute
   ApiPublicMigrateFilesRoute: typeof ApiPublicMigrateFilesRoute
   CaptureJoinTokenRoute: typeof CaptureJoinTokenRoute
@@ -722,6 +736,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/settings'
       preLoaderRoute: typeof AuthenticatedAppSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/migrate-accounts': {
+      id: '/api/public/migrate-accounts'
+      path: '/api/public/migrate-accounts'
+      fullPath: '/api/public/migrate-accounts'
+      preLoaderRoute: typeof ApiPublicMigrateAccountsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/migrate-assessments': {
       id: '/api/public/migrate-assessments'
@@ -1019,6 +1040,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExploreIdRoute: ExploreIdRoute,
   InviteTokenRoute: InviteTokenRoute,
   ExploreIndexRoute: ExploreIndexRoute,
+  ApiPublicMigrateAccountsRoute: ApiPublicMigrateAccountsRoute,
   ApiPublicMigrateAssessmentsRoute: ApiPublicMigrateAssessmentsRoute,
   ApiPublicMigrateFilesRoute: ApiPublicMigrateFilesRoute,
   CaptureJoinTokenRoute: CaptureJoinTokenRoute,
