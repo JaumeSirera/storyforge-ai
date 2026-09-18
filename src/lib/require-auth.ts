@@ -12,6 +12,8 @@ import { getRequest } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
+export type AuthMode = "cloud" | "own";
+
 function bearer(): string {
   const request = getRequest();
   const header = request?.headers?.get("authorization") ?? "";
@@ -49,7 +51,7 @@ export const requireAnyAuth = createMiddleware({ type: "function" }).server(asyn
         userId: data.claims.sub as string,
         claims: data.claims as unknown as Record<string, unknown>,
         accessToken: token,
-        authMode: "cloud" as const,
+        authMode: "cloud" as AuthMode,
       },
     });
   }
@@ -66,7 +68,7 @@ export const requireAnyAuth = createMiddleware({ type: "function" }).server(asyn
       userId: user.id,
       claims: { sub: user.id, email: user.email, roles: user.roles } as Record<string, unknown>,
       accessToken: token,
-      authMode: "own" as const,
+      authMode: "own" as AuthMode,
     },
   });
 });
