@@ -47,7 +47,7 @@ export const requireAnyAuth = createMiddleware({ type: "function" }).server(asyn
       context: {
         supabase,
         userId: data.claims.sub as string,
-        claims: data.claims,
+        claims: data.claims as unknown as Record<string, unknown>,
         accessToken: token,
         authMode: "cloud" as const,
       },
