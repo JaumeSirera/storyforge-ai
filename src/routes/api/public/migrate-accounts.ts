@@ -118,7 +118,7 @@ export const Route = createFileRoute("/api/public/migrate-accounts")({
           found: users.length,
           imported: result.imported,
           skipped: result.skipped,
-          invites: result.invites.length,
+          invites: invites.length,
           emails_sent: emailsSent,
           email_errors: emailErrors,
         });
