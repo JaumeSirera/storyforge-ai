@@ -17,7 +17,11 @@ export const Route = createFileRoute("/api/public/migrate-accounts")({
           return new Response("Unauthorized", { status: 401 });
         }
 
-        const body = (await request.json().catch(() => ({}))) as { send_emails?: boolean };
+        const body = (await request.json().catch(() => ({}))) as {
+          send_emails?: boolean;
+          /** Reenvía el enlace también a las cuentas ya copiadas. */
+          resend_all?: boolean;
+        };
         const { accountsApi, ownAccountsEnabled } = await import("@/lib/accounts.server");
         if (!ownAccountsEnabled()) {
           return Response.json({ error: "own accounts not enabled" }, { status: 503 });
