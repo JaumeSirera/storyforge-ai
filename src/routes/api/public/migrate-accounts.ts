@@ -71,9 +71,33 @@ export const Route = createFileRoute("/api/public/migrate-accounts")({
 
         let emailsSent = 0;
         const emailErrors: string[] = [];
+        const invites = [...result.invites];
+        if (body.resend_all) {
+          const already = new Set(invites.map((invite) => invite.email.toLowerCase()));
+          for (const user of users) {
+            if (already.has(user.email.toLowerCase())) continue;
+            try {
+              const forgot = await accountsApi.forgot(user.email);
+              if (forgot.token) {
+                invites.push({
+                  id: user.id,
+                  email: user.email,
+                  full_name: user.full_name,
+                  token: forgot.token,
+                });
+              }
+            } catch (err) {
+              if (emailErrors.length < 5) {
+                emailErrors.push(
+                  `${user.email}: ${err instanceof Error ? err.message : String(err)}`,
+                );
+              }
+            }
+          }
+        }
         if (body.send_emails) {
           const { sendPasswordEmail } = await import("@/lib/account-emails.server");
-          for (const invite of result.invites) {
+          for (const invite of invites) {
             try {
               const sent = await sendPasswordEmail({
                 kind: "setup",
