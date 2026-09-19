@@ -9,6 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import logoAsset from "@/assets/logo-xandralyze.png.asset.json";
+import { useOwnAuth } from "@/lib/auth-context";
+import { readSession } from "@/lib/auth-session";
+import { requestAccountPasswordReset } from "@/lib/accounts.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -36,10 +39,22 @@ function goAfterAuth(navigate: ReturnType<typeof useNavigate>) {
   else navigate({ to: "/app/dashboard" });
 }
 
+function errorMessage(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error);
+  if (/invalid_credentials|incorrect/i.test(raw)) return "Email o contraseña incorrectos";
+  if (/email_taken|duplicate|ya existe/i.test(raw)) return "Ya existe una cuenta con ese email";
+  return raw || "No se ha podido completar la operación";
+}
+
 function AuthPage() {
   const navigate = useNavigate();
+  const { enabled } = useOwnAuth();
 
   useEffect(() => {
+    if (readSession()) {
+      goAfterAuth(navigate);
+      return;
+    }
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) goAfterAuth(navigate);
     });
@@ -72,10 +87,14 @@ function AuthPage() {
               <TabsContent value="signin"><SignInForm /></TabsContent>
               <TabsContent value="signup"><SignUpForm /></TabsContent>
             </Tabs>
-            <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
-              <div className="h-px flex-1 bg-border" /> o <div className="h-px flex-1 bg-border" />
-            </div>
-            <GoogleButton />
+            {!enabled && (
+              <>
+                <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="h-px flex-1 bg-border" /> o <div className="h-px flex-1 bg-border" />
+                </div>
+                <GoogleButton />
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -112,6 +131,7 @@ function GoogleButton() {
 
 function SignInForm() {
   const navigate = useNavigate();
+  const { enabled, signIn } = useOwnAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -122,10 +142,19 @@ function SignInForm() {
       onSubmit={async (e) => {
         e.preventDefault();
         setLoading(true);
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        setLoading(false);
-        if (error) return toast.error(error.message);
-        goAfterAuth(navigate);
+        try {
+          if (enabled) {
+            await signIn(email, password);
+          } else {
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+          }
+          goAfterAuth(navigate);
+        } catch (error) {
+          toast.error(errorMessage(error));
+        } finally {
+          setLoading(false);
+        }
       }}
     >
       <div className="space-y-1.5">
@@ -140,11 +169,19 @@ function SignInForm() {
             className="text-xs text-primary hover:underline"
             onClick={async () => {
               if (!email) return toast.error("Escribe tu email para recuperar la contraseña");
-              const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: window.location.origin + "/reset-password",
-              });
-              if (error) return toast.error(error.message);
-              toast.success("Te hemos enviado un email para restablecer la contraseña.");
+              try {
+                if (enabled) {
+                  await requestAccountPasswordReset({ data: { email } });
+                } else {
+                  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: window.location.origin + "/reset-password",
+                  });
+                  if (error) throw error;
+                }
+                toast.success("Te hemos enviado un email para restablecer la contraseña.");
+              } catch (error) {
+                toast.error(errorMessage(error));
+              }
             }}
           >
             ¿Olvidaste tu contraseña?
@@ -161,6 +198,7 @@ function SignInForm() {
 
 function SignUpForm() {
   const navigate = useNavigate();
+  const { enabled, signUp } = useOwnAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -172,18 +210,27 @@ function SignUpForm() {
       onSubmit={async (e) => {
         e.preventDefault();
         setLoading(true);
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: window.location.origin + "/app/dashboard",
-            data: { full_name: name },
-          },
-        });
-        setLoading(false);
-        if (error) return toast.error(error.message);
-        toast.success("Cuenta creada. Comprueba tu email si es necesario.");
-        goAfterAuth(navigate);
+        try {
+          if (enabled) {
+            await signUp(email, password, name);
+          } else {
+            const { error } = await supabase.auth.signUp({
+              email,
+              password,
+              options: {
+                emailRedirectTo: window.location.origin + "/app/dashboard",
+                data: { full_name: name },
+              },
+            });
+            if (error) throw error;
+          }
+          toast.success("Cuenta creada.");
+          goAfterAuth(navigate);
+        } catch (error) {
+          toast.error(errorMessage(error));
+        } finally {
+          setLoading(false);
+        }
       }}
     >
       <div className="space-y-1.5">
@@ -196,7 +243,17 @@ function SignUpForm() {
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="su-password">Contraseña</Label>
-        <Input id="su-password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+        <Input
+          id="su-password"
+          type="password"
+          required
+          minLength={enabled ? 8 : 6}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        {enabled && (
+          <p className="text-xs text-muted-foreground">Mínimo 8 caracteres.</p>
+        )}
       </div>
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Creando..." : "Crear cuenta"}
