@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 import { GlobalRecordingIndicator } from "@/components/GlobalRecordingIndicator";
+import { OwnAuthProvider } from "@/lib/auth-context";
 
 function NotFoundComponent() {
   return (
@@ -152,9 +153,11 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
-      <GlobalRecordingIndicator />
-      <Toaster richColors position="top-right" />
+      <OwnAuthProvider>
+        <Outlet />
+        <GlobalRecordingIndicator />
+        <Toaster richColors position="top-right" />
+      </OwnAuthProvider>
     </QueryClientProvider>
   );
 }
