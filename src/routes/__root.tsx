@@ -152,9 +152,11 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
-      <GlobalRecordingIndicator />
-      <Toaster richColors position="top-right" />
+      <OwnAuthProvider>
+        <Outlet />
+        <GlobalRecordingIndicator />
+        <Toaster richColors position="top-right" />
+      </OwnAuthProvider>
     </QueryClientProvider>
   );
 }
