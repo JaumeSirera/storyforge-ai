@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Plus, LogOut, Library, Settings, Shield, CreditCard, Menu, X , Video, FileText, Smartphone} from "lucide-react";
 import { getMyAdminStatus } from "@/lib/admin.functions";
+import { getValidAccessToken, readSession } from "@/lib/auth-session";
+import { useOwnAuth } from "@/lib/auth-context";
 import logoAsset from "@/assets/logo-xandralyze.png.asset.json";
 
 
