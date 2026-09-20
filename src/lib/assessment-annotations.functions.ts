@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import {
   deleteAnnotationHandler,
   listAnnotationsHandler,
@@ -9,12 +9,12 @@ import {
 import { ANNOTATION_KINDS } from "./assessments-shared";
 
 export const listAnnotations = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ submissionId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => listAnnotationsHandler(data, context));
 
 export const saveAnnotation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -35,6 +35,6 @@ export const saveAnnotation = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => saveAnnotationHandler(data, context));
 
 export const deleteAnnotation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => deleteAnnotationHandler(data, context));

@@ -1,10 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { listExamAuditHandler } from "./exam-audit.server";
 
 export const listExamAudit = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({

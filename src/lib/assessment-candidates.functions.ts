@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import {
   addCandidatesHandler,
   deleteCandidateHandler,
@@ -12,12 +12,12 @@ import {
 } from "./assessment-candidates.server";
 
 export const listAssessmentCandidates = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ assessmentId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => listCandidatesHandler(data, context));
 
 export const addAssessmentCandidates = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -39,7 +39,7 @@ export const addAssessmentCandidates = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => addCandidatesHandler(data, context));
 
 export const updateAssessmentCandidate = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -57,7 +57,7 @@ export const updateAssessmentCandidate = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => updateCandidateHandler(data, context));
 
 export const deleteAssessmentCandidate = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => deleteCandidateHandler(data, context));
 

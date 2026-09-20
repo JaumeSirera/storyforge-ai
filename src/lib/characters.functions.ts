@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { z } from "zod";
 import { loadUserKeys } from "./user-keys.functions";
 import { xdb, xAdminDb } from "./assessments-repo.server";
@@ -17,7 +17,7 @@ export interface CharacterDTO {
 }
 
 export const listCharacters = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .handler(async ({ context }): Promise<CharacterDTO[]> => {
     const { data, error } = await xdb(context)
       .from("simulation_characters")
@@ -65,7 +65,7 @@ function parseDataUrl(dataUrl: string): { contentType: string; buffer: Uint8Arra
 }
 
 export const createCharacter = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => CreateInput.parse(input))
   .handler(async ({ data, context }): Promise<CharacterDTO> => {
     const { contentType, buffer, ext } = parseDataUrl(data.imageDataUrl);
@@ -109,7 +109,7 @@ export const createCharacter = createServerFn({ method: "POST" })
 const DeleteInput = z.object({ id: z.string().uuid() });
 
 export const deleteCharacter = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => DeleteInput.parse(input))
   .handler(async ({ data, context }) => {
     const { data: row } = await xdb(context)
@@ -143,7 +143,7 @@ const GenerateInput = z.object({
  * Usa la API nativa de Google (generateContent) porque la salida es multimodal (image+text).
  */
 export const generateCharacterImage = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => GenerateInput.parse(input))
   .handler(async ({ data, context }): Promise<{ imageDataUrl: string; model: string }> => {
     const keys = await loadUserKeys(xdb(context), context.userId);

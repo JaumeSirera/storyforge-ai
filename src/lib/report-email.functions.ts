@@ -1,11 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { z } from "zod";
 import { xdb, xAdminDb } from "./assessments-repo.server";
 
 /** Historial de envíos del informe de una sesión (solo el propietario de la simulación). */
 export const listReportEmailLog = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) => z.object({ sessionId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await xdb(context)
@@ -28,7 +28,7 @@ const LogInput = z.object({
 
 /** Registra (o actualiza sumando un reintento) un envío del informe por email. */
 export const logReportEmail = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) => LogInput.parse(v))
   .handler(async ({ data, context }) => {
     const { data: sess, error: sErr } = await xdb(context)
@@ -90,7 +90,7 @@ export const logReportEmail = createServerFn({ method: "POST" })
  * deja el informe en cola de envío para el candidato.
  */
 export const queueAutoReportEmail = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) => z.object({ sessionId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
     const { data: sess, error } = await xdb(context)
@@ -154,7 +154,7 @@ const SendInput = z.object({
  * de Lovable) y registra el resultado en `report_email_log`.
  */
 export const sendReportEmail = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) => SendInput.parse(v))
   .handler(async ({ data, context }) => {
     const { data: sess, error: sErr } = await xdb(context)

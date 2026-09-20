@@ -3,7 +3,7 @@
  *
  * Acepta el token de la sesión propia (API PHP + MySQL) y, mientras la
  * migración no termine, también el token antiguo de Lovable Cloud. El contexto
- * mantiene la misma forma que `requireSupabaseAuth` (`supabase`, `userId`,
+ * mantiene la misma forma que `requireAnyAuth` (`supabase`, `userId`,
  * `claims`) para que los módulos existentes no cambien.
  */
 

@@ -1,10 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { z } from "zod";
 
 /** Lee los ajustes de correo del usuario actual. */
 export const getMyEmailSettings = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("email_settings")
@@ -41,7 +41,7 @@ const SaveInput = z.object({
 
 /** Guarda los ajustes de correo del usuario actual. */
 export const saveMyEmailSettings = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => SaveInput.parse(input))
   .handler(async ({ data, context }) => {
     const patch: {

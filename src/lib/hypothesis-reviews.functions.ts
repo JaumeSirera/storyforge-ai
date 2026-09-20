@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { xdb, xAdminDb } from "./assessments-repo.server";
 
 export const REVIEW_STATUSES = ["pending", "validated", "adjusted", "rejected"] as const;
@@ -66,7 +66,7 @@ function mapEvent(row: any): HypothesisReviewEvent {
 
 /** Lista las revisiones de hipótesis y su historial completo de cambios. */
 export const listHypothesisReviews = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ captureSessionId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const [reviewsRes, eventsRes] = await Promise.all([
@@ -94,7 +94,7 @@ export const listHypothesisReviews = createServerFn({ method: "GET" })
 
 /** Guarda la validación o el ajuste de una hipótesis y añade una entrada al historial. */
 export const saveHypothesisReview = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({

@@ -1,16 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { REPORT_ROLES } from "./insights-shared";
 import { deleteSessionInsightsHandler, generateSessionInsightsHandler, getSessionInsightsHandler } from "./insights.server";
 
 export const getSessionInsights = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ captureSessionId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => getSessionInsightsHandler(data, context));
 
 export const generateSessionInsights = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({
     captureSessionId: z.string().uuid(),
     focus: z.string().trim().max(500).optional(),
@@ -19,6 +19,6 @@ export const generateSessionInsights = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => generateSessionInsightsHandler(data, context));
 
 export const deleteSessionInsights = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ captureSessionId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => deleteSessionInsightsHandler(data, context));

@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import {
   listCollaboratorsHandler,
   removeCollaboratorHandler,
@@ -11,12 +11,12 @@ import {
 const RoleEnum = z.enum(["corrector", "anotador", "aprobador", "revisor"]);
 
 export const listAssessmentCollaborators = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ assessmentId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => listCollaboratorsHandler(data, context));
 
 export const upsertAssessmentCollaborator = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -29,12 +29,12 @@ export const upsertAssessmentCollaborator = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => upsertCollaboratorHandler(data, context));
 
 export const removeAssessmentCollaborator = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => removeCollaboratorHandler(data, context));
 
 export const setSubmissionApproval = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({

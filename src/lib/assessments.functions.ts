@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { FEEDBACK_TONES } from "./assessments-shared";
 import {
   createAssessmentHandler,
@@ -20,11 +20,11 @@ import {
 } from "./assessments.server";
 
 export const listAssessments = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .handler(async ({ context }) => listAssessmentsHandler(context));
 
 export const getAssessment = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => getAssessmentHandler(data, context));
 
@@ -52,7 +52,7 @@ const QuestionInput = z.object({
 });
 
 export const createAssessment = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -75,7 +75,7 @@ export const createAssessment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => createAssessmentHandler(data, context));
 
 export const regenerateAssessment = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -92,7 +92,7 @@ export const regenerateAssessment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => regenerateAssessmentHandler(data, context));
 
 export const updateAssessmentBlueprint = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -132,12 +132,12 @@ export const updateAssessmentBlueprint = createServerFn({ method: "POST" })
 
 export const deleteAssessment = createServerFn({ method: "POST" })
 
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => deleteAssessmentHandler(data, context));
 
 export const createSubmission = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => {
     if (!(input instanceof FormData)) throw new Error("FormData requerido");
     const assessmentId = z.string().uuid().parse(String(input.get("assessmentId") ?? ""));
@@ -155,27 +155,27 @@ export const createSubmission = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => createSubmissionHandler(data, context));
 
 export const getSubmission = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => getSubmissionHandler(data, context));
 
 export const gradeSubmission = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => gradeSubmissionHandler(data, context));
 
 export const deleteSubmission = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => deleteSubmissionHandler(data, context));
 
 export const validateAssessmentSource = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => validateAssessmentSourceHandler(data, context));
 
 export const reocrSubmission = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({

@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import {
   computeSessionMetrics,
   type InteractionNetwork,
@@ -63,7 +63,7 @@ const ANALYSIS_COLUMNS =
 
 /** Devuelve el análisis, los segmentos y las grabaciones ya transcritas de una sesión. */
 export const getSessionAnalysis = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z.object({ captureSessionId: z.string().uuid() }).parse(input),
   )
@@ -98,7 +98,7 @@ export const getSessionAnalysis = createServerFn({ method: "GET" })
  * Solo hechos observables: quién habla, cuándo y qué dice.
  */
 export const transcribeRecording = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -215,7 +215,7 @@ export const transcribeRecording = createServerFn({ method: "POST" })
 
 /** Asigna todos los segmentos de una etiqueta de hablante a un participante identificado. */
 export const assignSpeaker = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -239,7 +239,7 @@ export const assignSpeaker = createServerFn({ method: "POST" })
 
 /** Recalcula métricas y red de interacción a partir de los segmentos guardados. */
 export const recomputeSessionMetrics = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z.object({ captureSessionId: z.string().uuid() }).parse(input),
   )
@@ -249,7 +249,7 @@ export const recomputeSessionMetrics = createServerFn({ method: "POST" })
 
 /** Borra la transcripción y el análisis de la sesión (derecho de supresión). */
 export const deleteSessionAnalysis = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z.object({ captureSessionId: z.string().uuid() }).parse(input),
   )

@@ -52,6 +52,7 @@ import { toast } from "sonner";
 import { MediaDeviceSelector, type MediaDeviceSelection } from "./MediaDeviceSelector";
 import { PreviewViewControls, usePreviewView } from "./PreviewViewControls";
 import { uploadFile, uploadWithTicket } from "@/lib/upload-file";
+import { getCurrentUser } from "@/lib/current-user";
 
 function fmt(sec: number) {
   const m = Math.floor(sec / 60);
@@ -177,8 +178,8 @@ export function CaptureRecorder({
       return;
     }
 
-    const { data: auth } = await supabase.auth.getUser();
-    const uid = auth.user?.id;
+    const me = await getCurrentUser();
+    const uid = me?.id;
     if (!uid) throw new Error("Sesión caducada");
     const path = `${uid}/${captureSessionId}/${kind}-${participantId ?? "session"}-${Date.now()}.${ext0}`;
     await uploadFile("recordings", path, blob, {

@@ -8,12 +8,12 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 
 const BUCKETS = ["assessments", "branding", "characters", "participants", "recordings", "videos"] as const;
 
 export const signFileUpload = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) =>
     z
       .object({
@@ -37,7 +37,7 @@ export const signFileUpload = createServerFn({ method: "POST" })
   });
 
 export const signFileDownload = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) =>
     z
       .object({

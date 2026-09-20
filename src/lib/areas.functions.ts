@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 
 export interface PracticeArea {
   id: string;
@@ -22,7 +22,7 @@ function slugify(label: string) {
 
 /** Áreas por defecto + las creadas por el usuario. */
 export const listPracticeAreas = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .handler(async ({ context }): Promise<PracticeArea[]> => {
     const { data, error } = await context.supabase
       .from("practice_areas")
@@ -40,7 +40,7 @@ export const listPracticeAreas = createServerFn({ method: "GET" })
   });
 
 export const createPracticeArea = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -79,7 +79,7 @@ export const createPracticeArea = createServerFn({ method: "POST" })
   });
 
 export const deletePracticeArea = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase

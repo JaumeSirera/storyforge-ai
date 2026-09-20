@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { z } from "zod";
 import { loadUserKeys } from "./user-keys.functions";
 import { xAdminDb } from "./assessments-repo.server";
@@ -139,7 +139,7 @@ async function uploadBytesToReplicate(
 }
 
 export const startLipsync = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => StartInput.parse(input))
   .handler(async ({ data, context }) => {
     const auth = await getReplicateAuth(context.supabase, context.userId);
@@ -232,7 +232,7 @@ function tailLogs(logs: string | null | undefined, maxLines = 6): string | undef
 }
 
 export const pollLipsync = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => PollInput.parse(input))
   .handler(async ({ data, context }): Promise<PollResult> => {
     const auth = await getReplicateAuth(context.supabase, context.userId);

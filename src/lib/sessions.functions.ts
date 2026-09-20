@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import { runWithTextModelFallback } from "./ai-gateway.server";
@@ -8,7 +8,7 @@ import { xdb, xAdminDb } from "./assessments-repo.server";
 
 // Start a new session for a simulation.
 export const startSession = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z.object({ simulationId: z.string().uuid() }).parse(input),
   )
@@ -47,7 +47,7 @@ export const startSession = createServerFn({ method: "POST" })
 
 // Get a session (with simulation embedded for the player).
 export const getSession = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { data: sess, error } = await xdb(context)
@@ -70,7 +70,7 @@ const AnswerInput = z.object({
 });
 
 export const submitAnswer = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => AnswerInput.parse(input))
   .handler(async ({ data, context }) => {
     const { data: sess, error } = await xdb(context)
@@ -175,7 +175,7 @@ export const submitAnswer = createServerFn({ method: "POST" })
 
 // Return current_node_id to a previous scene (used after a branched clip finishes).
 export const returnToNode = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z.object({ sessionId: z.string().uuid(), nodeId: z.string() }).parse(input),
   )
@@ -202,7 +202,7 @@ export const returnToNode = createServerFn({ method: "POST" })
 // Aborta la simulación en curso (por ejemplo, al detener y guardar la grabación):
 // la marca como finalizada para poder generar el informe con lo respondido.
 export const abortSession = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z.object({ sessionId: z.string().uuid() }).parse(input),
   )
@@ -282,7 +282,7 @@ function buildFallbackReport(
 }
 
 export const generateReport = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z.object({ sessionId: z.string().uuid() }).parse(input),
   )
@@ -414,7 +414,7 @@ Genera el veredicto (apto / apto_con_reservas / no_apto), un resumen ejecutivo (
 
 // List my recent sessions.
 export const listMySessions = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .handler(async ({ context }) => {
     const { data, error } = await xdb(context)
       .from("sessions")
@@ -452,7 +452,7 @@ const SavePreviewDraftInput = z.object({
 });
 
 export const savePreviewAsDraft = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => SavePreviewDraftInput.parse(input))
   .handler(async ({ data, context }) => {
     // Confirm the caller owns the simulation (preview drafts only for owners).

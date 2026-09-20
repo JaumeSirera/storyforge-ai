@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { xdb, xAdminDb } from "./assessments-repo.server";
 import {
   alignAnswersWithRecording,
@@ -17,7 +17,7 @@ const CAPTURE_COLUMNS = "id, title, mode, started_at, ended_at, created_at, game
  * propietario de la simulación o no hay grabación vinculable.
  */
 export const getIntegratedReport = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) =>
     z
       .object({
@@ -193,7 +193,7 @@ export const getIntegratedReport = createServerFn({ method: "POST" })
 
 /** Vincula explícitamente una grabación con la sesión de juego que la acompaña. */
 export const linkCaptureGameSession = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) =>
     z
       .object({ captureSessionId: z.string().uuid(), gameSessionId: z.string().uuid() })

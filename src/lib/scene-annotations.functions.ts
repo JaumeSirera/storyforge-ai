@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { xdb, xAdminDb } from "./assessments-repo.server";
 
 /** Anotación del profesional sobre una escena de la película resumen. */
@@ -32,7 +32,7 @@ function mapRow(row: any): SceneAnnotation {
 
 /** Lista las notas y etiquetas guardadas de todas las escenas de la sesión. */
 export const listSceneAnnotations = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z.object({ captureSessionId: z.string().uuid() }).parse(input),
   )
@@ -49,7 +49,7 @@ export const listSceneAnnotations = createServerFn({ method: "GET" })
 
 /** Guarda (crea o actualiza) la nota y las etiquetas de una escena. */
 export const saveSceneAnnotation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -102,7 +102,7 @@ export const saveSceneAnnotation = createServerFn({ method: "POST" })
 
 /** Borra la anotación de una escena. */
 export const deleteSceneAnnotation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({ captureSessionId: z.string().uuid(), sceneIndex: z.number().int().min(0) })

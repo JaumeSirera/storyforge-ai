@@ -74,6 +74,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { uploadFile } from "@/lib/upload-file";
+import { getCurrentUser } from "@/lib/current-user";
 
 export const Route = createFileRoute("/_authenticated/app/capture/$id/")({
   head: () => ({
@@ -160,11 +161,8 @@ function CaptureSessionPage() {
 
 
   useEffect(() => {
-    void supabase.auth.getUser().then(({ data }) => {
-      const u = data.user;
-      const name =
-        (u?.user_metadata?.full_name as string | undefined) || u?.email?.split("@")[0] || "Yo";
-      setMyName(name);
+    void getCurrentUser().then((u) => {
+      setMyName(u?.full_name || u?.email?.split("@")[0] || "Yo");
     });
   }, []);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -212,8 +210,8 @@ function CaptureSessionPage() {
     }
     setUploadingPhoto(true);
     try {
-      const { data: auth } = await supabase.auth.getUser();
-      const uid = auth.user?.id;
+      const me = await getCurrentUser();
+      const uid = me?.id;
       if (!uid) throw new Error("Sesión caducada");
       const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const path = `${uid}/${id}/${crypto.randomUUID()}.${ext}`;

@@ -6,12 +6,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Plus, LogOut, Library, Settings, Shield, CreditCard, Menu, X , Video, FileText, Smartphone} from "lucide-react";
 import { getMyAdminStatus } from "@/lib/admin.functions";
+import { getValidAccessToken, readSession } from "@/lib/auth-session";
+import { useOwnAuth } from "@/lib/auth-context";
 import logoAsset from "@/assets/logo-xandralyze.png.asset.json";
 
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
+    // 1) Sesión propia (cuentas en el servidor del cliente).
+    const own = await getValidAccessToken().catch(() => null);
+    if (own) {
+      const session = readSession();
+      if (session) return { user: session.user };
+    }
+    // 2) Sesión anterior, mientras dure la transición.
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) {
       if (typeof window !== "undefined") {
@@ -41,8 +50,11 @@ function AppLayout() {
     staleTime: 60_000,
   });
 
+  const { signOut: signOutOwn } = useOwnAuth();
+
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await signOutOwn().catch(() => {});
+    await supabase.auth.signOut().catch(() => {});
     navigate({ to: "/auth" });
   };
 

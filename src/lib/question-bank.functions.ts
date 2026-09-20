@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import {
   createAssessmentFromBankHandler,
   deleteBankItemHandler,
@@ -38,7 +38,7 @@ const QuestionInput = z.object({
 const TagsInput = z.array(z.string().trim().min(1).max(40)).max(10);
 
 export const listBankItems = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -52,12 +52,12 @@ export const listBankItems = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => listBankItemsHandler(data, context));
 
 export const listBankVersions = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => listBankVersionsHandler(data, context));
 
 export const generateBankQuestions = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -75,14 +75,14 @@ export const generateBankQuestions = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => generateBankQuestionsHandler(data, context));
 
 export const importAssessmentQuestions = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z.object({ assessmentId: z.string().uuid(), tags: TagsInput.default([]) }).parse(input),
   )
   .handler(async ({ data, context }) => importAssessmentQuestionsHandler(data, context));
 
 export const updateBankItem = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -96,19 +96,19 @@ export const updateBankItem = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => updateBankItemHandler(data, context));
 
 export const restoreBankVersion = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z.object({ id: z.string().uuid(), version: z.number().min(1).max(500) }).parse(input),
   )
   .handler(async ({ data, context }) => restoreBankVersionHandler(data, context));
 
 export const deleteBankItem = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => deleteBankItemHandler(data, context));
 
 export const createAssessmentFromBank = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
