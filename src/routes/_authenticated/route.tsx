@@ -50,8 +50,11 @@ function AppLayout() {
     staleTime: 60_000,
   });
 
+  const { signOut: signOutOwn } = useOwnAuth();
+
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await signOutOwn().catch(() => {});
+    await supabase.auth.signOut().catch(() => {});
     navigate({ to: "/auth" });
   };
 
