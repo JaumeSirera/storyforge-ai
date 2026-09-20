@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Play, Sparkles, LogIn } from "lucide-react";
 import { useEffect, useState } from "react";
+import { isAuthenticated } from "@/lib/current-user";
+import { onSessionChange } from "@/lib/auth-session";
 
 export const Route = createFileRoute("/explore/$id")({
   component: PublicSimulationDetail,
@@ -21,11 +23,17 @@ function PublicSimulationDetail() {
   const [isAuthed, setIsAuthed] = useState<boolean | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setIsAuthed(!!data.session));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setIsAuthed(!!session);
+    void isAuthenticated().then(setIsAuthed);
+    const off = onSessionChange(() => {
+      void isAuthenticated().then(setIsAuthed);
     });
-    return () => sub.subscription.unsubscribe();
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      void isAuthenticated().then(setIsAuthed);
+    });
+    return () => {
+      off();
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   if (sim.isLoading) return <div className="p-8 text-muted-foreground">Cargando…</div>;

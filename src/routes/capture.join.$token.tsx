@@ -21,6 +21,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, LogIn, ShieldCheck, Gamepad2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { getCurrentUser } from "@/lib/current-user";
 
 export const Route = createFileRoute("/capture/join/$token")({
   head: () => ({
@@ -64,11 +65,9 @@ function JoinCapturePage() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.auth.getUser();
-      const u = data.user;
+      const u = await getCurrentUser();
       setAuthed(!!u);
-      if (u)
-        setName((p) => p || (u.user_metadata?.full_name as string | undefined) || u.email || "");
+      if (u) setName((p) => p || u.full_name || u.email || "");
     })();
   }, []);
 

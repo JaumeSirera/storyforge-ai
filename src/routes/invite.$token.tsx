@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Play, ShieldCheck, LogIn } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { getCurrentUser } from "@/lib/current-user";
 
 export const Route = createFileRoute("/invite/$token")({
   head: () => ({
@@ -42,12 +43,11 @@ function InvitePage() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.auth.getUser();
-      const u = data.user;
+      const u = await getCurrentUser();
       setAuthed(!!u);
       if (u) {
         setEmail((p) => p || u.email || "");
-        setName((p) => p || (u.user_metadata?.full_name as string | undefined) || "");
+        setName((p) => p || u.full_name || "");
       }
     })();
   }, []);

@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Play, ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { getCurrentUser } from "@/lib/current-user";
 
 export const Route = createFileRoute("/_authenticated/app/play/$id")({
   component: PrePlayPage,
@@ -49,11 +50,10 @@ function PrePlayPage() {
   // Pre-fill from the logged-in user's profile.
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.auth.getUser();
-      const u = data.user;
+      const u = await getCurrentUser();
       if (!u) return;
       setEmail((prev) => prev || u.email || "");
-      setName((prev) => prev || (u.user_metadata?.full_name as string | undefined) || "");
+      setName((prev) => prev || u.full_name || "");
     })();
   }, []);
 

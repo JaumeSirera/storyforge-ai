@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { KeyRound, Trash2, Mail, ExternalLink, FlaskConical } from "lucide-react";
 import { uploadFile } from "@/lib/upload-file";
+import { getCurrentUser } from "@/lib/current-user";
 
 export const Route = createFileRoute("/_authenticated/app/settings")({
   component: SettingsPage,
@@ -325,8 +326,8 @@ function EmailSettingsCard() {
     }
     setUploading(true);
     try {
-      const { data: userRes } = await supabase.auth.getUser();
-      const uid = userRes.user?.id;
+      const me = await getCurrentUser();
+      const uid = me?.id;
       if (!uid) throw new Error("Sesión no válida");
       const ext = file.name.toLowerCase().endsWith(".jpg") || file.name.toLowerCase().endsWith(".jpeg")
         ? "jpg"
