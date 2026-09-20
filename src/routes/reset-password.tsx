@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
+import { resetAccountPassword } from "@/lib/accounts.functions";
+import { storeSession } from "@/lib/auth-session";
 
 export const Route = createFileRoute("/reset-password")({
   ssr: false,
@@ -22,11 +24,21 @@ export const Route = createFileRoute("/reset-password")({
 function ResetPasswordPage() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [isNew, setIsNew] = useState(false);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const linkToken = params.get("token");
+    if (linkToken) {
+      setToken(linkToken);
+      setIsNew(params.get("nuevo") === "1");
+      setReady(true);
+      return;
+    }
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
     });
@@ -35,6 +47,8 @@ function ResetPasswordPage() {
     });
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  const minLength = token ? 8 : 6;
 
   return (
     <div className="min-h-screen bg-hero grid place-items-center px-4 py-12">
@@ -47,10 +61,10 @@ function ResetPasswordPage() {
         </Link>
         <Card className="shadow-glow">
           <CardHeader>
-            <CardTitle>Nueva contraseña</CardTitle>
+            <CardTitle>{isNew ? "Crea tu contraseña" : "Nueva contraseña"}</CardTitle>
             <CardDescription>
               {ready
-                ? "Escribe tu nueva contraseña."
+                ? `Escribe tu ${isNew ? "" : "nueva "}contraseña (mínimo ${minLength} caracteres).`
                 : "Abre el enlace desde el email de recuperación para continuar."}
             </CardDescription>
           </CardHeader>
@@ -59,23 +73,37 @@ function ResetPasswordPage() {
               className="space-y-3"
               onSubmit={async (e) => {
                 e.preventDefault();
-                if (password.length < 6) return toast.error("Mínimo 6 caracteres");
+                if (password.length < minLength) return toast.error(`Mínimo ${minLength} caracteres`);
                 if (password !== confirm) return toast.error("Las contraseñas no coinciden");
                 setLoading(true);
-                const { error } = await supabase.auth.updateUser({ password });
-                setLoading(false);
-                if (error) return toast.error(error.message);
-                toast.success("Contraseña actualizada");
-                navigate({ to: "/app/dashboard" });
+                try {
+                  if (token) {
+                    storeSession(await resetAccountPassword({ data: { token, password } }));
+                  } else {
+                    const { error } = await supabase.auth.updateUser({ password });
+                    if (error) throw error;
+                  }
+                  toast.success("Contraseña guardada");
+                  navigate({ to: "/app/dashboard" });
+                } catch (error) {
+                  const raw = error instanceof Error ? error.message : String(error);
+                  toast.error(
+                    /token|expired|caduc/i.test(raw)
+                      ? "El enlace ya no es válido. Pide uno nuevo desde «¿Olvidaste tu contraseña?»."
+                      : raw,
+                  );
+                } finally {
+                  setLoading(false);
+                }
               }}
             >
               <div className="space-y-1.5">
-                <Label htmlFor="np">Nueva contraseña</Label>
+                <Label htmlFor="np">{isNew ? "Contraseña" : "Nueva contraseña"}</Label>
                 <Input
                   id="np"
                   type="password"
                   required
-                  minLength={6}
+                  minLength={minLength}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={!ready}
@@ -87,7 +115,7 @@ function ResetPasswordPage() {
                   id="cp"
                   type="password"
                   required
-                  minLength={6}
+                  minLength={minLength}
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   disabled={!ready}
