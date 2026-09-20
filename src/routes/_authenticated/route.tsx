@@ -12,6 +12,13 @@ import logoAsset from "@/assets/logo-xandralyze.png.asset.json";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
+    // 1) Sesión propia (cuentas en el servidor del cliente).
+    const own = await getValidAccessToken().catch(() => null);
+    if (own) {
+      const session = readSession();
+      if (session) return { user: session.user };
+    }
+    // 2) Sesión anterior, mientras dure la transición.
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) {
       if (typeof window !== "undefined") {
