@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { z } from "zod";
 import { xdb, xAdminDb } from "./assessments-repo.server";
 
@@ -17,7 +17,7 @@ async function ensureAdmin(context: { supabase: any; userId: string }) {
 
 /** Devuelve si el usuario actual es administrador. */
 export const getMyAdminStatus = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .handler(async ({ context }) => {
     const { data } = await xdb(context).rpc("has_role", {
       _user_id: context.userId,
@@ -28,7 +28,7 @@ export const getMyAdminStatus = createServerFn({ method: "GET" })
 
 /** Lista todos los usuarios con perfil, roles y estado. */
 export const adminListUsers = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .handler(async ({ context }) => {
     const admin = await ensureAdmin(context);
 
@@ -86,7 +86,7 @@ const CreateInput = z.object({
 });
 
 export const adminCreateUser = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) => CreateInput.parse(v))
   .handler(async ({ data, context }) => {
     const admin = await ensureAdmin(context);
@@ -120,7 +120,7 @@ const UpdateInput = z.object({
 });
 
 export const adminUpdateUser = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) => UpdateInput.parse(v))
   .handler(async ({ data, context }) => {
     const admin = await ensureAdmin(context);
@@ -170,7 +170,7 @@ const PasswordInput = z.object({
 });
 
 export const adminResetPassword = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) => PasswordInput.parse(v))
   .handler(async ({ data, context }) => {
     const admin = await ensureAdmin(context);
@@ -184,7 +184,7 @@ export const adminResetPassword = createServerFn({ method: "POST" })
 const DeleteInput = z.object({ userId: z.string().uuid() });
 
 export const adminDeleteUser = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) => DeleteInput.parse(v))
   .handler(async ({ data, context }) => {
     if (data.userId === context.userId) {
@@ -198,7 +198,7 @@ export const adminDeleteUser = createServerFn({ method: "POST" })
 
 /** Lista todas las simulaciones del sistema para el panel de admin. */
 export const adminListAllSimulations = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .handler(async ({ context }) => {
     const admin = await ensureAdmin(context);
     const { data, error } = await admin

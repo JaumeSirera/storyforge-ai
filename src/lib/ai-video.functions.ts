@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { z } from "zod";
 import { loadUserKeys } from "./user-keys.functions";
 import { xdb, xAdminDb } from "./assessments-repo.server";
@@ -72,7 +72,7 @@ const StartInput = z.object({
 });
 
 export const startAiVideoGeneration = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => StartInput.parse(input))
   .handler(async ({ data, context }) => {
     const auth = await getReplicateAuth(xdb(context), context.userId);
@@ -183,7 +183,7 @@ function estimateProgress(stage: JobStage, elapsedSec: number): number {
 }
 
 export const pollAiVideoGeneration = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => PollInput.parse(input))
   .handler(async ({ data, context }): Promise<PollResult> => {
     const auth = await getReplicateAuth(xdb(context), context.userId);

@@ -1,13 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 
 /**
  * Comprobación del estado de la base de datos externa (PHP + MySQL).
  * Devuelve si está configurada y si responde correctamente.
  */
 export const checkExternalDatabase = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .handler(async () => {
     const { getExternalApiConfig, externalApi, ExternalApiError } = await import(
       "./external-data.server"

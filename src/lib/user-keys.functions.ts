@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { z } from "zod";
 import { AI_MODEL_IDS } from "./ai-models";
 
@@ -52,7 +52,7 @@ function maskKey(k: string | null): string | null {
 }
 
 export const getMyApiKeys = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .handler(async ({ context }) => {
     const { data } = await context.supabase
       .from("user_api_keys")
@@ -90,7 +90,7 @@ const SaveInput = z.object({
  * - Cadena vacía se interpreta como "no cambiar" para evitar borrados accidentales.
  */
 export const saveMyApiKeys = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => SaveInput.parse(input))
   .handler(async ({ data, context }) => {
     const patch: {

@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { z } from "zod";
 
 function mask(v: string | null): string | null {
@@ -9,7 +9,7 @@ function mask(v: string | null): string | null {
 }
 
 export const getMyTurnSettings = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .handler(async ({ context }) => {
     const { data } = await context.supabase
       .from("user_api_keys")
@@ -36,7 +36,7 @@ const SaveTurn = z.object({
 });
 
 export const saveMyTurnSettings = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => SaveTurn.parse(input))
   .handler(async ({ data, context }) => {
     const patch: {
@@ -71,7 +71,7 @@ export const saveMyTurnSettings = createServerFn({ method: "POST" })
 
 /** Comprueba que las credenciales de Cloudflare TURN funcionan. */
 export const testMyTurnSettings = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .handler(async ({ context }) => {
     const { resolveIceConfig } = await import("./ice.server");
     const cfg = await resolveIceConfig(context.userId);

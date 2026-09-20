@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { z } from "zod";
 import { xdb, xAdminDb } from "./assessments-repo.server";
 
@@ -14,7 +14,7 @@ function newToken(len = 24) {
 
 /** Owner lists their invitations for a simulation. */
 export const listInvitations = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) => z.object({ simulationId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await xdb(context)
@@ -28,7 +28,7 @@ export const listInvitations = createServerFn({ method: "POST" })
 
 /** Owner creates an invitation link. */
 export const createInvitation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) =>
     z
       .object({
@@ -63,7 +63,7 @@ export const createInvitation = createServerFn({ method: "POST" })
 
 /** Owner revokes an invitation. */
 export const revokeInvitation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) => z.object({ id: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
     const { error } = await xdb(context)
@@ -76,7 +76,7 @@ export const revokeInvitation = createServerFn({ method: "POST" })
 
 /** Owner deletes an invitation permanently. */
 export const deleteInvitation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) => z.object({ id: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
     const { error } = await xdb(context)
@@ -133,7 +133,7 @@ const StartInvitedInput = z.object({
 });
 
 export const startInvitedSession = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) => StartInvitedInput.parse(v))
   .handler(async ({ data, context }) => {
     const supabaseAdmin = await xAdminDb();

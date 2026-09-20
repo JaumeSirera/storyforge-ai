@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { xdb, xAdminDb } from "./assessments-repo.server";
 
 /** Roles disponibles para un participante de la sesión. */
@@ -113,7 +113,7 @@ const SESSION_COLUMNS =
 // ---------- Sesiones ----------
 
 export const listCaptureSessions = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .handler(async ({ context }): Promise<CaptureSession[]> => {
     const { data, error } = await xdb(context)
       .from("capture_sessions")
@@ -126,7 +126,7 @@ export const listCaptureSessions = createServerFn({ method: "GET" })
   });
 
 export const listCaptureSessionsBySimulation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z.object({ simulationId: z.string().uuid() }).parse(input),
   )
@@ -145,7 +145,7 @@ export const listCaptureSessionsBySimulation = createServerFn({ method: "POST" }
 
 
 export const getCaptureSession = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { data: session, error } = await xdb(context)
@@ -199,7 +199,7 @@ export const getCaptureSession = createServerFn({ method: "GET" })
   });
 
 export const createCaptureSession = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -238,7 +238,7 @@ export const createCaptureSession = createServerFn({ method: "POST" })
   });
 
 export const updateCaptureSession = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -292,7 +292,7 @@ export const updateCaptureSession = createServerFn({ method: "POST" })
   });
 
 export const deleteCaptureSession = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { data: recs } = await xdb(context)
@@ -314,7 +314,7 @@ export const deleteCaptureSession = createServerFn({ method: "POST" })
 // ---------- Participantes ----------
 
 export const upsertParticipant = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -363,7 +363,7 @@ export const upsertParticipant = createServerFn({ method: "POST" })
   });
 
 export const deleteParticipant = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { error } = await xdb(context)
@@ -378,7 +378,7 @@ export const deleteParticipant = createServerFn({ method: "POST" })
 // ---------- Grabaciones ----------
 
 export const registerRecording = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -415,7 +415,7 @@ export const registerRecording = createServerFn({ method: "POST" })
   });
 
 export const deleteRecording = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { data: rec } = await xdb(context)
@@ -435,7 +435,7 @@ export const deleteRecording = createServerFn({ method: "POST" })
 
 /** URL firmada temporal para reproducir una grabación en el navegador. */
 export const getRecordingUrl = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { data: rec, error } = await xdb(context)
@@ -455,7 +455,7 @@ export const getRecordingUrl = createServerFn({ method: "POST" })
 // ---------- Consentimientos ----------
 
 export const recordConsent = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -490,7 +490,7 @@ export const recordConsent = createServerFn({ method: "POST" })
   });
 
 export const listConsents = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ captureSessionId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await xdb(context)
@@ -504,7 +504,7 @@ export const listConsents = createServerFn({ method: "GET" })
 
 /** Auditoría completa de consentimientos para el anfitrión de la sesión. */
 export const listConsentAudit = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ captureSessionId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { data: sess, error: sErr } = await xdb(context)
@@ -553,7 +553,7 @@ export const listConsentAudit = createServerFn({ method: "POST" })
 /* ---- Preferencias de captura del usuario (se guardan en su cuenta) ---- */
 
 export const getCapturePreferences = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .handler(async ({ context }) => {
     const { data, error } = await xdb(context)
       .from("capture_preferences")
@@ -573,7 +573,7 @@ export const getCapturePreferences = createServerFn({ method: "GET" })
   });
 
 export const saveCapturePreferences = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({

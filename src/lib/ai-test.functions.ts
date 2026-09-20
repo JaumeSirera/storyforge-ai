@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { z } from "zod";
 import { AI_MODEL_IDS } from "./ai-models";
 
@@ -33,7 +33,7 @@ export type AiFallbackTestResult = {
  * comprueba que el siguiente modelo disponible responde de verdad.
  */
 export const testAiFallback = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => TestInput.parse(input))
   .handler(async ({ data, context }): Promise<AiFallbackTestResult> => {
     const { loadUserKeys } = await import("./user-keys.functions");

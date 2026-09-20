@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { generateText, Output } from "ai";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { runWithTextModelFallback } from "./ai-gateway.server";
 import { loadUserKeys } from "./user-keys.functions";
 import { formatSec, type SessionMetrics } from "./analyze-metrics";
@@ -62,7 +62,7 @@ export type ScenesComparison = z.infer<typeof ScenesComparisonSchema> & {
 
 /** Sesiones del usuario que ya tienen escenas generadas (candidatas a comparar). */
 export const listComparableSessions = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .handler(async ({ context }) => {
     const { data, error } = await xdb(context)
       .from("capture_analyses")
@@ -84,7 +84,7 @@ export const listComparableSessions = createServerFn({ method: "GET" })
 
 /** Compara las escenas de dos sesiones y destaca patrones de comportamiento similares. */
 export const compareSessionScenes = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({

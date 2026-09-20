@@ -1,13 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { PARTICIPANT_ROLES } from "./capture.functions";
 import { xdb, xAdminDb } from "./assessments-repo.server";
 
 /* ---------------- Anfitrión (propietario de la sesión) ---------------- */
 
 export const listCaptureInvitations = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) => z.object({ captureSessionId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await xdb(context)
@@ -20,7 +20,7 @@ export const listCaptureInvitations = createServerFn({ method: "POST" })
   });
 
 export const createCaptureInvitation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) =>
     z
       .object({
@@ -64,7 +64,7 @@ export const createCaptureInvitation = createServerFn({ method: "POST" })
   });
 
 export const revokeCaptureInvitation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) => z.object({ id: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
     const { error } = await xdb(context)
@@ -77,7 +77,7 @@ export const revokeCaptureInvitation = createServerFn({ method: "POST" })
   });
 
 export const deleteCaptureInvitation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) => z.object({ id: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
     const { error } = await xdb(context)
@@ -117,7 +117,7 @@ export const validateCaptureInvitation = createServerFn({ method: "POST" })
 
 /** El invitado (autenticado) se une a la sesión: crea/vincula su ficha de participante. */
 export const joinCaptureInvitation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) =>
     z
       .object({
@@ -232,7 +232,7 @@ export const joinCaptureInvitation = createServerFn({ method: "POST" })
 
 /** Estado del invitado al volver al enlace (por si ya se había unido). */
 export const getCaptureJoinState = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) => z.object({ token: z.string().min(8).max(128) }).parse(v))
   .handler(async ({ data, context }) => {
     const { loadCaptureInvitation } = await import("./capture-invitations.server");
@@ -252,7 +252,7 @@ export const getCaptureJoinState = createServerFn({ method: "POST" })
 
 /** El invitado obtiene una URL firmada para subir su grabación al espacio del anfitrión. */
 export const createParticipantUploadTicket = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) =>
     z
       .object({
@@ -283,7 +283,7 @@ export const createParticipantUploadTicket = createServerFn({ method: "POST" })
 
 /** El invitado registra la grabación subida (queda a nombre del anfitrión). */
 export const registerParticipantRecording = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) =>
     z
       .object({
@@ -331,7 +331,7 @@ export const registerParticipantRecording = createServerFn({ method: "POST" })
  * invitado no es propietario de la sesión.
  */
 export const recordInvitedConsent = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) =>
     z
       .object({

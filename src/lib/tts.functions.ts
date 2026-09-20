@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { z } from "zod";
 import { loadUserKeys } from "./user-keys.functions";
 import { xAdminDb } from "./assessments-repo.server";
@@ -26,7 +26,7 @@ const Input = z.object({
 });
 
 export const generateClipDialogue = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => Input.parse(input))
   .handler(async ({ data, context }): Promise<{ audioUrl: string; audioPath: string }> => {
     const userKeys = await loadUserKeys(context.supabase, context.userId);

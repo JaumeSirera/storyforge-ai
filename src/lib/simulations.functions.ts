@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { generateObject, NoObjectGeneratedError } from "ai";
 import { z } from "zod";
 import { runWithTextModelFallback } from "./ai-gateway.server";
@@ -415,7 +415,7 @@ function normalizeStory(raw: unknown, data: GenerateInputData): GeneratedStory {
 }
 
 export const generateSimulation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => GenerateInput.parse(input))
   .handler(async ({ data, context }) => {
     const userKeys = await loadUserKeys(xdb(context), context.userId);
@@ -583,7 +583,7 @@ Devuelve el árbol completo con startNodeId apuntando al primer nodo.`;
 // ---------- List simulations of the current user ----------
 
 export const listMySimulations = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .handler(async ({ context }) => {
     const { data, error } = await xdb(context)
       .from("simulations")
@@ -597,7 +597,7 @@ export const listMySimulations = createServerFn({ method: "GET" })
 // ---------- Get a simulation by id ----------
 
 export const getSimulation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { data: sim, error } = await xdb(context)
@@ -613,7 +613,7 @@ export const getSimulation = createServerFn({ method: "POST" })
 // ---------- Delete a simulation ----------
 
 export const deleteSimulation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { error } = await xdb(context)
@@ -628,7 +628,7 @@ export const deleteSimulation = createServerFn({ method: "POST" })
 // ---------- Toggle public ----------
 
 export const setSimulationPublic = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z.object({ id: z.string().uuid(), isPublic: z.boolean() }).parse(input),
   )
@@ -773,7 +773,7 @@ const UpdateStoryInput = z.object({
 });
 
 export const updateSimulationStory = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     UpdateStoryInput.extend({ note: z.string().max(500).optional() }).parse(input),
   )
@@ -993,14 +993,14 @@ const StatusActionInput = z.object({
 });
 
 export const submitForReview = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => StatusActionInput.parse(input))
   .handler(({ data, context }) =>
     setStatus(context, data.id, { status: "in_review" }, ["draft", "ready"], "submit", data.note),
   );
 
 export const publishSimulation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => StatusActionInput.parse(input))
   .handler(({ data, context }) =>
     setStatus(
@@ -1014,7 +1014,7 @@ export const publishSimulation = createServerFn({ method: "POST" })
   );
 
 export const revertToDraft = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => StatusActionInput.parse(input))
   .handler(({ data, context }) =>
     setStatus(
@@ -1030,7 +1030,7 @@ export const revertToDraft = createServerFn({ method: "POST" })
 // ---------- List preview-draft sessions for a simulation ----------
 
 export const listPreviewDrafts = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z.object({ simulationId: z.string().uuid() }).parse(input),
   )
@@ -1050,7 +1050,7 @@ export const listPreviewDrafts = createServerFn({ method: "POST" })
 // ---------- Revision history ----------
 
 export const listSimulationHistory = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z.object({ simulationId: z.string().uuid() }).parse(input),
   )

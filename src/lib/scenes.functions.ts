@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { generateText, Output } from "ai";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { runWithTextModelFallback } from "./ai-gateway.server";
 import { loadUserKeys } from "./user-keys.functions";
 import { formatSec, type SessionMetrics } from "./analyze-metrics";
@@ -19,7 +19,7 @@ export type { SessionScene, SessionScenes } from "./scenes.helpers";
 
 /** Lee las escenas guardadas de la sesión. */
 export const getSessionScenes = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z.object({ captureSessionId: z.string().uuid() }).parse(input),
   )
@@ -36,7 +36,7 @@ export const getSessionScenes = createServerFn({ method: "GET" })
 
 /** Detecta los momentos más relevantes y construye la "película resumen" de la sesión. */
 export const generateSessionScenes = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -200,7 +200,7 @@ Selecciona los momentos más relevantes y devuélvelos como escenas de la "pelí
 
 /** Borra las escenas guardadas de la sesión. */
 export const deleteSessionScenes = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z.object({ captureSessionId: z.string().uuid() }).parse(input),
   )

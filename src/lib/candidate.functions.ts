@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { z } from "zod";
 import { xdb, xAdminDb } from "./assessments-repo.server";
 
@@ -12,7 +12,7 @@ const StartInput = z.object({
 });
 
 export const startCandidateSession = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) => StartInput.parse(v))
   .handler(async ({ data, context }) => {
     // Cualquier participante autenticado puede jugar la simulación, incluso si
@@ -52,7 +52,7 @@ export const startCandidateSession = createServerFn({ method: "POST" })
 
 /** Owner: list all sessions run against one of my simulations. */
 export const listSimulationSessions = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) => z.object({ simulationId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
     const { data: sim, error: sErr } = await xdb(context)
@@ -84,7 +84,7 @@ export const listSimulationSessions = createServerFn({ method: "POST" })
 
 /** Owner: get a single session detail (for feedback panel). */
 export const getSimulationSessionDetail = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) => z.object({ sessionId: z.string().uuid() }).parse(v))
   .handler(async ({ data, context }) => {
     const { data: sess, error } = await xdb(context)
@@ -99,7 +99,7 @@ export const getSimulationSessionDetail = createServerFn({ method: "POST" })
 
 /** Owner submits/updates feedback for a candidate session. RLS allows this via sess_update_owner_of_sim. */
 export const submitAdminFeedback = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) =>
     z
       .object({
@@ -122,7 +122,7 @@ export const submitAdminFeedback = createServerFn({ method: "POST" })
 
 /** Registra en la sesión que el informe se ha enviado por correo al candidato. */
 export const markReportEmailSent = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) =>
     z
       .object({
@@ -151,7 +151,7 @@ const FieldSchema = z.object({
 });
 
 export const updateCandidateFields = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) =>
     z
       .object({
@@ -173,7 +173,7 @@ export const updateCandidateFields = createServerFn({ method: "POST" })
 /** Datos mínimos de una simulación para la pantalla previa al juego.
  * Accesible a cualquier usuario autenticado (incluye borradores, para pruebas). */
 export const getPlayableSimulation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((v: unknown) => z.object({ id: z.string().uuid() }).parse(v))
   .handler(async ({ data }) => {
     const supabaseAdmin = await xAdminDb();

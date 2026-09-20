@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAnyAuth } from "@/lib/require-auth";
 import { z } from "zod";
 import { xdb, xAdminDb } from "./assessments-repo.server";
 
@@ -23,7 +23,7 @@ export interface BillingSummary {
 
 /** Current user's billing summary (plan + running usage). */
 export const getMyBilling = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .handler(async ({ context }): Promise<BillingSummary> => {
     const supabaseAdmin = await xAdminDb();
     const [{ data: pricing }, { data: billing }] = await Promise.all([
@@ -57,7 +57,7 @@ export const getMyBilling = createServerFn({ method: "GET" })
 
 /** Enable/disable converting the monthly donation into AI consumption credits. */
 export const setDonationToCredits = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ enabled: z.boolean() }).parse(input))
   .handler(async ({ data, context }): Promise<{ ok: true; enabled: boolean }> => {
     const supabaseAdmin = await xAdminDb();
@@ -73,7 +73,7 @@ export const setDonationToCredits = createServerFn({ method: "POST" })
 
 /** Recent usage events for current user. */
 export const listMyUsage = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z.object({ limit: z.number().int().min(1).max(200).default(50) }).parse(input ?? {}),
   )
@@ -102,7 +102,7 @@ export interface PaymentRow {
 
 /** List current user's Redsys payment attempts (subscription, renewals, extras). */
 export const listMyPayments = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z.object({ limit: z.number().int().min(1).max(500).default(100) }).parse(input ?? {}),
   )
@@ -119,7 +119,7 @@ export const listMyPayments = createServerFn({ method: "GET" })
 
 /** Fetch data required to render a receipt PDF for a specific payment. */
 export const getMyPaymentReceipt = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ paymentId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { data: pay, error } = await xdb(context)
@@ -157,7 +157,7 @@ export const getMyPaymentReceipt = createServerFn({ method: "GET" })
  *  Accepts an optional amount; otherwise falls back to the configured default price.
  *  Returns URL + form fields; the client auto-submits the form. */
 export const createSubscriptionCheckout = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z.object({
       origin: z.string().url(),
@@ -228,7 +228,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
 /** Build the Redsys checkout for a one-off charge of the accumulated extra usage.
  *  If the user already has a saved card, we charge it via REST directly. */
 export const payExtraNow = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .inputValidator((input: unknown) =>
     z.object({ origin: z.string().url() }).parse(input ?? {}),
   )
@@ -327,7 +327,7 @@ export const payExtraNow = createServerFn({ method: "POST" })
 
 /** Cancel the auto-renewal by clearing the stored card token. */
 export const cancelSubscription = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAnyAuth])
   .handler(async ({ context }): Promise<{ ok: true }> => {
     const supabaseAdmin = await xAdminDb();
     await supabaseAdmin
