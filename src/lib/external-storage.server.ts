@@ -27,6 +27,7 @@ async function apiFetch(path: string, init: RequestInit & { raw?: boolean } = {}
   headers.set("X-App-Token", config.appToken);
   headers.set("X-Service", "1");
   headers.set("Accept", init.raw ? "*/*" : "application/json");
+  headers.set("User-Agent", "Xandralyze/1.0 (+https://xandralyze.com)");
   const response = await fetch(`${config.baseUrl}/api/v1${path}`, { ...init, headers });
   if (!response.ok) {
     const text = await response.text().catch(() => "");
