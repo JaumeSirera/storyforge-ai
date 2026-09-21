@@ -99,6 +99,8 @@ async function request<T>(options: RequestOptions): Promise<T> {
       "X-Identity-Url": process.env.SUPABASE_URL ?? "",
       "X-Identity-Key": process.env.SUPABASE_PUBLISHABLE_KEY ?? "",
       Accept: "application/json",
+      // Algunos hostings rechazan (403) peticiones sin User-Agent.
+      "User-Agent": "Xandralyze/1.0 (+https://xandralyze.com)",
       ...(options.body !== undefined ? { "Content-Type": "application/json" } : {}),
     },
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
