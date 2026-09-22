@@ -81,4 +81,54 @@ export const accountsApi = {
       invites: Array<{ id: string; email: string; full_name: string | null; token: string }>;
     }>("/auth/import", { users });
   },
+
+  // ---- Administración (rol admin, o modo servicio con token vacío) ----
+  adminUsers(accessToken: string) {
+    return externalRequest<{ users: AdminAccount[] }>({ accessToken, path: "/auth/users" });
+  },
+  adminCreate(
+    accessToken: string,
+    input: { email: string; password: string; full_name?: string; is_admin?: boolean },
+  ) {
+    return externalRequest<{ ok: boolean; user_id: string }>({
+      accessToken,
+      method: "POST",
+      path: "/auth/users",
+      body: input,
+    });
+  },
+  adminUpdate(
+    accessToken: string,
+    input: { user_id: string; full_name?: string | null; disabled?: boolean; is_admin?: boolean },
+  ) {
+    return externalRequest<{ ok: boolean }>({
+      accessToken,
+      method: "PATCH",
+      path: "/auth/users",
+      body: input,
+    });
+  },
+  adminSetPassword(accessToken: string, input: { user_id: string; password: string }) {
+    return post<{ ok: boolean }>("/auth/users/password", input, accessToken);
+  },
+  adminDelete(accessToken: string, input: { user_id: string }) {
+    return post<{ ok: boolean }>("/auth/users/delete", input, accessToken);
+  },
+  setRole(
+    accessToken: string,
+    input: { email?: string; user_id?: string; role: string; action?: "add" | "remove" },
+  ) {
+    return post<{ ok: boolean; user_id: string; roles: string[] }>("/auth/users/role", input, accessToken);
+  },
 };
+
+export interface AdminAccount {
+  id: string;
+  email: string;
+  full_name: string | null;
+  email_verified: boolean;
+  disabled: boolean;
+  last_login_at: string | null;
+  created_at: string;
+  roles: string[];
+}
