@@ -101,9 +101,37 @@ if (($segments[0] ?? '') === 'auth') {
     }
     $accounts = new Accounts($db, new Jwt($jwtSecret));
     $action = $segments[1] ?? '';
-    if (count($segments) > 2) {
+    $sub = $segments[2] ?? '';
+    if (count($segments) > 3 || ($sub !== '' && $action !== 'users')) {
         Http::fail('Ruta no válida', 404, 'unknown_route');
     }
+
+    // ---- Administración de cuentas (rol admin o modo servicio) ----------
+    if ($action === 'users') {
+        if (!$service && !$accounts->hasRole($auth->userId(), 'admin')) {
+            Http::fail('Solo para administración', 403, 'forbidden');
+        }
+        if ($method === 'GET' && $sub === '') {
+            Http::json(['data' => $accounts->adminUsers()]);
+        }
+        if ($method === 'POST' && $sub === '') {
+            Http::json(['data' => $accounts->adminCreate(Http::body())], 201);
+        }
+        if ($method === 'PATCH' && $sub === '') {
+            Http::json(['data' => $accounts->adminUpdate(Http::body())]);
+        }
+        if ($method === 'POST' && $sub === 'password') {
+            Http::json(['data' => $accounts->adminSetPassword(Http::body())]);
+        }
+        if ($method === 'POST' && $sub === 'delete') {
+            Http::json(['data' => $accounts->adminDelete(Http::body())]);
+        }
+        if ($method === 'POST' && $sub === 'role') {
+            Http::json(['data' => $accounts->setRole(Http::body())]);
+        }
+        Http::fail('Ruta no válida', 404, 'unknown_route');
+    }
+
 
     // Acciones públicas (la app las llama con su clave compartida).
     if ($method === 'POST') {
