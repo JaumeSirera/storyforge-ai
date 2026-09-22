@@ -3,27 +3,46 @@ import { requireAnyAuth } from "@/lib/require-auth";
 import { z } from "zod";
 import { xdb, xAdminDb } from "./assessments-repo.server";
 
-/** Guardián: verifica que el usuario autenticado es admin y devuelve el cliente admin. */
-async function ensureAdmin(context: { supabase: any; userId: string }) {
-  const { data, error } = await xdb(context).rpc("has_role", {
+type AuthContext = {
+  supabase: any;
+  userId: string;
+  claims?: Record<string, unknown>;
+  accessToken?: string;
+  authMode?: "cloud" | "own";
+};
+
+/** Cuentas propias (API PHP): devuelve el cliente y el token, o null. */
+async function ownAccounts(context: AuthContext) {
+  if (context.authMode !== "own") return null;
+  const { accountsApi, ownAccountsEnabled } = await import("./accounts.server");
+  if (!ownAccountsEnabled()) return null;
+  return { accountsApi, token: String(context.accessToken ?? "") };
+}
+
+/** ¿Es administrador el usuario autenticado? */
+async function isAdminUser(context: AuthContext): Promise<boolean> {
+  if (context.authMode === "own") {
+    const roles = context.claims?.["roles"];
+    return Array.isArray(roles) && roles.map(String).includes("admin");
+  }
+  const { data } = await xdb(context).rpc("has_role", {
     _user_id: context.userId,
     _role: "admin",
   });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
-  const supabaseAdmin = await xAdminDb();
-  return supabaseAdmin;
+  return !!data;
+}
+
+/** Guardián: verifica que el usuario autenticado es admin y devuelve el cliente admin. */
+async function ensureAdmin(context: AuthContext) {
+  if (!(await isAdminUser(context))) throw new Error("Forbidden");
+  return await xAdminDb();
 }
 
 /** Devuelve si el usuario actual es administrador. */
 export const getMyAdminStatus = createServerFn({ method: "GET" })
   .middleware([requireAnyAuth])
   .handler(async ({ context }) => {
-    const { data } = await xdb(context).rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
-    return { isAdmin: !!data };
+    return { isAdmin: await isAdminUser(context) };
   });
 
 /** Lista todos los usuarios con perfil, roles y estado. */
@@ -31,6 +50,30 @@ export const adminListUsers = createServerFn({ method: "GET" })
   .middleware([requireAnyAuth])
   .handler(async ({ context }) => {
     const admin = await ensureAdmin(context);
+    const own = await ownAccounts(context);
+
+    if (own) {
+      const { users } = await own.accountsApi.adminUsers(own.token);
+      const ids = users.map((u) => u.id);
+      const { data: profiles } = await admin
+        .from("profiles")
+        .select("id, use_platform_ai")
+        .in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
+      const aiMap = new Map((profiles ?? []).map((p: any) => [p.id, !!p.use_platform_ai]));
+      return {
+        users: users.map((u) => ({
+          id: u.id,
+          email: u.email,
+          fullName: u.full_name,
+          emailConfirmed: u.email_verified,
+          createdAt: u.created_at,
+          isActive: !u.disabled,
+          usePlatformAi: aiMap.get(u.id) ?? false,
+          roles: u.roles,
+          banned: u.disabled,
+        })),
+      };
+    }
 
     const { data: authData, error: authErr } = await admin.auth.admin.listUsers({
       page: 1,
@@ -79,7 +122,7 @@ export const adminListUsers = createServerFn({ method: "GET" })
 
 const CreateInput = z.object({
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z.string().min(8),
   fullName: z.string().trim().max(200).optional(),
   isAdmin: z.boolean().optional(),
   usePlatformAi: z.boolean().optional(),
@@ -90,6 +133,25 @@ export const adminCreateUser = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => CreateInput.parse(v))
   .handler(async ({ data, context }) => {
     const admin = await ensureAdmin(context);
+    const own = await ownAccounts(context);
+
+    if (own) {
+      const created = await own.accountsApi.adminCreate(own.token, {
+        email: data.email,
+        password: data.password,
+        ...(data.fullName ? { full_name: data.fullName } : {}),
+        is_admin: !!data.isAdmin,
+      });
+      await admin.from("profiles").upsert({
+        id: created.user_id,
+        email: data.email,
+        full_name: data.fullName ?? null,
+        use_platform_ai: !!data.usePlatformAi,
+        is_active: true,
+      });
+      return { ok: true, userId: created.user_id };
+    }
+
     const { data: created, error } = await admin.auth.admin.createUser({
       email: data.email,
       password: data.password,
@@ -124,6 +186,7 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => UpdateInput.parse(v))
   .handler(async ({ data, context }) => {
     const admin = await ensureAdmin(context);
+    const own = await ownAccounts(context);
 
     const profilePatch: {
       id: string;
@@ -139,6 +202,15 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
     }
 
+    if (own) {
+      await own.accountsApi.adminUpdate(own.token, {
+        user_id: data.userId,
+        ...(data.fullName !== undefined ? { full_name: data.fullName } : {}),
+        ...(data.isActive !== undefined ? { disabled: !data.isActive } : {}),
+        ...(data.isAdmin !== undefined ? { is_admin: data.isAdmin } : {}),
+      });
+      return { ok: true };
+    }
 
     // Ban/unban via auth admin (used to disable login)
     if (data.isActive !== undefined) {
@@ -166,7 +238,7 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
 
 const PasswordInput = z.object({
   userId: z.string().uuid(),
-  password: z.string().min(6),
+  password: z.string().min(8),
 });
 
 export const adminResetPassword = createServerFn({ method: "POST" })
@@ -174,6 +246,14 @@ export const adminResetPassword = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => PasswordInput.parse(v))
   .handler(async ({ data, context }) => {
     const admin = await ensureAdmin(context);
+    const own = await ownAccounts(context);
+    if (own) {
+      await own.accountsApi.adminSetPassword(own.token, {
+        user_id: data.userId,
+        password: data.password,
+      });
+      return { ok: true };
+    }
     const { error } = await admin.auth.admin.updateUserById(data.userId, {
       password: data.password,
     });
@@ -191,6 +271,11 @@ export const adminDeleteUser = createServerFn({ method: "POST" })
       throw new Error("No puedes eliminar tu propia cuenta.");
     }
     const admin = await ensureAdmin(context);
+    const own = await ownAccounts(context);
+    if (own) {
+      await own.accountsApi.adminDelete(own.token, { user_id: data.userId });
+      return { ok: true };
+    }
     const { error } = await admin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
