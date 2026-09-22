@@ -213,7 +213,7 @@ function CreateUserDialog({ onCreated }: { onCreated: () => void }) {
           </label>
         </div>
         <DialogFooter>
-          <Button onClick={() => mut.mutate()} disabled={mut.isPending || !email || password.length < 6}>
+          <Button onClick={() => mut.mutate()} disabled={mut.isPending || !email || password.length < 8}>
             <UserCog className="h-4 w-4 mr-1" /> Crear
           </Button>
         </DialogFooter>
@@ -247,7 +247,7 @@ function ResetPasswordDialog({ userId, email }: { userId: string; email: string 
         </DialogHeader>
         <div><Label>Nueva contraseña</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
         <DialogFooter>
-          <Button onClick={() => mut.mutate()} disabled={mut.isPending || password.length < 6}>
+          <Button onClick={() => mut.mutate()} disabled={mut.isPending || password.length < 8}>
             Actualizar
           </Button>
         </DialogFooter>
