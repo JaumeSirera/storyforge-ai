@@ -434,4 +434,176 @@ final class Accounts
 
         return ['imported' => $imported, 'skipped' => $skipped, 'invites' => $invites];
     }
+
+    // ---- administración -------------------------------------------------
+
+    /** ¿La cuenta tiene ese rol? */
+    public function hasRole(string $userId, string $role): bool
+    {
+        $row = $this->db->one(
+            'SELECT 1 AS ok FROM app_user_roles WHERE user_id = :id AND role = :role',
+            ['id' => $userId, 'role' => $role]
+        );
+
+        return $row !== null;
+    }
+
+    /** Todas las cuentas con sus roles (solo administración). @return array<string,mixed> */
+    public function adminUsers(): array
+    {
+        $rows = $this->db->all(
+            'SELECT id, email, full_name, email_verified, disabled, last_login_at, created_at FROM app_users ORDER BY created_at ASC'
+        );
+        $roleRows = $this->db->all('SELECT user_id, role FROM app_user_roles');
+        $byUser = [];
+        foreach ($roleRows as $r) {
+            $byUser[(string) $r['user_id']][] = (string) $r['role'];
+        }
+
+        $users = [];
+        foreach ($rows as $row) {
+            $id = (string) $row['id'];
+            $users[] = [
+                'id' => $id,
+                'email' => (string) $row['email'],
+                'full_name' => $row['full_name'] !== null ? (string) $row['full_name'] : null,
+                'email_verified' => ((int) ($row['email_verified'] ?? 0)) === 1,
+                'disabled' => ((int) ($row['disabled'] ?? 0)) === 1,
+                'last_login_at' => $row['last_login_at'] !== null ? (string) $row['last_login_at'] : null,
+                'created_at' => (string) ($row['created_at'] ?? ''),
+                'roles' => $byUser[$id] ?? [],
+            ];
+        }
+
+        return ['users' => $users];
+    }
+
+    /** @param array<string,mixed> $body @return array<string,mixed> */
+    public function adminCreate(array $body): array
+    {
+        $email = self::email($body['email'] ?? '');
+        $password = self::password($body['password'] ?? '');
+        if ($this->userByEmail($email) !== null) {
+            Http::fail('Ya existe una cuenta con ese email', 409, 'email_taken');
+        }
+        $id = self::uuid();
+        $name = trim((string) ($body['full_name'] ?? ''));
+        $this->db->run(
+            'INSERT INTO app_users (id, email, password_hash, full_name, email_verified) VALUES (:id, :email, :hash, :name, 1)',
+            [
+                'id' => $id,
+                'email' => $email,
+                'hash' => password_hash($password, PASSWORD_BCRYPT),
+                'name' => $name !== '' ? $name : null,
+            ]
+        );
+        if (!empty($body['is_admin'])) {
+            $this->grantRole($id, 'admin');
+        }
+
+        return ['ok' => true, 'user_id' => $id];
+    }
+
+    /** @param array<string,mixed> $body @return array<string,mixed> */
+    public function adminUpdate(array $body): array
+    {
+        $userId = (string) ($body['user_id'] ?? '');
+        if ($this->userById($userId) === null) {
+            Http::fail('Cuenta no encontrada', 404, 'not_found');
+        }
+        if (array_key_exists('full_name', $body)) {
+            $name = trim((string) $body['full_name']);
+            $this->db->run(
+                'UPDATE app_users SET full_name = :name WHERE id = :id',
+                ['name' => $name !== '' ? $name : null, 'id' => $userId]
+            );
+        }
+        if (array_key_exists('disabled', $body)) {
+            $disabled = !empty($body['disabled']) ? 1 : 0;
+            $this->db->run('UPDATE app_users SET disabled = :d WHERE id = :id', ['d' => $disabled, 'id' => $userId]);
+            if ($disabled === 1) {
+                $this->db->run('UPDATE app_sessions SET revoked_at = UTC_TIMESTAMP(3) WHERE user_id = :id AND revoked_at IS NULL', ['id' => $userId]);
+            }
+        }
+        if (array_key_exists('is_admin', $body)) {
+            if (!empty($body['is_admin'])) {
+                $this->grantRole($userId, 'admin');
+            } else {
+                $this->db->run('DELETE FROM app_user_roles WHERE user_id = :id AND role = :role', ['id' => $userId, 'role' => 'admin']);
+            }
+        }
+
+        return ['ok' => true];
+    }
+
+    /** @param array<string,mixed> $body @return array<string,mixed> */
+    public function adminSetPassword(array $body): array
+    {
+        $userId = (string) ($body['user_id'] ?? '');
+        if ($this->userById($userId) === null) {
+            Http::fail('Cuenta no encontrada', 404, 'not_found');
+        }
+        $password = self::password($body['password'] ?? '');
+        $this->db->run(
+            'UPDATE app_users SET password_hash = :hash, email_verified = 1 WHERE id = :id',
+            ['hash' => password_hash($password, PASSWORD_BCRYPT), 'id' => $userId]
+        );
+        $this->db->run('UPDATE app_sessions SET revoked_at = UTC_TIMESTAMP(3) WHERE user_id = :id AND revoked_at IS NULL', ['id' => $userId]);
+
+        return ['ok' => true];
+    }
+
+    /** @param array<string,mixed> $body @return array<string,mixed> */
+    public function adminDelete(array $body): array
+    {
+        $userId = (string) ($body['user_id'] ?? '');
+        if ($userId === '') {
+            Http::fail('Falta la cuenta', 400, 'missing_user');
+        }
+        $this->db->run('DELETE FROM app_user_roles WHERE user_id = :id', ['id' => $userId]);
+        $this->db->run('DELETE FROM app_sessions WHERE user_id = :id', ['id' => $userId]);
+        $this->db->run('DELETE FROM app_auth_tokens WHERE user_id = :id', ['id' => $userId]);
+        $this->db->run('DELETE FROM app_users WHERE id = :id', ['id' => $userId]);
+
+        return ['ok' => true];
+    }
+
+    /**
+     * Añade o quita un rol por email o por identificador (administración o
+     * modo servicio). @param array<string,mixed> $body @return array<string,mixed>
+     */
+    public function setRole(array $body): array
+    {
+        $role = trim((string) ($body['role'] ?? 'admin'));
+        if ($role === '') {
+            Http::fail('Falta el rol', 400, 'missing_role');
+        }
+        $userId = (string) ($body['user_id'] ?? '');
+        if ($userId === '' && isset($body['email'])) {
+            $user = $this->userByEmail(self::email($body['email']));
+            if ($user === null) {
+                Http::fail('Cuenta no encontrada', 404, 'not_found');
+            }
+            $userId = (string) $user['id'];
+        }
+        if ($userId === '') {
+            Http::fail('Falta la cuenta', 400, 'missing_user');
+        }
+        $remove = ($body['action'] ?? 'add') === 'remove';
+        if ($remove) {
+            $this->db->run('DELETE FROM app_user_roles WHERE user_id = :id AND role = :role', ['id' => $userId, 'role' => $role]);
+        } else {
+            $this->grantRole($userId, $role);
+        }
+
+        return ['ok' => true, 'user_id' => $userId, 'roles' => $this->roles($userId)];
+    }
+
+    private function grantRole(string $userId, string $role): void
+    {
+        $this->db->run(
+            'INSERT IGNORE INTO app_user_roles (id, user_id, role) VALUES (:id, :user_id, :role)',
+            ['id' => self::uuid(), 'user_id' => $userId, 'role' => $role]
+        );
+    }
 }
