@@ -18,8 +18,38 @@ export function createOpenAIProvider(apiKey: string) {
   });
 }
 
-/** Provider directo a Google Gemini (endpoint OpenAI-compatible) con la clave del usuario. */
+/**
+ * ¿Está activa la pasarela de IA de nuestro propio servidor?
+ * Cuando lo está, no hace falta que el usuario ponga ninguna clave: la clave
+ * vive en el .env del hosting y la petición se hace desde allí.
+ */
+export function ownAiEnabled(): boolean {
+  return (
+    process.env["EXTERNAL_AI"] === "1" &&
+    !!process.env["EXTERNAL_API_URL"] &&
+    !!process.env["EXTERNAL_API_TOKEN"]
+  );
+}
+
+function createOwnAiProvider() {
+  const base = process.env["EXTERNAL_API_URL"]!.replace(/\/+$/, "") + "/api/v1/ai";
+  return createOpenAICompatible({
+    name: "xandralyze-ai",
+    baseURL: base,
+    headers: {
+      "X-App-Token": process.env["EXTERNAL_API_TOKEN"]!,
+      "X-Service": "1",
+      "User-Agent": "Xandralyze/1.0 (+https://xandralyze.com)",
+    },
+  });
+}
+
+/**
+ * Provider de Gemini. Si la pasarela propia está activa, va por nuestro
+ * servidor; si no, directo a Google con la clave del usuario.
+ */
 export function createGeminiProvider(apiKey: string) {
+  if (ownAiEnabled()) return createOwnAiProvider();
   return createOpenAICompatible({
     name: "gemini",
     baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
