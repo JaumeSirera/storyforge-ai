@@ -71,7 +71,7 @@ export function resolveUserTextModel(userKeys: UserApiKeys, requestedId?: AiMode
   const requested = requestedId ? resolveAiModel(requestedId) : undefined;
 
   const canOpenAI = !!userKeys.openaiKey;
-  const canGemini = !!userKeys.geminiKey;
+  const canGemini = !!userKeys.geminiKey || ownAiEnabled();
   const canLovable = !!userKeys.lovableKey;
 
   let provider: "openai" | "gemini" | "lovable";
@@ -100,7 +100,7 @@ export function resolveUserTextModel(userKeys: UserApiKeys, requestedId?: AiMode
   }
 
   if (provider === "gemini") {
-    const p = createGeminiProvider(userKeys.geminiKey!);
+    const p = createGeminiProvider(userKeys.geminiKey ?? "");
     const nativeId =
       requested && requested.provider === "gemini" ? requested.nativeId : "gemini-2.5-flash";
     return { model: p(nativeId), provider, nativeId };
@@ -140,12 +140,12 @@ export function resolveUserTextModelChain(
 ): ResolvedTextModel[] {
   const requested = requestedId ? resolveAiModel(requestedId) : undefined;
   const canOpenAI = !!userKeys.openaiKey;
-  const canGemini = !!userKeys.geminiKey;
+  const canGemini = !!userKeys.geminiKey || ownAiEnabled();
   const canLovable = !!userKeys.lovableKey;
   if (!canOpenAI && !canGemini && !canLovable) throw missingKeysError();
 
   const openaiProvider = canOpenAI ? createOpenAIProvider(userKeys.openaiKey!) : null;
-  const geminiProvider = canGemini ? createGeminiProvider(userKeys.geminiKey!) : null;
+  const geminiProvider = canGemini ? createGeminiProvider(userKeys.geminiKey ?? "") : null;
   const lovableProvider = canLovable ? createLovableAiGatewayProvider(userKeys.lovableKey!) : null;
 
   const chain: ResolvedTextModel[] = [];
