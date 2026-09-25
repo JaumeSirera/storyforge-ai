@@ -102,7 +102,7 @@ export function resolveUserTextModel(userKeys: UserApiKeys, requestedId?: AiMode
   if (provider === "gemini") {
     const p = createGeminiProvider(userKeys.geminiKey ?? "");
     const nativeId =
-      requested && requested.provider === "gemini" ? requested.nativeId : "gemini-2.5-flash";
+      requested && requested.provider === "gemini" ? requested.nativeId : "gemini-3.8-flash";
     return { model: p(nativeId), provider, nativeId };
   }
 
