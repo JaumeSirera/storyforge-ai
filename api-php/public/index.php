@@ -184,7 +184,7 @@ $userId = $service ? null : $auth->userId();
 //   POST /api/v1/ai/chat/completions  (formato OpenAI; se reenvía a Gemini)
 if (($segments[0] ?? '') === 'ai') {
     require $base . '/src/Ai.php';
-    $ai = new Ai(
+    $ai = new \Xandralyze\Ai(
         Env::get('GEMINI_API_KEY', '') ?? '',
         Env::get('OPENAI_API_KEY', '') ?? '',
     );
