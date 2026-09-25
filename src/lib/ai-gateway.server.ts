@@ -181,8 +181,8 @@ export function resolveUserTextModelChain(
 
   // 3. Gateway de la plataforma como último recurso.
   if (requested) push("lovable", requested.id);
-  push("lovable", "google/gemini-3.7-flash");
-  push("lovable", "google/gemini-2.5-flash");
+  push("lovable", "google/gemini-3.8-flash");
+  push("lovable", "google/gemini-3.5-flash");
 
   return chain;
 }
