@@ -108,7 +108,7 @@ export function resolveUserTextModel(userKeys: UserApiKeys, requestedId?: AiMode
 
   // Lovable AI Gateway (platform pays via LOVABLE_API_KEY)
   const p = createLovableAiGatewayProvider(userKeys.lovableKey!);
-  const nativeId = requested ? requested.id : "google/gemini-2.5-flash";
+  const nativeId = requested ? requested.id : "google/gemini-3.8-flash";
   return { model: p(nativeId), provider, nativeId };
 }
 
