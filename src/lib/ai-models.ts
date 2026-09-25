@@ -7,9 +7,17 @@
 export const AI_MODELS = [
   // ---------- Google Gemini (última generación) ----------
   {
+    id: "google/gemini-3.8-flash",
+    label: "Gemini 3.8 Flash",
+    description: "Última generación. Rápido, potente y económico. Recomendado.",
+    provider: "gemini" as const,
+    nativeId: "gemini-3.8-flash",
+    generation: "nuevo" as const,
+  },
+  {
     id: "google/gemini-3.7-flash",
     label: "Gemini 3.7 Flash",
-    description: "Última generación. Rápido, potente y económico. Recomendado.",
+    description: "Rápido y equilibrado. Excelente para guiones e informes.",
     provider: "gemini" as const,
     nativeId: "gemini-3.7-flash",
     generation: "nuevo" as const,
@@ -141,7 +149,7 @@ export const AI_MODELS = [
 export type AiModelId = (typeof AI_MODELS)[number]["id"];
 
 // Por defecto se mantienen los modelos que ya se usaban antes (generación estable).
-export const DEFAULT_AI_MODEL: AiModelId = "google/gemini-2.5-flash";
+export const DEFAULT_AI_MODEL: AiModelId = "google/gemini-3.8-flash";
 
 export const AI_MODEL_IDS = AI_MODELS.map((m) => m.id) as [AiModelId, ...AiModelId[]];
 
@@ -154,8 +162,10 @@ export function resolveAiModel(id: AiModelId) {
  * se intenta el siguiente (misma familia, luego generación estable).
  */
 export const GEMINI_FALLBACK_CHAIN: AiModelId[] = [
+  "google/gemini-3.8-flash",
   "google/gemini-3.7-flash",
   "google/gemini-3.5-flash",
+  "google/gemini-3.1-flash-lite",
   "google/gemini-2.5-flash",
 ];
 
