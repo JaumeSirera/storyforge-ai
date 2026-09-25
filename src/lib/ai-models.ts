@@ -7,9 +7,17 @@
 export const AI_MODELS = [
   // ---------- Google Gemini (última generación) ----------
   {
+    id: "google/gemini-3.8-flash",
+    label: "Gemini 3.8 Flash",
+    description: "Última generación. Rápido, potente y económico. Recomendado.",
+    provider: "gemini" as const,
+    nativeId: "gemini-3.8-flash",
+    generation: "nuevo" as const,
+  },
+  {
     id: "google/gemini-3.7-flash",
     label: "Gemini 3.7 Flash",
-    description: "Última generación. Rápido, potente y económico. Recomendado.",
+    description: "Rápido y equilibrado. Excelente para guiones e informes.",
     provider: "gemini" as const,
     nativeId: "gemini-3.7-flash",
     generation: "nuevo" as const,
