@@ -162,8 +162,10 @@ export function resolveAiModel(id: AiModelId) {
  * se intenta el siguiente (misma familia, luego generación estable).
  */
 export const GEMINI_FALLBACK_CHAIN: AiModelId[] = [
+  "google/gemini-3.8-flash",
   "google/gemini-3.7-flash",
   "google/gemini-3.5-flash",
+  "google/gemini-3.1-flash-lite",
   "google/gemini-2.5-flash",
 ];
 
