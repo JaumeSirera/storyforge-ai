@@ -70,7 +70,8 @@ import type { UserApiKeys } from "./user-keys.functions";
 export function resolveUserTextModel(userKeys: UserApiKeys, requestedId?: AiModelId) {
   const requested = requestedId ? resolveAiModel(requestedId) : undefined;
 
-  const canOpenAI = !!userKeys.openaiKey;
+  // Con la pasarela propia activa, tanto Gemini como OpenAI van por nuestro servidor.
+  const canOpenAI = !!userKeys.openaiKey || ownAiEnabled();
   const canGemini = !!userKeys.geminiKey || ownAiEnabled();
   const canLovable = !!userKeys.lovableKey;
 
