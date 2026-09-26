@@ -94,7 +94,7 @@ export function resolveUserTextModel(userKeys: UserApiKeys, requestedId?: AiMode
   }
 
   if (provider === "openai") {
-    const p = createOpenAIProvider(userKeys.openaiKey!);
+    const p = userKeys.openaiKey ? createOpenAIProvider(userKeys.openaiKey) : createOwnAiProvider();
     const nativeId =
       requested && requested.provider === "openai" ? requested.nativeId : "gpt-5-mini";
     return { model: p(nativeId), provider, nativeId };
