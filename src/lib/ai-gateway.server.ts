@@ -70,7 +70,8 @@ import type { UserApiKeys } from "./user-keys.functions";
 export function resolveUserTextModel(userKeys: UserApiKeys, requestedId?: AiModelId) {
   const requested = requestedId ? resolveAiModel(requestedId) : undefined;
 
-  const canOpenAI = !!userKeys.openaiKey;
+  // Con la pasarela propia activa, tanto Gemini como OpenAI van por nuestro servidor.
+  const canOpenAI = !!userKeys.openaiKey || ownAiEnabled();
   const canGemini = !!userKeys.geminiKey || ownAiEnabled();
   const canLovable = !!userKeys.lovableKey;
 
@@ -93,7 +94,7 @@ export function resolveUserTextModel(userKeys: UserApiKeys, requestedId?: AiMode
   }
 
   if (provider === "openai") {
-    const p = createOpenAIProvider(userKeys.openaiKey!);
+    const p = userKeys.openaiKey ? createOpenAIProvider(userKeys.openaiKey) : createOwnAiProvider();
     const nativeId =
       requested && requested.provider === "openai" ? requested.nativeId : "gpt-5-mini";
     return { model: p(nativeId), provider, nativeId };
@@ -139,12 +140,16 @@ export function resolveUserTextModelChain(
   requestedId?: AiModelId,
 ): ResolvedTextModel[] {
   const requested = requestedId ? resolveAiModel(requestedId) : undefined;
-  const canOpenAI = !!userKeys.openaiKey;
+  const canOpenAI = !!userKeys.openaiKey || ownAiEnabled();
   const canGemini = !!userKeys.geminiKey || ownAiEnabled();
   const canLovable = !!userKeys.lovableKey;
   if (!canOpenAI && !canGemini && !canLovable) throw missingKeysError();
 
-  const openaiProvider = canOpenAI ? createOpenAIProvider(userKeys.openaiKey!) : null;
+  const openaiProvider = canOpenAI
+    ? userKeys.openaiKey
+      ? createOpenAIProvider(userKeys.openaiKey)
+      : createOwnAiProvider()
+    : null;
   const geminiProvider = canGemini ? createGeminiProvider(userKeys.geminiKey ?? "") : null;
   const lovableProvider = canLovable ? createLovableAiGatewayProvider(userKeys.lovableKey!) : null;
 
