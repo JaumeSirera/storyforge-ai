@@ -11,11 +11,11 @@ Orden elegido: primero mover la lógica al servidor propio, después generar la 
 - [x] Verificado: los PDF (informe, evaluación, insights, recibos) se generan en el navegador del usuario (jsPDF). No dependen del servidor de Lovable; no requieren cambios para la web estática.
 - [ ] Menor: el análisis de documentos subidos (extraer texto de PDF escaneados) usa una librería en el servidor de Lovable; se moverá a la API PHP si hace falta.
 
-## 3. Correo por SMTP del hosting (fase B pendiente)
-- [x] Endpoint `POST /api/v1/email/send` en la API PHP (`api-php/src/Mail.php`, cliente SMTP puro sin dependencias; STARTTLS/AUTH LOGIN, texto+HTML).
-- [x] La app envía las plantillas por tu servidor cuando el secreto `EXTERNAL_EMAIL=1`, con respaldo automático a Lovable si el SMTP falla.
-- [ ] Usuario: subir `api-php/src/Mail.php` y `api-php/public/index.php`; rellenar `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` (y opcionalmente `SMTP_SECURE`) en el `.env`.
-- [ ] Activar secreto `EXTERNAL_EMAIL=1` y verificar el envío real.
+## 3. Correo por SMTP del hosting — COMPLETO
+- [x] Endpoint `POST /api/v1/email/send` en la API PHP (`api-php/src/Mail.php`, cliente SMTP puro; STARTTLS/SSL, AUTH LOGIN, texto+HTML).
+- [x] La app envía las plantillas por tu servidor (secreto `EXTERNAL_EMAIL=1`), con respaldo automático a Lovable si el SMTP falla.
+- [x] Verificado en vivo: correo de prueba enviado y aceptado por tu servidor.
+
 
 ## 4. Pagos Redsys en tu servidor
 - [ ] Mover firma y notificación de Redsys a la API PHP.
