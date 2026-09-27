@@ -9,6 +9,7 @@ use Xandralyze\Env;
 use Xandralyze\Files;
 use Xandralyze\Http;
 use Xandralyze\Jwt;
+use Xandralyze\Mail;
 use Xandralyze\Repo;
 
 // Admite dos formas de instalación:
@@ -189,6 +190,26 @@ if (($segments[0] ?? '') === 'ai') {
         Env::get('OPENAI_API_KEY', '') ?? '',
     );
     $ai->proxy(implode('/', array_slice($segments, 1)), $method);
+}
+
+// ---- Correo saliente (SMTP del hosting) ---------------------------------
+//   POST /api/v1/email/send  { to, subject, html, text, reply_to? }
+//   Solo modo servicio: la aplicación llama con su clave compartida.
+if (($segments[0] ?? '') === 'email') {
+    if (!$service) {
+        Http::fail('Operación no permitida', 403, 'service_only');
+    }
+    if ($method === 'POST' && ($segments[1] ?? '') === 'send' && count($segments) === 2) {
+        require $base . '/src/Mail.php';
+        $mail = new Mail(
+            Env::require('SMTP_HOST'),
+            (int) (Env::get('SMTP_PORT', '587') ?? '587'),
+            Env::get('SMTP_USER', '') ?? '',
+            Env::get('SMTP_PASS', '') ?? '',
+        );
+        Http::json(['data' => $mail->send(Http::body())]);
+    }
+    Http::fail('Ruta no válida', 404, 'unknown_route');
 }
 
 // ---- Archivos ----------------------------------------------------------
