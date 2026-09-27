@@ -65,6 +65,31 @@ export async function sendTemplateEmail(
       ? template.subject(templateData)
       : template.subject
 
+  // Fase B: con el SMTP del hosting activo (secreto EXTERNAL_EMAIL=1), el
+  // correo sale de tu servidor. Si el SMTP aún no está configurado o falla,
+  // cae al envío de Lovable para que ningún correo se pierda en la transición.
+  if (process.env["EXTERNAL_EMAIL"] === "1") {
+    try {
+      const { externalRequest } = await import("../external-data.server");
+      await externalRequest({
+        accessToken: "",
+        method: "POST",
+        path: "/email/send",
+        body: {
+          to: recipient,
+          subject,
+          html,
+          text,
+          reply_to: options.replyTo,
+          idempotency_key: options.idempotencyKey,
+        },
+      });
+      return { sent: true };
+    } catch (err) {
+      console.error("[email] el SMTP propio falló; se usa el envío de Lovable:", err);
+    }
+  }
+
   try {
     await sendLovableEmail(
       {
