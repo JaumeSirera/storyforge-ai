@@ -62,9 +62,14 @@ export const requireAnyAuth = createMiddleware({ type: "function" }).server(asyn
   const user = await accountsApi.me(token).catch(() => null);
   if (!user?.id) throw new Error("Unauthorized: Invalid token");
 
+  // La base antigua no reconoce este token: las tablas ya trasladadas se
+  // redirigen a tu servidor para cualquier módulo que use context.supabase.
+  const { assessDb } = await import("./assessments-repo.server");
+  const routed = assessDb({ supabase }) as typeof supabase;
+
   return next({
     context: {
-      supabase,
+      supabase: routed,
       userId: user.id,
       claims: { sub: user.id, email: user.email, roles: user.roles } as Record<string, unknown>,
       accessToken: token,

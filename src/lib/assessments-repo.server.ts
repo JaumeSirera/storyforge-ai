@@ -61,7 +61,11 @@ const PHASE3_TABLES = new Set<string>([
   "pricing_config",
 ]);
 
+/** Fase 4 (claves de IA y ajustes de correo). Secreto EXTERNAL_API_PHASE4 = "1". */
+const PHASE4_TABLES = new Set<string>(["user_api_keys", "email_settings"]);
+
 function isExternal(table: string): boolean {
+  if (process.env["EXTERNAL_API_PHASE4"] === "1" && PHASE4_TABLES.has(table)) return true;
   if (EXTERNAL_TABLES.has(table)) return true;
   if (process.env["EXTERNAL_API_PHASE2"] === "1" && PHASE2_TABLES.has(table)) return true;
   return process.env["EXTERNAL_API_PHASE3"] === "1" && PHASE3_TABLES.has(table);

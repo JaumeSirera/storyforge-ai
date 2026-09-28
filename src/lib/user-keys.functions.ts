@@ -54,11 +54,12 @@ function maskKey(k: string | null): string | null {
 export const getMyApiKeys = createServerFn({ method: "GET" })
   .middleware([requireAnyAuth])
   .handler(async ({ context }) => {
-    const { data } = await context.supabase
+    const { data, error } = await context.supabase
       .from("user_api_keys")
       .select("openai_key, gemini_key, replicate_key, elevenlabs_key, text_provider, preferred_model")
       .eq("user_id", context.userId)
       .maybeSingle();
+    if (error) throw new Error(error.message);
 
     return {
       openaiKeyMasked: maskKey(data?.openai_key ?? null),
@@ -129,7 +130,9 @@ export async function loadUserKeys(
   };
 
   // 1) Check profile: is_active + use_platform_ai
-  const { data: profile } = await client
+  const { supabaseAdmin: profileDb } = await import("@/integrations/supabase/client.server");
+  // El id ya está verificado por el middleware; se lee solo el perfil propio.
+  const { data: profile } = await profileDb
     .from("profiles")
     .select("is_active, use_platform_ai")
     .eq("id", userId)
