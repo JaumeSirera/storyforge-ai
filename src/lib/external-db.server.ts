@@ -199,7 +199,6 @@ class ExternalQuery<T> implements PromiseLike<Res<T>> {
       if (f.op === "eq") query[f.column] = norm(f.value);
     }
     if (this.orderBy) query["order"] = `${this.orderBy.column}.${this.orderBy.ascending ? "asc" : "desc"}`;
-    query["limit"] = Math.min(200, this.limitN ?? 200);
 
     const pk = pkFor(this.table);
     const idFilter = this.filters.find((f) => f.op === "eq" && f.column === pk);
@@ -213,8 +212,16 @@ class ExternalQuery<T> implements PromiseLike<Res<T>> {
       }
     }
 
-    const rows = await externalApi.list<Row>(this.token(), this.table, query);
-    return rows.filter((row) => matches(row, this.filters));
+    // Pagina de 200 en 200 (tope del servidor) hasta cubrir el límite pedido.
+    const PAGE = 200;
+    const want = this.limitN ?? 20000;
+    const out: Row[] = [];
+    for (let offset = 0; out.length < want; offset += PAGE) {
+      const page = await externalApi.list<Row>(this.token(), this.table, { ...query, limit: PAGE, offset });
+      for (const row of page) if (matches(row, this.filters)) out.push(row);
+      if (page.length < PAGE) break;
+    }
+    return out.slice(0, want);
   }
 
   /** Rellena las relaciones incrustadas (`alias:tabla(...)`) con una consulta por fila. */
@@ -268,9 +275,11 @@ class ExternalQuery<T> implements PromiseLike<Res<T>> {
     if (this.mode === "select") return this.fetchRows();
 
     if (this.mode === "insert") {
+      // Varias altas en paralelo (lotes de 10) en lugar de una tras otra.
       const created: Row[] = [];
-      for (const body of this.payload) {
-        created.push(await externalApi.create<Row>(token, this.table, body));
+      for (let i = 0; i < this.payload.length; i += 10) {
+        const batch = this.payload.slice(i, i + 10);
+        created.push(...(await Promise.all(batch.map((body) => externalApi.create<Row>(token, this.table, body)))));
       }
       return created;
     }
