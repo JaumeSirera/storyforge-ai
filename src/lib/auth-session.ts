@@ -87,7 +87,10 @@ export async function getValidAccessToken(): Promise<string | null> {
   if (!session) return null;
   if (session.expires_at - SKEW_MS > Date.now()) return session.access_token;
 
-  if (!refreshing) {
+  // Si ya hay una renovación en curso (p. ej. esta misma llamada es la propia
+  // renovación pasando por el middleware), no esperarla: evitaría un bloqueo.
+  if (refreshing) return session.expires_at > Date.now() ? session.access_token : null;
+  {
     refreshing = (async () => {
       try {
         const { refreshAccountSession } = await import("./accounts.functions");
@@ -101,6 +104,6 @@ export async function getValidAccessToken(): Promise<string | null> {
       }
     })();
   }
-  const renewed = await refreshing;
+  const renewed = await refreshing!;
   return renewed?.access_token ?? null;
 }
