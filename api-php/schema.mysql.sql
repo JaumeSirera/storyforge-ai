@@ -656,3 +656,35 @@ CREATE TABLE IF NOT EXISTS app_login_attempts (
   created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   KEY idx_app_login_attempts (email, ip, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- Fase 4: ajustes por usuario (claves de IA y correo)
+CREATE TABLE IF NOT EXISTS user_api_keys (
+  user_id CHAR(36) NOT NULL PRIMARY KEY,
+  openai_key TEXT NULL,
+  gemini_key TEXT NULL,
+  replicate_key TEXT NULL,
+  elevenlabs_key TEXT NULL,
+  text_provider VARCHAR(20) NOT NULL DEFAULT 'gemini',
+  preferred_model VARCHAR(120) NULL,
+  turn_key_id TEXT NULL,
+  turn_api_token TEXT NULL,
+  turn_urls TEXT NULL,
+  turn_username TEXT NULL,
+  turn_credential TEXT NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS email_settings (
+  user_id CHAR(36) NOT NULL PRIMARY KEY,
+  from_name VARCHAR(255) NULL,
+  from_email VARCHAR(255) NULL,
+  reply_to VARCHAR(255) NULL,
+  subject_template TEXT NULL,
+  body_template MEDIUMTEXT NULL,
+  logo_url TEXT NULL,
+  auto_send_on_complete TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

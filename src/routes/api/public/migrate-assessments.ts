@@ -36,6 +36,9 @@ const TABLES = [
   "capture_consents",
   "capture_invitations",
   "capture_preferences",
+  // Fase 4: ajustes por usuario
+  "user_api_keys",
+  "email_settings",
 ] as const;
 
 type Table = (typeof TABLES)[number];
@@ -53,6 +56,8 @@ const IMMUTABLE: ReadonlySet<string> = new Set([
 const PRIMARY_KEY: Record<string, string> = {
   capture_preferences: "user_id",
   user_billing: "user_id",
+  user_api_keys: "user_id",
+  email_settings: "user_id",
 };
 
 export const Route = createFileRoute("/api/public/migrate-assessments")({
@@ -92,7 +97,7 @@ export const Route = createFileRoute("/api/public/migrate-assessments")({
                 .get<Record<string, unknown> | null>("", table as Table, id)
                 .catch(() => null);
 
-              if (existing && existing["id"]) {
+              if (existing && existing[PRIMARY_KEY[table] ?? "id"]) {
                 if (IMMUTABLE.has(table)) continue;
                 await externalApi.update("", table as Table, id, row);
                 entry.updated += 1;

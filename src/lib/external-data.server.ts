@@ -38,7 +38,9 @@ export type ExternalResource =
   | "capture_preferences"
   | "user_billing"
   | "redsys_payments"
-  | "pricing_config";
+  | "pricing_config"
+  | "user_api_keys"
+  | "email_settings";
 
 
 export interface ExternalApiConfig {

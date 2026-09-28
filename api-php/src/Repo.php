@@ -233,6 +233,22 @@ final class Repo
             'insertable' => ['id', 'capture_session_id', 'participant_id', 'token', 'note', 'expires_at', 'max_uses', 'uses_count'],
             'updatable' => ['participant_id', 'note', 'expires_at', 'max_uses', 'uses_count', 'revoked_at'],
         ],
+        'user_api_keys' => [
+            'owner' => 'user_id',
+            'pk' => 'user_id',
+            'columns' => ['user_id', 'openai_key', 'gemini_key', 'replicate_key', 'elevenlabs_key', 'text_provider', 'preferred_model', 'turn_key_id', 'turn_api_token', 'turn_urls', 'turn_username', 'turn_credential', 'created_at', 'updated_at'],
+            'json' => [],
+            'insertable' => ['user_id', 'openai_key', 'gemini_key', 'replicate_key', 'elevenlabs_key', 'text_provider', 'preferred_model', 'turn_key_id', 'turn_api_token', 'turn_urls', 'turn_username', 'turn_credential'],
+            'updatable' => ['openai_key', 'gemini_key', 'replicate_key', 'elevenlabs_key', 'text_provider', 'preferred_model', 'turn_key_id', 'turn_api_token', 'turn_urls', 'turn_username', 'turn_credential'],
+        ],
+        'email_settings' => [
+            'owner' => 'user_id',
+            'pk' => 'user_id',
+            'columns' => ['user_id', 'from_name', 'from_email', 'reply_to', 'subject_template', 'body_template', 'logo_url', 'auto_send_on_complete', 'created_at', 'updated_at'],
+            'json' => [],
+            'insertable' => ['user_id', 'from_name', 'from_email', 'reply_to', 'subject_template', 'body_template', 'logo_url', 'auto_send_on_complete'],
+            'updatable' => ['from_name', 'from_email', 'reply_to', 'subject_template', 'body_template', 'logo_url', 'auto_send_on_complete'],
+        ],
         'capture_preferences' => [
             'owner' => 'user_id',
             'pk' => 'user_id',

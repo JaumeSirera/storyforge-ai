@@ -29,6 +29,8 @@ type Filter =
 const PRIMARY_KEYS: Record<string, string> = {
   capture_preferences: "user_id",
   user_billing: "user_id",
+  user_api_keys: "user_id",
+  email_settings: "user_id",
 };
 
 function pkFor(table: string): string {
