@@ -87,7 +87,7 @@ final class Redsys
 
     private static function isPaid(string $code): bool
     {
-        return $code !== '' && ctype_digit(ltrim($code, '0') === '' ? '0' : ltrim($code, '0')) && (int) $code <= 99;
+        return $code !== '' && ctype_digit($code) && (int) $code <= 99;
     }
 
     private static function now(int $addMonths = 0, int $addDays = 0): string
