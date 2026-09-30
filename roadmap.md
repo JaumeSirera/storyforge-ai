@@ -18,7 +18,9 @@ Orden elegido: primero mover la lógica al servidor propio, después generar la 
 
 
 ## 4. Pagos Redsys en tu servidor
-- [ ] Mover firma y notificación de Redsys a la API PHP.
+- [x] `api-php/src/Redsys.php`: pago inicial, consumo extra, notificación y renovaciones (firma verificada idéntica).
+- [ ] Usuario: subir Redsys.php + index.php, datos Redsys en `.env`, tarea diaria en el hosting.
+- [ ] Activar `EXTERNAL_PAYMENTS=1` y probar.
 
 ## 5. Web estática
 - [ ] Quitar dependencias de servidor de Lovable en las rutas; compilar estático.

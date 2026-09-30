@@ -82,6 +82,13 @@ if (($segments[0] ?? '') === 'file' && isset($segments[1])) {
     Http::fail('Método no permitido', 405, 'method_not_allowed');
 }
 
+// ---- Pagos Redsys: notificación pública (la firma de Redsys la protege) ----
+$redsysNotifyUrl = Env::get('REDSYS_NOTIFY_URL', 'https://api.xandralyze.com/api/v1/redsys/notification') ?? '';
+if ($segments === ['redsys', 'notification'] && $method === 'POST') {
+    require $base . '/src/Redsys.php';
+    (new \Xandralyze\Redsys($db, $redsysNotifyUrl))->notification();
+}
+
 $jwtSecret = Env::get('AUTH_JWT_SECRET', '') ?? '';
 
 $auth = new Auth(
@@ -180,6 +187,31 @@ if (($segments[0] ?? '') === 'auth') {
 }
 
 $userId = $service ? null : $auth->userId();
+
+// ---- Pagos Redsys ------------------------------------------------------
+//   POST /api/v1/redsys/checkout | pay-extra  (usuario, o servicio con user_id)
+//   POST /api/v1/redsys/charge-recurring      (solo servicio / tarea diaria)
+if (($segments[0] ?? '') === 'redsys' && $method === 'POST' && count($segments) === 2) {
+    require $base . '/src/Redsys.php';
+    $redsys = new \Xandralyze\Redsys($db, $redsysNotifyUrl);
+    $body = Http::body();
+    $who = $userId ?? (string) ($body['user_id'] ?? '');
+    switch ($segments[1]) {
+        case 'charge-recurring':
+            if (!$service) {
+                Http::fail('Operación no permitida', 403, 'service_only');
+            }
+            Http::json(['data' => $redsys->chargeRecurring()]);
+            // no break
+        case 'checkout':
+        case 'pay-extra':
+            if (!preg_match('/^[0-9a-f-]{36}$/i', $who)) {
+                Http::fail('Falta el usuario', 400, 'missing_user');
+            }
+            Http::json(['data' => $segments[1] === 'checkout' ? $redsys->checkout($who, $body) : $redsys->payExtra($who, $body)]);
+    }
+    Http::fail('Ruta no válida', 404, 'unknown_route');
+}
 
 // ---- Pasarela de IA -----------------------------------------------------
 //   POST /api/v1/ai/chat/completions  (formato OpenAI; se reenvía a Gemini)
