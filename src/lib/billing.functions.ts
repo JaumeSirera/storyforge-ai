@@ -3,6 +3,13 @@ import { requireAnyAuth } from "@/lib/require-auth";
 import { z } from "zod";
 import { xdb, xAdminDb } from "./assessments-repo.server";
 
+/** Pagos por tu propio servidor (API PHP) cuando EXTERNAL_PAYMENTS=1. */
+async function ownRedsys<T>(action: "checkout" | "pay-extra", body: Record<string, unknown>): Promise<T | null> {
+  if (process.env.EXTERNAL_PAYMENTS !== "1") return null;
+  const { externalRequest } = await import("./external-data.server");
+  return externalRequest<T>({ accessToken: "", method: "POST", path: `/redsys/${action}`, body });
+}
+
 export interface BillingSummary {
   subscriptionStatus: string | null;
   currentPeriodStart: string | null;
@@ -175,6 +182,18 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       signature: string;
       signatureVersion: string;
     }> => {
+      const own = await ownRedsys<{
+        url: string;
+        merchantParameters: string;
+        signature: string;
+        signatureVersion: string;
+      }>("checkout", {
+        user_id: context.userId,
+        origin: data.origin,
+        amount_cents: data.amountCents,
+        description: data.description,
+      });
+      if (own) return own;
       const { getRedsysConfig, newOrderCode, buildCheckoutParams, signRequest } = await import(
         "./redsys.server"
       );
@@ -248,6 +267,8 @@ export const payExtraNow = createServerFn({ method: "POST" })
           signatureVersion: string;
         }
     > => {
+      const own = await ownRedsys<any>("pay-extra", { user_id: context.userId, origin: data.origin });
+      if (own) return own;
       const { getRedsysConfig, newOrderCode, buildCheckoutParams, signRequest, chargeRecurringREST } =
         await import("./redsys.server");
       const supabaseAdmin = await xAdminDb();
