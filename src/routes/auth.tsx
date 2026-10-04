@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
-import logoAsset from "@/assets/logo-xandralyze.png.asset.json";
+import logo from "@/assets/logo-xandralyze.png";
 import { useOwnAuth } from "@/lib/auth-context";
 import { readSession } from "@/lib/auth-session";
 import { requestAccountPasswordReset } from "@/lib/accounts.functions";
@@ -65,7 +65,7 @@ function AuthPage() {
       <div className="w-full max-w-md">
         <Link to="/" className="mb-8 flex items-center justify-center gap-2 font-bold text-lg" aria-label="Xandralyze — inicio">
           <img
-            src={logoAsset.url}
+            src={logo}
             alt="Logotipo de Xandralyze"
             className="h-8 w-auto"
             width={32}

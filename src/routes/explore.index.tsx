@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Play, Sparkles, Home, Gamepad2 } from "lucide-react";
-import logoAsset from "@/assets/logo-xandralyze.png.asset.json";
+import logo from "@/assets/logo-xandralyze.png";
 
 export const Route = createFileRoute("/explore/")({
   head: () => ({
@@ -37,7 +37,7 @@ function ExploreIndex() {
         <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 font-semibold" aria-label="Xandralyze — inicio">
             <img
-              src={logoAsset.url}
+              src={logo}
               alt="Logotipo de Xandralyze"
               className="h-6 w-auto"
               width={24}

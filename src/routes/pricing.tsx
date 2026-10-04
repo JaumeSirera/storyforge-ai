@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import logoAsset from "@/assets/logo-xandralyze.png.asset.json";
+import logo from "@/assets/logo-xandralyze.png";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -90,7 +90,7 @@ function Header() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2 font-bold text-lg" aria-label="Xandralyze — inicio">
           <img
-            src={logoAsset.url}
+            src={logo}
             alt="Logotipo de Xandralyze"
             className="h-8 w-auto"
             width={32}

@@ -3,7 +3,7 @@ import { Apple, ArrowRight, Share2, Smartphone, MoreVertical, CheckCircle2 } fro
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import logoAsset from "@/assets/logo-xandralyze.png.asset.json";
+import logo from "@/assets/logo-xandralyze.png";
 
 export const Route = createFileRoute("/install")({
   component: InstallPage,
@@ -48,7 +48,7 @@ function InstallPage() {
       <header className="border-b border-border/60">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
           <Link to="/" className="flex items-center gap-2 font-bold" aria-label="Xandralyze — inicio">
-            <img src={logoAsset.url} alt="Logotipo de Xandralyze" className="h-8 w-auto" width={32} height={32} />
+            <img src={logo} alt="Logotipo de Xandralyze" className="h-8 w-auto" width={32} height={32} />
             <span>Xandralyze</span>
           </Link>
           <Link to="/auth">

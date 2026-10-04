@@ -8,7 +8,7 @@ import { LayoutDashboard, Plus, LogOut, Library, Settings, Shield, CreditCard, M
 import { getMyAdminStatus } from "@/lib/admin.functions";
 import { getValidAccessToken, readSession } from "@/lib/auth-session";
 import { useOwnAuth } from "@/lib/auth-context";
-import logoAsset from "@/assets/logo-xandralyze.png.asset.json";
+import logo from "@/assets/logo-xandralyze.png";
 
 
 export const Route = createFileRoute("/_authenticated")({
@@ -64,7 +64,7 @@ function AppLayout() {
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 gap-2">
           <Link to="/app/dashboard" className="flex items-center gap-2 font-bold min-w-0" aria-label="Xandralyze — inicio">
             <img
-              src={logoAsset.url}
+              src={logo}
               alt="Logotipo de Xandralyze"
               className="h-7 w-auto"
               width={28}
