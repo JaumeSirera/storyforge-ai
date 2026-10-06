@@ -23,25 +23,15 @@ const EMPTY: UserApiKeys = {
   textProvider: "gemini",
 };
 
-/** Fill missing keys with platform env secrets so IA works when the user
- *  has nothing configured. This is what "la plataforma paga" means in
- *  practice: use the project-level REPLICATE / ELEVENLABS / LOVABLE keys. */
-function applyPlatformFallback(keys: UserApiKeys): UserApiKeys {
-  const envReplicate = process.env.REPLICATE_API_KEY ?? null;
-  const envEleven = process.env.ELEVENLABS_API_KEY ?? null;
-  const envLovable = process.env.LOVABLE_API_KEY ?? null;
-  const merged: UserApiKeys = {
-    ...keys,
-    replicateKey: keys.replicateKey || envReplicate,
-    elevenlabsKey: keys.elevenlabsKey || envEleven,
-    lovableKey: keys.lovableKey || envLovable,
-  };
-  // Text: if user has neither openai nor gemini, but the Lovable AI Gateway
-  // is available, route text via the gateway.
-  if (!merged.openaiKey && !merged.geminiKey && merged.lovableKey) {
-    merged.textProvider = "lovable";
+/** Cada usuario paga su propia IA: no hay claves de plataforma de respaldo.
+ *  Si falta la clave necesaria, se lanza un error claro para que la configure. */
+function requireOwnKeys(keys: UserApiKeys): UserApiKeys {
+  if (!keys.openaiKey && !keys.geminiKey) {
+    throw new Error(
+      "No tienes ninguna clave de IA configurada. Añade tu clave de OpenAI o Gemini en Ajustes para usar la inteligencia artificial.",
+    );
   }
-  return merged;
+  return keys;
 }
 
 /** Devuelve una máscara "sk-…xxxx" para no exponer la clave completa al cliente. */
