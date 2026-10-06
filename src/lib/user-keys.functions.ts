@@ -23,25 +23,15 @@ const EMPTY: UserApiKeys = {
   textProvider: "gemini",
 };
 
-/** Fill missing keys with platform env secrets so IA works when the user
- *  has nothing configured. This is what "la plataforma paga" means in
- *  practice: use the project-level REPLICATE / ELEVENLABS / LOVABLE keys. */
-function applyPlatformFallback(keys: UserApiKeys): UserApiKeys {
-  const envReplicate = process.env.REPLICATE_API_KEY ?? null;
-  const envEleven = process.env.ELEVENLABS_API_KEY ?? null;
-  const envLovable = process.env.LOVABLE_API_KEY ?? null;
-  const merged: UserApiKeys = {
-    ...keys,
-    replicateKey: keys.replicateKey || envReplicate,
-    elevenlabsKey: keys.elevenlabsKey || envEleven,
-    lovableKey: keys.lovableKey || envLovable,
-  };
-  // Text: if user has neither openai nor gemini, but the Lovable AI Gateway
-  // is available, route text via the gateway.
-  if (!merged.openaiKey && !merged.geminiKey && merged.lovableKey) {
-    merged.textProvider = "lovable";
+/** Cada usuario paga su propia IA: no hay claves de plataforma de respaldo.
+ *  Si falta la clave necesaria, se lanza un error claro para que la configure. */
+function requireOwnKeys(keys: UserApiKeys): UserApiKeys {
+  if (!keys.openaiKey && !keys.geminiKey) {
+    throw new Error(
+      "No tienes ninguna clave de IA configurada. Añade tu clave de OpenAI o Gemini en Ajustes para usar la inteligencia artificial.",
+    );
   }
-  return merged;
+  return keys;
 }
 
 /** Devuelve una máscara "sk-…xxxx" para no exponer la clave completa al cliente. */
@@ -129,57 +119,15 @@ export async function loadUserKeys(
     from: (t: string) => any;
   };
 
-  // 1) Check profile: is_active + use_platform_ai
-  const { supabaseAdmin: profileDb } = await import("@/integrations/supabase/client.server");
-  // El id ya está verificado por el middleware; se lee solo el perfil propio.
-  const { data: profile } = await profileDb
-    .from("profiles")
-    .select("is_active, use_platform_ai")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (profile && profile.is_active === false) {
-    throw new Error("Tu cuenta está desactivada. Contacta con el administrador.");
-  }
-
-  // 2) If user has platform-AI enabled, use admin's keys instead
-  if (profile?.use_platform_ai) {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: adminRow } = await supabaseAdmin
-      .from("user_roles")
-      .select("user_id")
-      .eq("role", "admin")
-      .limit(1)
-      .maybeSingle();
-    if (adminRow?.user_id) {
-      const { data: adminKeys } = await supabaseAdmin
-        .from("user_api_keys")
-        .select("openai_key, gemini_key, replicate_key, elevenlabs_key, text_provider")
-        .eq("user_id", adminRow.user_id)
-        .maybeSingle();
-      if (adminKeys) {
-        return applyPlatformFallback({
-          openaiKey: (adminKeys.openai_key as string | null) ?? null,
-          geminiKey: (adminKeys.gemini_key as string | null) ?? null,
-          replicateKey: (adminKeys.replicate_key as string | null) ?? null,
-          elevenlabsKey: (adminKeys.elevenlabs_key as string | null) ?? null,
-          lovableKey: null,
-          textProvider: ((adminKeys.text_provider as TextProvider) ?? "gemini"),
-        });
-      }
-    }
-    // Admin has no row either: still fall back to platform env secrets.
-    return applyPlatformFallback(EMPTY);
-  }
-
-  // 3) Own keys (+ platform env fallback so it always works)
+  // Cada usuario usa exclusivamente sus propias claves (guardadas en la API
+  // externa vía el cliente enrutado del middleware). Sin claves => error claro.
   const { data } = await client
     .from("user_api_keys")
     .select("openai_key, gemini_key, replicate_key, elevenlabs_key, text_provider")
     .eq("user_id", userId)
     .maybeSingle();
-  if (!data) return applyPlatformFallback(EMPTY);
-  return applyPlatformFallback({
+  if (!data) return requireOwnKeys(EMPTY);
+  return requireOwnKeys({
     openaiKey: (data.openai_key as string | null) ?? null,
     geminiKey: (data.gemini_key as string | null) ?? null,
     replicateKey: (data.replicate_key as string | null) ?? null,
