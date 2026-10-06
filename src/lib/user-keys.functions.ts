@@ -119,57 +119,15 @@ export async function loadUserKeys(
     from: (t: string) => any;
   };
 
-  // 1) Check profile: is_active + use_platform_ai
-  const { supabaseAdmin: profileDb } = await import("@/integrations/supabase/client.server");
-  // El id ya está verificado por el middleware; se lee solo el perfil propio.
-  const { data: profile } = await profileDb
-    .from("profiles")
-    .select("is_active, use_platform_ai")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (profile && profile.is_active === false) {
-    throw new Error("Tu cuenta está desactivada. Contacta con el administrador.");
-  }
-
-  // 2) If user has platform-AI enabled, use admin's keys instead
-  if (profile?.use_platform_ai) {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: adminRow } = await supabaseAdmin
-      .from("user_roles")
-      .select("user_id")
-      .eq("role", "admin")
-      .limit(1)
-      .maybeSingle();
-    if (adminRow?.user_id) {
-      const { data: adminKeys } = await supabaseAdmin
-        .from("user_api_keys")
-        .select("openai_key, gemini_key, replicate_key, elevenlabs_key, text_provider")
-        .eq("user_id", adminRow.user_id)
-        .maybeSingle();
-      if (adminKeys) {
-        return applyPlatformFallback({
-          openaiKey: (adminKeys.openai_key as string | null) ?? null,
-          geminiKey: (adminKeys.gemini_key as string | null) ?? null,
-          replicateKey: (adminKeys.replicate_key as string | null) ?? null,
-          elevenlabsKey: (adminKeys.elevenlabs_key as string | null) ?? null,
-          lovableKey: null,
-          textProvider: ((adminKeys.text_provider as TextProvider) ?? "gemini"),
-        });
-      }
-    }
-    // Admin has no row either: still fall back to platform env secrets.
-    return applyPlatformFallback(EMPTY);
-  }
-
-  // 3) Own keys (+ platform env fallback so it always works)
+  // Cada usuario usa exclusivamente sus propias claves (guardadas en la API
+  // externa vía el cliente enrutado del middleware). Sin claves => error claro.
   const { data } = await client
     .from("user_api_keys")
     .select("openai_key, gemini_key, replicate_key, elevenlabs_key, text_provider")
     .eq("user_id", userId)
     .maybeSingle();
-  if (!data) return applyPlatformFallback(EMPTY);
-  return applyPlatformFallback({
+  if (!data) return requireOwnKeys(EMPTY);
+  return requireOwnKeys({
     openaiKey: (data.openai_key as string | null) ?? null,
     geminiKey: (data.gemini_key as string | null) ?? null,
     replicateKey: (data.replicate_key as string | null) ?? null,
