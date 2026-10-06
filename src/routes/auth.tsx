@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import logo from "@/assets/logo-xandralyze.png";
 import { useOwnAuth } from "@/lib/auth-context";
@@ -87,45 +86,10 @@ function AuthPage() {
               <TabsContent value="signin"><SignInForm /></TabsContent>
               <TabsContent value="signup"><SignUpForm /></TabsContent>
             </Tabs>
-            {!enabled && (
-              <>
-                <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
-                  <div className="h-px flex-1 bg-border" /> o <div className="h-px flex-1 bg-border" />
-                </div>
-                <GoogleButton />
-              </>
-            )}
           </CardContent>
         </Card>
       </div>
     </div>
-  );
-}
-
-function GoogleButton() {
-  const [loading, setLoading] = useState(false);
-  return (
-    <Button
-      variant="outline"
-      className="w-full"
-      disabled={loading}
-      onClick={async () => {
-        setLoading(true);
-        const pending = consumePostAuthRedirect();
-        const result = await lovable.auth.signInWithOAuth("google", {
-          redirect_uri: window.location.origin + (pending ?? "/app/dashboard"),
-        });
-        if (result.error) {
-          toast.error("No se pudo iniciar sesión con Google");
-          setLoading(false);
-          return;
-        }
-        if (result.redirected) return;
-        window.location.href = pending ?? "/app/dashboard";
-      }}
-    >
-      Continuar con Google
-    </Button>
   );
 }
 
