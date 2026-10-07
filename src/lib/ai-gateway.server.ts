@@ -49,7 +49,7 @@ function createOwnAiProvider() {
  * servidor; si no, directo a Google con la clave del usuario.
  */
 export function createGeminiProvider(apiKey: string) {
-  if (ownAiEnabled()) return createOwnAiProvider();
+  if (!apiKey && ownAiEnabled()) return createOwnAiProvider();
   return createOpenAICompatible({
     name: "gemini",
     baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
@@ -70,9 +70,9 @@ import type { UserApiKeys } from "./user-keys.functions";
 export function resolveUserTextModel(userKeys: UserApiKeys, requestedId?: AiModelId) {
   const requested = requestedId ? resolveAiModel(requestedId) : undefined;
 
-  // Con la pasarela propia activa, tanto Gemini como OpenAI van por nuestro servidor.
-  const canOpenAI = !!userKeys.openaiKey || ownAiEnabled();
-  const canGemini = !!userKeys.geminiKey || ownAiEnabled();
+  // Cada usuario paga su IA: solo se usan sus propias claves.
+  const canOpenAI = !!userKeys.openaiKey;
+  const canGemini = !!userKeys.geminiKey;
   const canLovable = !!userKeys.lovableKey;
 
   let provider: "openai" | "gemini" | "lovable";
