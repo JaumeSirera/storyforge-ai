@@ -140,8 +140,8 @@ export function resolveUserTextModelChain(
   requestedId?: AiModelId,
 ): ResolvedTextModel[] {
   const requested = requestedId ? resolveAiModel(requestedId) : undefined;
-  const canOpenAI = !!userKeys.openaiKey || ownAiEnabled();
-  const canGemini = !!userKeys.geminiKey || ownAiEnabled();
+  const canOpenAI = !!userKeys.openaiKey;
+  const canGemini = !!userKeys.geminiKey;
   const canLovable = !!userKeys.lovableKey;
   if (!canOpenAI && !canGemini && !canLovable) throw missingKeysError();
 
