@@ -26,11 +26,8 @@ const EMPTY: UserApiKeys = {
 /** Cada usuario paga su propia IA: no hay claves de plataforma de respaldo.
  *  Si falta la clave necesaria, se lanza un error claro para que la configure. */
 function requireOwnKeys(keys: UserApiKeys): UserApiKeys {
-  if (!keys.openaiKey && !keys.geminiKey) {
-    throw new Error(
-      "No tienes ninguna clave de IA configurada. Añade tu clave de OpenAI o Gemini en Ajustes para usar la inteligencia artificial.",
-    );
-  }
+  // Cada función comprueba la clave que necesita (texto: OpenAI/Gemini;
+  // vídeo/imagen: Replicate; voz: ElevenLabs) y avisa si falta.
   return keys;
 }
 
