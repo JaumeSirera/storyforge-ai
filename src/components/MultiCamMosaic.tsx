@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { createRelayChannel, type RelayChannel } from "@/lib/relay-channel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -131,7 +131,7 @@ export function MultiCamMosaic({
   );
   const localStreamRef = useRef<MediaStream | null>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const channelRef = useRef<RelayChannel | null>(null);
   const pcsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const namesRef = useRef<Map<string, string>>(new Map());
   const pendingIceRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
@@ -276,7 +276,7 @@ export function MultiCamMosaic({
     pcsRef.current.forEach((pc) => pc.close());
     pcsRef.current.clear();
     if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
+      void channelRef.current.unsubscribe();
       channelRef.current = null;
     }
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
@@ -300,13 +300,11 @@ export function MultiCamMosaic({
       setCamOn(true);
       setMicOn(true);
 
-      const channel = supabase.channel(`capture-room-${captureSessionId}`, {
-        config: { broadcast: { self: false }, presence: { key: selfId } },
-      });
+      const channel = createRelayChannel(`capture-room-${captureSessionId}`, { presenceKey: selfId });
       channelRef.current = channel;
 
       channel
-        .on("broadcast", { event: "offer" }, async ({ payload }) => {
+        .on("broadcast", { event: "offer" }, async ({ payload }: { payload: any }) => {
           const { from, to, sdp, name } = payload as Record<string, string>;
           if (to !== selfId || !from) return;
           if (name) namesRef.current.set(from, name);
@@ -319,7 +317,7 @@ export function MultiCamMosaic({
           send("answer", { to: from, sdp: pc.localDescription?.sdp, name: displayName });
           upsertPeer(from, { name: name ?? "Participante" });
         })
-        .on("broadcast", { event: "answer" }, async ({ payload }) => {
+        .on("broadcast", { event: "answer" }, async ({ payload }: { payload: any }) => {
           const { from, to, sdp, name } = payload as Record<string, string>;
           if (to !== selfId || !from) return;
           const pc = pcsRef.current.get(from);
@@ -331,7 +329,7 @@ export function MultiCamMosaic({
             upsertPeer(from, { name });
           }
         })
-        .on("broadcast", { event: "ice" }, async ({ payload }) => {
+        .on("broadcast", { event: "ice" }, async ({ payload }: { payload: any }) => {
           const { from, to, candidate } = payload as {
             from: string;
             to: string;
@@ -374,7 +372,7 @@ export function MultiCamMosaic({
               .map((p) => ({ ...p, name: namesRef.current.get(p.id) ?? p.name })),
           );
         })
-        .subscribe(async (status) => {
+        .subscribe(async (status: string) => {
           if (status === "SUBSCRIBED") {
             await channel.track({ id: selfId, name: displayName });
             setJoined(true);

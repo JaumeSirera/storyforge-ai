@@ -1,5 +1,6 @@
-import { supabase } from "@/integrations/supabase/client";
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import { createRelayChannel, type RelayChannel } from "./relay-channel";
+type RealtimeChannel = RelayChannel;
+export type { RelayChannel as RealtimeChannel };
 
 export type CaptureControlAction = "start" | "pause" | "resume" | "stop";
 
@@ -18,11 +19,9 @@ export function joinCaptureControlChannel(
   captureSessionId: string,
   onMessage?: (msg: CaptureControlMessage) => void,
 ): RealtimeChannel {
-  const channel = supabase.channel(captureControlChannelName(captureSessionId), {
-    config: { broadcast: { self: false } },
-  });
+  const channel = createRelayChannel(captureControlChannelName(captureSessionId));
   if (onMessage) {
-    channel.on("broadcast", { event: "control" }, ({ payload }) => {
+    channel.on("broadcast", { event: "control" }, ({ payload }: { payload: unknown }) => {
       const msg = payload as CaptureControlMessage;
       if (msg && typeof msg.action === "string") onMessage(msg);
     });

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import type { RelayChannel as RealtimeChannel } from "@/lib/relay-channel";
 import {
   joinCaptureControlChannel,
   sendCaptureControl,

@@ -27,6 +27,7 @@ import { Route as AuthenticatedAppContributeRouteImport } from './routes/_authen
 import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
 import { Route as AuthenticatedAppNewRouteImport } from './routes/_authenticated/app.new'
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
+import { Route as ApiFileSplatRouteImport } from './routes/api/file.$'
 import { Route as ApiPublicMigrateAccountsRouteImport } from './routes/api/public/migrate-accounts'
 import { Route as ApiPublicMigrateAssessmentsRouteImport } from './routes/api/public/migrate-assessments'
 import { Route as ApiPublicMigrateFilesRouteImport } from './routes/api/public/migrate-files'
@@ -44,6 +45,7 @@ import { Route as AuthenticatedAppSessionsIdRouteImport } from './routes/_authen
 import { Route as AuthenticatedAppSimulationsIndexRouteImport } from './routes/_authenticated/app.simulations.index'
 import { Route as ApiPublicRedsysChargeRecurringRouteImport } from './routes/api/public/redsys/charge-recurring'
 import { Route as ApiPublicRedsysNotificationRouteImport } from './routes/api/public/redsys/notification'
+import { Route as ApiRelayRoomActionRouteImport } from './routes/api/relay.$room.$action'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -151,6 +153,11 @@ const AuthenticatedAppSettingsRoute =
     path: '/app/settings',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiFileSplatRoute = ApiFileSplatRouteImport.update({
+  id: '/api/file/$',
+  path: '/api/file/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMigrateAccountsRoute =
   ApiPublicMigrateAccountsRouteImport.update({
     id: '/api/public/migrate-accounts',
@@ -249,6 +256,11 @@ const ApiPublicRedsysNotificationRoute =
     path: '/api/public/redsys/notification',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiRelayRoomActionRoute = ApiRelayRoomActionRouteImport.update({
+  id: '/api/relay/$room/$action',
+  path: '/api/relay/$room/$action',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   id: '/lovable/email/auth/preview',
   path: '/lovable/email/auth/preview',
@@ -350,6 +362,7 @@ export interface FileRoutesByFullPath {
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/new': typeof AuthenticatedAppNewRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/api/file/$': typeof ApiFileSplatRoute
   '/api/public/migrate-accounts': typeof ApiPublicMigrateAccountsRoute
   '/api/public/migrate-assessments': typeof ApiPublicMigrateAssessmentsRoute
   '/api/public/migrate-files': typeof ApiPublicMigrateFilesRoute
@@ -364,6 +377,7 @@ export interface FileRoutesByFullPath {
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
+  '/api/relay/$room/$action': typeof ApiRelayRoomActionRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -400,6 +414,7 @@ export interface FileRoutesByTo {
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/new': typeof AuthenticatedAppNewRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/api/file/$': typeof ApiFileSplatRoute
   '/api/public/migrate-accounts': typeof ApiPublicMigrateAccountsRoute
   '/api/public/migrate-assessments': typeof ApiPublicMigrateAssessmentsRoute
   '/api/public/migrate-files': typeof ApiPublicMigrateFilesRoute
@@ -414,6 +429,7 @@ export interface FileRoutesByTo {
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
+  '/api/relay/$room/$action': typeof ApiRelayRoomActionRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -452,6 +468,7 @@ export interface FileRoutesById {
   '/_authenticated/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/_authenticated/app/new': typeof AuthenticatedAppNewRoute
   '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/api/file/$': typeof ApiFileSplatRoute
   '/api/public/migrate-accounts': typeof ApiPublicMigrateAccountsRoute
   '/api/public/migrate-assessments': typeof ApiPublicMigrateAssessmentsRoute
   '/api/public/migrate-files': typeof ApiPublicMigrateFilesRoute
@@ -466,6 +483,7 @@ export interface FileRoutesById {
   '/_authenticated/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
+  '/api/relay/$room/$action': typeof ApiRelayRoomActionRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -504,6 +522,7 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/new'
     | '/app/settings'
+    | '/api/file/$'
     | '/api/public/migrate-accounts'
     | '/api/public/migrate-assessments'
     | '/api/public/migrate-files'
@@ -518,6 +537,7 @@ export interface FileRouteTypes {
     | '/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
     | '/api/public/redsys/notification'
+    | '/api/relay/$room/$action'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
@@ -554,6 +574,7 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/new'
     | '/app/settings'
+    | '/api/file/$'
     | '/api/public/migrate-accounts'
     | '/api/public/migrate-assessments'
     | '/api/public/migrate-files'
@@ -568,6 +589,7 @@ export interface FileRouteTypes {
     | '/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
     | '/api/public/redsys/notification'
+    | '/api/relay/$room/$action'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
@@ -605,6 +627,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/dashboard'
     | '/_authenticated/app/new'
     | '/_authenticated/app/settings'
+    | '/api/file/$'
     | '/api/public/migrate-accounts'
     | '/api/public/migrate-assessments'
     | '/api/public/migrate-files'
@@ -619,6 +642,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
     | '/api/public/redsys/notification'
+    | '/api/relay/$room/$action'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
@@ -650,6 +674,7 @@ export interface RootRouteChildren {
   ExploreIdRoute: typeof ExploreIdRoute
   InviteTokenRoute: typeof InviteTokenRoute
   ExploreIndexRoute: typeof ExploreIndexRoute
+  ApiFileSplatRoute: typeof ApiFileSplatRoute
   ApiPublicMigrateAccountsRoute: typeof ApiPublicMigrateAccountsRoute
   ApiPublicMigrateAssessmentsRoute: typeof ApiPublicMigrateAssessmentsRoute
   ApiPublicMigrateFilesRoute: typeof ApiPublicMigrateFilesRoute
@@ -657,6 +682,7 @@ export interface RootRouteChildren {
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   ApiPublicRedsysChargeRecurringRoute: typeof ApiPublicRedsysChargeRecurringRoute
   ApiPublicRedsysNotificationRoute: typeof ApiPublicRedsysNotificationRoute
+  ApiRelayRoomActionRoute: typeof ApiRelayRoomActionRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
@@ -790,6 +816,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/file/$': {
+      id: '/api/file/$'
+      path: '/api/file/$'
+      fullPath: '/api/file/$'
+      preLoaderRoute: typeof ApiFileSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/migrate-accounts': {
       id: '/api/public/migrate-accounts'
       path: '/api/public/migrate-accounts'
@@ -907,6 +940,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/redsys/notification'
       fullPath: '/api/public/redsys/notification'
       preLoaderRoute: typeof ApiPublicRedsysNotificationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/relay/$room/$action': {
+      id: '/api/relay/$room/$action'
+      path: '/api/relay/$room/$action'
+      fullPath: '/api/relay/$room/$action'
+      preLoaderRoute: typeof ApiRelayRoomActionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lovable/email/auth/preview': {
@@ -1106,6 +1146,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExploreIdRoute: ExploreIdRoute,
   InviteTokenRoute: InviteTokenRoute,
   ExploreIndexRoute: ExploreIndexRoute,
+  ApiFileSplatRoute: ApiFileSplatRoute,
   ApiPublicMigrateAccountsRoute: ApiPublicMigrateAccountsRoute,
   ApiPublicMigrateAssessmentsRoute: ApiPublicMigrateAssessmentsRoute,
   ApiPublicMigrateFilesRoute: ApiPublicMigrateFilesRoute,
@@ -1113,6 +1154,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailEventsRoute: LovableEmailEventsRoute,
   ApiPublicRedsysChargeRecurringRoute: ApiPublicRedsysChargeRecurringRoute,
   ApiPublicRedsysNotificationRoute: ApiPublicRedsysNotificationRoute,
+  ApiRelayRoomActionRoute: ApiRelayRoomActionRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
