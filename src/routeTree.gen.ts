@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as InstallRouteImport } from './routes/install'
+import { Route as OpenSourceRouteImport } from './routes/open-source'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ExamTokenRouteImport } from './routes/exam.$token'
@@ -22,6 +23,7 @@ import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app.admin'
 import { Route as AuthenticatedAppAiTestRouteImport } from './routes/_authenticated/app.ai-test'
 import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authenticated/app.billing'
+import { Route as AuthenticatedAppContributeRouteImport } from './routes/_authenticated/app.contribute'
 import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
 import { Route as AuthenticatedAppNewRouteImport } from './routes/_authenticated/app.new'
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
@@ -30,6 +32,7 @@ import { Route as ApiPublicMigrateAssessmentsRouteImport } from './routes/api/pu
 import { Route as ApiPublicMigrateFilesRouteImport } from './routes/api/public/migrate-files'
 import { Route as CaptureJoinTokenRouteImport } from './routes/capture.join.$token'
 import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
+import { Route as AuthenticatedAppAdminContributionsRouteImport } from './routes/_authenticated/app.admin.contributions'
 import { Route as AuthenticatedAppAdminPricingRouteImport } from './routes/_authenticated/app.admin.pricing'
 import { Route as AuthenticatedAppAdminSimulationsRouteImport } from './routes/_authenticated/app.admin.simulations'
 import { Route as AuthenticatedAppAdminUsersRouteImport } from './routes/_authenticated/app.admin.users'
@@ -73,6 +76,11 @@ const AuthRoute = AuthRouteImport.update({
 const InstallRoute = InstallRouteImport.update({
   id: '/install',
   path: '/install',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpenSourceRoute = OpenSourceRouteImport.update({
+  id: '/open-source',
+  path: '/open-source',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PricingRoute = PricingRouteImport.update({
@@ -120,6 +128,12 @@ const AuthenticatedAppBillingRoute = AuthenticatedAppBillingRouteImport.update({
   path: '/app/billing',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppContributeRoute =
+  AuthenticatedAppContributeRouteImport.update({
+    id: '/app/contribute',
+    path: '/app/contribute',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppDashboardRoute =
   AuthenticatedAppDashboardRouteImport.update({
     id: '/app/dashboard',
@@ -164,6 +178,12 @@ const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
   path: '/lovable/email/events',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAppAdminContributionsRoute =
+  AuthenticatedAppAdminContributionsRouteImport.update({
+    id: '/contributions',
+    path: '/contributions',
+    getParentRoute: () => AuthenticatedAppAdminRoute,
+  } as any)
 const AuthenticatedAppAdminPricingRoute =
   AuthenticatedAppAdminPricingRouteImport.update({
     id: '/pricing',
@@ -316,6 +336,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/install': typeof InstallRoute
+  '/open-source': typeof OpenSourceRoute
   '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/exam/$token': typeof ExamTokenRoute
@@ -325,6 +346,7 @@ export interface FileRoutesByFullPath {
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/app/ai-test': typeof AuthenticatedAppAiTestRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
+  '/app/contribute': typeof AuthenticatedAppContributeRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/new': typeof AuthenticatedAppNewRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
@@ -333,6 +355,7 @@ export interface FileRoutesByFullPath {
   '/api/public/migrate-files': typeof ApiPublicMigrateFilesRoute
   '/capture/join/$token': typeof CaptureJoinTokenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
+  '/app/admin/contributions': typeof AuthenticatedAppAdminContributionsRoute
   '/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
@@ -363,6 +386,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/install': typeof InstallRoute
+  '/open-source': typeof OpenSourceRoute
   '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/exam/$token': typeof ExamTokenRoute
@@ -372,6 +396,7 @@ export interface FileRoutesByTo {
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/app/ai-test': typeof AuthenticatedAppAiTestRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
+  '/app/contribute': typeof AuthenticatedAppContributeRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/new': typeof AuthenticatedAppNewRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
@@ -380,6 +405,7 @@ export interface FileRoutesByTo {
   '/api/public/migrate-files': typeof ApiPublicMigrateFilesRoute
   '/capture/join/$token': typeof CaptureJoinTokenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
+  '/app/admin/contributions': typeof AuthenticatedAppAdminContributionsRoute
   '/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
@@ -412,6 +438,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/install': typeof InstallRoute
+  '/open-source': typeof OpenSourceRoute
   '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/exam/$token': typeof ExamTokenRoute
@@ -421,6 +448,7 @@ export interface FileRoutesById {
   '/_authenticated/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/_authenticated/app/ai-test': typeof AuthenticatedAppAiTestRoute
   '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
+  '/_authenticated/app/contribute': typeof AuthenticatedAppContributeRoute
   '/_authenticated/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/_authenticated/app/new': typeof AuthenticatedAppNewRoute
   '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
@@ -429,6 +457,7 @@ export interface FileRoutesById {
   '/api/public/migrate-files': typeof ApiPublicMigrateFilesRoute
   '/capture/join/$token': typeof CaptureJoinTokenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
+  '/_authenticated/app/admin/contributions': typeof AuthenticatedAppAdminContributionsRoute
   '/_authenticated/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/_authenticated/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
   '/_authenticated/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
@@ -461,6 +490,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/install'
+    | '/open-source'
     | '/pricing'
     | '/reset-password'
     | '/exam/$token'
@@ -470,6 +500,7 @@ export interface FileRouteTypes {
     | '/app/admin'
     | '/app/ai-test'
     | '/app/billing'
+    | '/app/contribute'
     | '/app/dashboard'
     | '/app/new'
     | '/app/settings'
@@ -478,6 +509,7 @@ export interface FileRouteTypes {
     | '/api/public/migrate-files'
     | '/capture/join/$token'
     | '/lovable/email/events'
+    | '/app/admin/contributions'
     | '/app/admin/pricing'
     | '/app/admin/simulations'
     | '/app/admin/users'
@@ -508,6 +540,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/install'
+    | '/open-source'
     | '/pricing'
     | '/reset-password'
     | '/exam/$token'
@@ -517,6 +550,7 @@ export interface FileRouteTypes {
     | '/app/admin'
     | '/app/ai-test'
     | '/app/billing'
+    | '/app/contribute'
     | '/app/dashboard'
     | '/app/new'
     | '/app/settings'
@@ -525,6 +559,7 @@ export interface FileRouteTypes {
     | '/api/public/migrate-files'
     | '/capture/join/$token'
     | '/lovable/email/events'
+    | '/app/admin/contributions'
     | '/app/admin/pricing'
     | '/app/admin/simulations'
     | '/app/admin/users'
@@ -556,6 +591,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/install'
+    | '/open-source'
     | '/pricing'
     | '/reset-password'
     | '/exam/$token'
@@ -565,6 +601,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/admin'
     | '/_authenticated/app/ai-test'
     | '/_authenticated/app/billing'
+    | '/_authenticated/app/contribute'
     | '/_authenticated/app/dashboard'
     | '/_authenticated/app/new'
     | '/_authenticated/app/settings'
@@ -573,6 +610,7 @@ export interface FileRouteTypes {
     | '/api/public/migrate-files'
     | '/capture/join/$token'
     | '/lovable/email/events'
+    | '/_authenticated/app/admin/contributions'
     | '/_authenticated/app/admin/pricing'
     | '/_authenticated/app/admin/simulations'
     | '/_authenticated/app/admin/users'
@@ -605,6 +643,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   InstallRoute: typeof InstallRoute
+  OpenSourceRoute: typeof OpenSourceRoute
   PricingRoute: typeof PricingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ExamTokenRoute: typeof ExamTokenRoute
@@ -651,6 +690,13 @@ declare module '@tanstack/react-router' {
       path: '/install'
       fullPath: '/install'
       preLoaderRoute: typeof InstallRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/open-source': {
+      id: '/open-source'
+      path: '/open-source'
+      fullPath: '/open-source'
+      preLoaderRoute: typeof OpenSourceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pricing': {
@@ -716,6 +762,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppBillingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/contribute': {
+      id: '/_authenticated/app/contribute'
+      path: '/app/contribute'
+      fullPath: '/app/contribute'
+      preLoaderRoute: typeof AuthenticatedAppContributeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/dashboard': {
       id: '/_authenticated/app/dashboard'
       path: '/app/dashboard'
@@ -771,6 +824,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/lovable/email/events'
       preLoaderRoute: typeof LovableEmailEventsRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/app/admin/contributions': {
+      id: '/_authenticated/app/admin/contributions'
+      path: '/contributions'
+      fullPath: '/app/admin/contributions'
+      preLoaderRoute: typeof AuthenticatedAppAdminContributionsRouteImport
+      parentRoute: typeof AuthenticatedAppAdminRoute
     }
     '/_authenticated/app/admin/pricing': {
       id: '/_authenticated/app/admin/pricing'
@@ -951,12 +1011,15 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAppAdminRouteChildren {
+  AuthenticatedAppAdminContributionsRoute: typeof AuthenticatedAppAdminContributionsRoute
   AuthenticatedAppAdminPricingRoute: typeof AuthenticatedAppAdminPricingRoute
   AuthenticatedAppAdminSimulationsRoute: typeof AuthenticatedAppAdminSimulationsRoute
   AuthenticatedAppAdminUsersRoute: typeof AuthenticatedAppAdminUsersRoute
 }
 
 const AuthenticatedAppAdminRouteChildren: AuthenticatedAppAdminRouteChildren = {
+  AuthenticatedAppAdminContributionsRoute:
+    AuthenticatedAppAdminContributionsRoute,
   AuthenticatedAppAdminPricingRoute: AuthenticatedAppAdminPricingRoute,
   AuthenticatedAppAdminSimulationsRoute: AuthenticatedAppAdminSimulationsRoute,
   AuthenticatedAppAdminUsersRoute: AuthenticatedAppAdminUsersRoute,
@@ -971,6 +1034,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppAdminRoute: typeof AuthenticatedAppAdminRouteWithChildren
   AuthenticatedAppAiTestRoute: typeof AuthenticatedAppAiTestRoute
   AuthenticatedAppBillingRoute: typeof AuthenticatedAppBillingRoute
+  AuthenticatedAppContributeRoute: typeof AuthenticatedAppContributeRoute
   AuthenticatedAppDashboardRoute: typeof AuthenticatedAppDashboardRoute
   AuthenticatedAppNewRoute: typeof AuthenticatedAppNewRoute
   AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
@@ -997,6 +1061,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppAdminRoute: AuthenticatedAppAdminRouteWithChildren,
   AuthenticatedAppAiTestRoute: AuthenticatedAppAiTestRoute,
   AuthenticatedAppBillingRoute: AuthenticatedAppBillingRoute,
+  AuthenticatedAppContributeRoute: AuthenticatedAppContributeRoute,
   AuthenticatedAppDashboardRoute: AuthenticatedAppDashboardRoute,
   AuthenticatedAppNewRoute: AuthenticatedAppNewRoute,
   AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
@@ -1034,6 +1099,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   InstallRoute: InstallRoute,
+  OpenSourceRoute: OpenSourceRoute,
   PricingRoute: PricingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ExamTokenRoute: ExamTokenRoute,

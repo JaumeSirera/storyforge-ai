@@ -1,3 +1,5 @@
+import { redirect } from "@tanstack/react-router";
+import { DONATIONS_ENABLED } from "@/lib/features";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import logo from "@/assets/logo-xandralyze.png";
 import { Button } from "@/components/ui/button";
@@ -27,6 +29,9 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/pricing")({
+  beforeLoad: () => {
+    if (!DONATIONS_ENABLED) throw redirect({ to: "/open-source" });
+  },
   head: () => ({
     meta: [
       { title: "Precios — Xandralyze" },

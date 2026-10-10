@@ -2,7 +2,8 @@ import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { getMyAdminStatus } from "@/lib/admin.functions";
-import { Shield, Users, Library, DollarSign } from "lucide-react";
+import { Shield, Users, Library, DollarSign, HandHeart } from "lucide-react";
+import { DONATIONS_ENABLED } from "@/lib/features";
 
 export const Route = createFileRoute("/_authenticated/app/admin")({
   component: AdminLayout,
@@ -51,12 +52,19 @@ function AdminLayout() {
           <span className="inline-flex items-center gap-2"><Library className="h-4 w-4" /> Todas las simulaciones</span>
         </Link>
         <Link
+          to="/app/admin/contributions"
+          className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground border-b-2 border-transparent"
+          activeProps={{ className: "text-foreground border-primary font-medium" }}
+        >
+          <span className="inline-flex items-center gap-2"><HandHeart className="h-4 w-4" /> Colaboración</span>
+        </Link>
+        {DONATIONS_ENABLED && <Link
           to="/app/admin/pricing"
           className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground border-b-2 border-transparent"
           activeProps={{ className: "text-foreground border-primary font-medium" }}
         >
           <span className="inline-flex items-center gap-2"><DollarSign className="h-4 w-4" /> Tarifas y márgenes</span>
-        </Link>
+        </Link>}
       </nav>
       <Outlet />
     </div>

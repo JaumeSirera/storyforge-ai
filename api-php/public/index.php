@@ -188,6 +188,52 @@ if (($segments[0] ?? '') === 'auth') {
 
 $userId = $service ? null : $auth->userId();
 
+// ---- Colaboración (proyecto de código abierto) ----------------------------
+//   GET  /api/v1/contrib/me            (usuario)  estado y propuestas propias
+//   POST /api/v1/contrib/request       (usuario)  solicitar ser colaborador
+//   POST /api/v1/contrib/proposals     (colaborador aprobado) nueva propuesta
+//   GET  /api/v1/contrib/admin         (admin)    todo
+//   POST /api/v1/contrib/admin/decide  (admin)    aprobar / rechazar / ratificar
+if (($segments[0] ?? '') === 'contrib') {
+    if ($userId === null) {
+        Http::fail('Necesitas iniciar sesión', 401, 'unauthorized');
+    }
+    require_once $base . '/src/Mail.php';
+    require $base . '/src/Contrib.php';
+    $smtpHost = Env::get('SMTP_HOST', '') ?? '';
+    $mailer = $smtpHost !== '' ? new Mail(
+        $smtpHost,
+        (int) (Env::get('SMTP_PORT', '587') ?? '587'),
+        Env::get('SMTP_USER', '') ?? '',
+        Env::get('SMTP_PASS', '') ?? '',
+    ) : null;
+    $adminEmail = Env::get('ADMIN_NOTIFY_EMAIL', '') ?: (Env::get('SMTP_FROM', '') ?? '');
+    $contrib = new \Xandralyze\Contrib($db, $mailer, (string) $adminEmail);
+    $route = implode('/', array_slice($segments, 1));
+    if ($route === 'me' && $method === 'GET') {
+        Http::json(['data' => $contrib->me($userId)]);
+    }
+    if ($route === 'request' && $method === 'POST') {
+        Http::json(['data' => $contrib->requestAccess($userId, Http::body())]);
+    }
+    if ($route === 'proposals' && $method === 'POST') {
+        Http::json(['data' => $contrib->propose($userId, Http::body())], 201);
+    }
+    if ($route === 'admin' || $route === 'admin/decide') {
+        $roleRow = $db->one('SELECT 1 AS ok FROM app_user_roles WHERE user_id = :id AND role = \'admin\'', ['id' => $userId]);
+        if ($roleRow === null) {
+            Http::fail('Solo para administración', 403, 'forbidden');
+        }
+        if ($route === 'admin' && $method === 'GET') {
+            Http::json(['data' => $contrib->adminList()]);
+        }
+        if ($route === 'admin/decide' && $method === 'POST') {
+            Http::json(['data' => $contrib->adminDecide($userId, Http::body())]);
+        }
+    }
+    Http::fail('Ruta no válida', 404, 'unknown_route');
+}
+
 // ---- Pagos Redsys ------------------------------------------------------
 //   POST /api/v1/redsys/checkout | pay-extra  (usuario, o servicio con user_id)
 //   POST /api/v1/redsys/charge-recurring      (solo servicio / tarea diaria)
@@ -232,7 +278,7 @@ if (($segments[0] ?? '') === 'email') {
         Http::fail('Operación no permitida', 403, 'service_only');
     }
     if ($method === 'POST' && ($segments[1] ?? '') === 'send' && count($segments) === 2) {
-        require $base . '/src/Mail.php';
+        require_once $base . '/src/Mail.php';
         $mail = new Mail(
             Env::require('SMTP_HOST'),
             (int) (Env::get('SMTP_PORT', '587') ?? '587'),
