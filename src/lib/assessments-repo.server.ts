@@ -120,9 +120,19 @@ export function assessDb<T>(context: { supabase: T }): T extends { from: any } ?
 
 /** Cliente de servicio (equivale a la clave de servicio de Lovable Cloud). */
 export async function assessAdminDb() {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  if (!isExternalApiEnabled()) return supabaseAdmin;
-  return wrap(supabaseAdmin, true);
+  if (!isExternalApiEnabled()) {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    return supabaseAdmin;
+  }
+  // Con la base externa activa no hace falta la clave de servicio de Lovable
+  // Cloud: el proxy redirige las tablas migradas y el almacenamiento a la API
+  // propia. El cliente antiguo solo se usa como base para tablas no migradas.
+  const base = {
+    from: (table: string) => {
+      throw new Error(`La tabla "${table}" aún no está migrada a la base propia`);
+    },
+  };
+  return wrap(base, true) as never;
 }
 
 /** Alias genéricos (evaluaciones, simulaciones, partidas, informes y consumo). */
