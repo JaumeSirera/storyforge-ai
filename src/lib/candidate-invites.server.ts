@@ -61,7 +61,8 @@ async function sendInvitation(
       recipient_email: normalized,
       status,
       ...(errorMessage ? { error_message: errorMessage.slice(0, 500) } : {}),
-    });
+    }))
+      .catch(() => ({ error: null as any }));
     if (error) {
       console.error("Failed to write email_send_log", {
         code: error.code,

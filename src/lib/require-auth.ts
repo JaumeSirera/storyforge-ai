@@ -35,12 +35,28 @@ function supabaseForToken(token: string) {
   });
 }
 
+function isLegacyToken(token: string): boolean {
+  try {
+    const part = token.split(".")[1] ?? "";
+    const json = JSON.parse(atob(part.replace(/-/g, "+").replace(/_/g, "/")));
+    return typeof json?.iss === "string" && json.iss.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 export const requireAnyAuth = createMiddleware({ type: "function" }).server(async ({ next }) => {
   const token = bearer();
   const supabase = supabaseForToken(token);
 
+  // Los tokens propios no llevan "iss"; los del sistema anterior sí. Así no se
+  // consulta al sistema anterior (en pausa) en cada petición.
+  const legacy = isLegacyToken(token);
+
   // 1) Token antiguo de Lovable Cloud (sigue siendo válido durante la transición).
-  const { data, error } = await supabase.auth.getClaims(token).catch(() => ({
+  const { data, error } = !legacy
+    ? { data: null, error: new Error("own") }
+    : await supabase.auth.getClaims(token).catch(() => ({
     data: null,
     error: new Error("invalid"),
   }));
