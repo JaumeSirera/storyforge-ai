@@ -5,7 +5,6 @@
  *
  * Records one billable event per AI action and updates the user's running balance.
  */
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { xAdminDb } from "./assessments-repo.server";
 
 export type UsageAction = "text" | "image" | "video" | "lipsync" | "tts";

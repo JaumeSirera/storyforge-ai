@@ -35,7 +35,8 @@ type StoredTurn = {
 /** Lee la configuración TURN guardada en Ajustes (usuario actual, si no el admin). */
 async function loadStoredTurn(userId?: string): Promise<StoredTurn> {
   try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { xAdminDb } = await import("./assessments-repo.server");
+    const supabaseAdmin = await xAdminDb();
     const cols = "turn_key_id, turn_api_token, turn_urls, turn_username, turn_credential";
     const pick = (row: Record<string, unknown> | null | undefined): StoredTurn => ({
       keyId: (row?.turn_key_id as string | null) ?? null,
