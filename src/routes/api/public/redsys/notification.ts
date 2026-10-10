@@ -10,7 +10,8 @@ export const Route = createFileRoute("/api/public/redsys/notification")({
         const { getRedsysConfig, verifyResponseSignature } = await import(
           "@/lib/redsys.server"
         );
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { xAdminDb } = await import("@/lib/assessments-repo.server");
+        const supabaseAdmin = await xAdminDb();
 
         let merchantParameters = "";
         let signature = "";

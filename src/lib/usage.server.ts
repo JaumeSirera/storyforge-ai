@@ -5,7 +5,6 @@
  *
  * Records one billable event per AI action and updates the user's running balance.
  */
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { xAdminDb } from "./assessments-repo.server";
 
 export type UsageAction = "text" | "image" | "video" | "lipsync" | "tts";
@@ -45,7 +44,8 @@ let _pricingCache: { row: PricingRow; at: number } | null = null;
 
 async function getPricing(): Promise<PricingRow> {
   if (_pricingCache && Date.now() - _pricingCache.at < 60_000) return _pricingCache.row;
-  const { data, error } = await supabaseAdmin
+  const pricingDb = await xAdminDb();
+  const { data, error } = await pricingDb
     .from("pricing_config")
     .select(
       "openai_input_per_1k, openai_output_per_1k, gemini_input_per_1k, gemini_output_per_1k, replicate_video_per_second, replicate_lipsync_per_second, replicate_image_per_unit, elevenlabs_per_1k_chars, margin_user_pays_pct, margin_platform_pays_pct, subscription_included_cents",
@@ -121,13 +121,13 @@ export async function recordUsage(input: RecordUsageInput): Promise<void> {
     }
 
     // Ensure user_billing row exists.
-    await supabaseAdmin
+    await usageDb
       .from("user_billing")
       .upsert({ user_id: input.userId }, { onConflict: "user_id", ignoreDuplicates: true });
 
     // Apply to balances: donation credits are consumed first, then the plan's
     // included allowance, and only the rest spills into extra_pending_cents.
-    const { data: billing } = await supabaseAdmin
+    const { data: billing } = await usageDb
       .from("user_billing")
       .select("included_used_cents, extra_pending_cents, credit_balance_cents")
       .eq("user_id", input.userId)
@@ -145,7 +145,7 @@ export async function recordUsage(input: RecordUsageInput): Promise<void> {
     const toIncluded = Math.min(room, remaining);
     remaining -= toIncluded;
 
-    await supabaseAdmin
+    await usageDb
       .from("user_billing")
       .update({
         credit_balance_cents: credit - fromCredit,
@@ -161,10 +161,17 @@ export async function recordUsage(input: RecordUsageInput): Promise<void> {
 
 /** True if this user's AI calls are paid by the platform (uses admin keys). */
 export async function userPaysPlatform(userId: string): Promise<boolean> {
-  const { data } = await supabaseAdmin
-    .from("profiles")
-    .select("use_platform_ai")
-    .eq("id", userId)
-    .maybeSingle();
-  return !!data?.use_platform_ai;
+  try {
+    // `profiles` sigue en la base antigua; si no está disponible (hosting
+    // propio), se asume que cada usuario paga con sus propias claves.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("profiles")
+      .select("use_platform_ai")
+      .eq("id", userId)
+      .maybeSingle();
+    return !!data?.use_platform_ai;
+  } catch {
+    return false;
+  }
 }
