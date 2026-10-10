@@ -102,6 +102,12 @@ $auth->assertAppToken();
 // usuario, igual que antes hacía con la clave de servicio de Lovable Cloud.
 $service = ($_SERVER['HTTP_X_SERVICE'] ?? '') === '1';
 
+// ---- Conexión en directo de grabaciones multicámara (sondeo) ----
+if (($segments[0] ?? '') === 'relay' && isset($segments[1], $segments[2])) {
+    require $base . '/src/Relay.php';
+    (new \Xandralyze\Relay($db->pdo()))->handle($segments[1], $segments[2], $method);
+}
+
 // ---- Cuentas propias ----------------------------------------------------
 if (($segments[0] ?? '') === 'auth') {
     if ($jwtSecret === '') {

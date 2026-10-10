@@ -91,10 +91,6 @@ final class Relay
                     $messages[] = ['id' => (int) $row['id'], 'from' => $row['sender'], 'event' => $row['event'],
                         'payload' => json_decode((string) $row['payload'], true)];
                 }
-                // Avanza también por los propios mensajes.
-                $st = $this->db->prepare('SELECT COALESCE(MAX(id),0) FROM app_relay_messages WHERE room = ? AND id <= (SELECT COALESCE(MAX(id),0) FROM app_relay_messages WHERE room = ?)');
-                $st->execute([$room, $room]);
-                if ($messages === []) $since = max($since, (int) $st->fetchColumn());
             }
             $st = $this->db->prepare('SELECT member, info FROM app_relay_presence WHERE room = ? AND last_seen >= ?');
             $st->execute([$room, $now - self::PRESENCE_TTL]);
