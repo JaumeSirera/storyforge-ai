@@ -10,6 +10,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAnyAuth } from "@/lib/require-auth";
 
+function toSameOrigin(url: string) {
+  const i = url.indexOf("/api/v1/file/");
+  return i >= 0 ? `/api/file/${url.slice(i + "/api/v1/file/".length)}` : url;
+}
+
 const BUCKETS = ["assessments", "branding", "characters", "participants", "recordings", "videos"] as const;
 
 export const signFileUpload = createServerFn({ method: "POST" })
@@ -33,7 +38,8 @@ export const signFileUpload = createServerFn({ method: "POST" })
       .from(data.bucket)
       .createSignedUploadUrl(data.path);
     if (error || !signed) throw new Error(error?.message ?? "No se ha podido preparar la subida");
-    return { uploadUrl: signed.signedUrl, path: signed.path };
+    // Se sube por la propia web (mismo dominio) para evitar bloqueos del navegador.
+    return { uploadUrl: toSameOrigin(signed.signedUrl), path: signed.path };
   });
 
 export const signFileDownload = createServerFn({ method: "POST" })
@@ -56,5 +62,5 @@ export const signFileDownload = createServerFn({ method: "POST" })
       .from(data.bucket)
       .createSignedUrl(data.path, 3600);
     if (error || !signed) throw new Error(error?.message ?? "No se ha podido preparar la descarga");
-    return { url: signed.signedUrl };
+    return { url: toSameOrigin(signed.signedUrl) };
   });

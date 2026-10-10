@@ -84,8 +84,6 @@ export function createRelayChannel(name: string, opts?: { presenceKey?: string }
     },
     async track(i) {
       info = i;
-      if (timer) clearTimeout(timer);
-      await tick();
     },
     presenceState<T>() {
       const out: Record<string, T[]> = {};
