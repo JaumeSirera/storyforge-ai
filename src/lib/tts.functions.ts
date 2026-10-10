@@ -57,9 +57,29 @@ export const generateClipDialogue = createServerFn({ method: "POST" })
 
     if (!res.ok) {
       const err = await res.text();
-      if (res.status === 401) throw new Error("Clave de ElevenLabs inválida.");
+      let detail = err.slice(0, 300);
+      let code = "";
+      try {
+        const j = JSON.parse(err) as { detail?: { message?: string; code?: string; status?: string } | string };
+        if (typeof j.detail === "string") detail = j.detail;
+        else if (j.detail) {
+          detail = j.detail.message ?? detail;
+          code = j.detail.code ?? j.detail.status ?? "";
+        }
+      } catch { /* texto plano */ }
+      if (res.status === 401) {
+        if (/permission/i.test(code + detail)) {
+          throw new Error(
+            "Tu clave de ElevenLabs no tiene permiso de 'Text to Speech'. En ElevenLabs → API Keys, edita la clave y activa el acceso a Text to Speech (y Voices: lectura).",
+          );
+        }
+        throw new Error(`ElevenLabs rechaza la clave: ${detail}`);
+      }
+      if (res.status === 402 || /quota|credits/i.test(code + detail)) {
+        throw new Error(`ElevenLabs: sin créditos o cuota agotada. ${detail}`);
+      }
       if (res.status === 429) throw new Error("Límite de ElevenLabs alcanzado. Reintenta en unos segundos.");
-      throw new Error(`Fallo TTS (${res.status}): ${err.slice(0, 200)}`);
+      throw new Error(`Fallo TTS (${res.status}): ${detail}`);
     }
 
     const buffer = new Uint8Array(await res.arrayBuffer());
