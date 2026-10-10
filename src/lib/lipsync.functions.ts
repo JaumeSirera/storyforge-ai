@@ -42,7 +42,7 @@ function summarizeProviderError(value: unknown): string {
   const raw = typeof value === "string" ? value : JSON.stringify(value ?? "");
   console.error("[lipsync] provider error:", raw);
   if (/scripts\.inference|non-zero exit status/i.test(raw)) {
-    return "El modelo de lip-sync no pudo procesar este clip. Suele ocurrir cuando la cara no se ve de frente y nítida durante todo el vídeo (gira, sale de plano o es muy pequeña). Prueba a regenerar el vídeo con un plano medio o primer plano de frente, o reproduce la voz sin lip-sync.";
+    return "El modelo de lip-sync no pudo procesar este clip.";
   }
   return raw;
 }
@@ -54,6 +54,14 @@ function assertMediaBytes(buffer: Uint8Array, contentType: string, filename: str
   }
   if (buffer.byteLength < 1024) {
     throw new Error(`${filename} parece estar vacío o incompleto.`);
+  }
+  if (filename.endsWith(".mp4")) {
+    const scan = new TextDecoder("latin1").decode(buffer);
+    if (!scan.includes("ftyp") || !scan.includes("moov")) {
+      throw new Error(
+        `El vídeo guardado está incompleto o dañado (${Math.round(buffer.byteLength / 1024)} KB). Regenera el vídeo antes de aplicar lip-sync.`,
+      );
+    }
   }
 }
 
@@ -263,18 +271,24 @@ export const pollLipsync = createServerFn({ method: "POST" })
       const friendly = summarizeProviderError(json.error ?? json.status);
       const reasonLines = (json.logs ?? "")
         .split(/\r?\n/)
-        .filter((l) => /error|exception|face|not detected|traceback|invalid|shape|memory/i.test(l))
+        .filter((l) => /error|exception|face|not detected|invalid|shape|memory|moov|tensorlist/i.test(l) && !/^\s*File "/.test(l))
         .slice(-6)
         .join("\n")
         .trim();
       const lowered = reasonLines.toLowerCase();
       let hint = "";
-      if (lowered.includes("face")) {
+      if (lowered.includes("moov") || lowered.includes("invalid data")) {
+        hint = "\n\nMotivo: el archivo de vídeo llegó dañado al servicio. Regenera el vídeo y vuelve a intentarlo.";
+      } else if (lowered.includes("face") || lowered.includes("tensorlist")) {
         hint = "\n\nMotivo: el modelo no detecta la cara en algunos fotogramas. Regenera el vídeo con la cara de frente, visible y grande durante todo el clip.";
       } else if (lowered.includes("memory")) {
         hint = "\n\nMotivo: el servidor del modelo se quedó sin memoria. Prueba con un clip más corto.";
       }
-      const detail = reasonLines ? `\n\nDetalle técnico:\n${reasonLines.slice(-800)}` : "";
+      const lastLines = (json.logs ?? "").trim().split(/\r?\n/).slice(-8).join("\n");
+      const shown = reasonLines || lastLines;
+      const detail = shown
+        ? `\n\nDetalle técnico:\n${shown.slice(-900)}`
+        : "\n\n(El servicio no devolvió más detalles.)";
       return { status: "failed", error: `${friendly}${hint}${detail}`, logsTail };
     }
     if (json.status !== "succeeded" || !json.output) {
