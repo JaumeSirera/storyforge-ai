@@ -41,6 +41,9 @@ async function getReplicateAuth(supabase: unknown, userId: string): Promise<Repl
 function summarizeProviderError(value: unknown): string {
   const raw = typeof value === "string" ? value : JSON.stringify(value ?? "");
   console.error("[lipsync] provider error:", raw);
+  if (/scripts\.inference|non-zero exit status/i.test(raw)) {
+    return "El modelo de lip-sync no pudo procesar este clip. Suele ocurrir cuando la cara no se ve de frente y nítida durante todo el vídeo (gira, sale de plano o es muy pequeña). Prueba a regenerar el vídeo con un plano medio o primer plano de frente, o reproduce la voz sin lip-sync.";
+  }
   return raw;
 }
 
