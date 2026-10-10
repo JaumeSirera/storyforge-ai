@@ -45,9 +45,10 @@ type Row = {
 function AdminUsersPage() {
   const qc = useQueryClient();
   const list = useServerFn(adminListUsers);
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ["admin-users"],
     queryFn: () => list(),
+    retry: 1,
   });
 
   return (
@@ -59,6 +60,8 @@ function AdminUsersPage() {
 
       {isLoading ? (
         <div className="text-muted-foreground">Cargando…</div>
+      ) : error ? (
+        <div className="text-destructive text-sm">No se pudieron cargar los usuarios: {(error as Error).message}</div>
       ) : (
         <Card>
           <CardContent className="p-0">
