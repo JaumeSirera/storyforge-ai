@@ -1,3 +1,4 @@
+import { DONATIONS_ENABLED } from "@/lib/features";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { AssessmentsModule } from "@/components/AssessmentsModule";
@@ -77,7 +78,7 @@ function Header() {
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
           <Link to="/explore" className="hover:text-foreground">Galería</Link>
-          <Link to="/pricing" className="hover:text-foreground">Precios</Link>
+          {DONATIONS_ENABLED ? <Link to="/pricing" className="hover:text-foreground">Precios</Link> : <Link to="/open-source" className="hover:text-foreground">Código abierto</Link>}
           <Link to="/install" className="hover:text-foreground">App móvil</Link>
           <a href="#assessments" className="hover:text-foreground">Evaluaciones</a>
           <a href="#modules" className="hover:text-foreground">Módulos</a>
@@ -417,8 +418,9 @@ function CTA() {
           Crea tu primera simulación profesional hoy
         </h2>
         <p className="mt-3 opacity-90">
-          Empieza gratis. Sin tarjeta. Sin límites de uso. Paga solo lo que consumes en IA con tu
-          propio proveedor y apoya la plataforma con una donación si te resulta útil.
+          {DONATIONS_ENABLED
+            ? "Empieza gratis. Sin tarjeta. Sin límites de uso. Paga solo lo que consumes en IA con tu propio proveedor y apoya la plataforma con una donación si te resulta útil."
+            : "Gratis y de código abierto. Sin tarjeta. Sin límites de uso. Usa tu propia clave de IA y, si quieres, colabora para mejorar el proyecto."}
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link to="/auth" className="inline-block">
@@ -426,9 +428,9 @@ function CTA() {
               Empezar ahora <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
-          <Link to="/pricing" className="inline-block">
+          <Link to={DONATIONS_ENABLED ? "/pricing" : "/open-source"} className="inline-block">
             <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
-              Ver precios y donación
+              {DONATIONS_ENABLED ? "Ver precios y donación" : "Colaborar en el proyecto"}
             </Button>
           </Link>
         </div>
@@ -443,7 +445,7 @@ function Footer() {
       <div className="mx-auto max-w-7xl px-6 flex flex-col items-center gap-3 md:flex-row md:justify-between">
         <span>© {new Date().getFullYear()} Xandralyze. Interacción humana impulsada por IA.</span>
         <nav className="flex items-center gap-6">
-          <Link to="/pricing" className="hover:text-foreground">Precios</Link>
+          {DONATIONS_ENABLED ? <Link to="/pricing" className="hover:text-foreground">Precios</Link> : <Link to="/open-source" className="hover:text-foreground">Código abierto</Link>}
           <Link to="/explore" className="hover:text-foreground">Galería</Link>
           <Link to="/install" className="hover:text-foreground">App móvil</Link>
           <Link to="/auth" className="hover:text-foreground">Entrar</Link>

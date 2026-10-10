@@ -1,3 +1,5 @@
+import { redirect } from "@tanstack/react-router";
+import { DONATIONS_ENABLED } from "@/lib/features";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -25,6 +27,9 @@ import { toast } from "sonner";
 
 
 export const Route = createFileRoute("/_authenticated/app/billing")({
+  beforeLoad: () => {
+    if (!DONATIONS_ENABLED) throw redirect({ to: "/app/contribute" });
+  },
   head: () => ({
     meta: [
       { title: "Facturación — Xandralyze" },

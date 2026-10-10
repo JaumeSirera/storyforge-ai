@@ -1,3 +1,5 @@
+import { DONATIONS_ENABLED } from "@/lib/features";
+import { HandHeart } from "lucide-react";
 import { createFileRoute, Outlet, redirect, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
@@ -79,7 +81,7 @@ function AppLayout() {
             <NavItem to="/app/capture" icon={Video} label="Grabaciones" />
             <NavItem to="/app/assessments" icon={FileText} label="Evaluaciones" />
             <NavItem to="/app/settings" icon={Settings} label="Ajustes" />
-            <NavItem to="/app/billing" icon={CreditCard} label="Facturación" />
+            {DONATIONS_ENABLED ? <NavItem to="/app/billing" icon={CreditCard} label="Facturación" /> : <NavItem to="/app/contribute" icon={HandHeart} label="Colaborar" />}
             <NavItem to="/install" icon={Smartphone} label="App móvil" />
             {adminStatus?.isAdmin && (
               <NavItem to="/app/admin/users" icon={Shield} label="Admin" />
@@ -110,7 +112,7 @@ function AppLayout() {
               <MobileNavItem to="/app/capture" icon={Video} label="Grabaciones" onClick={() => setMobileOpen(false)} />
               <MobileNavItem to="/app/assessments" icon={FileText} label="Evaluaciones" onClick={() => setMobileOpen(false)} />
               <MobileNavItem to="/app/settings" icon={Settings} label="Ajustes" onClick={() => setMobileOpen(false)} />
-              <MobileNavItem to="/app/billing" icon={CreditCard} label="Facturación" onClick={() => setMobileOpen(false)} />
+              {DONATIONS_ENABLED ? <MobileNavItem to="/app/billing" icon={CreditCard} label="Facturación" onClick={() => setMobileOpen(false)} /> : <MobileNavItem to="/app/contribute" icon={HandHeart} label="Colaborar" onClick={() => setMobileOpen(false)} />}
               <MobileNavItem to="/install" icon={Smartphone} label="App móvil" onClick={() => setMobileOpen(false)} />
               {adminStatus?.isAdmin && (
                 <MobileNavItem to="/app/admin/users" icon={Shield} label="Admin" onClick={() => setMobileOpen(false)} />
