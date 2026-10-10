@@ -24,6 +24,11 @@ function slugify(label: string) {
 export const listPracticeAreas = createServerFn({ method: "GET" })
   .middleware([requireAnyAuth])
   .handler(async ({ context }): Promise<PracticeArea[]> => {
+    const { isOwn, ownApi } = await import("./own-api.server");
+    if (isOwn(context)) {
+      const rows = await ownApi<any[]>(context, "/areas");
+      return rows.map((r) => ({ id: r.id, key: r.key, label: r.label, description: r.description, isDefault: !!r.is_default }));
+    }
     const { data, error } = await context.supabase
       .from("practice_areas")
       .select("id, key, label, description, is_default")
@@ -52,6 +57,15 @@ export const createPracticeArea = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const key = slugify(data.label);
     if (!key) throw new Error("Nombre de área no válido");
+    const { isOwn, ownApi } = await import("./own-api.server");
+    if (isOwn(context)) {
+      const r = await ownApi<any>(context, "/areas", "POST", {
+        key,
+        label: data.label.trim(),
+        description: data.description?.trim() || "",
+      });
+      return { id: r.id, key: r.key, label: r.label, description: r.description, isDefault: false } satisfies PracticeArea;
+    }
     const { data: row, error } = await context.supabase
       .from("practice_areas")
       .insert({
@@ -82,6 +96,11 @@ export const deletePracticeArea = createServerFn({ method: "POST" })
   .middleware([requireAnyAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
+    const { isOwn, ownApi } = await import("./own-api.server");
+    if (isOwn(context)) {
+      await ownApi(context, `/areas/${data.id}`, "DELETE");
+      return { ok: true };
+    }
     const { error } = await context.supabase
       .from("practice_areas")
       .delete()

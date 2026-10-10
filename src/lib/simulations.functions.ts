@@ -1087,10 +1087,15 @@ export const listSimulationHistory = createServerFn({ method: "POST" })
     const actorIds = Array.from(new Set((rows ?? []).map((r: any) => r.actor_id)));
     let actors: Record<string, { full_name: string | null; email: string | null }> = {};
     if (actorIds.length > 0) {
-      const { data: profiles } = await xdb(context)
-        .from("profiles")
-        .select("id, full_name, email")
-        .in("id", actorIds);
+      let profiles: any[] = [];
+      try {
+        const { isOwn, lookupPeople } = await import("./own-api.server");
+        profiles = isOwn(context)
+          ? await lookupPeople(context, { ids: actorIds as string[] })
+          : ((await xdb(context).from("profiles").select("id, full_name, email").in("id", actorIds)).data ?? []);
+      } catch {
+        profiles = [];
+      }
       actors = Object.fromEntries(
         (profiles ?? []).map((p: any) => [p.id, { full_name: p.full_name, email: p.email }]),
       );

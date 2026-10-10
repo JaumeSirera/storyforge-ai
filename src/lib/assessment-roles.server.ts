@@ -140,13 +140,20 @@ export async function upsertCollaboratorHandler(
   await assertAssessmentPermission(data.assessmentId, "manage", context);
   const email = data.email.trim().toLowerCase();
 
-  const supabaseAdmin = await assessAdminDb();
-  const { data: profile, error: pErr } = await supabaseAdmin
-    .from("profiles")
-    .select("id, email")
-    .ilike("email", email)
-    .maybeSingle();
-  if (pErr) throw new Error(pErr.message);
+  let profile: { id: string; email: string | null } | null = null;
+  const { isOwn, lookupPeople } = await import("./own-api.server");
+  if (isOwn(context)) {
+    profile = (await lookupPeople(context, { email }))[0] ?? null;
+  } else {
+    const supabaseAdmin = await assessAdminDb();
+    const { data: p, error: pErr } = await supabaseAdmin
+      .from("profiles")
+      .select("id, email")
+      .ilike("email", email)
+      .maybeSingle();
+    if (pErr) throw new Error(pErr.message);
+    profile = p;
+  }
   if (!profile) throw new Error("No existe ninguna cuenta con ese email. Pídele que se registre primero.");
   if (profile.id === context.userId) throw new Error("Ya eres la persona propietaria de la evaluación.");
 

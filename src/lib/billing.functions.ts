@@ -139,7 +139,11 @@ export const getMyPaymentReceipt = createServerFn({ method: "GET" })
     if (!pay) throw new Error("Pago no encontrado");
     const supabaseAdmin = await xAdminDb();
     const [{ data: profile }, { data: pricing }] = await Promise.all([
-      xdb(context).from("profiles").select("full_name, email").eq("id", context.userId).maybeSingle(),
+      Promise.resolve()
+        .then(() => xdb(context).from("profiles").select("full_name, email").eq("id", context.userId).maybeSingle())
+        .catch(() => ({
+          data: { full_name: null, email: (context.claims?.["email"] as string | undefined) ?? null },
+        })),
       supabaseAdmin.from("pricing_config").select("vat_pct").eq("id", true).maybeSingle(),
     ]);
     const product =

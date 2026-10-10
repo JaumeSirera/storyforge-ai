@@ -54,12 +54,15 @@ async function sendInvitation(
   const normalized = args.recipient.toLowerCase();
 
   const logSend = async (status: string, errorMessage?: string) => {
-    const { error } = await admin.from("email_send_log").insert({
+    // El registro antiguo de envíos puede no estar disponible: nunca bloquea el envío.
+    const { error } = await Promise.resolve()
+      .then(() => admin.from("email_send_log").insert({
       template_name: TEMPLATE_NAME,
       recipient_email: normalized,
       status,
       ...(errorMessage ? { error_message: errorMessage.slice(0, 500) } : {}),
-    });
+    }))
+      .catch(() => ({ error: null as any }));
     if (error) {
       console.error("Failed to write email_send_log", {
         code: error.code,
