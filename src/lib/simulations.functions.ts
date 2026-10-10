@@ -40,7 +40,18 @@ const ChoiceSchema = z.object({
   feedback: z.string(),
   points: z.number(),
   next: z.string().nullable(),
-  competencies: z.record(z.string(), z.number()),
+  competencies: z.preprocess(
+    (v) => {
+      if (!v || typeof v !== "object" || Array.isArray(v)) return {};
+      const out: Record<string, number> = {};
+      for (const [k, n] of Object.entries(v as Record<string, unknown>)) {
+        const num = Number(n);
+        if (Number.isFinite(num)) out[k] = num;
+      }
+      return out;
+    },
+    z.record(z.string(), z.number()),
+  ),
 });
 
 const NodeSchema = z.object({
