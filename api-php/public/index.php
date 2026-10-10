@@ -188,6 +188,30 @@ if (($segments[0] ?? '') === 'auth') {
 
 $userId = $service ? null : $auth->userId();
 
+// ---- Áreas de práctica y búsqueda de personas ----------------------------
+//   GET /api/v1/areas | POST /api/v1/areas | DELETE /api/v1/areas/{id}
+//   POST /api/v1/people/lookup  { email } | { ids: [] }
+if (in_array($segments[0] ?? '', ['areas', 'people'], true)) {
+    if ($userId === null) {
+        Http::fail('Necesitas iniciar sesión', 401, 'unauthorized');
+    }
+    require $base . '/src/Extras.php';
+    $extras = new \Xandralyze\Extras($db);
+    if ($segments === ['areas'] && $method === 'GET') {
+        Http::json(['data' => $extras->listAreas($userId)]);
+    }
+    if ($segments === ['areas'] && $method === 'POST') {
+        Http::json(['data' => $extras->createArea($userId, Http::body())], 201);
+    }
+    if (($segments[0] ?? '') === 'areas' && count($segments) === 2 && $method === 'DELETE') {
+        Http::json(['data' => $extras->deleteArea($userId, (string) $segments[1])]);
+    }
+    if ($segments === ['people', 'lookup'] && $method === 'POST') {
+        Http::json(['data' => $extras->lookupPeople(Http::body())]);
+    }
+    Http::fail('Ruta no válida', 404, 'unknown_route');
+}
+
 // ---- Colaboración (proyecto de código abierto) ----------------------------
 //   GET  /api/v1/contrib/me            (usuario)  estado y propuestas propias
 //   POST /api/v1/contrib/request       (usuario)  solicitar ser colaborador
