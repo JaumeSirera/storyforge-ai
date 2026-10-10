@@ -38,6 +38,30 @@ async function ensureAdmin(context: AuthContext) {
   return await xAdminDb();
 }
 
+/**
+ * La tabla de perfiles antigua puede no estar disponible (base anterior en
+ * pausa): nunca debe bloquear el panel de administración.
+ */
+async function safeProfiles(admin: any, ids: string[], cols: string): Promise<any[]> {
+  try {
+    const { data } = await admin
+      .from("profiles")
+      .select(cols)
+      .in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
+    return data ?? [];
+  } catch {
+    return [];
+  }
+}
+
+async function safeUpsertProfile(admin: any, row: Record<string, unknown>) {
+  try {
+    await admin.from("profiles").upsert(row);
+  } catch {
+    /* perfiles antiguos no disponibles */
+  }
+}
+
 /** Devuelve si el usuario actual es administrador. */
 export const getMyAdminStatus = createServerFn({ method: "GET" })
   .middleware([requireAnyAuth])
@@ -55,10 +79,7 @@ export const adminListUsers = createServerFn({ method: "GET" })
     if (own) {
       const { users } = await own.accountsApi.adminUsers(own.token);
       const ids = users.map((u) => u.id);
-      const { data: profiles } = await admin
-        .from("profiles")
-        .select("id, use_platform_ai")
-        .in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
+      const profiles = await safeProfiles(admin, ids, "id, use_platform_ai");
       const aiMap = new Map((profiles ?? []).map((p: any) => [p.id, !!p.use_platform_ai]));
       return {
         users: users.map((u) => ({
@@ -142,7 +163,7 @@ export const adminCreateUser = createServerFn({ method: "POST" })
         ...(data.fullName ? { full_name: data.fullName } : {}),
         is_admin: !!data.isAdmin,
       });
-      await admin.from("profiles").upsert({
+      await safeUpsertProfile(admin, {
         id: created.user_id,
         email: data.email,
         full_name: data.fullName ?? null,
@@ -198,8 +219,11 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
     if (data.isActive !== undefined) profilePatch.is_active = data.isActive;
     if (data.usePlatformAi !== undefined) profilePatch.use_platform_ai = data.usePlatformAi;
     if (Object.keys(profilePatch).length > 1) {
-      const { error } = await admin.from("profiles").upsert(profilePatch);
-      if (error) throw new Error(error.message);
+      if (own) await safeUpsertProfile(admin, profilePatch);
+      else {
+        const { error } = await admin.from("profiles").upsert(profilePatch);
+        if (error) throw new Error(error.message);
+      }
     }
 
     if (own) {
@@ -294,10 +318,7 @@ export const adminListAllSimulations = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
 
     const ownerIds = Array.from(new Set((data ?? []).map((s) => s.owner_id)));
-    const { data: profs } = await admin
-      .from("profiles")
-      .select("id, email, full_name")
-      .in("id", ownerIds.length ? ownerIds : ["00000000-0000-0000-0000-000000000000"]);
+    const profs = await safeProfiles(admin, ownerIds, "id, email, full_name");
     const pmap = new Map((profs ?? []).map((p) => [p.id, p]));
 
     return {
