@@ -174,6 +174,15 @@ export const startLipsync = createServerFn({ method: "POST" })
       }),
     ]);
 
+    if (audioAsset.buffer.byteLength < 1000) {
+      throw new Error(
+        "El audio de la voz llegó vacío o incompleto. Vuelve a generar la voz y prueba de nuevo.",
+      );
+    }
+    console.log(
+      `[lipsync] vídeo ${videoAsset.buffer.byteLength}B, audio ${audioAsset.buffer.byteLength}B`,
+    );
+
     const [videoFileUrl, audioFileUrl] = await Promise.all([
       uploadBytesToReplicate(auth, videoAsset.buffer, videoAsset.contentType || "video/mp4", "input.mp4"),
       uploadBytesToReplicate(auth, audioAsset.buffer, audioAsset.contentType || "audio/mpeg", "input.mp3"),
