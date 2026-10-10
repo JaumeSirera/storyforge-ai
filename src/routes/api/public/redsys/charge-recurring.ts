@@ -16,7 +16,8 @@ export const Route = createFileRoute("/api/public/redsys/charge-recurring")({
         const { getRedsysConfig, newOrderCode, chargeRecurringREST } = await import(
           "@/lib/redsys.server"
         );
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { xAdminDb } = await import("@/lib/assessments-repo.server");
+        const supabaseAdmin = await xAdminDb();
         const cfg = getRedsysConfig();
 
         const { data: pricing } = await supabaseAdmin
