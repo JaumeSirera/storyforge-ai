@@ -18,17 +18,19 @@ export async function uploadFile(
 
   const link = await signFileUpload({ data: { bucket, path } }).catch(() => null);
   if (link) {
-    const response = await fetch(link.uploadUrl, {
+    const response = await fetch(sameOrigin(link.uploadUrl), {
       method: "POST",
       headers: { "Content-Type": contentType },
       body,
     });
     if (!response.ok) {
-      throw new Error(`No se ha podido subir el archivo (${response.status})`);
+      const t = await response.text().catch(() => "");
+      throw new Error(`No se ha podido subir el archivo (${response.status}) ${t.slice(0, 160)}`);
     }
     return;
   }
 
+  throw new Error("El almacén de archivos del servidor propio no está activo (revisa EXTERNAL_FILES=1 en las variables del hosting).");
   const { error } = await supabase.storage
     .from(bucket)
     .upload(path, body, { contentType, upsert: options?.upsert ?? false });
@@ -36,6 +38,11 @@ export async function uploadFile(
 }
 
 /** Sube usando un enlace ya firmado (invitados a una captura). */
+function sameOrigin(url: string) {
+  const i = url.indexOf("/api/v1/file/");
+  return i >= 0 ? `/api/file/${url.slice(i + 13)}` : url;
+}
+
 export async function uploadWithTicket(
   bucket: Bucket,
   ticket: { path: string; uploadToken?: string; uploadUrl?: string },
@@ -43,7 +50,7 @@ export async function uploadWithTicket(
   contentType: string,
 ): Promise<void> {
   if (ticket.uploadUrl) {
-    const response = await fetch(ticket.uploadUrl, {
+    const response = await fetch(sameOrigin(ticket.uploadUrl), {
       method: "POST",
       headers: { "Content-Type": contentType },
       body,
