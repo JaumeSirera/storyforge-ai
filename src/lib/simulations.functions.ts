@@ -711,7 +711,7 @@ const EditorChoiceSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
   feedback: z.string().default(""),
-  points: z.number(),
+  points: z.preprocess((v) => (Number.isFinite(Number(v)) ? Number(v) : 0), z.number()),
   next: z.string().nullable(),
   competencies: z.preprocess(
     (v) => {
