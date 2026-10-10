@@ -111,7 +111,7 @@ async function readMediaAsset(options: {
 
 /** Estimate lip-sync cost (~$0.10/s of clip). */
 export function estimateLipsyncCostUsd(durationSec: number): number {
-  return Math.max(0.1, durationSec * 0.1);
+  return Math.max(0.1, durationSec * 0.08);
 }
 
 // ---------- Start ----------
@@ -179,22 +179,34 @@ export const startLipsync = createServerFn({ method: "POST" })
       uploadBytesToReplicate(auth, audioAsset.buffer, audioAsset.contentType || "audio/mpeg", "input.mp3"),
     ]);
 
-    const res = await fetch(
-      `${auth.base}/predictions`,
-      {
+    // Modelo principal: sync/lipsync-2 (más robusto con vídeos generados por IA).
+    // Si no está disponible para la cuenta, se recurre a LatentSync.
+    let res = await fetch(`${auth.base}/models/sync/lipsync-2/predictions`, {
+      method: "POST",
+      headers: { ...auth.headers, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        input: {
+          video: videoFileUrl,
+          audio: audioFileUrl,
+          sync_mode: "loop",
+          temperature: 0.5,
+        },
+      }),
+    });
+    if (!res.ok && res.status !== 401 && res.status !== 402) {
+      console.warn("[lipsync] lipsync-2 no disponible, usando LatentSync:", res.status);
+      res = await fetch(`${auth.base}/predictions`, {
         method: "POST",
         headers: { ...auth.headers, "Content-Type": "application/json" },
         body: JSON.stringify({
           version: LIPSYNC_VERSION,
-          input: {
-            video: videoFileUrl,
-            audio: audioFileUrl,
-            guidance_scale: 1,
-            seed: 0,
-          },
+          input: { video: videoFileUrl, audio: audioFileUrl, guidance_scale: 1, seed: 0 },
         }),
-      },
-    );
+      });
+    }
+    if (res.status === 402) {
+      throw new Error("Tu cuenta de Replicate no tiene saldo. Añade crédito en replicate.com/account/billing.");
+    }
     const body = await res.text();
     if (!res.ok) throw new Error(`Replicate error ${res.status}: ${summarizeProviderError(body)}`);
     const json = JSON.parse(body) as { id: string; status: string };
@@ -279,7 +291,7 @@ export const pollLipsync = createServerFn({ method: "POST" })
       let hint = "";
       if (lowered.includes("moov") || lowered.includes("invalid data")) {
         hint = "\n\nMotivo: el archivo de vídeo llegó dañado al servicio. Regenera el vídeo y vuelve a intentarlo.";
-      } else if (lowered.includes("face") || lowered.includes("tensorlist")) {
+      } else if (/no face|face not detected|face detection|tensorlist/.test(lowered)) {
         hint = "\n\nMotivo: el modelo no detecta la cara en algunos fotogramas. Regenera el vídeo con la cara de frente, visible y grande durante todo el clip.";
       } else if (lowered.includes("memory")) {
         hint = "\n\nMotivo: el servidor del modelo se quedó sin memoria. Prueba con un clip más corto.";
@@ -320,7 +332,7 @@ export const pollLipsync = createServerFn({ method: "POST" })
         userId: context.userId,
         action: "lipsync",
         provider: "replicate",
-        model: "bytedance/latentsync",
+        model: "sync/lipsync-2",
         simulationId: data.simulationId,
         seconds: Math.max(1, elapsedSec),
         paysPlatform: await userPaysPlatform(context.userId),
