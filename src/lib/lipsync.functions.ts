@@ -260,7 +260,22 @@ export const pollLipsync = createServerFn({ method: "POST" })
     const logsTail = tailLogs(json.logs);
 
     if (json.status === "failed" || json.status === "canceled") {
-      return { status: "failed", error: summarizeProviderError(json.error ?? json.status), logsTail };
+      const friendly = summarizeProviderError(json.error ?? json.status);
+      const reasonLines = (json.logs ?? "")
+        .split(/\r?\n/)
+        .filter((l) => /error|exception|face|not detected|traceback|invalid|shape|memory/i.test(l))
+        .slice(-6)
+        .join("\n")
+        .trim();
+      const lowered = reasonLines.toLowerCase();
+      let hint = "";
+      if (lowered.includes("face")) {
+        hint = "\n\nMotivo: el modelo no detecta la cara en algunos fotogramas. Regenera el vídeo con la cara de frente, visible y grande durante todo el clip.";
+      } else if (lowered.includes("memory")) {
+        hint = "\n\nMotivo: el servidor del modelo se quedó sin memoria. Prueba con un clip más corto.";
+      }
+      const detail = reasonLines ? `\n\nDetalle técnico:\n${reasonLines.slice(-800)}` : "";
+      return { status: "failed", error: `${friendly}${hint}${detail}`, logsTail };
     }
     if (json.status !== "succeeded" || !json.output) {
       const progress = json.status === "starting" ? Math.min(10, 2 + elapsedSec) : Math.min(90, 15 + elapsedSec * 2);
