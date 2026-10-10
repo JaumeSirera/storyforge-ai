@@ -16,7 +16,7 @@ export async function uploadFile(
 ): Promise<void> {
   const contentType = options?.contentType || body.type || "application/octet-stream";
 
-  const link = await signFileUpload({ data: { bucket, path } }).catch(() => null);
+  const link = await signFileUpload({ data: { bucket, path } });
   if (link) {
     const response = await fetch(sameOrigin(link.uploadUrl), {
       method: "POST",
@@ -31,10 +31,6 @@ export async function uploadFile(
   }
 
   throw new Error("El almacén de archivos del servidor propio no está activo (revisa EXTERNAL_FILES=1 en las variables del hosting).");
-  const { error } = await supabase.storage
-    .from(bucket)
-    .upload(path, body, { contentType, upsert: options?.upsert ?? false });
-  if (error) throw new Error(error.message);
 }
 
 /** Sube usando un enlace ya firmado (invitados a una captura). */
