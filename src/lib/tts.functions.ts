@@ -30,7 +30,7 @@ export const generateClipDialogue = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => Input.parse(input))
   .handler(async ({ data, context }): Promise<{ audioUrl: string; audioPath: string }> => {
     const userKeys = await loadUserKeys(context.supabase, context.userId);
-    const apiKey = userKeys.elevenlabsKey;
+    const apiKey = userKeys.elevenlabsKey?.trim().replace(/\s+/g, "") ?? null;
     if (!apiKey) throw new Error("Configura tu clave de ElevenLabs en Ajustes para generar voz.");
 
     const res = await fetch(
