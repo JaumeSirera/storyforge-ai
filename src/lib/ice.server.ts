@@ -33,10 +33,8 @@ type StoredTurn = {
 };
 
 /** Lee la configuración TURN guardada en Ajustes (usuario actual, si no el admin). */
-async function loadStoredTurn(userId?: string): Promise<StoredTurn> {
+async function loadStoredTurn(userId?: string, client?: unknown): Promise<StoredTurn> {
   try {
-    const { xAdminDb } = await import("./assessments-repo.server");
-    const supabaseAdmin = await xAdminDb();
     const cols = "turn_key_id, turn_api_token, turn_urls, turn_username, turn_credential";
     const pick = (row: Record<string, unknown> | null | undefined): StoredTurn => ({
       keyId: (row?.turn_key_id as string | null) ?? null,
@@ -45,6 +43,19 @@ async function loadStoredTurn(userId?: string): Promise<StoredTurn> {
       username: (row?.turn_username as string | null) ?? null,
       credential: (row?.turn_credential as string | null) ?? null,
     });
+    // Con el cliente del usuario firmado (cuentas propias) leemos sus claves
+    // directamente; el cliente de administrador no las ve con la base propia.
+    if (client && userId) {
+      const { data } = await (client as any)
+        .from("user_api_keys")
+        .select(cols)
+        .eq("user_id", userId)
+        .maybeSingle();
+      const own = pick(data as Record<string, unknown> | null);
+      if ((own.keyId && own.token) || (own.urls && own.username && own.credential)) return own;
+    }
+    const { xAdminDb } = await import("./assessments-repo.server");
+    const supabaseAdmin = await xAdminDb();
 
     if (userId) {
       const { data } = await supabaseAdmin
@@ -114,8 +125,8 @@ function customTurn(stored: StoredTurn): RTCIceServer[] | null {
   return [{ urls: list, username, credential }];
 }
 
-export async function resolveIceConfig(userId?: string): Promise<IceConfig> {
-  const stored = await loadStoredTurn(userId);
+export async function resolveIceConfig(userId?: string, client?: unknown): Promise<IceConfig> {
+  const stored = await loadStoredTurn(userId, client);
   const cf = await cloudflareTurn(stored);
   if (cf?.length) {
     return { iceServers: [STUN, ...cf], hasTurn: true, provider: "cloudflare" };

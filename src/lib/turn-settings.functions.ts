@@ -74,7 +74,7 @@ export const testMyTurnSettings = createServerFn({ method: "POST" })
   .middleware([requireAnyAuth])
   .handler(async ({ context }) => {
     const { resolveIceConfig } = await import("./ice.server");
-    const cfg = await resolveIceConfig(context.userId);
+    const cfg = await resolveIceConfig(context.userId, context.supabase);
     return {
       provider: cfg.provider,
       hasTurn: cfg.hasTurn,
