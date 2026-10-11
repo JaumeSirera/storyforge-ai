@@ -35,11 +35,17 @@ type StoredTurn = {
 /** Lee la configuración TURN guardada en Ajustes (usuario actual, si no el admin). */
 async function loadStoredTurn(userId?: string, client?: unknown): Promise<StoredTurn> {
   try {
+    const cols = "turn_key_id, turn_api_token, turn_urls, turn_username, turn_credential";
+    const pick = (row: Record<string, unknown> | null | undefined): StoredTurn => ({
+      keyId: (row?.turn_key_id as string | null) ?? null,
+      token: (row?.turn_api_token as string | null) ?? null,
+      urls: (row?.turn_urls as string | null) ?? null,
+      username: (row?.turn_username as string | null) ?? null,
+      credential: (row?.turn_credential as string | null) ?? null,
+    });
     // Con el cliente del usuario firmado (cuentas propias) leemos sus claves
     // directamente; el cliente de administrador no las ve con la base propia.
     if (client && userId) {
-      const cols =
-        "turn_key_id, turn_api_token, turn_urls, turn_username, turn_credential";
       const { data } = await (client as any)
         .from("user_api_keys")
         .select(cols)
@@ -50,14 +56,6 @@ async function loadStoredTurn(userId?: string, client?: unknown): Promise<Stored
     }
     const { xAdminDb } = await import("./assessments-repo.server");
     const supabaseAdmin = await xAdminDb();
-    const cols = "turn_key_id, turn_api_token, turn_urls, turn_username, turn_credential";
-    const pick = (row: Record<string, unknown> | null | undefined): StoredTurn => ({
-      keyId: (row?.turn_key_id as string | null) ?? null,
-      token: (row?.turn_api_token as string | null) ?? null,
-      urls: (row?.turn_urls as string | null) ?? null,
-      username: (row?.turn_username as string | null) ?? null,
-      credential: (row?.turn_credential as string | null) ?? null,
-    });
 
     if (userId) {
       const { data } = await supabaseAdmin
