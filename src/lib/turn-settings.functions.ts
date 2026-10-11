@@ -78,6 +78,7 @@ export const testMyTurnSettings = createServerFn({ method: "POST" })
     return {
       provider: cfg.provider,
       hasTurn: cfg.hasTurn,
+      error: cfg.error ?? null,
       urls: cfg.iceServers.flatMap((s) =>
         Array.isArray(s.urls) ? s.urls : [s.urls],
       ),

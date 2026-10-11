@@ -72,7 +72,10 @@ export function TurnSettingsCard() {
             : "TURN personalizado activo",
         );
       } else {
-        toast.error("Sin TURN: solo STUN (misma red)");
+        toast.error("Sin TURN: solo STUN (misma red)", {
+          description: res.error ?? undefined,
+          duration: 15000,
+        });
       }
     },
     onError: (e: Error) => toast.error(e.message),
