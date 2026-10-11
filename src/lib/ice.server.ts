@@ -14,6 +14,8 @@ export type IceConfig = {
   iceServers: RTCIceServer[];
   hasTurn: boolean;
   provider: "cloudflare" | "custom" | "stun-only";
+  /** Motivo legible cuando el TURN configurado no funciona. */
+  error?: string;
 };
 
 const STUN: RTCIceServer = {
@@ -86,13 +88,17 @@ async function loadStoredTurn(userId?: string, client?: unknown): Promise<Stored
   }
 }
 
-async function cloudflareTurn(stored: StoredTurn): Promise<RTCIceServer[] | null> {
-  const keyId = stored.keyId || process.env["CLOUDFLARE_TURN_KEY_ID"];
-  const token = stored.token || process.env["CLOUDFLARE_TURN_API_TOKEN"];
-  if (!keyId || !token) return null;
+async function cloudflareTurn(
+  stored: StoredTurn,
+): Promise<{ servers: RTCIceServer[] | null; error?: string }> {
+  const keyId = (stored.keyId || process.env["CLOUDFLARE_TURN_KEY_ID"] || "").trim();
+  const token = (stored.token || process.env["CLOUDFLARE_TURN_API_TOKEN"] || "").trim();
+  if (!keyId && !token) return { servers: null };
+  if (!keyId) return { servers: null, error: "Falta el Cloudflare TURN Key ID." };
+  if (!token) return { servers: null, error: "Falta el Cloudflare TURN API Token." };
   try {
     const res = await fetch(
-      `https://rtc.live.cloudflare.com/v1/turn/keys/${keyId}/credentials/generate-ice-servers`,
+      `https://rtc.live.cloudflare.com/v1/turn/keys/${encodeURIComponent(keyId)}/credentials/generate-ice-servers`,
       {
         method: "POST",
         headers: {
@@ -102,13 +108,29 @@ async function cloudflareTurn(stored: StoredTurn): Promise<RTCIceServer[] | null
         body: JSON.stringify({ ttl: 3600 }),
       },
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const body = (await res.text().catch(() => "")).slice(0, 300);
+      let hint = "";
+      if (res.status === 401 || res.status === 403)
+        hint =
+          " El token no es válido para esta clave TURN: usa el «API Token» que Cloudflare muestra al crear la clave TURN (Realtime → TURN Server), no una clave de cuenta ni la Global API Key.";
+      else if (res.status === 404)
+        hint = " El Key ID no existe: copia el «Turn Token ID» de la clave TURN en Cloudflare.";
+      console.error("[turn] Cloudflare", res.status, body);
+      return {
+        servers: null,
+        error: `Cloudflare respondió ${res.status}.${hint}${body ? ` Detalle: ${body}` : ""}`,
+      };
+    }
     const json = (await res.json()) as { iceServers?: RTCIceServer | RTCIceServer[] };
     const servers = json.iceServers;
-    if (!servers) return null;
-    return Array.isArray(servers) ? servers : [servers];
-  } catch {
-    return null;
+    if (!servers) return { servers: null, error: "Cloudflare no devolvió servidores TURN." };
+    return { servers: Array.isArray(servers) ? servers : [servers] };
+  } catch (e) {
+    return {
+      servers: null,
+      error: `No se pudo contactar con Cloudflare: ${(e as Error)?.message ?? "error de red"}`,
+    };
   }
 }
 
@@ -128,12 +150,17 @@ function customTurn(stored: StoredTurn): RTCIceServer[] | null {
 export async function resolveIceConfig(userId?: string, client?: unknown): Promise<IceConfig> {
   const stored = await loadStoredTurn(userId, client);
   const cf = await cloudflareTurn(stored);
-  if (cf?.length) {
-    return { iceServers: [STUN, ...cf], hasTurn: true, provider: "cloudflare" };
+  if (cf.servers?.length) {
+    return { iceServers: [STUN, ...cf.servers], hasTurn: true, provider: "cloudflare" };
   }
   const custom = customTurn(stored);
   if (custom?.length) {
     return { iceServers: [STUN, ...custom], hasTurn: true, provider: "custom" };
   }
-  return { iceServers: [STUN], hasTurn: false, provider: "stun-only" };
+  return {
+    iceServers: [STUN],
+    hasTurn: false,
+    provider: "stun-only",
+    error: cf.error ?? "No hay claves TURN guardadas en tu cuenta.",
+  };
 }
