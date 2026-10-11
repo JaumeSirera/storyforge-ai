@@ -1,6 +1,7 @@
 import { DONATIONS_ENABLED } from "@/lib/features";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetTrigger, SheetContent, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { AssessmentsModule } from "@/components/AssessmentsModule";
 import logo from "@/assets/logo-xandralyze.png";
 import {
@@ -19,6 +20,7 @@ import {
   Layers,
   Mail,
   MonitorPlay,
+  Menu,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -65,18 +67,18 @@ function Landing() {
 function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-        <Link to="/" className="flex items-center gap-2 font-bold text-lg" aria-label="Xandralyze — inicio">
+      <div className="mx-auto grid h-16 max-w-screen-2xl grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 sm:px-6 2xl:flex 2xl:justify-between">
+        <Link to="/" className="flex min-w-0 items-center gap-2 font-bold text-lg" aria-label="Xandralyze — inicio">
           <img
             src={logo}
             alt="Logotipo de Xandralyze"
-            className="h-9 w-auto"
+            className="h-9 w-auto shrink-0"
             width={36}
             height={36}
           />
-          <span>Xandralyze</span>
+          <span className="truncate">Xandralyze</span>
         </Link>
-        <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
+        <nav className="hidden 2xl:flex items-center gap-5 text-sm text-muted-foreground" aria-label="Navegación principal">
           <Link to="/explore" className="hover:text-foreground">Galería</Link>
           {DONATIONS_ENABLED ? <Link to="/pricing" className="hover:text-foreground">Precios</Link> : <Link to="/open-source" className="hover:text-foreground">Código abierto</Link>}
           <Link to="/install" className="hover:text-foreground">App móvil</Link>
@@ -87,7 +89,7 @@ function Header() {
           <a href="#use-cases" className="hover:text-foreground">Casos de uso</a>
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="hidden 2xl:flex shrink-0 items-center gap-2">
           <Link to="/explore">
             <Button variant="ghost" size="sm">Explorar</Button>
           </Link>
@@ -98,7 +100,34 @@ function Header() {
             <Button size="sm">Empezar gratis</Button>
           </Link>
         </div>
-
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="shrink-0 2xl:hidden" aria-label="Abrir menú">
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent className="w-[min(90vw,24rem)] overflow-y-auto" aria-describedby={undefined}>
+            <SheetTitle>Menú de Xandralyze</SheetTitle>
+            <nav className="mt-6 flex flex-col gap-1" aria-label="Navegación móvil">
+              <SheetClose asChild><Link to="/explore" className="rounded-md px-3 py-3 hover:bg-accent">Galería · Explorar</Link></SheetClose>
+              <SheetClose asChild><Link to={DONATIONS_ENABLED ? "/pricing" : "/open-source"} className="rounded-md px-3 py-3 hover:bg-accent">{DONATIONS_ENABLED ? "Precios" : "Código abierto"}</Link></SheetClose>
+              <SheetClose asChild><Link to="/install" className="rounded-md px-3 py-3 hover:bg-accent">App móvil</Link></SheetClose>
+              {[
+                ["assessments", "Evaluaciones"],
+                ["modules", "Módulos"],
+                ["features", "Funciones"],
+                ["how", "Cómo funciona"],
+                ["use-cases", "Casos de uso"],
+              ].map(([id, label]) => (
+                <SheetClose asChild key={id}><a href={`#${id}`} className="rounded-md px-3 py-3 hover:bg-accent">{label}</a></SheetClose>
+              ))}
+            </nav>
+            <div className="mt-6 flex flex-col gap-3 border-t border-border pt-6">
+              <SheetClose asChild><Button variant="outline" asChild><Link to="/auth">Entrar</Link></Button></SheetClose>
+              <SheetClose asChild><Button asChild><Link to="/auth">Empezar gratis</Link></Button></SheetClose>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </header>
   );
