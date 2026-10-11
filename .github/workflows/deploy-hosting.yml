@@ -1,0 +1,44 @@
+name: Publicar en xandralyze.com
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-hosting
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar dependencias
+        run: npm ci || npm install
+
+      - name: Compilar web para el hosting
+        run: npx vite build --config vite.config.hosting.ts
+
+      - name: Preparar paquete
+        run: |
+          mkdir -p deploy/tmp
+          cp -r .output/server deploy/server
+          cp -r .output/public deploy/public
+          cp .output/package.json deploy/package.json 2>/dev/null || echo '{"type":"module"}' > deploy/package.json
+          printf "import('./server/index.mjs');\n" > deploy/app.cjs
+          date > deploy/tmp/restart.txt
+
+      - name: Subir por FTP al hosting
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./deploy/
+          server-dir: ${{ secrets.FTP_DIR }}
