@@ -125,8 +125,8 @@ function customTurn(stored: StoredTurn): RTCIceServer[] | null {
   return [{ urls: list, username, credential }];
 }
 
-export async function resolveIceConfig(userId?: string): Promise<IceConfig> {
-  const stored = await loadStoredTurn(userId);
+export async function resolveIceConfig(userId?: string, client?: unknown): Promise<IceConfig> {
+  const stored = await loadStoredTurn(userId, client);
   const cf = await cloudflareTurn(stored);
   if (cf?.length) {
     return { iceServers: [STUN, ...cf], hasTurn: true, provider: "cloudflare" };
