@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { getMyAdminStatus } from "@/lib/admin.functions";
-import { Shield, Users, Library, DollarSign, HandHeart } from "lucide-react";
+import { Shield, Users, Library, DollarSign, HandHeart, Megaphone } from "lucide-react";
 import { DONATIONS_ENABLED } from "@/lib/features";
 
 export const Route = createFileRoute("/_authenticated/app/admin")({
@@ -57,6 +57,13 @@ function AdminLayout() {
           activeProps={{ className: "text-foreground border-primary font-medium" }}
         >
           <span className="inline-flex items-center gap-2"><HandHeart className="h-4 w-4" /> Colaboración</span>
+        </Link>
+        <Link
+          to="/app/admin/social"
+          className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground border-b-2 border-transparent"
+          activeProps={{ className: "text-foreground border-primary font-medium" }}
+        >
+          <span className="inline-flex items-center gap-2"><Megaphone className="h-4 w-4" /> Redes sociales</span>
         </Link>
         {DONATIONS_ENABLED && <Link
           to="/app/admin/pricing"
