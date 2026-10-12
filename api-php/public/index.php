@@ -264,6 +264,76 @@ if (($segments[0] ?? '') === 'contrib') {
     Http::fail('Ruta no válida', 404, 'unknown_route');
 }
 
+// ---- Redes sociales (solo administración) ---------------------------------
+//   Admin:    GET/POST social/settings, GET social/settings/key,
+//             GET/POST social/stories, GET/PATCH/DELETE social/stories/{id},
+//             POST social/stories/{id}/chapters, PATCH/DELETE social/chapters/{id},
+//             GET social/queue
+//   Servicio: GET social/due, POST social/chapters/{id}/result
+if (($segments[0] ?? '') === 'social') {
+    require $base . '/src/Social.php';
+    $social = new \Xandralyze\Social($db);
+    $route = implode('/', array_slice($segments, 1));
+    if ($service) {
+        if ($route === 'due' && $method === 'GET') {
+            Http::json(['data' => $social->due((int) ($_GET['limit'] ?? 20))]);
+        }
+        if (preg_match('#^chapters/([0-9a-f-]{36})/result$#', $route, $m) && $method === 'POST') {
+            Http::json(['data' => $social->serviceResult($m[1], Http::body())]);
+        }
+        Http::fail('Ruta no válida', 404, 'unknown_route');
+    }
+    if ($userId === null) {
+        Http::fail('Necesitas iniciar sesión', 401, 'unauthorized');
+    }
+    $isAdmin = $db->one('SELECT 1 AS ok FROM app_user_roles WHERE user_id = :id AND role = \'admin\'', ['id' => $userId]);
+    if ($isAdmin === null) {
+        Http::fail('Solo para administración', 403, 'forbidden');
+    }
+    if ($route === 'settings' && $method === 'GET') {
+        Http::json(['data' => $social->settings($userId)]);
+    }
+    if ($route === 'settings' && $method === 'POST') {
+        Http::json(['data' => $social->saveSettings($userId, Http::body())]);
+    }
+    if ($route === 'settings/key' && $method === 'GET') {
+        Http::json(['data' => ['key' => $social->ayrshareKey($userId)]]);
+    }
+    if ($route === 'stories' && $method === 'GET') {
+        Http::json(['data' => $social->listStories($userId)]);
+    }
+    if ($route === 'stories' && $method === 'POST') {
+        Http::json(['data' => $social->createStory($userId, Http::body())], 201);
+    }
+    if ($route === 'queue' && $method === 'GET') {
+        Http::json(['data' => $social->queue($userId)]);
+    }
+    if (preg_match('#^stories/([0-9a-f-]{36})(/chapters)?$#', $route, $m)) {
+        $sid = $m[1];
+        if (!empty($m[2]) && $method === 'POST') {
+            Http::json(['data' => $social->addChapter($userId, $sid, Http::body())], 201);
+        }
+        if (empty($m[2]) && $method === 'GET') {
+            Http::json(['data' => $social->getStory($userId, $sid)]);
+        }
+        if (empty($m[2]) && $method === 'PATCH') {
+            Http::json(['data' => $social->updateStory($userId, $sid, Http::body())]);
+        }
+        if (empty($m[2]) && $method === 'DELETE') {
+            Http::json(['data' => $social->deleteStory($userId, $sid)]);
+        }
+    }
+    if (preg_match('#^chapters/([0-9a-f-]{36})$#', $route, $m)) {
+        if ($method === 'PATCH') {
+            Http::json(['data' => $social->updateChapter($userId, $m[1], Http::body())]);
+        }
+        if ($method === 'DELETE') {
+            Http::json(['data' => $social->deleteChapter($userId, $m[1])]);
+        }
+    }
+    Http::fail('Ruta no válida', 404, 'unknown_route');
+}
+
 // ---- Pagos Redsys ------------------------------------------------------
 //   POST /api/v1/redsys/checkout | pay-extra  (usuario, o servicio con user_id)
 //   POST /api/v1/redsys/charge-recurring      (solo servicio / tarea diaria)

@@ -36,6 +36,7 @@ import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/e
 import { Route as AuthenticatedAppAdminContributionsRouteImport } from './routes/_authenticated/app.admin.contributions'
 import { Route as AuthenticatedAppAdminPricingRouteImport } from './routes/_authenticated/app.admin.pricing'
 import { Route as AuthenticatedAppAdminSimulationsRouteImport } from './routes/_authenticated/app.admin.simulations'
+import { Route as AuthenticatedAppAdminSocialRouteImport } from './routes/_authenticated/app.admin.social'
 import { Route as AuthenticatedAppAdminUsersRouteImport } from './routes/_authenticated/app.admin.users'
 import { Route as AuthenticatedAppAssessmentsIndexRouteImport } from './routes/_authenticated/app.assessments.index'
 import { Route as AuthenticatedAppAssessmentsBankRouteImport } from './routes/_authenticated/app.assessments.bank'
@@ -45,10 +46,15 @@ import { Route as AuthenticatedAppSessionsIdRouteImport } from './routes/_authen
 import { Route as AuthenticatedAppSimulationsIndexRouteImport } from './routes/_authenticated/app.simulations.index'
 import { Route as ApiPublicRedsysChargeRecurringRouteImport } from './routes/api/public/redsys/charge-recurring'
 import { Route as ApiPublicRedsysNotificationRouteImport } from './routes/api/public/redsys/notification'
+import { Route as ApiPublicSocialPublishDueRouteImport } from './routes/api/public/social/publish-due'
 import { Route as ApiRelayRoomActionRouteImport } from './routes/api/relay.$room.$action'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
+import { Route as AuthenticatedAppAdminSocialIndexRouteImport } from './routes/_authenticated/app.admin.social.index'
+import { Route as AuthenticatedAppAdminSocialIdRouteImport } from './routes/_authenticated/app.admin.social.$id'
+import { Route as AuthenticatedAppAdminSocialCalendarRouteImport } from './routes/_authenticated/app.admin.social.calendar'
+import { Route as AuthenticatedAppAdminSocialNetworksRouteImport } from './routes/_authenticated/app.admin.social.networks'
 import { Route as AuthenticatedAppAssessmentsIdIndexRouteImport } from './routes/_authenticated/app.assessments.$id.index'
 import { Route as AuthenticatedAppCaptureIdIndexRouteImport } from './routes/_authenticated/app.capture.$id.index'
 import { Route as AuthenticatedAppCaptureIdAnalyzeRouteImport } from './routes/_authenticated/app.capture.$id.analyze'
@@ -203,6 +209,12 @@ const AuthenticatedAppAdminSimulationsRoute =
     path: '/simulations',
     getParentRoute: () => AuthenticatedAppAdminRoute,
   } as any)
+const AuthenticatedAppAdminSocialRoute =
+  AuthenticatedAppAdminSocialRouteImport.update({
+    id: '/social',
+    path: '/social',
+    getParentRoute: () => AuthenticatedAppAdminRoute,
+  } as any)
 const AuthenticatedAppAdminUsersRoute =
   AuthenticatedAppAdminUsersRouteImport.update({
     id: '/users',
@@ -256,6 +268,12 @@ const ApiPublicRedsysNotificationRoute =
     path: '/api/public/redsys/notification',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicSocialPublishDueRoute =
+  ApiPublicSocialPublishDueRouteImport.update({
+    id: '/api/public/social/publish-due',
+    path: '/api/public/social/publish-due',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiRelayRoomActionRoute = ApiRelayRoomActionRouteImport.update({
   id: '/api/relay/$room/$action',
   path: '/api/relay/$room/$action',
@@ -276,6 +294,30 @@ const LovableEmailTransactionalPreviewRoute =
     id: '/lovable/email/transactional/preview',
     path: '/lovable/email/transactional/preview',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedAppAdminSocialIndexRoute =
+  AuthenticatedAppAdminSocialIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAppAdminSocialRoute,
+  } as any)
+const AuthenticatedAppAdminSocialIdRoute =
+  AuthenticatedAppAdminSocialIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedAppAdminSocialRoute,
+  } as any)
+const AuthenticatedAppAdminSocialCalendarRoute =
+  AuthenticatedAppAdminSocialCalendarRouteImport.update({
+    id: '/calendar',
+    path: '/calendar',
+    getParentRoute: () => AuthenticatedAppAdminSocialRoute,
+  } as any)
+const AuthenticatedAppAdminSocialNetworksRoute =
+  AuthenticatedAppAdminSocialNetworksRouteImport.update({
+    id: '/networks',
+    path: '/networks',
+    getParentRoute: () => AuthenticatedAppAdminSocialRoute,
   } as any)
 const AuthenticatedAppAssessmentsIdIndexRoute =
   AuthenticatedAppAssessmentsIdIndexRouteImport.update({
@@ -371,12 +413,14 @@ export interface FileRoutesByFullPath {
   '/app/admin/contributions': typeof AuthenticatedAppAdminContributionsRoute
   '/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
+  '/app/admin/social': typeof AuthenticatedAppAdminSocialRouteWithChildren
   '/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
   '/app/assessments/bank': typeof AuthenticatedAppAssessmentsBankRoute
   '/app/play/$id': typeof AuthenticatedAppPlayIdRoute
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
+  '/api/public/social/publish-due': typeof ApiPublicSocialPublishDueRoute
   '/api/relay/$room/$action': typeof ApiRelayRoomActionRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -384,6 +428,9 @@ export interface FileRoutesByFullPath {
   '/app/assessments/': typeof AuthenticatedAppAssessmentsIndexRoute
   '/app/capture/': typeof AuthenticatedAppCaptureIndexRoute
   '/app/simulations/': typeof AuthenticatedAppSimulationsIndexRoute
+  '/app/admin/social/$id': typeof AuthenticatedAppAdminSocialIdRoute
+  '/app/admin/social/calendar': typeof AuthenticatedAppAdminSocialCalendarRoute
+  '/app/admin/social/networks': typeof AuthenticatedAppAdminSocialNetworksRoute
   '/app/capture/$id/analyze': typeof AuthenticatedAppCaptureIdAnalyzeRoute
   '/app/capture/$id/compare': typeof AuthenticatedAppCaptureIdCompareRoute
   '/app/capture/$id/insights': typeof AuthenticatedAppCaptureIdInsightsRoute
@@ -391,6 +438,7 @@ export interface FileRoutesByFullPath {
   '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
   '/app/simulations/$id/sessions': typeof AuthenticatedAppSimulationsIdSessionsRoute
+  '/app/admin/social/': typeof AuthenticatedAppAdminSocialIndexRoute
   '/app/assessments/$id/': typeof AuthenticatedAppAssessmentsIdIndexRoute
   '/app/capture/$id/': typeof AuthenticatedAppCaptureIdIndexRoute
   '/app/simulations/$id/': typeof AuthenticatedAppSimulationsIdIndexRoute
@@ -429,6 +477,7 @@ export interface FileRoutesByTo {
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
+  '/api/public/social/publish-due': typeof ApiPublicSocialPublishDueRoute
   '/api/relay/$room/$action': typeof ApiRelayRoomActionRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -436,6 +485,9 @@ export interface FileRoutesByTo {
   '/app/assessments': typeof AuthenticatedAppAssessmentsIndexRoute
   '/app/capture': typeof AuthenticatedAppCaptureIndexRoute
   '/app/simulations': typeof AuthenticatedAppSimulationsIndexRoute
+  '/app/admin/social/$id': typeof AuthenticatedAppAdminSocialIdRoute
+  '/app/admin/social/calendar': typeof AuthenticatedAppAdminSocialCalendarRoute
+  '/app/admin/social/networks': typeof AuthenticatedAppAdminSocialNetworksRoute
   '/app/capture/$id/analyze': typeof AuthenticatedAppCaptureIdAnalyzeRoute
   '/app/capture/$id/compare': typeof AuthenticatedAppCaptureIdCompareRoute
   '/app/capture/$id/insights': typeof AuthenticatedAppCaptureIdInsightsRoute
@@ -443,6 +495,7 @@ export interface FileRoutesByTo {
   '/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
   '/app/simulations/$id/sessions': typeof AuthenticatedAppSimulationsIdSessionsRoute
+  '/app/admin/social': typeof AuthenticatedAppAdminSocialIndexRoute
   '/app/assessments/$id': typeof AuthenticatedAppAssessmentsIdIndexRoute
   '/app/capture/$id': typeof AuthenticatedAppCaptureIdIndexRoute
   '/app/simulations/$id': typeof AuthenticatedAppSimulationsIdIndexRoute
@@ -477,12 +530,14 @@ export interface FileRoutesById {
   '/_authenticated/app/admin/contributions': typeof AuthenticatedAppAdminContributionsRoute
   '/_authenticated/app/admin/pricing': typeof AuthenticatedAppAdminPricingRoute
   '/_authenticated/app/admin/simulations': typeof AuthenticatedAppAdminSimulationsRoute
+  '/_authenticated/app/admin/social': typeof AuthenticatedAppAdminSocialRouteWithChildren
   '/_authenticated/app/admin/users': typeof AuthenticatedAppAdminUsersRoute
   '/_authenticated/app/assessments/bank': typeof AuthenticatedAppAssessmentsBankRoute
   '/_authenticated/app/play/$id': typeof AuthenticatedAppPlayIdRoute
   '/_authenticated/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
+  '/api/public/social/publish-due': typeof ApiPublicSocialPublishDueRoute
   '/api/relay/$room/$action': typeof ApiRelayRoomActionRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -490,6 +545,9 @@ export interface FileRoutesById {
   '/_authenticated/app/assessments/': typeof AuthenticatedAppAssessmentsIndexRoute
   '/_authenticated/app/capture/': typeof AuthenticatedAppCaptureIndexRoute
   '/_authenticated/app/simulations/': typeof AuthenticatedAppSimulationsIndexRoute
+  '/_authenticated/app/admin/social/$id': typeof AuthenticatedAppAdminSocialIdRoute
+  '/_authenticated/app/admin/social/calendar': typeof AuthenticatedAppAdminSocialCalendarRoute
+  '/_authenticated/app/admin/social/networks': typeof AuthenticatedAppAdminSocialNetworksRoute
   '/_authenticated/app/capture/$id/analyze': typeof AuthenticatedAppCaptureIdAnalyzeRoute
   '/_authenticated/app/capture/$id/compare': typeof AuthenticatedAppCaptureIdCompareRoute
   '/_authenticated/app/capture/$id/insights': typeof AuthenticatedAppCaptureIdInsightsRoute
@@ -497,6 +555,7 @@ export interface FileRoutesById {
   '/_authenticated/app/simulations/$id/edit': typeof AuthenticatedAppSimulationsIdEditRoute
   '/_authenticated/app/simulations/$id/review': typeof AuthenticatedAppSimulationsIdReviewRoute
   '/_authenticated/app/simulations/$id/sessions': typeof AuthenticatedAppSimulationsIdSessionsRoute
+  '/_authenticated/app/admin/social/': typeof AuthenticatedAppAdminSocialIndexRoute
   '/_authenticated/app/assessments/$id/': typeof AuthenticatedAppAssessmentsIdIndexRoute
   '/_authenticated/app/capture/$id/': typeof AuthenticatedAppCaptureIdIndexRoute
   '/_authenticated/app/simulations/$id/': typeof AuthenticatedAppSimulationsIdIndexRoute
@@ -531,12 +590,14 @@ export interface FileRouteTypes {
     | '/app/admin/contributions'
     | '/app/admin/pricing'
     | '/app/admin/simulations'
+    | '/app/admin/social'
     | '/app/admin/users'
     | '/app/assessments/bank'
     | '/app/play/$id'
     | '/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
     | '/api/public/redsys/notification'
+    | '/api/public/social/publish-due'
     | '/api/relay/$room/$action'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -544,6 +605,9 @@ export interface FileRouteTypes {
     | '/app/assessments/'
     | '/app/capture/'
     | '/app/simulations/'
+    | '/app/admin/social/$id'
+    | '/app/admin/social/calendar'
+    | '/app/admin/social/networks'
     | '/app/capture/$id/analyze'
     | '/app/capture/$id/compare'
     | '/app/capture/$id/insights'
@@ -551,6 +615,7 @@ export interface FileRouteTypes {
     | '/app/simulations/$id/edit'
     | '/app/simulations/$id/review'
     | '/app/simulations/$id/sessions'
+    | '/app/admin/social/'
     | '/app/assessments/$id/'
     | '/app/capture/$id/'
     | '/app/simulations/$id/'
@@ -589,6 +654,7 @@ export interface FileRouteTypes {
     | '/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
     | '/api/public/redsys/notification'
+    | '/api/public/social/publish-due'
     | '/api/relay/$room/$action'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -596,6 +662,9 @@ export interface FileRouteTypes {
     | '/app/assessments'
     | '/app/capture'
     | '/app/simulations'
+    | '/app/admin/social/$id'
+    | '/app/admin/social/calendar'
+    | '/app/admin/social/networks'
     | '/app/capture/$id/analyze'
     | '/app/capture/$id/compare'
     | '/app/capture/$id/insights'
@@ -603,6 +672,7 @@ export interface FileRouteTypes {
     | '/app/simulations/$id/edit'
     | '/app/simulations/$id/review'
     | '/app/simulations/$id/sessions'
+    | '/app/admin/social'
     | '/app/assessments/$id'
     | '/app/capture/$id'
     | '/app/simulations/$id'
@@ -636,12 +706,14 @@ export interface FileRouteTypes {
     | '/_authenticated/app/admin/contributions'
     | '/_authenticated/app/admin/pricing'
     | '/_authenticated/app/admin/simulations'
+    | '/_authenticated/app/admin/social'
     | '/_authenticated/app/admin/users'
     | '/_authenticated/app/assessments/bank'
     | '/_authenticated/app/play/$id'
     | '/_authenticated/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
     | '/api/public/redsys/notification'
+    | '/api/public/social/publish-due'
     | '/api/relay/$room/$action'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -649,6 +721,9 @@ export interface FileRouteTypes {
     | '/_authenticated/app/assessments/'
     | '/_authenticated/app/capture/'
     | '/_authenticated/app/simulations/'
+    | '/_authenticated/app/admin/social/$id'
+    | '/_authenticated/app/admin/social/calendar'
+    | '/_authenticated/app/admin/social/networks'
     | '/_authenticated/app/capture/$id/analyze'
     | '/_authenticated/app/capture/$id/compare'
     | '/_authenticated/app/capture/$id/insights'
@@ -656,6 +731,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/simulations/$id/edit'
     | '/_authenticated/app/simulations/$id/review'
     | '/_authenticated/app/simulations/$id/sessions'
+    | '/_authenticated/app/admin/social/'
     | '/_authenticated/app/assessments/$id/'
     | '/_authenticated/app/capture/$id/'
     | '/_authenticated/app/simulations/$id/'
@@ -682,6 +758,7 @@ export interface RootRouteChildren {
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   ApiPublicRedsysChargeRecurringRoute: typeof ApiPublicRedsysChargeRecurringRoute
   ApiPublicRedsysNotificationRoute: typeof ApiPublicRedsysNotificationRoute
+  ApiPublicSocialPublishDueRoute: typeof ApiPublicSocialPublishDueRoute
   ApiRelayRoomActionRoute: typeof ApiRelayRoomActionRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -879,6 +956,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdminSimulationsRouteImport
       parentRoute: typeof AuthenticatedAppAdminRoute
     }
+    '/_authenticated/app/admin/social': {
+      id: '/_authenticated/app/admin/social'
+      path: '/social'
+      fullPath: '/app/admin/social'
+      preLoaderRoute: typeof AuthenticatedAppAdminSocialRouteImport
+      parentRoute: typeof AuthenticatedAppAdminRoute
+    }
     '/_authenticated/app/admin/users': {
       id: '/_authenticated/app/admin/users'
       path: '/users'
@@ -942,6 +1026,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicRedsysNotificationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/social/publish-due': {
+      id: '/api/public/social/publish-due'
+      path: '/api/public/social/publish-due'
+      fullPath: '/api/public/social/publish-due'
+      preLoaderRoute: typeof ApiPublicSocialPublishDueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/relay/$room/$action': {
       id: '/api/relay/$room/$action'
       path: '/api/relay/$room/$action'
@@ -969,6 +1060,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/lovable/email/transactional/preview'
       preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/app/admin/social/': {
+      id: '/_authenticated/app/admin/social/'
+      path: '/'
+      fullPath: '/app/admin/social/'
+      preLoaderRoute: typeof AuthenticatedAppAdminSocialIndexRouteImport
+      parentRoute: typeof AuthenticatedAppAdminSocialRoute
+    }
+    '/_authenticated/app/admin/social/$id': {
+      id: '/_authenticated/app/admin/social/$id'
+      path: '/$id'
+      fullPath: '/app/admin/social/$id'
+      preLoaderRoute: typeof AuthenticatedAppAdminSocialIdRouteImport
+      parentRoute: typeof AuthenticatedAppAdminSocialRoute
+    }
+    '/_authenticated/app/admin/social/calendar': {
+      id: '/_authenticated/app/admin/social/calendar'
+      path: '/calendar'
+      fullPath: '/app/admin/social/calendar'
+      preLoaderRoute: typeof AuthenticatedAppAdminSocialCalendarRouteImport
+      parentRoute: typeof AuthenticatedAppAdminSocialRoute
+    }
+    '/_authenticated/app/admin/social/networks': {
+      id: '/_authenticated/app/admin/social/networks'
+      path: '/networks'
+      fullPath: '/app/admin/social/networks'
+      preLoaderRoute: typeof AuthenticatedAppAdminSocialNetworksRouteImport
+      parentRoute: typeof AuthenticatedAppAdminSocialRoute
     }
     '/_authenticated/app/assessments/$id/': {
       id: '/_authenticated/app/assessments/$id/'
@@ -1050,10 +1169,34 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedAppAdminSocialRouteChildren {
+  AuthenticatedAppAdminSocialIdRoute: typeof AuthenticatedAppAdminSocialIdRoute
+  AuthenticatedAppAdminSocialCalendarRoute: typeof AuthenticatedAppAdminSocialCalendarRoute
+  AuthenticatedAppAdminSocialNetworksRoute: typeof AuthenticatedAppAdminSocialNetworksRoute
+  AuthenticatedAppAdminSocialIndexRoute: typeof AuthenticatedAppAdminSocialIndexRoute
+}
+
+const AuthenticatedAppAdminSocialRouteChildren: AuthenticatedAppAdminSocialRouteChildren =
+  {
+    AuthenticatedAppAdminSocialIdRoute: AuthenticatedAppAdminSocialIdRoute,
+    AuthenticatedAppAdminSocialCalendarRoute:
+      AuthenticatedAppAdminSocialCalendarRoute,
+    AuthenticatedAppAdminSocialNetworksRoute:
+      AuthenticatedAppAdminSocialNetworksRoute,
+    AuthenticatedAppAdminSocialIndexRoute:
+      AuthenticatedAppAdminSocialIndexRoute,
+  }
+
+const AuthenticatedAppAdminSocialRouteWithChildren =
+  AuthenticatedAppAdminSocialRoute._addFileChildren(
+    AuthenticatedAppAdminSocialRouteChildren,
+  )
+
 interface AuthenticatedAppAdminRouteChildren {
   AuthenticatedAppAdminContributionsRoute: typeof AuthenticatedAppAdminContributionsRoute
   AuthenticatedAppAdminPricingRoute: typeof AuthenticatedAppAdminPricingRoute
   AuthenticatedAppAdminSimulationsRoute: typeof AuthenticatedAppAdminSimulationsRoute
+  AuthenticatedAppAdminSocialRoute: typeof AuthenticatedAppAdminSocialRouteWithChildren
   AuthenticatedAppAdminUsersRoute: typeof AuthenticatedAppAdminUsersRoute
 }
 
@@ -1062,6 +1205,8 @@ const AuthenticatedAppAdminRouteChildren: AuthenticatedAppAdminRouteChildren = {
     AuthenticatedAppAdminContributionsRoute,
   AuthenticatedAppAdminPricingRoute: AuthenticatedAppAdminPricingRoute,
   AuthenticatedAppAdminSimulationsRoute: AuthenticatedAppAdminSimulationsRoute,
+  AuthenticatedAppAdminSocialRoute:
+    AuthenticatedAppAdminSocialRouteWithChildren,
   AuthenticatedAppAdminUsersRoute: AuthenticatedAppAdminUsersRoute,
 }
 
@@ -1154,6 +1299,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailEventsRoute: LovableEmailEventsRoute,
   ApiPublicRedsysChargeRecurringRoute: ApiPublicRedsysChargeRecurringRoute,
   ApiPublicRedsysNotificationRoute: ApiPublicRedsysNotificationRoute,
+  ApiPublicSocialPublishDueRoute: ApiPublicSocialPublishDueRoute,
   ApiRelayRoomActionRoute: ApiRelayRoomActionRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
