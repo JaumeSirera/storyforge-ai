@@ -45,6 +45,7 @@ import { Route as AuthenticatedAppSessionsIdRouteImport } from './routes/_authen
 import { Route as AuthenticatedAppSimulationsIndexRouteImport } from './routes/_authenticated/app.simulations.index'
 import { Route as ApiPublicRedsysChargeRecurringRouteImport } from './routes/api/public/redsys/charge-recurring'
 import { Route as ApiPublicRedsysNotificationRouteImport } from './routes/api/public/redsys/notification'
+import { Route as ApiPublicSocialPublishDueRouteImport } from './routes/api/public/social/publish-due'
 import { Route as ApiRelayRoomActionRouteImport } from './routes/api/relay.$room.$action'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
@@ -256,6 +257,12 @@ const ApiPublicRedsysNotificationRoute =
     path: '/api/public/redsys/notification',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicSocialPublishDueRoute =
+  ApiPublicSocialPublishDueRouteImport.update({
+    id: '/api/public/social/publish-due',
+    path: '/api/public/social/publish-due',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiRelayRoomActionRoute = ApiRelayRoomActionRouteImport.update({
   id: '/api/relay/$room/$action',
   path: '/api/relay/$room/$action',
@@ -377,6 +384,7 @@ export interface FileRoutesByFullPath {
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
+  '/api/public/social/publish-due': typeof ApiPublicSocialPublishDueRoute
   '/api/relay/$room/$action': typeof ApiRelayRoomActionRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -429,6 +437,7 @@ export interface FileRoutesByTo {
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
+  '/api/public/social/publish-due': typeof ApiPublicSocialPublishDueRoute
   '/api/relay/$room/$action': typeof ApiRelayRoomActionRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -483,6 +492,7 @@ export interface FileRoutesById {
   '/_authenticated/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
+  '/api/public/social/publish-due': typeof ApiPublicSocialPublishDueRoute
   '/api/relay/$room/$action': typeof ApiRelayRoomActionRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -537,6 +547,7 @@ export interface FileRouteTypes {
     | '/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
     | '/api/public/redsys/notification'
+    | '/api/public/social/publish-due'
     | '/api/relay/$room/$action'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -589,6 +600,7 @@ export interface FileRouteTypes {
     | '/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
     | '/api/public/redsys/notification'
+    | '/api/public/social/publish-due'
     | '/api/relay/$room/$action'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -642,6 +654,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
     | '/api/public/redsys/notification'
+    | '/api/public/social/publish-due'
     | '/api/relay/$room/$action'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -682,6 +695,7 @@ export interface RootRouteChildren {
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   ApiPublicRedsysChargeRecurringRoute: typeof ApiPublicRedsysChargeRecurringRoute
   ApiPublicRedsysNotificationRoute: typeof ApiPublicRedsysNotificationRoute
+  ApiPublicSocialPublishDueRoute: typeof ApiPublicSocialPublishDueRoute
   ApiRelayRoomActionRoute: typeof ApiRelayRoomActionRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -942,6 +956,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicRedsysNotificationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/social/publish-due': {
+      id: '/api/public/social/publish-due'
+      path: '/api/public/social/publish-due'
+      fullPath: '/api/public/social/publish-due'
+      preLoaderRoute: typeof ApiPublicSocialPublishDueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/relay/$room/$action': {
       id: '/api/relay/$room/$action'
       path: '/api/relay/$room/$action'
@@ -1154,6 +1175,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailEventsRoute: LovableEmailEventsRoute,
   ApiPublicRedsysChargeRecurringRoute: ApiPublicRedsysChargeRecurringRoute,
   ApiPublicRedsysNotificationRoute: ApiPublicRedsysNotificationRoute,
+  ApiPublicSocialPublishDueRoute: ApiPublicSocialPublishDueRoute,
   ApiRelayRoomActionRoute: ApiRelayRoomActionRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
