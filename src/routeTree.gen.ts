@@ -52,6 +52,7 @@ import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/em
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as AuthenticatedAppAdminSocialIndexRouteImport } from './routes/_authenticated/app.admin.social.index'
+import { Route as AuthenticatedAppAdminSocialIdRouteImport } from './routes/_authenticated/app.admin.social.$id'
 import { Route as AuthenticatedAppAdminSocialCalendarRouteImport } from './routes/_authenticated/app.admin.social.calendar'
 import { Route as AuthenticatedAppAdminSocialNetworksRouteImport } from './routes/_authenticated/app.admin.social.networks'
 import { Route as AuthenticatedAppAssessmentsIdIndexRouteImport } from './routes/_authenticated/app.assessments.$id.index'
@@ -300,6 +301,12 @@ const AuthenticatedAppAdminSocialIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAppAdminSocialRoute,
   } as any)
+const AuthenticatedAppAdminSocialIdRoute =
+  AuthenticatedAppAdminSocialIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedAppAdminSocialRoute,
+  } as any)
 const AuthenticatedAppAdminSocialCalendarRoute =
   AuthenticatedAppAdminSocialCalendarRouteImport.update({
     id: '/calendar',
@@ -421,6 +428,7 @@ export interface FileRoutesByFullPath {
   '/app/assessments/': typeof AuthenticatedAppAssessmentsIndexRoute
   '/app/capture/': typeof AuthenticatedAppCaptureIndexRoute
   '/app/simulations/': typeof AuthenticatedAppSimulationsIndexRoute
+  '/app/admin/social/$id': typeof AuthenticatedAppAdminSocialIdRoute
   '/app/admin/social/calendar': typeof AuthenticatedAppAdminSocialCalendarRoute
   '/app/admin/social/networks': typeof AuthenticatedAppAdminSocialNetworksRoute
   '/app/capture/$id/analyze': typeof AuthenticatedAppCaptureIdAnalyzeRoute
@@ -477,6 +485,7 @@ export interface FileRoutesByTo {
   '/app/assessments': typeof AuthenticatedAppAssessmentsIndexRoute
   '/app/capture': typeof AuthenticatedAppCaptureIndexRoute
   '/app/simulations': typeof AuthenticatedAppSimulationsIndexRoute
+  '/app/admin/social/$id': typeof AuthenticatedAppAdminSocialIdRoute
   '/app/admin/social/calendar': typeof AuthenticatedAppAdminSocialCalendarRoute
   '/app/admin/social/networks': typeof AuthenticatedAppAdminSocialNetworksRoute
   '/app/capture/$id/analyze': typeof AuthenticatedAppCaptureIdAnalyzeRoute
@@ -536,6 +545,7 @@ export interface FileRoutesById {
   '/_authenticated/app/assessments/': typeof AuthenticatedAppAssessmentsIndexRoute
   '/_authenticated/app/capture/': typeof AuthenticatedAppCaptureIndexRoute
   '/_authenticated/app/simulations/': typeof AuthenticatedAppSimulationsIndexRoute
+  '/_authenticated/app/admin/social/$id': typeof AuthenticatedAppAdminSocialIdRoute
   '/_authenticated/app/admin/social/calendar': typeof AuthenticatedAppAdminSocialCalendarRoute
   '/_authenticated/app/admin/social/networks': typeof AuthenticatedAppAdminSocialNetworksRoute
   '/_authenticated/app/capture/$id/analyze': typeof AuthenticatedAppCaptureIdAnalyzeRoute
@@ -595,6 +605,7 @@ export interface FileRouteTypes {
     | '/app/assessments/'
     | '/app/capture/'
     | '/app/simulations/'
+    | '/app/admin/social/$id'
     | '/app/admin/social/calendar'
     | '/app/admin/social/networks'
     | '/app/capture/$id/analyze'
@@ -651,6 +662,7 @@ export interface FileRouteTypes {
     | '/app/assessments'
     | '/app/capture'
     | '/app/simulations'
+    | '/app/admin/social/$id'
     | '/app/admin/social/calendar'
     | '/app/admin/social/networks'
     | '/app/capture/$id/analyze'
@@ -709,6 +721,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/assessments/'
     | '/_authenticated/app/capture/'
     | '/_authenticated/app/simulations/'
+    | '/_authenticated/app/admin/social/$id'
     | '/_authenticated/app/admin/social/calendar'
     | '/_authenticated/app/admin/social/networks'
     | '/_authenticated/app/capture/$id/analyze'
@@ -1055,6 +1068,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAdminSocialIndexRouteImport
       parentRoute: typeof AuthenticatedAppAdminSocialRoute
     }
+    '/_authenticated/app/admin/social/$id': {
+      id: '/_authenticated/app/admin/social/$id'
+      path: '/$id'
+      fullPath: '/app/admin/social/$id'
+      preLoaderRoute: typeof AuthenticatedAppAdminSocialIdRouteImport
+      parentRoute: typeof AuthenticatedAppAdminSocialRoute
+    }
     '/_authenticated/app/admin/social/calendar': {
       id: '/_authenticated/app/admin/social/calendar'
       path: '/calendar'
@@ -1150,6 +1170,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAppAdminSocialRouteChildren {
+  AuthenticatedAppAdminSocialIdRoute: typeof AuthenticatedAppAdminSocialIdRoute
   AuthenticatedAppAdminSocialCalendarRoute: typeof AuthenticatedAppAdminSocialCalendarRoute
   AuthenticatedAppAdminSocialNetworksRoute: typeof AuthenticatedAppAdminSocialNetworksRoute
   AuthenticatedAppAdminSocialIndexRoute: typeof AuthenticatedAppAdminSocialIndexRoute
@@ -1157,6 +1178,7 @@ interface AuthenticatedAppAdminSocialRouteChildren {
 
 const AuthenticatedAppAdminSocialRouteChildren: AuthenticatedAppAdminSocialRouteChildren =
   {
+    AuthenticatedAppAdminSocialIdRoute: AuthenticatedAppAdminSocialIdRoute,
     AuthenticatedAppAdminSocialCalendarRoute:
       AuthenticatedAppAdminSocialCalendarRoute,
     AuthenticatedAppAdminSocialNetworksRoute:
