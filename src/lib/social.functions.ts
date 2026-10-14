@@ -62,10 +62,28 @@ Formato:
 - El gancho final se apoya en lo que realmente viene después.
 - Incluye 2-4 hashtags sacados de los temas del material.`;
 
+const str = z.preprocess((v) => (v == null ? "" : String(v)), z.string());
 const ChaptersSchema = z.object({
-  titulo_serie: z.string(),
-  capitulos: z.array(z.object({ titulo: z.string(), cuerpo: z.string() })),
+  titulo_serie: str.default(""),
+  capitulos: z.array(z.object({ titulo: str.default(""), cuerpo: str.default("") }).passthrough()),
 });
+
+/** Extrae el JSON de la respuesta de la IA, aunque venga con texto o ```json alrededor. */
+export function parseChapters(text: string): z.infer<typeof ChaptersSchema> {
+  const cleaned = text.replace(/```(?:json)?/gi, "").trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start < 0 || end <= start) throw new Error("La IA no devolvió capítulos en el formato esperado.");
+  let raw: any = JSON.parse(cleaned.slice(start, end + 1));
+  // Acepta nombres alternativos que a veces usan los modelos.
+  if (!raw.capitulos) raw.capitulos = raw.chapters ?? raw.capítulos ?? [];
+  if (!raw.titulo_serie) raw.titulo_serie = raw.title ?? raw.titulo ?? "";
+  raw.capitulos = (raw.capitulos as any[]).map((c) => ({
+    titulo: c?.titulo ?? c?.title ?? "",
+    cuerpo: c?.cuerpo ?? c?.body ?? c?.texto ?? c?.contenido ?? "",
+  }));
+  return ChaptersSchema.parse(raw);
+}
 
 /** Genera una serie con la IA del usuario y la guarda. */
 export const generateSocialStory = createServerFn({ method: "POST" })
@@ -83,7 +101,7 @@ export const generateSocialStory = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     // Comprobación de admin antes de gastar IA.
     await api(context, "/social/settings");
-    const { generateObject } = await import("ai");
+    const { generateText } = await import("ai");
     const { runWithTextModelFallback } = await import("./ai-gateway.server");
     const { loadUserKeys } = await import("./user-keys.functions");
     const { xdb } = await import("./assessments-repo.server");
@@ -97,7 +115,8 @@ export const generateSocialStory = createServerFn({ method: "POST" })
       "--- INICIO ---",
       data.sourceText.slice(0, 24000),
       "--- FIN ---",
-      "Responde únicamente con un objeto JSON válido que siga el esquema indicado.",
+      "Responde ÚNICAMENTE con un objeto JSON válido, sin texto antes ni después, con esta forma exacta:",
+      '{"titulo_serie": "texto", "capitulos": [{"titulo": "texto", "cuerpo": "texto"}]}',
     ]
       .filter(Boolean)
       .join("\n");
@@ -106,8 +125,8 @@ export const generateSocialStory = createServerFn({ method: "POST" })
       keys,
       undefined,
       async ({ model }) => {
-        const r = await generateObject({ model, schema: ChaptersSchema, system: SYSTEM_PROMPT, prompt });
-        return r.object;
+        const r = await generateText({ model, system: SYSTEM_PROMPT, prompt });
+        return parseChapters(r.text);
       },
       { label: "social-story" },
     );
