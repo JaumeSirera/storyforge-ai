@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, CalendarClock, ImagePlus, Link2, Loader2, Plus, Send, Trash2, X } from "lucide-react";
+import { ArrowLeft, CalendarClock, Film, ImagePlus, Link2, Loader2, Plus, Send, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -222,6 +222,30 @@ function ChapterCard({
     onData(d);
   }
 
+  const images = chapter.media.filter((m) => m.kind !== "video");
+  const [making, setMaking] = useState<number | null>(null);
+  async function makeSlideshow() {
+    const urls = images.map((m) => previews[m.path]).filter(Boolean);
+    if (urls.length !== images.length) return toast.error("Espera a que carguen las imágenes");
+    setMaking(0);
+    try {
+      const { createSlideshow } = await import("@/lib/slideshow");
+      const file = await createSlideshow(urls, { title: title.trim(), onProgress: (p) => setMaking(Math.round(p * 100)) });
+      const user = await getCurrentUser();
+      if (!user) throw new Error("Sesión no válida");
+      const path = `${user.id}/social/${storyId}/${file.name}`;
+      await uploadFile("videos", path, file, { contentType: file.type });
+      // El vídeo sustituye a las imágenes (TikTok no admite mezclar ambos).
+      const d = await update({ data: { id: chapter.id, media: [...chapter.media.filter((m) => m.kind === "video"), { path, kind: "video", name: file.name }] } });
+      onData(d);
+      toast.success("Presentación creada", { description: "Las imágenes se han convertido en un vídeo." });
+    } catch (e) {
+      toast.error("No se pudo crear la presentación", { description: (e as Error).message });
+    } finally {
+      setMaking(null);
+    }
+  }
+
   const post = composePost(body, links);
   const over = SOCIAL_NETWORKS.filter((n) => networks.includes(n.id) && post.length > n.limit);
 
@@ -269,6 +293,15 @@ function ChapterCard({
             <input type="file" className="sr-only" accept="image/*,video/*" disabled={uploading} onChange={(e) => onUpload(e.target.files?.[0])} />
           </label>
         </div>
+        {images.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5" disabled={making !== null} onClick={makeSlideshow}>
+              {making !== null ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Film className="h-3.5 w-3.5" />}
+              {making !== null ? `Creando vídeo… ${making}%` : "Convertir imágenes en vídeo (YouTube)"}
+            </Button>
+            <span className="text-xs text-muted-foreground">Unos 3 segundos por imagen, con el título al principio. No cierres la página mientras se crea.</span>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-2 border-t border-border pt-3 sm:flex-row sm:items-end">
