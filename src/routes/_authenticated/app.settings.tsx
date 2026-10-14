@@ -240,7 +240,7 @@ function KeyCard({
           <Label>Nueva clave</Label>
           <Input
             type="password"
-            autoComplete="off"
+            autoComplete="new-password" data-1p-ignore data-lpignore="true"
             placeholder={placeholder}
             value={value}
             onChange={(e) => onChange(e.target.value)}
@@ -425,7 +425,7 @@ function EmailSettingsCard() {
                 <Input
                   id="from-email"
                   type="email"
-                  autoComplete="off"
+                  autoComplete="new-password" data-1p-ignore data-lpignore="true"
                   placeholder="informes@tudominio.com"
                   value={fromEmail}
                   onChange={(e) => setFromEmail(e.target.value)}
@@ -438,7 +438,7 @@ function EmailSettingsCard() {
               <Input
                 id="reply-to"
                 type="email"
-                autoComplete="off"
+                autoComplete="new-password" data-1p-ignore data-lpignore="true"
                 placeholder="rrhh@tudominio.com"
                 value={replyTo}
                 onChange={(e) => setReplyTo(e.target.value)}
