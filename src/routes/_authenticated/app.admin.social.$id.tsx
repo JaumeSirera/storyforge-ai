@@ -3,12 +3,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, CalendarClock, Film, ImagePlus, Link2, Loader2, Plus, Send, Trash2, X } from "lucide-react";
+import { ArrowLeft, CalendarClock, Film, ImagePlus, Link2, Loader2, Play, Plus, Send, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   addSocialChapter,
   deleteSocialChapter,
@@ -323,6 +324,13 @@ function ChapterCard({
         </div>
       </div>
       {chapter.result && <pre className="whitespace-pre-wrap rounded-lg bg-muted p-3 text-xs text-muted-foreground">{chapter.result}</pre>}
+      <Dialog open={!!playing} onOpenChange={(o) => !o && setPlaying(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogTitle>Vídeo del capítulo</DialogTitle>
+          {playing && <video src={playing} controls autoPlay playsInline className="w-full rounded-lg bg-muted" />}
+          {playing && <a href={playing} target="_blank" rel="noreferrer" className="text-sm text-primary underline">Abrir en otra pestaña</a>}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
