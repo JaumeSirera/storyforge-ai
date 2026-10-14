@@ -3,12 +3,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, CalendarClock, Film, ImagePlus, Link2, Loader2, Plus, Send, Trash2, X } from "lucide-react";
+import { ArrowLeft, CalendarClock, Film, ImagePlus, Link2, Loader2, Play, Plus, Send, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   addSocialChapter,
   deleteSocialChapter,
@@ -152,6 +153,7 @@ function ChapterCard({
   const [links, setLinks] = useState(chapter.links);
   const [when, setWhen] = useState(toLocalInput(chapter.scheduled_at));
   const [uploading, setUploading] = useState(false);
+  const [playing, setPlaying] = useState<string | null>(null);
   const [previews, setPreviews] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -283,7 +285,12 @@ function ChapterCard({
           {chapter.media.map((m) => (
             <div key={m.path} className="relative h-20 w-20 overflow-hidden rounded-lg border border-border bg-muted">
               {previews[m.path] ? (
-                m.kind === "video" ? <video src={previews[m.path]} className="h-full w-full object-cover" muted /> : <img src={previews[m.path]} alt={m.name} className="h-full w-full object-cover" />
+                m.kind === "video" ? (
+                  <button type="button" aria-label={`Ver ${m.name}`} onClick={() => setPlaying(previews[m.path])} className="relative block h-full w-full">
+                    <video src={`${previews[m.path]}#t=3`} preload="metadata" className="h-full w-full object-cover" muted playsInline />
+                    <span className="absolute inset-0 grid place-items-center bg-background/20"><Play className="h-6 w-6 text-foreground" /></span>
+                  </button>
+                ) : <img src={previews[m.path]} alt={m.name} className="h-full w-full object-cover" />
               ) : <span className="p-1 text-[10px] text-muted-foreground">{m.name}</span>}
               <button type="button" aria-label={`Quitar ${m.name}`} onClick={() => removeMedia(m.path)} className="absolute right-1 top-1 rounded-full bg-background/90 p-0.5"><X className="h-3 w-3" /></button>
             </div>
@@ -317,6 +324,13 @@ function ChapterCard({
         </div>
       </div>
       {chapter.result && <pre className="whitespace-pre-wrap rounded-lg bg-muted p-3 text-xs text-muted-foreground">{chapter.result}</pre>}
+      <Dialog open={!!playing} onOpenChange={(o) => !o && setPlaying(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogTitle>Vídeo del capítulo</DialogTitle>
+          {playing && <video src={playing} controls autoPlay playsInline className="w-full rounded-lg bg-muted" />}
+          {playing && <a href={playing} target="_blank" rel="noreferrer" className="text-sm text-primary underline">Abrir en otra pestaña</a>}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
