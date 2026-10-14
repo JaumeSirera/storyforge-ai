@@ -34,6 +34,19 @@ function drawCover(ctx: CanvasRenderingContext2D, img: ImageBitmap, W: number, H
   ctx.globalAlpha = 1;
 }
 
+// Imagen completa (sin recortes) sobre un fondo desenfocado de la misma imagen.
+function drawSlide(ctx: CanvasRenderingContext2D, img: ImageBitmap, W: number, H: number, zoom: number, alpha: number) {
+  ctx.save();
+  ctx.filter = "blur(40px) brightness(0.5)";
+  drawCover(ctx, img, W, H, 1.1, alpha);
+  ctx.restore();
+  const s = Math.min(W / img.width, H / img.height) * 0.94 * zoom;
+  const w = img.width * s, h = img.height * s;
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+  ctx.globalAlpha = 1;
+}
+
 export async function createSlideshow(urls: string[], o: SlideshowOptions = {}): Promise<File> {
   if (!urls.length) throw new Error("Añade al menos una imagen al capítulo");
   const W = o.width ?? 1920, H = o.height ?? 1080;
@@ -72,9 +85,9 @@ export async function createSlideshow(urls: string[], o: SlideshowOptions = {}):
     const it = t - titleMs;
     const i = Math.min(imgs.length - 1, Math.floor(it / per));
     const local = it - i * per;
-    drawCover(ctx, imgs[i], W, H, 1 + 0.08 * (local / per), 1);
+    drawSlide(ctx, imgs[i], W, H, 1 + 0.03 * (local / per), 1);
     if (local > per - fade && i + 1 < imgs.length) {
-      drawCover(ctx, imgs[i + 1], W, H, 1, (local - (per - fade)) / fade);
+      drawSlide(ctx, imgs[i + 1], W, H, 1, (local - (per - fade)) / fade);
     }
   };
 
