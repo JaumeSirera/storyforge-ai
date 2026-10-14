@@ -53,7 +53,7 @@ function NetworksPage() {
         )}
         {settings.error && <p className="text-sm text-destructive">{(settings.error as Error).message}</p>}
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Input type="password" autoComplete="off" value={key} onChange={(e) => setKey(e.target.value)} placeholder={settings.data?.has_ayrshare ? "Pega una clave nueva para sustituirla" : "API Key de Ayrshare"} />
+          <Input type="password" autoComplete="new-password" data-1p-ignore data-lpignore="true" value={key} onChange={(e) => setKey(e.target.value)} placeholder={settings.data?.has_ayrshare ? "Pega una clave nueva para sustituirla" : "API Key de Ayrshare"} />
           <Button disabled={!key.trim() || saveKey.isPending} onClick={() => saveKey.mutate(key.trim())}>Guardar</Button>
           {settings.data?.has_ayrshare && <Button variant="outline" onClick={() => { if (confirm("¿Quitar la clave de Ayrshare?")) saveKey.mutate(""); }}>Quitar</Button>}
         </div>
