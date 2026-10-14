@@ -105,7 +105,7 @@ export const generateSocialStory = createServerFn({ method: "POST" })
       keys,
       undefined,
       async ({ model }) => {
-        const r = await generateObject({ model, schema: ChaptersSchema, system: SYSTEM_PROMPT, prompt, temperature: 0.3 });
+        const r = await generateObject({ model, schema: ChaptersSchema, system: SYSTEM_PROMPT, prompt });
         return r.object;
       },
       { label: "social-story" },
