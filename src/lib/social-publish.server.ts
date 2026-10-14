@@ -33,8 +33,8 @@ export async function publishWithAyrshare(
   for (const p of platforms) {
     if ((p === "instagram" || p === "youtube") && media.length === 0) {
       results.push({ platform: p, ok: false, detail: "Necesita al menos una imagen o vídeo." });
-    } else if (p === "tiktok" && !media.some((m) => m.kind === "video")) {
-      results.push({ platform: p, ok: false, detail: "TikTok necesita un vídeo." });
+    } else if (p === "tiktok" && media.length === 0) {
+      results.push({ platform: p, ok: false, detail: "TikTok necesita un vídeo o al menos una imagen." });
     } else send.push(p);
   }
   if (!send.length) return results;
