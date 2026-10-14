@@ -262,7 +262,25 @@ function ChapterCard({
         </Button>
       </div>
       <Input value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Título del capítulo" />
-      <Textarea rows={7} value={body} onChange={(e) => setBody(e.target.value)} aria-label="Texto del capítulo" />
+      <div className="flex items-center gap-2">
+        <Button type="button" variant="outline" size="sm" className="font-bold" aria-label="Negrita" title="Negrita: selecciona texto y pulsa"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => {
+            const el = document.getElementById(`body-${chapter.id}`) as HTMLTextAreaElement | null;
+            if (!el) return;
+            const { selectionStart: a, selectionEnd: b } = el;
+            if (a === b) return toast.info("Selecciona primero el texto que quieres en negrita");
+            const sel = body.slice(a, b);
+            const isBold = sel.startsWith("**") && sel.endsWith("**") && sel.length > 4;
+            const next = body.slice(0, a) + (isBold ? sel.slice(2, -2) : `**${sel}**`) + body.slice(b);
+            setBody(next);
+          }}>B</Button>
+        <span className="text-xs text-muted-foreground">Selecciona texto y pulsa <b>B</b>. Se publicará en negrita en todas las redes.</span>
+      </div>
+      <Textarea id={`body-${chapter.id}`} rows={7} value={body} onChange={(e) => setBody(e.target.value)} aria-label="Texto del capítulo" />
+      {/\*\*[\s\S]+?\*\*/.test(body) && (
+        <div className="rounded-lg bg-muted p-3 text-sm whitespace-pre-wrap"><span className="block text-xs text-muted-foreground mb-1">Así se verá:</span>{composePost(body, [])}</div>
+      )}
       <p className={`text-xs ${over.length ? "text-destructive" : "text-muted-foreground"}`}>
         {post.length} caracteres{over.length ? ` · demasiado largo para ${over.map((n) => `${n.name} (${n.limit})`).join(", ")}` : ""}
       </p>
