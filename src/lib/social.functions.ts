@@ -97,6 +97,7 @@ export const generateSocialStory = createServerFn({ method: "POST" })
       "--- INICIO ---",
       data.sourceText.slice(0, 24000),
       "--- FIN ---",
+      "Responde únicamente con un objeto JSON válido que siga el esquema indicado.",
     ]
       .filter(Boolean)
       .join("\n");
