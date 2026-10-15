@@ -82,6 +82,8 @@ export async function publishWithAyrshare(
   const explain = (msg: string, code?: number) => {
     const base = msg || `HTTP ${res.status}`;
     const extra = code ? ` (código Ayrshare ${code})` : "";
+    if (res.status === 401 || code === 102)
+      return `Ayrshare no reconoce la clave guardada${extra}. Copia de nuevo la API Key desde app.ayrshare.com → API Key (perfil principal) y guárdala en la pestaña «Redes».`;
     if (res.status === 401) return `${base}${extra} — la clave de Ayrshare no es válida.`;
     if (res.status === 403)
       return `${base || "Acceso denegado"}${extra} — Ayrshare no permite esta publicación: revisa que tu plan de Ayrshare incluya acceso por API, que la red esté enlazada en Ayrshare y que la clave sea la del perfil principal.`;
