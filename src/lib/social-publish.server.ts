@@ -48,23 +48,55 @@ export async function publishWithAyrshare(
 
   const res = await fetch("https://api.ayrshare.com/api/post", {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${apiKey.trim()}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "User-Agent": "Xandralyze/1.0",
+    },
     body: JSON.stringify(body),
   });
-  const json = (await res.json().catch(() => ({}))) as {
+  const raw = await res.text();
+  type AyrErr = { platform?: string; message?: string; code?: number; details?: string };
+  type AyrResp = {
     message?: string;
+    code?: number;
+    status?: string;
     postIds?: { platform: string; id?: string; status?: string; postUrl?: string }[];
-    errors?: { platform?: string; message?: string }[];
+    errors?: AyrErr[];
+    posts?: { postIds?: AyrResp["postIds"]; errors?: AyrErr[] }[];
+  };
+  let json: AyrResp = {};
+  try {
+    json = JSON.parse(raw) as AyrResp;
+  } catch {
+    json = {};
+  }
+  const postIds = [...(json.postIds ?? []), ...(json.posts ?? []).flatMap((p) => p.postIds ?? [])];
+  const errors = [...(json.errors ?? []), ...(json.posts ?? []).flatMap((p) => p.errors ?? [])];
+  const general =
+    json.message ??
+    errors.find((e) => !e.platform)?.message ??
+    errors[0]?.message ??
+    (raw && !raw.trim().startsWith("<") ? raw.slice(0, 300) : "");
+  const explain = (msg: string, code?: number) => {
+    const base = msg || `HTTP ${res.status}`;
+    const extra = code ? ` (código Ayrshare ${code})` : "";
+    if (res.status === 401) return `${base}${extra} — la clave de Ayrshare no es válida.`;
+    if (res.status === 403)
+      return `${base || "Acceso denegado"}${extra} — Ayrshare no permite esta publicación: revisa que tu plan de Ayrshare incluya acceso por API, que la red esté enlazada en Ayrshare y que la clave sea la del perfil principal.`;
+    return `${base}${extra}`;
   };
   for (const p of send) {
-    const ok = json.postIds?.find((x) => x.platform === p && x.status !== "error");
-    const err = json.errors?.find((x) => x.platform === p);
+    const ok = postIds.find((x) => x.platform === p && x.status !== "error");
+    const err = errors.find((x) => x.platform === p);
     results.push(
       ok
         ? { platform: p, ok: true, detail: ok.postUrl ?? ok.id ?? "publicado" }
-        : { platform: p, ok: false, detail: err?.message ?? json.message ?? `HTTP ${res.status}` },
+        : { platform: p, ok: false, detail: explain(err?.message ?? general, err?.code ?? json.code) },
     );
   }
+  if (!res.ok) console.error("Ayrshare", res.status, raw.slice(0, 1000));
   return results;
 }
 
