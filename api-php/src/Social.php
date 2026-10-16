@@ -115,32 +115,64 @@ final class Social
         return $row;
     }
 
-    // ---- Ajustes (clave de Ayrshare) ---------------------------------------
+    // ---- Ajustes (Upload-Post) --------------------------------------------
+
+    private function ensureUploadPostColumns(): void
+    {
+        foreach (['uploadpost_key' => 'TEXT NULL', 'uploadpost_user' => 'VARCHAR(200) NULL', 'facebook_page_id' => 'VARCHAR(100) NULL'] as $col => $def) {
+            $exists = $this->db->one(
+                'SELECT 1 AS x FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = \'app_social_settings\' AND COLUMN_NAME = :c',
+                ['c' => $col]
+            );
+            if ($exists === null) $this->db->run("ALTER TABLE app_social_settings ADD COLUMN $col $def");
+        }
+    }
+
+    /** @return array<string,mixed>|null */
+    private function settingsRow(string $userId): ?array
+    {
+        $this->ensureUploadPostColumns();
+        return $this->db->one('SELECT uploadpost_key, uploadpost_user, facebook_page_id FROM app_social_settings WHERE user_id = :u', ['u' => $userId]);
+    }
 
     /** @return array<string,mixed> */
     public function settings(string $userId): array
     {
-        $row = $this->db->one('SELECT ayrshare_key FROM app_social_settings WHERE user_id = :u', ['u' => $userId]);
-        return ['has_ayrshare' => $row !== null && trim((string) $row['ayrshare_key']) !== ''];
+        $row = $this->settingsRow($userId);
+        return [
+            'has_key' => $row !== null && trim((string) $row['uploadpost_key']) !== '',
+            'profile' => (string) ($row['uploadpost_user'] ?? ''),
+            'facebook_page_id' => (string) ($row['facebook_page_id'] ?? ''),
+        ];
     }
 
-    /** Solo la llama el servidor web (nunca el navegador). */
-    public function ayrshareKey(string $userId): ?string
+    /** Solo la llama el servidor web (nunca el navegador). @return array<string,mixed> */
+    public function publishCredentials(string $userId): array
     {
-        $row = $this->db->one('SELECT ayrshare_key FROM app_social_settings WHERE user_id = :u', ['u' => $userId]);
-        $key = trim((string) ($row['ayrshare_key'] ?? ''));
-        return $key === '' ? null : $key;
+        $row = $this->settingsRow($userId);
+        $key = trim((string) ($row['uploadpost_key'] ?? ''));
+        return [
+            'key' => $key === '' ? null : $key,
+            'profile' => (string) ($row['uploadpost_user'] ?? ''),
+            'facebook_page_id' => (string) ($row['facebook_page_id'] ?? ''),
+        ];
     }
 
     /** @param array<string,mixed> $body @return array<string,mixed> */
     public function saveSettings(string $userId, array $body): array
     {
-        $key = self::text($body['ayrshare_key'] ?? '', 500);
-        $this->db->run(
-            'INSERT INTO app_social_settings (user_id, ayrshare_key) VALUES (:u, :k)
-             ON DUPLICATE KEY UPDATE ayrshare_key = VALUES(ayrshare_key)',
-            ['u' => $userId, 'k' => $key === '' ? null : $key]
-        );
+        $this->ensureUploadPostColumns();
+        $this->db->run('INSERT IGNORE INTO app_social_settings (user_id) VALUES (:u)', ['u' => $userId]);
+        if (array_key_exists('key', $body)) {
+            $key = self::text($body['key'] ?? '', 500);
+            $this->db->run('UPDATE app_social_settings SET uploadpost_key = :k WHERE user_id = :u', ['u' => $userId, 'k' => $key === '' ? null : $key]);
+        }
+        if (array_key_exists('profile', $body)) {
+            $this->db->run('UPDATE app_social_settings SET uploadpost_user = :p WHERE user_id = :u', ['u' => $userId, 'p' => self::text($body['profile'] ?? '', 200)]);
+        }
+        if (array_key_exists('facebook_page_id', $body)) {
+            $this->db->run('UPDATE app_social_settings SET facebook_page_id = :f WHERE user_id = :u', ['u' => $userId, 'f' => self::text($body['facebook_page_id'] ?? '', 100)]);
+        }
         return $this->settings($userId);
     }
 
@@ -351,8 +383,9 @@ final class Social
     /** Tarea programada (modo servicio): capítulos que ya tocan. @return list<array<string,mixed>> */
     public function due(int $limit = 20): array
     {
+        $this->ensureUploadPostColumns();
         $rows = $this->db->all(
-            'SELECT c.*, s.networks AS story_networks, st.ayrshare_key
+            'SELECT c.*, s.networks AS story_networks, st.uploadpost_key, st.uploadpost_user, st.facebook_page_id
              FROM app_social_chapters c
              JOIN app_social_stories s ON s.id = c.story_id
              LEFT JOIN app_social_settings st ON st.user_id = c.owner_id
