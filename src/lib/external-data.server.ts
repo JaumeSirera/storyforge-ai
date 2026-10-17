@@ -148,7 +148,9 @@ export const externalApi = {
     return request<T[]>({ accessToken, path: `/${resource}`, query });
   },
   get<T>(accessToken: string, resource: ExternalResource, id: string) {
-    return request<T>({ accessToken, path: `/${resource}/${id}` });
+    // Filas únicas con id booleano (p. ej. pricing_config) viven como id = 1 en MySQL.
+    const key = String(id) === "true" ? "1" : String(id) === "false" ? "0" : id;
+    return request<T>({ accessToken, path: `/${resource}/${key}` });
   },
   create<T>(accessToken: string, resource: ExternalResource, body: Record<string, unknown>) {
     return request<T>({ accessToken, method: "POST", path: `/${resource}`, body });

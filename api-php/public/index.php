@@ -297,7 +297,7 @@ if (($segments[0] ?? '') === 'social') {
         Http::json(['data' => $social->saveSettings($userId, Http::body())]);
     }
     if ($route === 'settings/key' && $method === 'GET') {
-        Http::json(['data' => ['key' => $social->ayrshareKey($userId)]]);
+        Http::json(['data' => $social->publishCredentials($userId)]);
     }
     if ($route === 'stories' && $method === 'GET') {
         Http::json(['data' => $social->listStories($userId)]);
