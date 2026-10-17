@@ -1,11 +1,13 @@
 /**
- * Publicación de capítulos con Ayrshare. Server-only.
- * Los archivos adjuntos se pasan a Ayrshare como enlaces firmados de larga
- * duración del almacén propio.
+ * Publicación de capítulos con Upload-Post (upload-post.com). Server-only.
+ * Los archivos adjuntos se pasan como enlaces firmados de larga duración.
  */
 import { composePost, type SocialChapter, type SocialMedia } from "./social-shared";
 
 type Result = { platform: string; ok: boolean; detail: string };
+export type PublishCreds = { key: string | null; profile: string; facebook_page_id?: string };
+
+const API = "https://api.upload-post.com/api";
 
 async function mediaUrls(media: SocialMedia[]): Promise<{ url: string; kind: SocialMedia["kind"] }[]> {
   if (!media.length) return [];
@@ -19,86 +21,79 @@ async function mediaUrls(media: SocialMedia[]): Promise<{ url: string; kind: Soc
   return out;
 }
 
-export async function publishWithAyrshare(
-  apiKey: string,
+const TEXT_OK = new Set(["x", "linkedin", "facebook", "threads"]);
+
+export async function publishSocial(
+  creds: PublishCreds,
   chapter: Pick<SocialChapter, "body" | "links" | "media">,
   platforms: string[],
 ): Promise<Result[]> {
-  if (!apiKey) throw new Error("Falta la clave de Ayrshare. Añádela en la pestaña «Redes».");
+  const apiKey = (creds.key ?? "").trim();
+  const profile = (creds.profile ?? "").trim();
+  if (!apiKey) throw new Error("Falta la clave de Upload-Post. Añádela en la pestaña «Redes».");
+  if (!profile) throw new Error("Falta el nombre del perfil de Upload-Post. Añádelo en la pestaña «Redes».");
   if (!platforms.length) throw new Error("Esta serie no tiene ninguna red activada.");
 
   const media = await mediaUrls(chapter.media ?? []);
+  const video = media.find((m) => m.kind === "video");
+  const photos = media.filter((m) => m.kind === "imagen");
   const results: Result[] = [];
   const send: string[] = [];
   for (const p of platforms) {
-    if ((p === "instagram" || p === "youtube") && media.length === 0) {
+    if (p === "youtube" && !video) results.push({ platform: p, ok: false, detail: "YouTube necesita un vídeo." });
+    else if ((p === "instagram" || p === "tiktok") && !media.length)
       results.push({ platform: p, ok: false, detail: "Necesita al menos una imagen o vídeo." });
-    } else if (p === "tiktok" && media.length === 0) {
-      results.push({ platform: p, ok: false, detail: "TikTok necesita un vídeo o al menos una imagen." });
-    } else send.push(p);
+    else if (!media.length && !TEXT_OK.has(p))
+      results.push({ platform: p, ok: false, detail: "Esta red no admite publicaciones solo de texto." });
+    else send.push(p);
   }
   if (!send.length) return results;
 
-  const ordered = [...media].sort((a, b) => (a.kind === "video" ? -1 : 0) - (b.kind === "video" ? -1 : 0));
-  const body: Record<string, unknown> = { post: composePost(chapter.body, chapter.links ?? []), platforms: send };
-  if (ordered.length) {
-    body["mediaUrls"] = ordered.map((m) => m.url);
-    if (ordered.some((m) => m.kind === "video")) body["isVideo"] = true;
+  const text = composePost(chapter.body, chapter.links ?? []);
+  const form = new FormData();
+  form.append("user", profile);
+  for (const p of send) form.append("platform[]", p);
+  form.append("title", text);
+  if (creds.facebook_page_id?.trim() && send.includes("facebook")) form.append("facebook_page_id", creds.facebook_page_id.trim());
+
+  let endpoint = "upload_text";
+  if (video) {
+    endpoint = "upload";
+    form.append("video", video.url);
+    form.append("description", text);
+  } else if (photos.length) {
+    endpoint = "upload_photos";
+    for (const ph of photos) form.append("photos[]", ph.url);
+    form.append("description", text);
   }
 
-  const res = await fetch("https://api.ayrshare.com/api/post", {
+  const res = await fetch(`${API}/${endpoint}`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey.trim()}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      "User-Agent": "Xandralyze/1.0",
-    },
-    body: JSON.stringify(body),
+    headers: { Authorization: `Apikey ${apiKey}`, Accept: "application/json" },
+    body: form,
   });
   const raw = await res.text();
-  type AyrErr = { platform?: string; message?: string; code?: number; details?: string };
-  type AyrResp = {
-    message?: string;
-    code?: number;
-    status?: string;
-    postIds?: { platform: string; id?: string; status?: string; postUrl?: string }[];
-    errors?: AyrErr[];
-    posts?: { postIds?: AyrResp["postIds"]; errors?: AyrErr[] }[];
-  };
-  let json: AyrResp = {};
+  type R = { success?: boolean; url?: string; post_url?: string; error?: string; message?: string };
+  let json: { success?: boolean; message?: string; error?: string; results?: Record<string, R> } = {};
   try {
-    json = JSON.parse(raw) as AyrResp;
+    json = JSON.parse(raw);
   } catch {
     json = {};
   }
-  const postIds = [...(json.postIds ?? []), ...(json.posts ?? []).flatMap((p) => p.postIds ?? [])];
-  const errors = [...(json.errors ?? []), ...(json.posts ?? []).flatMap((p) => p.errors ?? [])];
   const general =
-    json.message ??
-    errors.find((e) => !e.platform)?.message ??
-    errors[0]?.message ??
-    (raw && !raw.trim().startsWith("<") ? raw.slice(0, 300) : "");
-  const explain = (msg: string, code?: number) => {
-    const base = msg || `HTTP ${res.status}`;
-    const extra = code ? ` (código Ayrshare ${code})` : "";
-    if (res.status === 401 || code === 102)
-      return `Ayrshare no reconoce la clave guardada${extra}. Copia de nuevo la API Key desde app.ayrshare.com → API Key (perfil principal) y guárdala en la pestaña «Redes».`;
-    if (res.status === 401) return `${base}${extra} — la clave de Ayrshare no es válida.`;
-    if (res.status === 403)
-      return `${base || "Acceso denegado"}${extra} — Ayrshare no permite esta publicación: revisa que tu plan de Ayrshare incluya acceso por API, que la red esté enlazada en Ayrshare y que la clave sea la del perfil principal.`;
-    return `${base}${extra}`;
+    json.message ?? json.error ?? (raw && !raw.trim().startsWith("<") ? raw.slice(0, 300) : `HTTP ${res.status}`);
+  const explain = (msg: string) => {
+    if (res.status === 401 || res.status === 403)
+      return `Upload-Post rechaza la clave o el perfil (${msg}). Revisa la API Key y el nombre del perfil en «Redes».`;
+    return msg;
   };
   for (const p of send) {
-    const ok = postIds.find((x) => x.platform === p && x.status !== "error");
-    const err = errors.find((x) => x.platform === p);
-    results.push(
-      ok
-        ? { platform: p, ok: true, detail: ok.postUrl ?? ok.id ?? "publicado" }
-        : { platform: p, ok: false, detail: explain(err?.message ?? general, err?.code ?? json.code) },
-    );
+    const r = json.results?.[p];
+    if (r?.success) results.push({ platform: p, ok: true, detail: r.url ?? r.post_url ?? "publicado" });
+    else if (res.ok && json.success && !json.results) results.push({ platform: p, ok: true, detail: "enviado" });
+    else results.push({ platform: p, ok: false, detail: explain(r?.error ?? r?.message ?? general) });
   }
-  if (!res.ok) console.error("Ayrshare", res.status, raw.slice(0, 1000));
+  if (!res.ok) console.error("Upload-Post", res.status, raw.slice(0, 1000));
   return results;
 }
 
