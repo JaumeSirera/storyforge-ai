@@ -24,13 +24,17 @@ function NetworksPage() {
   const settings = useQuery({ queryKey: ["social-settings"], queryFn: () => getSettings(), retry: 1 });
   const stories = useQuery({ queryKey: ["social-stories"], queryFn: () => list(), retry: 1 });
   const [key, setKey] = useState("");
+  const [profile, setProfile] = useState<string | null>(null);
+  const [fbPage, setFbPage] = useState<string | null>(null);
 
   const saveKey = useMutation({
-    mutationFn: (k: string) => saveSettings({ data: { ayrshareKey: k } }),
+    mutationFn: (d: { key?: string; profile?: string; facebookPageId?: string }) => saveSettings({ data: d }),
     onSuccess: (r) => {
       setKey("");
+      setProfile(null);
+      setFbPage(null);
       qc.setQueryData(["social-settings"], r);
-      toast.success(r.has_ayrshare ? "Clave de Ayrshare guardada" : "Clave de Ayrshare eliminada");
+      toast.success("Ajustes de Upload-Post guardados");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -41,24 +45,29 @@ function NetworksPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const profileVal = profile ?? settings.data?.profile ?? "";
+  const fbVal = fbPage ?? settings.data?.facebook_page_id ?? "";
+
   return (
     <div className="space-y-6">
       <section className="rounded-2xl border border-border bg-card p-5 space-y-3">
-        <h3 className="font-semibold flex items-center gap-2"><KeyRound className="h-4 w-4 text-primary" /> Conexión con Ayrshare</h3>
+        <h3 className="font-semibold flex items-center gap-2"><KeyRound className="h-4 w-4 text-primary" /> Conexión con Upload-Post</h3>
         <p className="text-sm text-muted-foreground">
-          Ayrshare publica en todas tus redes con una sola clave. Enlaza tus cuentas (Instagram, LinkedIn, Facebook…) en tu panel de Ayrshare y pega aquí la API Key. Se guarda en tu servidor y no se muestra nunca en el navegador.
+          Enlaza tus redes en tu panel de Upload-Post dentro de un perfil, y pega aquí el nombre de ese perfil y la API Key. La clave se guarda en tu servidor y no se muestra en el navegador.
         </p>
-        {settings.data?.has_ayrshare && (
-          <p className="inline-flex items-center gap-1.5 text-sm text-primary"><CheckCircle2 className="h-4 w-4" /> Ayrshare conectado</p>
+        {settings.data?.has_key && (
+          <p className="inline-flex items-center gap-1.5 text-sm text-primary"><CheckCircle2 className="h-4 w-4" /> Upload-Post conectado</p>
         )}
         {settings.error && <p className="text-sm text-destructive">{(settings.error as Error).message}</p>}
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Input type="password" autoComplete="new-password" data-1p-ignore data-lpignore="true" value={key} onChange={(e) => setKey(e.target.value)} placeholder={settings.data?.has_ayrshare ? "Pega una clave nueva para sustituirla" : "API Key de Ayrshare"} />
-          <Button disabled={!key.trim() || saveKey.isPending} onClick={() => saveKey.mutate(key.trim())}>Guardar</Button>
-          {settings.data?.has_ayrshare && <Button variant="outline" onClick={() => { if (confirm("¿Quitar la clave de Ayrshare?")) saveKey.mutate(""); }}>Quitar</Button>}
+        <Input type="password" autoComplete="new-password" data-1p-ignore data-lpignore="true" value={key} onChange={(e) => setKey(e.target.value)} placeholder={settings.data?.has_key ? "Pega una clave nueva para sustituirla" : "API Key de Upload-Post"} />
+        <Input autoComplete="off" data-1p-ignore data-lpignore="true" value={profileVal} onChange={(e) => setProfile(e.target.value)} placeholder="Nombre del perfil en Upload-Post" />
+        <Input autoComplete="off" data-1p-ignore data-lpignore="true" value={fbVal} onChange={(e) => setFbPage(e.target.value)} placeholder="ID de página de Facebook (opcional)" />
+        <div className="flex gap-2">
+          <Button disabled={saveKey.isPending} onClick={() => saveKey.mutate({ ...(key.trim() ? { key: key.trim() } : {}), profile: profileVal.trim(), facebookPageId: fbVal.trim() })}>Guardar</Button>
+          {settings.data?.has_key && <Button variant="outline" onClick={() => { if (confirm("¿Quitar la clave de Upload-Post?")) saveKey.mutate({ key: "" }); }}>Quitar clave</Button>}
         </div>
-        <a href="https://app.ayrshare.com/api-key" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
-          Obtener la clave en Ayrshare <ExternalLink className="h-3 w-3" />
+        <a href="https://app.upload-post.com/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+          Abrir Upload-Post <ExternalLink className="h-3 w-3" />
         </a>
       </section>
 

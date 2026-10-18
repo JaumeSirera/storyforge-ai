@@ -27,15 +27,27 @@ const Media = z.object({ path: z.string().min(3).max(500), kind: z.enum(["imagen
 const Networks = z.array(z.enum(SOCIAL_NETWORK_IDS)).max(7);
 const Id = z.string().uuid();
 
+type SocialSettings = { has_key: boolean; profile: string; facebook_page_id: string };
+
 export const getSocialSettings = createServerFn({ method: "GET" })
   .middleware([requireAnyAuth])
-  .handler(async ({ context }) => api<{ has_ayrshare: boolean }>(context, "/social/settings"));
+  .handler(async ({ context }) => api<SocialSettings>(context, "/social/settings"));
 
 export const saveSocialSettings = createServerFn({ method: "POST" })
   .middleware([requireAnyAuth])
-  .inputValidator(z.object({ ayrshareKey: z.string().trim().max(500) }))
+  .inputValidator(
+    z.object({
+      key: z.string().trim().max(500).optional(),
+      profile: z.string().trim().max(200).optional(),
+      facebookPageId: z.string().trim().max(100).optional(),
+    }),
+  )
   .handler(async ({ data, context }) =>
-    api<{ has_ayrshare: boolean }>(context, "/social/settings", "POST", { ayrshare_key: data.ayrshareKey }),
+    api<SocialSettings>(context, "/social/settings", "POST", {
+      ...(data.key !== undefined ? { key: data.key } : {}),
+      ...(data.profile !== undefined ? { profile: data.profile } : {}),
+      ...(data.facebookPageId !== undefined ? { facebook_page_id: data.facebookPageId } : {}),
+    }),
   );
 
 export const listSocialStories = createServerFn({ method: "GET" })
@@ -234,9 +246,9 @@ export const publishSocialChapterNow = createServerFn({ method: "POST" })
     const full = await api<SocialStoryFull>(context, `/social/stories/${data.storyId}`);
     const chapter = full.chapters.find((c) => c.id === data.chapterId);
     if (!chapter) throw new Error("Capítulo no encontrado");
-    const { key } = await api<{ key: string | null }>(context, "/social/settings/key");
-    const { publishWithAyrshare, summarize } = await import("./social-publish.server");
-    const results = await publishWithAyrshare(key ?? "", chapter, full.story.networks);
+    const creds = await api<{ key: string | null; profile: string; facebook_page_id?: string }>(context, "/social/settings/key");
+    const { publishSocial, summarize } = await import("./social-publish.server");
+    const results = await publishSocial(creds, chapter, full.story.networks);
     const s = summarize(results);
     const updated = await api<SocialStoryFull>(context, `/social/chapters/${chapter.id}`, "PATCH", s);
     return { story: updated, ...s };

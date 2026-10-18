@@ -23,14 +23,16 @@ async function run(request: Request) {
   }
 
   const { externalRequest } = await import("@/lib/external-data.server");
-  const { publishWithAyrshare, summarize } = await import("@/lib/social-publish.server");
+  const { publishSocial, summarize } = await import("@/lib/social-publish.server");
   type Due = {
     id: string;
     body: string;
     links: { label: string; url: string }[];
     media: { path: string; kind: "imagen" | "video"; name: string }[];
     networks: string[];
-    ayrshare_key: string | null;
+    uploadpost_key: string | null;
+    uploadpost_user: string | null;
+    facebook_page_id: string | null;
   };
   // Sin token de usuario => modo servicio.
   const due = await externalRequest<Due[]>({ accessToken: "", path: "/social/due", query: { limit: 20 } });
@@ -38,7 +40,13 @@ async function run(request: Request) {
   for (const c of due) {
     let s: { status: "publicado" | "error"; result: string };
     try {
-      s = summarize(await publishWithAyrshare(c.ayrshare_key ?? "", c, c.networks));
+      s = summarize(
+        await publishSocial(
+          { key: c.uploadpost_key, profile: c.uploadpost_user ?? "", facebook_page_id: c.facebook_page_id ?? "" },
+          c,
+          c.networks,
+        ),
+      );
     } catch (e) {
       s = { status: "error", result: e instanceof Error ? e.message : String(e) };
     }
