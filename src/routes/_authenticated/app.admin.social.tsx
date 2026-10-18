@@ -16,7 +16,7 @@ function SocialLayout() {
         <div>
           <h2 className="text-xl font-semibold">Redes sociales</h2>
           <p className="text-sm text-muted-foreground">
-            Convierte un texto en una serie de capítulos y publícalos con Ayrshare.
+            Convierte un texto en una serie de capítulos y publícalos con Upload-Post.
           </p>
         </div>
         <nav className="flex gap-1 rounded-lg border border-border bg-card p-1" aria-label="Secciones de redes sociales">
