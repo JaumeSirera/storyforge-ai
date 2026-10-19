@@ -53,7 +53,7 @@ async function resolveProfile(apiKey: string, typed: string): Promise<{ user: st
 
 export async function publishSocial(
   creds: PublishCreds,
-  chapter: Pick<SocialChapter, "body" | "links" | "media">,
+  chapter: Pick<SocialChapter, "body" | "links" | "media"> & { title?: string },
   platforms: string[],
 ): Promise<Result[]> {
   const apiKey = (creds.key ?? "").trim();
@@ -90,6 +90,13 @@ export async function publishSocial(
     endpoint = "upload";
     form.append("video", video.url);
     form.append("description", text);
+    if (send.includes("youtube")) {
+      // YouTube admite como máximo 100 caracteres en el título.
+      const plain = (chapter.title || chapter.body || "Vídeo").replace(/\*\*/g, "").replace(/\s+/g, " ").trim();
+      const yt = Array.from(plain);
+      form.append("youtube_title", yt.length > 100 ? yt.slice(0, 99).join("").trimEnd() + "…" : plain);
+      form.append("youtube_description", text.slice(0, 5000));
+    }
   } else if (photos.length) {
     endpoint = "upload_photos";
     for (const ph of photos) form.append("photos[]", ph.url);
