@@ -23,16 +23,45 @@ async function mediaUrls(media: SocialMedia[]): Promise<{ url: string; kind: Soc
 
 const TEXT_OK = new Set(["x", "linkedin", "facebook", "threads"]);
 
+type UpProfile = { username?: string; display_name?: string | null };
+
+/**
+ * El panel de Upload-Post muestra el «display_name» del perfil, pero la API
+ * necesita su «username» interno. Buscamos el perfil real con la clave.
+ */
+async function resolveProfile(apiKey: string, typed: string): Promise<{ user: string; known: string[] }> {
+  try {
+    const res = await fetch(`${API}/uploadposts/users`, {
+      headers: { Authorization: `Apikey ${apiKey}`, Accept: "application/json" },
+    });
+    if (!res.ok) return { user: typed, known: [] };
+    const json = (await res.json()) as { profiles?: UpProfile[] };
+    const list = (json.profiles ?? []).filter((p) => p.username);
+    const known = list.map((p) => (p.display_name ? `${p.display_name} (${p.username})` : String(p.username)));
+    const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase();
+    const t = norm(typed);
+    const hit =
+      list.find((p) => p.username === typed) ??
+      list.find((p) => norm(p.username) === t) ??
+      list.find((p) => norm(p.display_name) === t) ??
+      (list.length === 1 ? list[0] : undefined);
+    return { user: hit?.username ?? typed, known };
+  } catch {
+    return { user: typed, known: [] };
+  }
+}
+
 export async function publishSocial(
   creds: PublishCreds,
   chapter: Pick<SocialChapter, "body" | "links" | "media">,
   platforms: string[],
 ): Promise<Result[]> {
   const apiKey = (creds.key ?? "").trim();
-  const profile = (creds.profile ?? "").trim();
+  const typedProfile = (creds.profile ?? "").trim();
   if (!apiKey) throw new Error("Falta la clave de Upload-Post. Añádela en la pestaña «Redes».");
-  if (!profile) throw new Error("Falta el nombre del perfil de Upload-Post. Añádelo en la pestaña «Redes».");
   if (!platforms.length) throw new Error("Esta serie no tiene ninguna red activada.");
+  const { user: profile, known } = await resolveProfile(apiKey, typedProfile);
+  if (!profile) throw new Error("Falta el nombre del perfil de Upload-Post. Añádelo en la pestaña «Redes».");
 
   const media = await mediaUrls(chapter.media ?? []);
   const video = media.find((m) => m.kind === "video");
@@ -84,7 +113,9 @@ export async function publishSocial(
     json.message ?? json.error ?? (raw && !raw.trim().startsWith("<") ? raw.slice(0, 300) : `HTTP ${res.status}`);
   const explain = (msg: string) => {
     if (/not associated with any profile/i.test(msg))
-      return `Upload-Post no encuentra el perfil «${profile}». Escribe en «Redes» el nombre exacto del perfil tal como sale en Upload-Post → Usuarios (columna PERFIL).`;
+      return known.length
+        ? `Upload-Post no encuentra el perfil «${profile}». Perfiles de esta clave: ${known.join(", ")}.`
+        : `Upload-Post no encuentra el perfil «${profile}» y esta API Key no tiene ningún perfil. Probablemente la clave es de otra cuenta de Upload-Post o el perfil aún no tiene redes enlazadas: crea una clave nueva en la misma cuenta donde está el perfil.`;
     if (res.status === 401 || res.status === 403)
       return `Upload-Post rechaza la clave o el perfil (${msg}). Revisa la API Key y el nombre del perfil en «Redes».`;
     return msg;
