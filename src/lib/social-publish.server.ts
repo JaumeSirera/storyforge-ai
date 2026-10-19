@@ -113,7 +113,9 @@ export async function publishSocial(
     json.message ?? json.error ?? (raw && !raw.trim().startsWith("<") ? raw.slice(0, 300) : `HTTP ${res.status}`);
   const explain = (msg: string) => {
     if (/not associated with any profile/i.test(msg))
-      return `Upload-Post no encuentra el perfil «${profile}». Escribe en «Redes» el nombre exacto del perfil tal como sale en Upload-Post → Usuarios (columna PERFIL).`;
+      return known.length
+        ? `Upload-Post no encuentra el perfil «${profile}». Perfiles de esta clave: ${known.join(", ")}.`
+        : `Upload-Post no encuentra el perfil «${profile}» y esta API Key no tiene ningún perfil. Probablemente la clave es de otra cuenta de Upload-Post o el perfil aún no tiene redes enlazadas: crea una clave nueva en la misma cuenta donde está el perfil.`;
     if (res.status === 401 || res.status === 403)
       return `Upload-Post rechaza la clave o el perfil (${msg}). Revisa la API Key y el nombre del perfil en «Redes».`;
     return msg;
