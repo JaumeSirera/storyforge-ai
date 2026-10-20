@@ -1,6 +1,8 @@
 /**
  * Publicación de capítulos con Upload-Post (upload-post.com). Server-only.
- * Los archivos adjuntos se pasan como enlaces firmados de larga duración.
+ * Los archivos adjuntos se envían como archivo dentro de la petición (no como
+ * enlace): el cortafuegos del hosting bloquea las descargas automáticas que
+ * Upload-Post haría desde nuestro servidor.
  */
 import { composePost, type SocialChapter, type SocialMedia } from "./social-shared";
 
@@ -9,14 +11,28 @@ export type PublishCreds = { key: string | null; profile: string; facebook_page_
 
 const API = "https://api.upload-post.com/api";
 
-async function mediaUrls(media: SocialMedia[]): Promise<{ url: string; kind: SocialMedia["kind"] }[]> {
+type MediaFile = { file: File; kind: SocialMedia["kind"] };
+
+function guessMime(name: string, kind: SocialMedia["kind"], given: string): string {
+  if (given && given !== "application/octet-stream") return given;
+  const ext = name.split(".").pop()?.toLowerCase() ?? "";
+  const map: Record<string, string> = {
+    mp4: "video/mp4", mov: "video/quicktime", webm: "video/webm", m4v: "video/mp4",
+    jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif",
+  };
+  return map[ext] ?? (kind === "video" ? "video/mp4" : "image/jpeg");
+}
+
+async function mediaFiles(media: SocialMedia[]): Promise<MediaFile[]> {
   if (!media.length) return [];
   const { externalStorage } = await import("./external-storage.server");
-  const out: { url: string; kind: SocialMedia["kind"] }[] = [];
+  const out: MediaFile[] = [];
   for (const m of media) {
-    const { data, error } = await externalStorage.from("videos").createSignedUrl(m.path, 7 * 24 * 3600);
+    const { data, error } = await externalStorage.from("videos").download(m.path);
     if (error || !data) throw new Error(`No se pudo preparar el archivo «${m.name}» para publicar.`);
-    out.push({ url: data.signedUrl, kind: m.kind });
+    const name = m.name || m.path.split("/").pop() || (m.kind === "video" ? "video.mp4" : "imagen.jpg");
+    const type = guessMime(m.path || name, m.kind, data.type);
+    out.push({ file: new File([await data.arrayBuffer()], name, { type }), kind: m.kind });
   }
   return out;
 }
