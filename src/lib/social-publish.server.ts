@@ -79,7 +79,7 @@ export async function publishSocial(
   const { user: profile, known } = await resolveProfile(apiKey, typedProfile);
   if (!profile) throw new Error("Falta el nombre del perfil de Upload-Post. Añádelo en la pestaña «Redes».");
 
-  const media = await mediaUrls(chapter.media ?? []);
+  const media = await mediaFiles(chapter.media ?? []);
   const video = media.find((m) => m.kind === "video");
   const photos = media.filter((m) => m.kind === "imagen");
   const results: Result[] = [];
@@ -104,7 +104,7 @@ export async function publishSocial(
   let endpoint = "upload_text";
   if (video) {
     endpoint = "upload";
-    form.append("video", video.url);
+    form.append("video", video.file, video.file.name);
     form.append("description", text);
     if (send.includes("youtube")) {
       // YouTube admite como máximo 100 caracteres en el título.
@@ -115,7 +115,7 @@ export async function publishSocial(
     }
   } else if (photos.length) {
     endpoint = "upload_photos";
-    for (const ph of photos) form.append("photos[]", ph.url);
+    for (const ph of photos) form.append("photos[]", ph.file, ph.file.name);
     form.append("description", text);
   }
 
