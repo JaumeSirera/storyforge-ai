@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetTrigger, SheetContent, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { AssessmentsModule } from "@/components/AssessmentsModule";
+import { PublicDemo } from "@/components/PublicDemo";
 import logo from "@/assets/logo-xandralyze.png";
 import {
   Sparkles,
@@ -51,6 +52,7 @@ function Landing() {
       <Header />
       <main>
         <Hero />
+        <PublicDemo />
         <AssessmentsModule />
         <Modules />
         <Features />
@@ -159,8 +161,8 @@ function Hero() {
               Crear mi primera simulación <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
-          <a href="#modules">
-            <Button size="lg" variant="outline">Ver qué hace la app</Button>
+          <a href="#demo">
+            <Button size="lg" variant="outline">Ver vídeo y probar simulación</Button>
           </a>
         </div>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
