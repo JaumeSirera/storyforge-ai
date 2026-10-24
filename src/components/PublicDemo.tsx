@@ -4,9 +4,6 @@ import { Button } from "@/components/ui/button";
 import { demoCriteria, demoStars, demoStory } from "@/lib/public-demo";
 import { resolveChoiceDestination, type Choice } from "@/lib/story-types";
 import hotel from "@/assets/demo-hotel.jpg";
-import video from "@/assets/demo-xandralyze.mp4.asset.json";
-import webVideo from "@/assets/demo-xandralyze.webm.asset.json";
-import poster from "@/assets/demo-xandralyze-poster.jpg.asset.json";
 
 export function PublicDemo() {
   const [started, setStarted] = useState(false);
@@ -46,10 +43,9 @@ export function PublicDemo() {
               <h3 className="text-xl font-semibold">Un recorrido por Xandralyze</h3>
               <span className="text-sm text-muted-foreground">3 min 20 s</span>
             </div>
-            <video controls playsInline preload="none" poster={poster.url} className="aspect-video w-full rounded-lg bg-muted object-contain" aria-label="Vídeo de demostración de Xandralyze">
-              <source src={webVideo.url} type="video/webm" />
-              <source src={video.url} type="video/mp4" />
-              <a href={video.url}>Ver el vídeo de demostración</a>
+            <video controls playsInline preload="none" poster="/demo/poster.jpg" className="aspect-video w-full rounded-lg bg-muted object-contain" aria-label="Vídeo de demostración de Xandralyze">
+              <source src="/demo/DemoXandralyze.mp4" type="video/mp4" />
+              <a href="/demo/DemoXandralyze.mp4">Ver el vídeo de demostración</a>
             </video>
           </div>
           <div className="min-w-0 space-y-4" aria-label="Simulación de ejemplo">

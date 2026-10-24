@@ -3,6 +3,8 @@
 ## Demostración pública en portada
 - [x] Añadir el vídeo completo enviado y una simulación de ejemplo sin registro.
 - [x] Verificar reproducción, decisiones y resultado final en la portada.
+- [x] Guardar el vídeo y la miniatura dentro del proyecto (`public/demo/`) para que viajen en el ZIP.
+- [ ] Usuario: subir `xandralyze-web_v18.zip` y comprobar que el vídeo se reproduce en xandralyze.com.
 
 Orden elegido: primero mover la lógica al servidor propio, después generar la web estática.
 
