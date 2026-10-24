@@ -1,8 +1,8 @@
 # Fase C — independencia de Lovable
 
 ## Demostración pública en portada
-- [ ] Añadir el vídeo completo enviado y una simulación de ejemplo sin registro.
-- [ ] Verificar reproducción, decisiones y resultado final en la portada.
+- [x] Añadir el vídeo completo enviado y una simulación de ejemplo sin registro.
+- [x] Verificar reproducción, decisiones y resultado final en la portada.
 
 Orden elegido: primero mover la lógica al servidor propio, después generar la web estática.
 
