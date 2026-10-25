@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetTrigger, SheetContent, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { AssessmentsModule } from "@/components/AssessmentsModule";
 import { PublicDemo } from "@/components/PublicDemo";
+import { PublicExamDemo } from "@/components/PublicExamDemo";
 import logo from "@/assets/logo-xandralyze.png";
 import {
   Sparkles,
@@ -53,6 +54,7 @@ function Landing() {
       <main>
         <Hero />
         <PublicDemo />
+        <PublicExamDemo />
         <AssessmentsModule />
         <Modules />
         <Features />
