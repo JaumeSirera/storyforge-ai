@@ -5,8 +5,10 @@
  * Upload-Post haría desde nuestro servidor.
  */
 import { composePost, type SocialChapter, type SocialMedia } from "./social-shared";
+import { uploadResults, type PublishResult, type UploadResponse } from "./social-publish-results";
+export { summarize } from "./social-publish-results";
 
-type Result = { platform: string; ok: boolean; detail: string };
+type Result = PublishResult;
 export type PublishCreds = { key: string | null; profile: string; facebook_page_id?: string };
 
 const API = "https://api.upload-post.com/api";
@@ -96,6 +98,9 @@ export async function publishSocial(
 
   const text = composePost(chapter.body, chapter.links ?? []);
   const form = new FormData();
+  const requestId = crypto.randomUUID();
+  form.append("request_id", requestId);
+  form.append("async_upload", "true");
   form.append("user", profile);
   for (const p of send) form.append("platform[]", p);
   form.append("title", text);
@@ -119,14 +124,19 @@ export async function publishSocial(
     form.append("description", text);
   }
 
-  const res = await fetch(`${API}/${endpoint}`, {
+  let res: Response;
+  try {
+    res = await fetch(`${API}/${endpoint}`, {
     method: "POST",
     headers: { Authorization: `Apikey ${apiKey}`, Accept: "application/json" },
     body: form,
-  });
+    });
+  } catch {
+    // A lost response does not mean that the provider rejected the upload.
+    return [...results, ...send.map((platform) => ({ platform, ok: false, pending: true, requestId, detail: "Respuesta interrumpida; consulta el estado antes de volver a enviar." }))];
+  }
   const raw = await res.text();
-  type R = { success?: boolean; url?: string; post_url?: string; error?: string; message?: string };
-  let json: { success?: boolean; message?: string; error?: string; results?: Record<string, R> } = {};
+  let json: UploadResponse = {};
   try {
     json = JSON.parse(raw);
   } catch {
@@ -143,20 +153,33 @@ export async function publishSocial(
       return `Upload-Post rechaza la clave o el perfil (${msg}). Revisa la API Key y el nombre del perfil en «Redes».`;
     return msg;
   };
-  for (const p of send) {
-    const r = json.results?.[p];
-    if (r?.success) results.push({ platform: p, ok: true, detail: r.url ?? r.post_url ?? "publicado" });
-    else if (res.ok && json.success && !json.results) results.push({ platform: p, ok: true, detail: "enviado" });
-    else results.push({ platform: p, ok: false, detail: explain(r?.error ?? r?.message ?? general) });
-  }
-  if (!res.ok) console.error("Upload-Post", res.status, raw.slice(0, 1000));
+  results.push(...uploadResults({ ...json, message: json.message || general }, send, res.ok, res.ok ? requestId : undefined)
+    .map((r) => ({ ...r, detail: r.ok || r.pending ? r.detail : explain(r.detail) })));
+  if (!res.ok) console.error("Upload-Post HTTP", res.status);
   return results;
 }
 
-export function summarize(results: Result[]): { status: "publicado" | "error"; result: string } {
-  const allOk = results.length > 0 && results.every((r) => r.ok);
-  return {
-    status: allOk ? "publicado" : "error",
-    result: results.map((r) => `${r.platform}: ${r.ok ? "✓" : "✗"} ${r.detail}`).join("\n"),
-  };
+/** Read an existing job only; never submit another publication. */
+export async function checkSocialPublication(creds: PublishCreds, previous: Result[]): Promise<Result[]> {
+  const key = creds.key?.trim();
+  if (!key) throw new Error("Falta la clave de Upload-Post.");
+  const ids = [...new Set(previous.filter((r) => r.pending && r.requestId).map((r) => r.requestId))];
+  const updated = [...previous];
+  for (const id of ids) {
+    if (!id) continue;
+    const platforms = previous.filter((r) => r.pending && r.requestId === id).map((r) => r.platform);
+    try {
+      const res = await fetch(`${API}/uploadposts/status?request_id=${encodeURIComponent(id)}`, {
+        headers: { Authorization: `Apikey ${key}`, Accept: "application/json" },
+      });
+      // A not-yet-visible job or a transient outage must not invite a duplicate upload.
+      if (!res.ok) continue;
+      const parsed = uploadResults(await res.json() as UploadResponse, platforms, true, id);
+      for (const r of parsed) {
+        const i = updated.findIndex((old) => old.platform === r.platform && old.requestId === id);
+        if (i >= 0) updated[i] = r;
+      }
+    } catch { /* Retain the previous unconfirmed state and retry later. */ }
+  }
+  return updated;
 }
