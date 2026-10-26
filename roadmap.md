@@ -1,5 +1,9 @@
 # Fase C — independencia de Lovable
 
+## Confirmación de publicaciones sociales
+- [ ] Distinguir envíos aceptados de publicaciones confirmadas y permitir consultar su resultado sin volver a publicar.
+- [ ] Verificar los estados con pruebas; la publicación real en Facebook requiere acceso a la cuenta del hosting.
+
 ## Demostración pública en portada
 - [x] Añadir el vídeo completo enviado y una simulación de ejemplo sin registro.
 - [x] Verificar reproducción, decisiones y resultado final en la portada.
