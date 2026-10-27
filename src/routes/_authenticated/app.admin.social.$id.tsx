@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, CalendarClock, Film, ImagePlus, Link2, Loader2, Play, Plus, Send, Trash2, X } from "lucide-react";
+import { ArrowLeft, CalendarClock, Film, ImagePlus, Link2, Loader2, Play, Plus, RefreshCw, Send, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   addSocialChapter,
+  checkSocialChapterPublication,
   deleteSocialChapter,
   getSocialStory,
   publishSocialChapterNow,
@@ -22,6 +23,7 @@ import {
 } from "@/lib/social.functions";
 import { uploadFile } from "@/lib/upload-file";
 import { getCurrentUser } from "@/lib/current-user";
+import { visiblePublishResult } from "@/lib/social-publish-results";
 import {
   FREQUENCIES,
   SOCIAL_NETWORKS,
@@ -32,6 +34,14 @@ import {
 } from "@/lib/social-shared";
 
 export const Route = createFileRoute("/_authenticated/app/admin/social/$id")({
+  head: () => ({ meta: [
+    { title: "Capítulos y publicaciones — Xandralyze" },
+    { name: "description", content: "Edición de capítulos y consulta de publicaciones en redes sociales de Xandralyze." },
+    { property: "og:title", content: "Capítulos y publicaciones — Xandralyze" },
+    { property: "og:description", content: "Estudio de publicaciones en redes sociales de Xandralyze." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: StoryEditor,
 });
 
@@ -146,6 +156,7 @@ function ChapterCard({
   const update = useServerFn(updateSocialChapter);
   const remove = useServerFn(deleteSocialChapter);
   const publish = useServerFn(publishSocialChapterNow);
+  const checkPublication = useServerFn(checkSocialChapterPublication);
   const mediaUrl = useServerFn(socialMediaUrl);
 
   const [title, setTitle] = useState(chapter.title);
@@ -194,9 +205,20 @@ function ChapterCard({
     onSuccess: (r) => {
       onData(r.story);
       if (r.status === "publicado") toast.success("Publicado en todas las redes");
+      else if (r.status === "enviando") toast.info("Envío en proceso, todavía sin confirmar", { description: visiblePublishResult(r.result) });
       else toast.error("Hubo errores al publicar", { description: r.result, duration: 15000 });
     },
     onError: (e: Error) => toast.error("No se pudo publicar", { description: e.message }),
+  });
+  const check = useMutation({
+    mutationFn: () => checkPublication({ data: { storyId, chapterId: chapter.id } }),
+    onSuccess: (r) => {
+      onData(r.story);
+      if (r.status === "publicado") toast.success("Publicación confirmada por Upload-Post");
+      else if (r.status === "enviando") toast.info("La publicación sigue sin confirmar");
+      else toast.error("Upload-Post informa de errores", { description: visiblePublishResult(r.result), duration: 15000 });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   async function onUpload(file: File | undefined) {
@@ -336,12 +358,20 @@ function ChapterCard({
         </div>
         <div className="flex flex-1 flex-wrap justify-end gap-2">
           <Button variant="outline" disabled={!dirty || save.isPending} onClick={() => save.mutate()}>Guardar</Button>
-          <Button className="gap-2" disabled={dirty || pub.isPending || !body.trim()} onClick={() => pub.mutate()} title={dirty ? "Guarda los cambios antes de publicar" : undefined}>
+          {chapter.result && <Button variant="outline" className="gap-2" disabled={check.isPending || pub.isPending} onClick={() => check.mutate()}>
+            {check.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Comprobar publicación
+          </Button>}
+          <Button className="gap-2" disabled={chapter.status === "enviando" || dirty || pub.isPending || check.isPending || !body.trim()} onClick={() => pub.mutate()} title={dirty ? "Guarda los cambios antes de publicar" : undefined}>
             {pub.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Publicar ahora
           </Button>
         </div>
       </div>
-      {chapter.result && <pre className="whitespace-pre-wrap rounded-lg bg-muted p-3 text-xs text-muted-foreground">{chapter.result}</pre>}
+      {chapter.result && <div className="rounded-lg bg-muted p-3 text-xs text-muted-foreground space-y-2">
+        <pre className="whitespace-pre-wrap break-words">{visiblePublishResult(chapter.result)}</pre>
+        {visiblePublishResult(chapter.result).split(/\s+/).filter((word) => /^https:\/\//.test(word)).map((url, i) => (
+          <a key={`${url}-${i}`} href={url} target="_blank" rel="noreferrer" className="block break-all text-primary underline">Ver publicación: {url}</a>
+        ))}
+      </div>}
       <Dialog open={!!playing} onOpenChange={(o) => !o && setPlaying(null)}>
         <DialogContent className="max-w-3xl">
           <DialogTitle>Vídeo del capítulo</DialogTitle>
