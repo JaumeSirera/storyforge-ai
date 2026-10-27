@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAnyAuth } from "@/lib/require-auth";
+import { readPublishTracking } from "./social-publish-results";
 import {
   SOCIAL_NETWORK_IDS,
   type SocialQueueItem,
@@ -226,11 +227,13 @@ export const scheduleSocialStory = createServerFn({ method: "POST" })
     const { buildSchedule } = await import("./social-shared");
     await api(context, `/social/stories/${data.id}`, "PATCH", { every_days: data.everyDays });
     const full = await api<SocialStoryFull>(context, `/social/stories/${data.id}`);
-    const pending = full.chapters.filter((c) => c.status !== "publicado");
+    const pending = full.chapters.filter((c) => c.status !== "publicado" && c.status !== "enviando");
     const dates = buildSchedule(pending.length, data.startAt, data.everyDays);
     let last = full;
     for (let i = 0; i < pending.length; i++) {
-      last = await api<SocialStoryFull>(context, `/social/chapters/${pending[i]!.id}`, "PATCH", {
+      const chapter = pending[i];
+      if (!chapter) continue;
+      last = await api<SocialStoryFull>(context, `/social/chapters/${chapter.id}`, "PATCH", {
         scheduled_at: dates[i],
         status: "programado",
       });
@@ -238,7 +241,7 @@ export const scheduleSocialStory = createServerFn({ method: "POST" })
     return last;
   });
 
-/** Publica ya un capítulo con Ayrshare en las redes activas de su serie. */
+/** Publica ya un capítulo con Upload-Post en las redes activas de su serie. */
 export const publishSocialChapterNow = createServerFn({ method: "POST" })
   .middleware([requireAnyAuth])
   .inputValidator(z.object({ storyId: Id, chapterId: Id }))
@@ -246,10 +249,27 @@ export const publishSocialChapterNow = createServerFn({ method: "POST" })
     const full = await api<SocialStoryFull>(context, `/social/stories/${data.storyId}`);
     const chapter = full.chapters.find((c) => c.id === data.chapterId);
     if (!chapter) throw new Error("Capítulo no encontrado");
+    if (chapter.status === "enviando") throw new Error("Este envío sigue en proceso. Comprueba su estado sin volver a publicar.");
     const creds = await api<{ key: string | null; profile: string; facebook_page_id?: string }>(context, "/social/settings/key");
     const { publishSocial, summarize } = await import("./social-publish.server");
     const results = await publishSocial(creds, chapter, full.story.networks);
     const s = summarize(results);
+    const updated = await api<SocialStoryFull>(context, `/social/chapters/${chapter.id}`, "PATCH", s);
+    return { story: updated, ...s };
+  });
+
+export const checkSocialChapterPublication = createServerFn({ method: "POST" })
+  .middleware([requireAnyAuth])
+  .inputValidator(z.object({ storyId: Id, chapterId: Id }))
+  .handler(async ({ data, context }) => {
+    const full = await api<SocialStoryFull>(context, `/social/stories/${data.storyId}`);
+    const chapter = full.chapters.find((c) => c.id === data.chapterId);
+    if (!chapter) throw new Error("Capítulo no encontrado");
+    const tracking = readPublishTracking(chapter.result);
+    if (!tracking.some((r) => r.pending && r.requestId)) throw new Error("Este envío antiguo no tiene seguimiento. Revisa el historial de Upload-Post y la página de Facebook antes de volver a publicar.");
+    const creds = await api<{ key: string | null; profile: string }>(context, "/social/settings/key");
+    const { checkSocialPublication, summarize } = await import("./social-publish.server");
+    const s = summarize(await checkSocialPublication(creds, tracking));
     const updated = await api<SocialStoryFull>(context, `/social/chapters/${chapter.id}`, "PATCH", s);
     return { story: updated, ...s };
   });
