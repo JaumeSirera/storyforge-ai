@@ -130,10 +130,15 @@
 }
 
 @layer utilities {
+  .sector-hero-scrim { background: linear-gradient(90deg, var(--background) 0%, var(--background) 30%, color-mix(in oklch, var(--background) 94%, transparent) 46%, color-mix(in oklch, var(--background) 15%, transparent) 76%); }
   .bg-hero { background-image: var(--background-image-hero); }
   .shadow-soft { box-shadow: var(--shadow-soft); }
   .shadow-glow { box-shadow: var(--shadow-glow); }
   .text-balance { text-wrap: balance; }
+}
+
+@media (max-width: 767px) {
+  .sector-hero-scrim { background: color-mix(in oklch, var(--background) 93%, transparent); }
 }
 
 /* Interactive player overlays: keep scene text above the native video controls

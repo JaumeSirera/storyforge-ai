@@ -5,6 +5,7 @@ import { Sheet, SheetTrigger, SheetContent, SheetTitle, SheetClose } from "@/com
 import { AssessmentsModule } from "@/components/AssessmentsModule";
 import { PublicDemo } from "@/components/PublicDemo";
 import { PublicExamDemo } from "@/components/PublicExamDemo";
+import { sectorLinks } from "@/components/SectorLanding";
 import logo from "@/assets/logo-xandralyze.png";
 import {
   Sparkles,
@@ -28,17 +29,17 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Xandralyze — Simulaciones con IA y análisis de comportamiento" },
+      { title: "Xandralyze | Corrección de Exámenes con IA y Simulaciones Interactivas Open Source" },
       {
         name: "description",
         content:
-          "Crea simulaciones en vídeo con IA, graba al candidato (cámara, pantalla y multicámara) y obtén un informe integrado de decisiones y comportamiento.",
+          "Corrección de exámenes manuscritos con IA, rúbricas y simulaciones interactivas para educación, selección y análisis de interacciones. Gratis y open source.",
       },
-      { property: "og:title", content: "Xandralyze — Simulaciones con IA y análisis de comportamiento" },
+      { property: "og:title", content: "Xandralyze | Corrección de Exámenes con IA y Simulaciones Interactivas Open Source" },
       {
         property: "og:description",
         content:
-          "Simulaciones profesionales generadas por IA, grabación multicámara con consentimiento y análisis de comportamiento con evidencias temporales.",
+          "Corrección de exámenes manuscritos, selección gamificada y análisis de interacciones con evidencias. Una plataforma gratuita y de código abierto.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -53,6 +54,9 @@ function Landing() {
       <Header />
       <main>
         <Hero />
+        <section className="border-y border-border" aria-label="Xandralyze por sector">
+          <div className="mx-auto grid max-w-7xl gap-6 px-6 py-10 md:grid-cols-3">{sectorLinks.map((sector) => <Link key={sector.to} to={sector.to} className="group flex items-start gap-4"><sector.icon className="mt-1 h-6 w-6 shrink-0 text-primary" /><span><span className="flex items-center gap-2 text-lg font-semibold">{sector.label}<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 motion-reduce:transition-none" /></span><span className="mt-1 block text-sm text-muted-foreground">{sector.to === "/educacion" ? "Manuscritos, universidades y oposiciones" : sector.to === "/seleccion" ? "Assessment centers y selección gamificada" : "Sesiones e interacciones de voz"}</span></span></Link>)}</div>
+        </section>
         <PublicDemo />
         <PublicExamDemo />
         <AssessmentsModule />
@@ -84,6 +88,7 @@ function Header() {
         </Link>
         <nav className="hidden 2xl:flex items-center gap-5 text-sm text-muted-foreground" aria-label="Navegación principal">
           <Link to="/explore" className="hover:text-foreground">Galería</Link>
+          {sectorLinks.map((sector) => <Link key={sector.to} to={sector.to} className="hover:text-foreground">{sector.label}</Link>)}
           {DONATIONS_ENABLED ? <Link to="/pricing" className="hover:text-foreground">Precios</Link> : <Link to="/open-source" className="hover:text-foreground">Código abierto</Link>}
           <Link to="/install" className="hover:text-foreground">App móvil</Link>
           <a href="#assessments" className="hover:text-foreground">Evaluaciones</a>
@@ -116,6 +121,7 @@ function Header() {
               <SheetClose asChild><Link to="/explore" className="rounded-md px-3 py-3 hover:bg-accent">Galería · Explorar</Link></SheetClose>
               <SheetClose asChild><Link to={DONATIONS_ENABLED ? "/pricing" : "/open-source"} className="rounded-md px-3 py-3 hover:bg-accent">{DONATIONS_ENABLED ? "Precios" : "Código abierto"}</Link></SheetClose>
               <SheetClose asChild><Link to="/install" className="rounded-md px-3 py-3 hover:bg-accent">App móvil</Link></SheetClose>
+              {sectorLinks.map((sector) => <SheetClose asChild key={sector.to}><Link to={sector.to} className="rounded-md px-3 py-3 hover:bg-accent">{sector.label}</Link></SheetClose>)}
               {[
                 ["assessments", "Evaluaciones"],
                 ["modules", "Módulos"],
@@ -146,9 +152,9 @@ function Hero() {
           Simulaciones con IA + análisis de comportamiento
         </div>
         <h1 className="mt-6 text-balance text-5xl md:text-7xl font-bold tracking-tight">
-          Simula, graba, evalúa y{" "}
+          Xandralyze: corrección de exámenes con IA y{" "}
           <span className="bg-gradient-to-r from-primary to-chart-4 bg-clip-text text-transparent">
-            corrige con evidencias
+            simulaciones interactivas
           </span>
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-balance text-lg text-muted-foreground">

@@ -12,10 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as EducacionRouteImport } from './routes/educacion'
 import { Route as InstallRouteImport } from './routes/install'
 import { Route as OpenSourceRouteImport } from './routes/open-source'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PsicologiaRouteImport } from './routes/psicologia'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SeleccionRouteImport } from './routes/seleccion'
 import { Route as ExamTokenRouteImport } from './routes/exam.$token'
 import { Route as ExploreIndexRouteImport } from './routes/explore.index'
 import { Route as ExploreIdRouteImport } from './routes/explore.$id'
@@ -81,6 +84,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EducacionRoute = EducacionRouteImport.update({
+  id: '/educacion',
+  path: '/educacion',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InstallRoute = InstallRouteImport.update({
   id: '/install',
   path: '/install',
@@ -96,9 +104,19 @@ const PricingRoute = PricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PsicologiaRoute = PsicologiaRouteImport.update({
+  id: '/psicologia',
+  path: '/psicologia',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SeleccionRoute = SeleccionRouteImport.update({
+  id: '/seleccion',
+  path: '/seleccion',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExamTokenRoute = ExamTokenRouteImport.update({
@@ -389,10 +407,13 @@ const AuthenticatedAppAssessmentsIdSubmissionsSidRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/educacion': typeof EducacionRoute
   '/install': typeof InstallRoute
   '/open-source': typeof OpenSourceRoute
   '/pricing': typeof PricingRoute
+  '/psicologia': typeof PsicologiaRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/seleccion': typeof SeleccionRoute
   '/exam/$token': typeof ExamTokenRoute
   '/explore/$id': typeof ExploreIdRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -447,10 +468,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/educacion': typeof EducacionRoute
   '/install': typeof InstallRoute
   '/open-source': typeof OpenSourceRoute
   '/pricing': typeof PricingRoute
+  '/psicologia': typeof PsicologiaRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/seleccion': typeof SeleccionRoute
   '/exam/$token': typeof ExamTokenRoute
   '/explore/$id': typeof ExploreIdRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -506,10 +530,13 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/educacion': typeof EducacionRoute
   '/install': typeof InstallRoute
   '/open-source': typeof OpenSourceRoute
   '/pricing': typeof PricingRoute
+  '/psicologia': typeof PsicologiaRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/seleccion': typeof SeleccionRoute
   '/exam/$token': typeof ExamTokenRoute
   '/explore/$id': typeof ExploreIdRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -566,10 +593,13 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/educacion'
     | '/install'
     | '/open-source'
     | '/pricing'
+    | '/psicologia'
     | '/reset-password'
+    | '/seleccion'
     | '/exam/$token'
     | '/explore/$id'
     | '/invite/$token'
@@ -624,10 +654,13 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/educacion'
     | '/install'
     | '/open-source'
     | '/pricing'
+    | '/psicologia'
     | '/reset-password'
+    | '/seleccion'
     | '/exam/$token'
     | '/explore/$id'
     | '/invite/$token'
@@ -682,10 +715,13 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/educacion'
     | '/install'
     | '/open-source'
     | '/pricing'
+    | '/psicologia'
     | '/reset-password'
+    | '/seleccion'
     | '/exam/$token'
     | '/explore/$id'
     | '/invite/$token'
@@ -742,10 +778,13 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  EducacionRoute: typeof EducacionRoute
   InstallRoute: typeof InstallRoute
   OpenSourceRoute: typeof OpenSourceRoute
   PricingRoute: typeof PricingRoute
+  PsicologiaRoute: typeof PsicologiaRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SeleccionRoute: typeof SeleccionRoute
   ExamTokenRoute: typeof ExamTokenRoute
   ExploreIdRoute: typeof ExploreIdRoute
   InviteTokenRoute: typeof InviteTokenRoute
@@ -788,6 +827,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/educacion': {
+      id: '/educacion'
+      path: '/educacion'
+      fullPath: '/educacion'
+      preLoaderRoute: typeof EducacionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/install': {
       id: '/install'
       path: '/install'
@@ -809,11 +855,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/psicologia': {
+      id: '/psicologia'
+      path: '/psicologia'
+      fullPath: '/psicologia'
+      preLoaderRoute: typeof PsicologiaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seleccion': {
+      id: '/seleccion'
+      path: '/seleccion'
+      fullPath: '/seleccion'
+      preLoaderRoute: typeof SeleccionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/exam/$token': {
@@ -1283,10 +1343,13 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  EducacionRoute: EducacionRoute,
   InstallRoute: InstallRoute,
   OpenSourceRoute: OpenSourceRoute,
   PricingRoute: PricingRoute,
+  PsicologiaRoute: PsicologiaRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SeleccionRoute: SeleccionRoute,
   ExamTokenRoute: ExamTokenRoute,
   ExploreIdRoute: ExploreIdRoute,
   InviteTokenRoute: InviteTokenRoute,

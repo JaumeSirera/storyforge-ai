@@ -1,5 +1,10 @@
 # Fase C — independencia de Lovable
 
+## Páginas por sector
+- [ ] Crear páginas públicas de educación, selección y psicología con contenido específico y enlaces desde la portada.
+- [ ] Optimizar títulos y etiquetas de las páginas nuevas y de la portada; añadir las nuevas URLs al sitemap.
+- [ ] Comprobar las páginas y sus demostraciones en escritorio y móvil.
+
 ## Confirmación de publicaciones sociales
 - [x] Distinguir envíos aceptados de publicaciones confirmadas y permitir consultar su resultado sin volver a publicar.
 - [x] Verificar los estados y el envío/consulta sin duplicados con nueve pruebas.
