@@ -29,6 +29,7 @@ export const STATUS_LABEL: Record<string, string> = {
   pendiente: "Pendiente",
   programado: "Programado",
   publicado: "Publicado",
+  enviando: "En proceso",
   error: "Error",
 };
 
@@ -65,7 +66,7 @@ export interface SocialChapter {
   links: SocialLink[];
   media: SocialMedia[];
   scheduled_at: string | null;
-  status: "pendiente" | "programado" | "publicado" | "error";
+  status: "pendiente" | "programado" | "publicado" | "enviando" | "error";
   result: string | null;
   published_at: string | null;
 }

@@ -7,13 +7,13 @@ namespace Xandralyze;
 /**
  * Estudio de redes sociales (antes "Story Weaver Social"), solo administración.
  *
- * Series de capítulos generadas por IA que se publican con Ayrshare.
+ * Series de capítulos generadas por IA que se publican con Upload-Post.
  * Las tablas se crean solas la primera vez.
  */
 final class Social
 {
     public const NETWORKS = ['instagram', 'x', 'linkedin', 'facebook', 'tiktok', 'threads', 'youtube'];
-    private const STATUSES = ['pendiente', 'programado', 'publicado', 'error'];
+    private const STATUSES = ['pendiente', 'programado', 'publicado', 'enviando', 'error'];
 
     public function __construct(private Db $db)
     {
@@ -334,7 +334,7 @@ final class Social
             $d = self::date($body['scheduled_at']);
             $sets[] = 'scheduled_at = :d';
             $p['d'] = $d;
-            if (!array_key_exists('status', $body) && $row['status'] !== 'publicado') {
+            if (!array_key_exists('status', $body) && !in_array($row['status'], ['publicado', 'enviando'], true)) {
                 $sets[] = 'status = :st';
                 $p['st'] = $d !== null ? 'programado' : 'pendiente';
             }
@@ -345,6 +345,7 @@ final class Social
         }
         if (array_key_exists('result', $body)) { $sets[] = 'result = :r'; $p['r'] = self::text($body['result'], 5000); }
         if (($body['status'] ?? '') === 'publicado') { $sets[] = 'published_at = UTC_TIMESTAMP()'; }
+        elseif (array_key_exists('status', $body)) { $sets[] = 'published_at = NULL'; }
         if ($sets) {
             $this->db->run('UPDATE app_social_chapters SET ' . implode(', ', $sets) . ' WHERE id = :id', $p);
         }
@@ -389,8 +390,8 @@ final class Social
              FROM app_social_chapters c
              JOIN app_social_stories s ON s.id = c.story_id
              LEFT JOIN app_social_settings st ON st.user_id = c.owner_id
-             WHERE c.status = \'programado\' AND c.scheduled_at <= UTC_TIMESTAMP()
-             ORDER BY c.scheduled_at ASC LIMIT ' . max(1, min(50, $limit))
+             WHERE c.status = \'enviando\' OR (c.status = \'programado\' AND c.scheduled_at <= UTC_TIMESTAMP())
+             ORDER BY c.updated_at ASC LIMIT ' . max(1, min(50, $limit))
         );
         return array_map(function ($r) {
             $r = self::chapter($r);
@@ -403,10 +404,10 @@ final class Social
     /** Modo servicio: guarda el resultado de una publicación. @param array<string,mixed> $body @return array<string,mixed> */
     public function serviceResult(string $id, array $body): array
     {
-        $status = in_array($body['status'] ?? '', ['publicado', 'error'], true) ? $body['status'] : 'error';
+        $status = in_array($body['status'] ?? '', ['publicado', 'enviando', 'error'], true) ? $body['status'] : 'error';
         $this->db->run(
             'UPDATE app_social_chapters SET status = :s, result = :r'
-            . ($status === 'publicado' ? ', published_at = UTC_TIMESTAMP()' : '')
+            . ($status === 'publicado' ? ', published_at = UTC_TIMESTAMP()' : ', published_at = NULL')
             . ' WHERE id = :id',
             ['s' => $status, 'r' => self::text($body['result'] ?? '', 5000), 'id' => $id]
         );
