@@ -1,9 +1,10 @@
 # Fase C — independencia de Lovable
 
 ## Páginas por sector
-- [ ] Crear páginas públicas de educación, selección y psicología con contenido específico y enlaces desde la portada.
-- [ ] Optimizar títulos y etiquetas de las páginas nuevas y de la portada; añadir las nuevas URLs al sitemap.
-- [ ] Comprobar las páginas y sus demostraciones en escritorio y móvil.
+- [x] Crear páginas públicas de educación, selección y psicología con contenido específico y enlaces desde la portada.
+- [x] Optimizar títulos y etiquetas de las páginas nuevas y de la portada; añadir las nuevas URLs al sitemap.
+- [x] Comprobar las páginas y sus demostraciones en escritorio y móvil.
+- [ ] Llevar las páginas a xandralyze.com; pendiente del siguiente paquete web y su subida manual al hosting.
 
 ## Confirmación de publicaciones sociales
 - [x] Distinguir envíos aceptados de publicaciones confirmadas y permitir consultar su resultado sin volver a publicar.
