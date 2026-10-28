@@ -18,6 +18,8 @@ export const Route = createFileRoute("/explore/")({
           "Descubre vídeos convertidos en juegos interactivos: preguntas, decisiones, puntuación y informe de competencias. Creados con IA en minutos.",
       },
       { property: "og:title", content: "Galería de juegos gamificados — Xandralyze" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       {
         property: "og:description",
         content: "Juega vídeos interactivos profesionales generados con IA.",

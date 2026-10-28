@@ -12,6 +12,16 @@ import { isAuthenticated } from "@/lib/current-user";
 import { onSessionChange } from "@/lib/auth-session";
 
 export const Route = createFileRoute("/explore/$id")({
+  head: () => ({
+    meta: [
+      { title: "Simulación profesional interactiva | Xandralyze" },
+      { name: "description", content: "Consulta el objetivo y las competencias de una simulación profesional de Xandralyze antes de participar." },
+      { property: "og:title", content: "Simulación profesional interactiva | Xandralyze" },
+      { property: "og:description", content: "Descubre el escenario, el objetivo y los criterios de evaluación de esta simulación interactiva." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: PublicSimulationDetail,
 });
 
