@@ -6,6 +6,7 @@ test("Facebook submission is tracked and checked without a second upload", async
   let uploads = 0;
   globalThis.fetch = async (url, init) => {
     if (String(url).endsWith("/uploadposts/users")) return Response.json({ profiles: [{ username: "test-profile" }] });
+    if (String(url).includes("/uploadposts/users/facebook-page")) return Response.json({ pages: [], selected_page_id: "999" });
     if (String(url).endsWith("/upload_text")) {
       uploads++;
       expect(init.body.get("async_upload")).toBe("true");
@@ -23,5 +24,38 @@ test("Facebook submission is tracked and checked without a second upload", async
     expect(summarize(checked).status).toBe("publicado");
     expect(checked[0].detail).toBe("https://www.facebook.com/posts/123");
     expect(uploads).toBe(1);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("Facebook video goes as a normal Page video to the only available Page", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalImport = null;
+  let sent;
+  globalThis.fetch = async (url, init) => {
+    if (String(url).endsWith("/uploadposts/users")) return Response.json({ profiles: [{ username: "p" }] });
+    if (String(url).includes("/uploadposts/users/facebook-page")) return Response.json({ pages: [{ id: "123456", name: "Xandralyze" }], selected_page_id: null });
+    if (String(url).endsWith("/upload_text")) { sent = init.body; return Response.json({ success: true }); }
+    throw new Error("unexpected " + url);
+  };
+  try {
+    await publishSocial({ key: "k", profile: "p" }, { body: "Texto", links: [], media: [] }, ["facebook"]);
+    expect(sent.get("facebook_page_id")).toBe("123456");
+  } finally { globalThis.fetch = originalFetch; void originalImport; }
+});
+
+test("Facebook without any Page is reported instead of being sent", async () => {
+  const originalFetch = globalThis.fetch;
+  let uploads = 0;
+  globalThis.fetch = async (url) => {
+    if (String(url).endsWith("/uploadposts/users")) return Response.json({ profiles: [{ username: "p" }] });
+    if (String(url).includes("/uploadposts/users/facebook-page")) return Response.json({ pages: [], selected_page_id: null });
+    uploads++;
+    return Response.json({ success: true });
+  };
+  try {
+    const r = await publishSocial({ key: "k", profile: "p" }, { body: "Texto", links: [], media: [] }, ["facebook"]);
+    expect(r[0].ok).toBe(false);
+    expect(r[0].detail).toContain("páginas");
+    expect(uploads).toBe(0);
   } finally { globalThis.fetch = originalFetch; }
 });
