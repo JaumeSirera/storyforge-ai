@@ -69,12 +69,39 @@ async function resolveProfile(apiKey: string, typed: string): Promise<{ user: st
   }
 }
 
+type FbPage = { id?: string; name?: string };
+
+/**
+ * Facebook solo publica en páginas. Si no hay ID guardado ni página fijada en
+ * Upload-Post, usamos la única página disponible o pedimos elegir una.
+ */
+async function resolveFacebookPage(apiKey: string, profile: string, typed: string): Promise<{ id?: string; error?: string }> {
+  if (typed.trim()) return { id: typed.trim() };
+  try {
+    const res = await fetch(`${API}/uploadposts/users/facebook-page?profile_username=${encodeURIComponent(profile)}`, {
+      headers: { Authorization: `Apikey ${apiKey}`, Accept: "application/json" },
+    });
+    if (!res.ok) return {}; // No bloqueamos: Upload-Post usará su comportamiento por defecto.
+    const json = (await res.json()) as { pages?: FbPage[]; selected_page_id?: string | null };
+    if (json.selected_page_id) return {};
+    const pages = (json.pages ?? []).filter((p) => p.id);
+    if (pages.length === 1) return { id: pages[0]?.id };
+    if (!pages.length)
+      return { error: "La cuenta de Facebook enlazada en Upload-Post no gestiona ninguna página. Facebook solo permite publicar en páginas, no en perfiles personales." };
+    return { error: `Hay varias páginas de Facebook. Copia el ID de la que quieras en «Redes» → «ID de página de Facebook»: ${pages.map((p) => `${p.name ?? "Página"} (${p.id})`).join(", ")}.` };
+  } catch {
+    return {};
+  }
+}
+
 export async function publishSocial(
-  creds: PublishCreds,
+  inputCreds: PublishCreds,
   chapter: Pick<SocialChapter, "body" | "links" | "media"> & { title?: string },
   platforms: string[],
 ): Promise<Result[]> {
+  let creds = inputCreds;
   const apiKey = (creds.key ?? "").trim();
+
   const typedProfile = (creds.profile ?? "").trim();
   if (!apiKey) throw new Error("Falta la clave de Upload-Post. Añádela en la pestaña «Redes».");
   if (!platforms.length) throw new Error("Esta serie no tiene ninguna red activada.");
@@ -94,6 +121,13 @@ export async function publishSocial(
       results.push({ platform: p, ok: false, detail: "Esta red no admite publicaciones solo de texto." });
     else send.push(p);
   }
+  if (send.includes("facebook")) {
+    const page = await resolveFacebookPage(apiKey, profile, creds.facebook_page_id ?? "");
+    if (page.error) {
+      results.push({ platform: "facebook", ok: false, detail: page.error });
+      send.splice(send.indexOf("facebook"), 1);
+    } else if (page.id) creds = { ...creds, facebook_page_id: page.id };
+  }
   if (!send.length) return results;
 
   const text = composePost(chapter.body, chapter.links ?? []);
@@ -111,6 +145,10 @@ export async function publishSocial(
     endpoint = "upload";
     form.append("video", video.file, video.file.name);
     form.append("description", text);
+    // Upload-Post sube a Facebook como Reel (solo vertical 9:16 y ≤ 90 s) si no
+    // se indica; los vídeos del estudio son horizontales, así que va como vídeo normal.
+    if (send.includes("facebook")) form.append("facebook_media_type", "VIDEO");
+
     if (send.includes("youtube")) {
       // YouTube admite como máximo 100 caracteres en el título.
       const plain = (chapter.title || chapter.body || "Vídeo").replace(/\*\*/g, "").replace(/\s+/g, " ").trim();
