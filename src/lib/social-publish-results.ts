@@ -14,6 +14,9 @@ type PlatformResult = {
   url?: string;
   post_url?: string;
   error?: string;
+  error_message?: string;
+  error_code?: string;
+  failure_stage?: string;
   message?: string;
   skipped?: boolean;
   skip_reason?: string;
@@ -29,6 +32,14 @@ export type UploadResponse = {
   results?: PlatformResult[] | Record<string, PlatformResult>;
 };
 
+/** Best available reason Upload-Post gives for a failed platform. */
+function failureReason(r: PlatformResult): string {
+  const text = r.error || r.error_message || (r.message && !/^(failed|error)$/i.test(r.message) ? r.message : "");
+  if (text) return text;
+  const code = [r.error_code, r.failure_stage].filter(Boolean).join(" / ");
+  return code ? `La red rechazó la publicación (código: ${code}).` : "La red rechazó la publicación sin indicar el motivo. Revisa el historial de Upload-Post.";
+}
+
 export function uploadResults(json: UploadResponse, platforms: string[], httpOk: boolean, requestId?: string): PublishResult[] {
   const id = json.request_id || requestId;
   return platforms.map((platform) => {
@@ -37,7 +48,8 @@ export function uploadResults(json: UploadResponse, platforms: string[], httpOk:
     if (r?.skipped || r?.status === "skipped") return { platform, ok: false, detail: "Esta red no está conectada al perfil de Upload-Post.", requestId: id };
     if (r?.fallback_to_inbox) return { platform, ok: false, detail: "Enviado a borradores de TikTok; aún no está publicado en la red.", requestId: id };
     if (r?.status === "failed" || (r?.success === false && r.status !== "retryable"))
-      return { platform, ok: false, detail: r.error || r.message || "La red rechazó la publicación.", requestId: id };
+      return { platform, ok: false, detail: failureReason(r), requestId: id };
+
     const waiting = ["queued", "pending", "processing", "in_progress", "retryable"];
     const queuedMessage = /queued|processing|pending|accepted/i.test(r?.message ?? "");
     const url = r?.post_url || r?.url;

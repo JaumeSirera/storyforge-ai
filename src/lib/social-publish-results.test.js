@@ -36,3 +36,8 @@ describe("Social publication confirmation", () => {
     expect(summarize(uploadResults({ status: "failed", message: "Upload failed", results: [] }, ["facebook"], true)).status).toBe("error");
   });
 });
+test("Facebook failure without text still shows Upload-Post's error code", () => {
+  const r = uploadResults({ status: "completed", results: [{ platform: "facebook", status: "failed", error_code: "video_aspect_ratio" }] }, ["facebook"], true);
+  expect(r[0].ok).toBe(false);
+  expect(r[0].detail).toContain("video_aspect_ratio");
+});

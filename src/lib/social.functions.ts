@@ -252,7 +252,11 @@ export const publishSocialChapterNow = createServerFn({ method: "POST" })
     if (chapter.status === "enviando") throw new Error("Este envío sigue en proceso. Comprueba su estado sin volver a publicar.");
     const creds = await api<{ key: string | null; profile: string; facebook_page_id?: string }>(context, "/social/settings/key");
     const { publishSocial, summarize } = await import("./social-publish.server");
-    const results = await publishSocial(creds, chapter, full.story.networks);
+    // Al reintentar, no volver a publicar en las redes que ya lo confirmaron.
+    const done = readPublishTracking(chapter.result).filter((r) => r.ok);
+    const remaining = full.story.networks.filter((n) => !done.some((r) => r.platform === n));
+    if (!remaining.length) throw new Error("Este capítulo ya está publicado en todas sus redes.");
+    const results = [...done, ...(await publishSocial(creds, chapter, remaining))];
     const s = summarize(results);
     const updated = await api<SocialStoryFull>(context, `/social/chapters/${chapter.id}`, "PATCH", s);
     return { story: updated, ...s };
@@ -266,7 +270,11 @@ export const checkSocialChapterPublication = createServerFn({ method: "POST" })
     const chapter = full.chapters.find((c) => c.id === data.chapterId);
     if (!chapter) throw new Error("Capítulo no encontrado");
     const tracking = readPublishTracking(chapter.result);
-    if (!tracking.some((r) => r.pending && r.requestId)) throw new Error("Este envío antiguo no tiene seguimiento. Revisa el historial de Upload-Post y la página de Facebook antes de volver a publicar.");
+    if (!tracking.some((r) => r.pending && r.requestId)) {
+      if (tracking.some((r) => !r.ok)) throw new Error("Este envío ya terminó: no queda nada por comprobar. Pulsa «Publicar ahora» para reintentar solo las redes que fallaron.");
+      throw new Error("Este envío antiguo no tiene seguimiento. Revisa el historial de Upload-Post y la página de Facebook antes de volver a publicar.");
+    }
+
     const creds = await api<{ key: string | null; profile: string }>(context, "/social/settings/key");
     const { checkSocialPublication, summarize } = await import("./social-publish.server");
     const s = summarize(await checkSocialPublication(creds, tracking));
