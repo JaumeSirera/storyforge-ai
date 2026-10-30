@@ -29,7 +29,6 @@ test("Facebook submission is tracked and checked without a second upload", async
 
 test("Facebook video goes as a normal Page video to the only available Page", async () => {
   const originalFetch = globalThis.fetch;
-  const originalImport = null;
   let sent;
   globalThis.fetch = async (url, init) => {
     if (String(url).endsWith("/uploadposts/users")) return Response.json({ profiles: [{ username: "p" }] });
@@ -40,7 +39,7 @@ test("Facebook video goes as a normal Page video to the only available Page", as
   try {
     await publishSocial({ key: "k", profile: "p" }, { body: "Texto", links: [], media: [] }, ["facebook"]);
     expect(sent.get("facebook_page_id")).toBe("123456");
-  } finally { globalThis.fetch = originalFetch; void originalImport; }
+  } finally { globalThis.fetch = originalFetch;}
 });
 
 test("Facebook without any Page is reported instead of being sent", async () => {
