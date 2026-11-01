@@ -33,17 +33,19 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Corrección de exámenes manuscritos con IA, rúbricas y simulaciones interactivas para educación, selección y análisis de interacciones. Gratis y open source.",
+          "Corrección de exámenes manuscritos con IA, lector OCR, creador de simulaciones interactivas gratis y plataforma de selección gamificada para RR. HH. Open source: trae tu propia API.",
       },
       { property: "og:title", content: "Xandralyze | Corrección de Exámenes con IA y Simulaciones Interactivas Open Source" },
       {
         property: "og:description",
         content:
-          "Corrección de exámenes manuscritos, selección gamificada y análisis de interacciones con evidencias. Una plataforma gratuita y de código abierto.",
+          "Corrección de exámenes manuscritos con IA, vídeo interactivo gamificado para educación y simulador de entrevistas con IA. Gratis y de código abierto.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:url", content: "https://xandralyze.com/" },
     ],
+    links: [{ rel: "canonical", href: "https://xandralyze.com/" }],
   }),
   component: Landing,
 });
@@ -188,7 +190,7 @@ const modules = [
   {
     icon: Sparkles,
     tag: "Crear",
-    title: "Generador de simulaciones",
+    title: "Creador de simulaciones interactivas gratis",
     body:
       "A partir de un prompt la IA escribe la historia, las escenas, las preguntas, el árbol de decisiones y los criterios de evaluación.",
     points: ["Guion y preguntas automáticas", "Editor visual de ramificaciones", "Voz, subtítulos y clips IA"],
@@ -196,7 +198,7 @@ const modules = [
   {
     icon: MonitorPlay,
     tag: "Jugar",
-    title: "Vídeo interactivo gamificado",
+    title: "Vídeo interactivo gamificado para educación",
     body:
       "El participante decide dentro del vídeo: cada respuesta lo lleva a otra escena o clip, con puntos, estrellas y feedback inmediato.",
     points: ["Controles completos y accesibles", "Retorno automático tras cada clip", "Puntuación por competencia"],
@@ -216,7 +218,7 @@ const modules = [
   {
     icon: BarChart3,
     tag: "Analizar",
-    title: "Análisis del comportamiento",
+    title: "Software de análisis de comportamiento con IA",
     body:
       "Transcripción con hablantes, métricas de participación, turnos e interrupciones, y escenas clave con marca de tiempo.",
     points: ["Película resumen de momentos clave", "Notas y etiquetas del evaluador", "Comparativa entre sesiones"],
@@ -245,7 +247,7 @@ function Modules() {
       <div className="mx-auto max-w-7xl px-6 py-24">
         <div className="max-w-2xl">
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-            Qué hace exactamente Xandralyze
+            Simulaciones con IA y vídeo interactivo gamificado
           </h2>
           <p className="mt-3 text-muted-foreground">
             Seis funciones encadenadas: crear, jugar, grabar, analizar, concluir y cumplir.
@@ -337,7 +339,7 @@ function Features() {
     <section id="features" className="mx-auto max-w-7xl px-6 py-24">
       <div className="max-w-2xl">
         <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-          Todo lo que necesitas para evaluar, grabar y formar
+          Evaluaciones escritas con IA: corrige, audita y evalúa por competencias
         </h2>
         <p className="mt-3 text-muted-foreground">
           Una plataforma para crear assessments interactivos y medir el comportamiento real, sin
@@ -417,13 +419,13 @@ function HowItWorks() {
 }
 
 const cases = [
-  { tag: "RRHH", title: "Selección gamificada", body: "Assessment centers, entrevistas situacionales y pruebas escritas con corrección automática." },
+  { tag: "RRHH", title: "Plataforma de selección gamificada", body: "Assessment centers, entrevistas situacionales y pruebas escritas con corrección automática." },
   { tag: "Formación", title: "PRL & compliance", body: "Simulaciones realistas con feedback inmediato y examen final certificable." },
   { tag: "Educación", title: "Medicina, derecho, idiomas", body: "Casos prácticos ramificados y corrección de exámenes manuscritos escaneados." },
   { tag: "Industria", title: "Resolución de problemas", body: "Lean, Six Sigma y cuellos de botella con decisiones cronometradas." },
-  { tag: "Oposiciones", title: "Exámenes oficiales", body: "Pruebas con temario, tiempo límite, auditoría de entregas y nota inmediata." },
+  { tag: "Oposiciones", title: "Auditoría de exámenes online con tiempo límite", body: "Pruebas con temario, cronómetro, auditoría de entregas y nota inmediata." },
   { tag: "Academias", title: "Simulacros a distancia", body: "Aspirantes inscritos por enlace único, sin cuenta y con reanudación si se corta." },
-  { tag: "Universidad", title: "Evaluación por competencias", body: "Rúbricas propias, feedback por pregunta y validación humana de la nota." },
+  { tag: "Universidad", title: "Evaluación por competencias con rúbrica e IA", body: "Rúbricas propias, feedback por pregunta y validación humana de la nota." },
   { tag: "Salud y social", title: "Entrevistas y terapia", body: "Sesiones grabadas con análisis de voz, turnos e informe adaptado al rol." },
 ];
 

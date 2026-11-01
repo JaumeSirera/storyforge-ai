@@ -19,38 +19,42 @@ const sectors = {
   educacion: {
     eyebrow: "Universidades · Academias · Oposiciones",
     title: "Corrección de exámenes manuscritos con IA",
-    description: "Evalúa respuestas escritas con tu rúbrica y reúne nota, evidencias y comentarios en un informe revisable. Del examen en papel al feedback para cada alumno.",
+    seoTitle: "Corrección de Exámenes Manuscritos con IA y Lector OCR | Xandralyze",
+    description: "Corrección de exámenes manuscritos con IA: lector OCR de exámenes escaneados, evaluación por competencias con rúbrica y generador de exámenes con IA gratis. Open source.",
     image: education, alt: "Revisión de exámenes manuscritos en una mesa de trabajo",
     action: "Crear una evaluación", demo: "demo-evaluacion",
-    heading: "Tu criterio, aplicado a cada entrega",
+    heading: "Evaluación por competencias con rúbrica e IA",
     intro: "Para docentes que necesitan revisar respuestas extensas sin perder de vista qué se evalúa y por qué.",
     features: [
-      ["Manuscritos y escaneos", "Sube fotos o páginas escaneadas y trabaja con la transcripción y las respuestas de cada alumno."],
-      ["Rúbricas y evidencias", "Define los criterios y el peso de cada apartado. Revisa la nota y la justificación antes de darla por válida."],
-      ["Universidades y oposiciones", "Prepara pruebas por competencias, reutiliza preguntas del banco e invita a los aspirantes por enlace."],
+      ["Lector OCR de exámenes escaneados", "Sube fotos o páginas escaneadas y trabaja con la transcripción y las respuestas de cada alumno."],
+      ["Evaluación por competencias con rúbrica", "Define los criterios y el peso de cada apartado. Revisa la nota y la justificación antes de darla por válida."],
+      ["Generador de exámenes con IA gratis", "Genera preguntas con tu propia clave de IA, reutiliza el banco de preguntas e invita a los aspirantes por enlace."],
+      ["Auditoría de exámenes online con tiempo límite", "Para universidades y oposiciones: pruebas cronometradas, registro de entregas y nota inmediata revisable."],
     ],
     steps: ["Prepara la prueba y la rúbrica", "Recoge las entregas escritas", "Revisa la corrección y comparte el informe"],
     note: "La IA apoya la corrección: el docente conserva la revisión de la nota. El análisis de la letra se limita a aspectos observables, no a inferencias sobre personalidad o salud.",
   },
   seleccion: {
     eyebrow: "RR. HH. · Assessment centers · Formación",
-    title: "Assessment centers y selección gamificada",
-    description: "Lleva a tus candidatos a situaciones profesionales interactivas. Observa sus decisiones, revisa las competencias y conecta los resultados con evidencias de la sesión.",
+    title: "Plataforma de selección gamificada para RR. HH.",
+    seoTitle: "Plataforma de Selección Gamificada RR. HH. y Simulador de Entrevistas con IA | Xandralyze",
+    description: "Plataforma de selección gamificada para RR. HH.: simulador de entrevistas situacionales con IA, assessment centers y software de análisis de comportamiento. Gratis y open source.",
     image: recruitment, alt: "Equipo participando en una dinámica profesional de assessment center",
     action: "Crear una simulación", demo: "demo",
-    heading: "Más contexto que una respuesta de entrevista",
+    heading: "Simulador de entrevistas y situaciones con IA",
     intro: "Diseña escenarios para el puesto y combina decisiones individuales con dinámicas de grupo.",
     features: [
-      ["Escenarios ramificados", "Genera historias, preguntas y alternativas con IA. Cada decisión puede conducir al candidato a una escena diferente."],
+      ["Creador de simulaciones interactivas gratis", "Genera historias, preguntas y alternativas con IA. Cada decisión puede conducir al candidato a una escena diferente."],
       ["Puntos y competencias", "Configura criterios de evaluación y ofrece feedback. Revisa el desglose de puntuación y las evidencias de cada respuesta."],
-      ["Sesiones individuales y grupales", "Graba cámara, pantalla o varias cámaras con consentimiento y reúne decisiones y observaciones en un informe integrado."],
+      ["Software de análisis de comportamiento con IA", "Graba cámara, pantalla o varias cámaras con consentimiento y reúne decisiones y observaciones en un informe integrado."],
     ],
     steps: ["Define el puesto y las competencias", "Invita a participar en el escenario", "Revisa decisiones y evidencias"],
     note: "Los resultados sirven de apoyo al evaluador, no sustituyen el juicio profesional ni garantizan la idoneidad de una contratación.",
   },
   psicologia: {
     eyebrow: "Terapeutas · Psicólogos · Interacciones de voz",
-    title: "Análisis de interacciones para profesionales de la psicología",
+    title: "Análisis de interacciones de voz para psicólogos y terapeutas",
+    seoTitle: "Análisis de Interacciones de Voz para Psicólogos y Terapeutas | Xandralyze",
     description: "Revisa sesiones con transcripción, turnos de palabra y momentos relevantes. Organiza observaciones ancladas a la grabación para acompañar tu trabajo profesional.",
     image: psychology, alt: "Profesional escuchando a una persona durante una consulta",
     action: "Preparar una sesión", demo: null,
@@ -68,8 +72,8 @@ const sectors = {
 
 export function sectorHead(sector: keyof typeof sectors) {
   const page = sectors[sector];
-  const title = `${page.title} | Xandralyze Open Source`;
-  const url = `https://iworkpre.lovable.app/${sector}`;
+  const title = page.seoTitle;
+  const url = `https://xandralyze.com/${sector}`;
   return {
     meta: [{ title }, { name: "description", content: page.description }, { property: "og:title", content: title }, { property: "og:description", content: page.description }, { property: "og:type", content: "website" }, { property: "og:url", content: url }, { name: "twitter:card", content: "summary_large_image" }],
     links: [{ rel: "canonical", href: url }],
