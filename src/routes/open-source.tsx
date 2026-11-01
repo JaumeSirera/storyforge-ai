@@ -55,10 +55,9 @@ function OpenSourcePage() {
         <section>
           <Card>
             <CardContent className="flex gap-4 p-6">
-              <h2 className="sr-only">Plataforma SaaS: trae tu propia API</h2>
               <KeyRound className="h-6 w-6 shrink-0 text-primary" />
               <p className="text-sm text-muted-foreground">
-                La plataforma es gratuita. Las funciones de IA usan tu propia clave del proveedor (OpenAI, Gemini,
+                <strong className="text-foreground">Plataforma SaaS gratuita: trae tu propia API.</strong> Las funciones de IA usan tu propia clave del proveedor (OpenAI, Gemini,
                 ElevenLabs, Replicate), que guardas en Ajustes: pagas directamente a ese proveedor solo lo que consumes.
               </p>
             </CardContent>
