@@ -8,13 +8,15 @@ import { CheckCircle2, GitBranch, HandHeart, KeyRound, ShieldCheck } from "lucid
 export const Route = createFileRoute("/open-source")({
   head: () => ({
     meta: [
-      { title: "Gratis y de código abierto — Xandralyze" },
-      { name: "description", content: "Xandralyze es gratuito y de código abierto (AGPL-3.0). Únete como colaborador y propón mejoras." },
-      { property: "og:title", content: "Gratis y de código abierto — Xandralyze" },
-      { property: "og:description", content: "Simulaciones interactivas con IA, gratis y abiertas. Participa como colaborador." },
+      { title: "Herramientas IA Open Source para Educación | Colabora con Xandralyze" },
+      { name: "description", content: "Proyecto de inteligencia artificial de código abierto (AGPL-3.0) para colaborar: herramientas IA open source para educación y una plataforma SaaS en la que traes tu propia API." },
+      { property: "og:title", content: "Herramientas IA Open Source para Educación | Colabora con Xandralyze" },
+      { property: "og:description", content: "Proyectos de inteligencia artificial de código abierto para colaborar. Plataforma SaaS gratuita: trae tu propia API." },
+      { property: "og:url", content: "https://xandralyze.com/open-source" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: "https://xandralyze.com/open-source" }],
   }),
   component: OpenSourcePage,
 });
@@ -38,7 +40,7 @@ function OpenSourcePage() {
       </header>
       <main className="mx-auto max-w-5xl px-6 py-16 space-y-14">
         <section className="text-center space-y-4">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-balance">Gratis y de código abierto</h1>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-balance">Herramientas IA open source para educación y selección</h1>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
             Xandralyze no cobra nada. El código es público bajo la licencia {OPEN_SOURCE.license}: cualquiera puede
             usarlo, estudiarlo y mejorarlo, siempre que comparta también sus cambios.
@@ -55,14 +57,14 @@ function OpenSourcePage() {
             <CardContent className="flex gap-4 p-6">
               <KeyRound className="h-6 w-6 shrink-0 text-primary" />
               <p className="text-sm text-muted-foreground">
-                La plataforma es gratuita. Las funciones de IA usan tu propia clave del proveedor (OpenAI, Gemini,
+                <strong className="text-foreground">Plataforma SaaS gratuita: trae tu propia API.</strong> Las funciones de IA usan tu propia clave del proveedor (OpenAI, Gemini,
                 ElevenLabs, Replicate), que guardas en Ajustes: pagas directamente a ese proveedor solo lo que consumes.
               </p>
             </CardContent>
           </Card>
         </section>
         <section className="space-y-6">
-          <h2 className="text-2xl font-bold text-center">Cómo participar</h2>
+          <h2 className="text-2xl font-bold text-center">Proyecto de inteligencia artificial de código abierto: cómo colaborar</h2>
           <div className="grid gap-4 md:grid-cols-2">
             {steps.map(({ Icon, title, text }) => (
               <Card key={title}>
