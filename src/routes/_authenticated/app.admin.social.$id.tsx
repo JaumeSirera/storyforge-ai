@@ -368,7 +368,7 @@ function ChapterCard({
       </div>
       {chapter.result && <div className="rounded-lg bg-muted p-3 text-xs text-muted-foreground space-y-2">
         <pre className="whitespace-pre-wrap break-words">{visiblePublishResult(chapter.result)}</pre>
-        {visiblePublishResult(chapter.result).split(/\s+/).filter((word) => /^https:\/\//.test(word)).map((url, i) => (
+        {visiblePublishResult(chapter.result).split("\n").filter((line) => /^[^:]+: ✓ https:\/\//.test(line)).map((line) => line.replace(/^[^:]+: ✓ /, "").trim()).filter((url) => !/upload-post\.com\/pricing/i.test(url)).map((url, i) => (
           <a key={`${url}-${i}`} href={url} target="_blank" rel="noreferrer" className="block break-all text-primary underline">Ver publicación: {url}</a>
         ))}
       </div>}
