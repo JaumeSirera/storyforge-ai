@@ -22,6 +22,7 @@ import { Route as SeleccionRouteImport } from './routes/seleccion'
 import { Route as ExamTokenRouteImport } from './routes/exam.$token'
 import { Route as ExploreIndexRouteImport } from './routes/explore.index'
 import { Route as ExploreIdRouteImport } from './routes/explore.$id'
+import { Route as GuiaCorregirExamenesManuscritosIaRouteImport } from './routes/guia.corregir-examenes-manuscritos-ia'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app.admin'
 import { Route as AuthenticatedAppAiTestRouteImport } from './routes/_authenticated/app.ai-test'
@@ -134,6 +135,12 @@ const ExploreIdRoute = ExploreIdRouteImport.update({
   path: '/explore/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GuiaCorregirExamenesManuscritosIaRoute =
+  GuiaCorregirExamenesManuscritosIaRouteImport.update({
+    id: '/guia/corregir-examenes-manuscritos-ia',
+    path: '/guia/corregir-examenes-manuscritos-ia',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
@@ -416,6 +423,7 @@ export interface FileRoutesByFullPath {
   '/seleccion': typeof SeleccionRoute
   '/exam/$token': typeof ExamTokenRoute
   '/explore/$id': typeof ExploreIdRoute
+  '/guia/corregir-examenes-manuscritos-ia': typeof GuiaCorregirExamenesManuscritosIaRoute
   '/invite/$token': typeof InviteTokenRoute
   '/explore/': typeof ExploreIndexRoute
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
@@ -477,6 +485,7 @@ export interface FileRoutesByTo {
   '/seleccion': typeof SeleccionRoute
   '/exam/$token': typeof ExamTokenRoute
   '/explore/$id': typeof ExploreIdRoute
+  '/guia/corregir-examenes-manuscritos-ia': typeof GuiaCorregirExamenesManuscritosIaRoute
   '/invite/$token': typeof InviteTokenRoute
   '/explore': typeof ExploreIndexRoute
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
@@ -539,6 +548,7 @@ export interface FileRoutesById {
   '/seleccion': typeof SeleccionRoute
   '/exam/$token': typeof ExamTokenRoute
   '/explore/$id': typeof ExploreIdRoute
+  '/guia/corregir-examenes-manuscritos-ia': typeof GuiaCorregirExamenesManuscritosIaRoute
   '/invite/$token': typeof InviteTokenRoute
   '/explore/': typeof ExploreIndexRoute
   '/_authenticated/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
@@ -602,6 +612,7 @@ export interface FileRouteTypes {
     | '/seleccion'
     | '/exam/$token'
     | '/explore/$id'
+    | '/guia/corregir-examenes-manuscritos-ia'
     | '/invite/$token'
     | '/explore/'
     | '/app/admin'
@@ -663,6 +674,7 @@ export interface FileRouteTypes {
     | '/seleccion'
     | '/exam/$token'
     | '/explore/$id'
+    | '/guia/corregir-examenes-manuscritos-ia'
     | '/invite/$token'
     | '/explore'
     | '/app/admin'
@@ -724,6 +736,7 @@ export interface FileRouteTypes {
     | '/seleccion'
     | '/exam/$token'
     | '/explore/$id'
+    | '/guia/corregir-examenes-manuscritos-ia'
     | '/invite/$token'
     | '/explore/'
     | '/_authenticated/app/admin'
@@ -787,6 +800,7 @@ export interface RootRouteChildren {
   SeleccionRoute: typeof SeleccionRoute
   ExamTokenRoute: typeof ExamTokenRoute
   ExploreIdRoute: typeof ExploreIdRoute
+  GuiaCorregirExamenesManuscritosIaRoute: typeof GuiaCorregirExamenesManuscritosIaRoute
   InviteTokenRoute: typeof InviteTokenRoute
   ExploreIndexRoute: typeof ExploreIndexRoute
   ApiFileSplatRoute: typeof ApiFileSplatRoute
@@ -895,6 +909,13 @@ declare module '@tanstack/react-router' {
       path: '/explore/$id'
       fullPath: '/explore/$id'
       preLoaderRoute: typeof ExploreIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guia/corregir-examenes-manuscritos-ia': {
+      id: '/guia/corregir-examenes-manuscritos-ia'
+      path: '/guia/corregir-examenes-manuscritos-ia'
+      fullPath: '/guia/corregir-examenes-manuscritos-ia'
+      preLoaderRoute: typeof GuiaCorregirExamenesManuscritosIaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invite/$token': {
@@ -1352,6 +1373,8 @@ const rootRouteChildren: RootRouteChildren = {
   SeleccionRoute: SeleccionRoute,
   ExamTokenRoute: ExamTokenRoute,
   ExploreIdRoute: ExploreIdRoute,
+  GuiaCorregirExamenesManuscritosIaRoute:
+    GuiaCorregirExamenesManuscritosIaRoute,
   InviteTokenRoute: InviteTokenRoute,
   ExploreIndexRoute: ExploreIndexRoute,
   ApiFileSplatRoute: ApiFileSplatRoute,
