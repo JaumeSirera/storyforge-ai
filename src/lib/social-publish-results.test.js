@@ -41,3 +41,12 @@ test("Facebook failure without text still shows Upload-Post's error code", () =>
   expect(r[0].ok).toBe(false);
   expect(r[0].detail).toContain("video_aspect_ratio");
 });
+
+import { describe as d2, it as i2, expect as e2 } from "vitest";
+d2("tracking without request id", () => {
+  i2("keeps failed networks tracked so retries and checks know the outcome", () => {
+    const s = summarize([{ platform: "youtube", ok: false, detail: "YouTube necesita un vídeo." }, { platform: "facebook", ok: true, detail: "https://facebook.com/p/1" }]);
+    const t = readPublishTracking(s.result);
+    e2(t.map((r) => [r.platform, r.ok])).toEqual([["youtube", false], ["facebook", true]]);
+  });
+});
