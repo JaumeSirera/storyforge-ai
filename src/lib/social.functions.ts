@@ -271,8 +271,12 @@ export const checkSocialChapterPublication = createServerFn({ method: "POST" })
     if (!chapter) throw new Error("Capítulo no encontrado");
     const tracking = readPublishTracking(chapter.result);
     if (!tracking.some((r) => r.pending && r.requestId)) {
-      if (tracking.some((r) => !r.ok)) throw new Error("Este envío ya terminó: no queda nada por comprobar. Pulsa «Publicar ahora» para reintentar solo las redes que fallaron.");
-      throw new Error("Este envío antiguo no tiene seguimiento. Revisa el historial de Upload-Post y la página de Facebook antes de volver a publicar.");
+      const visible = chapter.result ?? "";
+      const failed = tracking.length ? tracking.some((r) => !r.ok) : /:\s*✗/.test(visible);
+      const allOk = tracking.length ? tracking.every((r) => r.ok) : /:\s*✓/.test(visible) && !failed;
+      if (failed) throw new Error("No hay nada pendiente de comprobar: las redes con ✗ fallaron en el envío. Corrige el motivo indicado y pulsa «Publicar ahora»; solo se reintentarán las redes que fallaron.");
+      if (allOk) throw new Error("Este capítulo ya está publicado en todas sus redes.");
+      throw new Error("No hay ningún envío pendiente de comprobar. Pulsa «Publicar ahora» para enviarlo.");
     }
 
     const creds = await api<{ key: string | null; profile: string }>(context, "/social/settings/key");
