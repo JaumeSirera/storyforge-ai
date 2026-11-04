@@ -78,7 +78,8 @@ export function readPublishTracking(result: string | null): PublishResult[] {
 export function summarize(results: PublishResult[]): { status: "publicado" | "enviando" | "error"; result: string } {
   const status = results.length > 0 && results.every((r) => r.ok) ? "publicado" : results.some((r) => r.pending) ? "enviando" : "error";
   const lines = results.map((r) => `${r.platform}: ${r.ok ? "✓" : r.pending ? "…" : "✗"} ${r.detail}`);
-  if (results.some((r) => r.requestId)) lines.push(TRACKING + JSON.stringify(results));
+  // Always keep tracking, even for local errors without a request id, so checks and retries know the outcome.
+  if (results.length) lines.push(TRACKING + JSON.stringify(results));
   return { status, result: lines.join("\n") };
 }
 
