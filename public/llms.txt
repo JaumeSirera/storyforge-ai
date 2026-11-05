@@ -1,0 +1,15 @@
+# Xandralyze
+
+> Plataforma gratuita y de código abierto (AGPL-3.0) para corregir exámenes manuscritos con IA, crear simulaciones interactivas en vídeo y evaluar por competencias. Cada usuario usa su propia clave de IA.
+
+## Páginas
+- [Inicio](https://xandralyze.com/): Qué es Xandralyze y demostraciones sin cuenta.
+- [Educación](https://xandralyze.com/educacion): Corrección de exámenes manuscritos con OCR y rúbricas.
+- [Selección](https://xandralyze.com/seleccion): Selección gamificada y simulador de situaciones para RR. HH.
+- [Psicología](https://xandralyze.com/psicologia): Revisión de interacciones de voz con consentimiento.
+- [Código abierto](https://xandralyze.com/open-source): Cómo colaborar en el proyecto.
+
+## Guías
+- [Corregir exámenes manuscritos con IA](https://xandralyze.com/guia/corregir-examenes-manuscritos-ia)
+- [Rúbrica de evaluación por competencias con IA](https://xandralyze.com/guia/rubrica-evaluacion-competencias-ia)
+- [Simulador de entrevistas para selección](https://xandralyze.com/guia/simulador-entrevistas-seleccion-ia)

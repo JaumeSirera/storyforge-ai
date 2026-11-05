@@ -46,6 +46,21 @@ export const Route = createFileRoute("/")({
       { property: "og:url", content: "https://xandralyze.com/" },
     ],
     links: [{ rel: "canonical", href: "https://xandralyze.com/" }],
+    scripts: [{
+      type: "application/ld+json",
+      children: JSON.stringify([
+        {
+          "@context": "https://schema.org", "@type": "SoftwareApplication", name: "Xandralyze",
+          applicationCategory: "EducationalApplication", operatingSystem: "Web, Android, iOS", inLanguage: "es",
+          url: "https://xandralyze.com/",
+          description: "Corrección de exámenes manuscritos con IA, simulaciones interactivas en vídeo y selección gamificada. Gratis y de código abierto.",
+          offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+          license: "https://www.gnu.org/licenses/agpl-3.0.html",
+        },
+        { "@context": "https://schema.org", "@type": "Organization", name: "Xandralyze", url: "https://xandralyze.com/", logo: "https://xandralyze.com/icon-512.png", sameAs: ["https://github.com/JaumeSirera/storyforge-ai"] },
+        { "@context": "https://schema.org", "@type": "WebSite", name: "Xandralyze", url: "https://xandralyze.com/", inLanguage: "es" },
+      ]),
+    }],
   }),
   component: Landing,
 });
@@ -488,6 +503,7 @@ function Footer() {
         <nav className="flex items-center gap-6">
           {DONATIONS_ENABLED ? <Link to="/pricing" className="hover:text-foreground">Precios</Link> : <Link to="/open-source" className="hover:text-foreground">Código abierto</Link>}
           <Link to="/explore" className="hover:text-foreground">Galería</Link>
+          <Link to="/guia" className="hover:text-foreground">Guías</Link>
           <Link to="/install" className="hover:text-foreground">App móvil</Link>
           <Link to="/auth" className="hover:text-foreground">Entrar</Link>
         </nav>

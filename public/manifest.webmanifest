@@ -1,7 +1,7 @@
 {
-  "name": "Xandralyze — Simulaciones y evaluación con IA",
+  "name": "Xandralyze — Corrección de exámenes con IA y simulaciones",
   "short_name": "Xandralyze",
-  "description": "Crea simulaciones interactivas en vídeo, graba al participante y evalúa con IA.",
+  "description": "Corrige exámenes manuscritos con IA, crea simulaciones interactivas en vídeo y evalúa por competencias. Gratis y open source.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -9,8 +9,45 @@
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "id": "/",
+  "lang": "es",
+  "dir": "ltr",
+  "categories": [
+    "education",
+    "business",
+    "productivity"
+  ],
+  "shortcuts": [
+    {
+      "name": "Probar la corrección de exámenes",
+      "url": "/educacion#demo-evaluacion"
+    },
+    {
+      "name": "Probar una simulación",
+      "url": "/seleccion#demo"
+    },
+    {
+      "name": "Guías",
+      "url": "/guia"
+    }
   ]
 }

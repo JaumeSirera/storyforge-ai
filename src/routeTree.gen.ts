@@ -22,7 +22,10 @@ import { Route as SeleccionRouteImport } from './routes/seleccion'
 import { Route as ExamTokenRouteImport } from './routes/exam.$token'
 import { Route as ExploreIndexRouteImport } from './routes/explore.index'
 import { Route as ExploreIdRouteImport } from './routes/explore.$id'
+import { Route as GuiaIndexRouteImport } from './routes/guia.index'
 import { Route as GuiaCorregirExamenesManuscritosIaRouteImport } from './routes/guia.corregir-examenes-manuscritos-ia'
+import { Route as GuiaRubricaEvaluacionCompetenciasIaRouteImport } from './routes/guia.rubrica-evaluacion-competencias-ia'
+import { Route as GuiaSimuladorEntrevistasSeleccionIaRouteImport } from './routes/guia.simulador-entrevistas-seleccion-ia'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app.admin'
 import { Route as AuthenticatedAppAiTestRouteImport } from './routes/_authenticated/app.ai-test'
@@ -135,10 +138,27 @@ const ExploreIdRoute = ExploreIdRouteImport.update({
   path: '/explore/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GuiaIndexRoute = GuiaIndexRouteImport.update({
+  id: '/guia/',
+  path: '/guia/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GuiaCorregirExamenesManuscritosIaRoute =
   GuiaCorregirExamenesManuscritosIaRouteImport.update({
     id: '/guia/corregir-examenes-manuscritos-ia',
     path: '/guia/corregir-examenes-manuscritos-ia',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const GuiaRubricaEvaluacionCompetenciasIaRoute =
+  GuiaRubricaEvaluacionCompetenciasIaRouteImport.update({
+    id: '/guia/rubrica-evaluacion-competencias-ia',
+    path: '/guia/rubrica-evaluacion-competencias-ia',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const GuiaSimuladorEntrevistasSeleccionIaRoute =
+  GuiaSimuladorEntrevistasSeleccionIaRouteImport.update({
+    id: '/guia/simulador-entrevistas-seleccion-ia',
+    path: '/guia/simulador-entrevistas-seleccion-ia',
     getParentRoute: () => rootRouteImport,
   } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
@@ -424,8 +444,11 @@ export interface FileRoutesByFullPath {
   '/exam/$token': typeof ExamTokenRoute
   '/explore/$id': typeof ExploreIdRoute
   '/guia/corregir-examenes-manuscritos-ia': typeof GuiaCorregirExamenesManuscritosIaRoute
+  '/guia/rubrica-evaluacion-competencias-ia': typeof GuiaRubricaEvaluacionCompetenciasIaRoute
+  '/guia/simulador-entrevistas-seleccion-ia': typeof GuiaSimuladorEntrevistasSeleccionIaRoute
   '/invite/$token': typeof InviteTokenRoute
   '/explore/': typeof ExploreIndexRoute
+  '/guia/': typeof GuiaIndexRoute
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/app/ai-test': typeof AuthenticatedAppAiTestRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
@@ -486,8 +509,11 @@ export interface FileRoutesByTo {
   '/exam/$token': typeof ExamTokenRoute
   '/explore/$id': typeof ExploreIdRoute
   '/guia/corregir-examenes-manuscritos-ia': typeof GuiaCorregirExamenesManuscritosIaRoute
+  '/guia/rubrica-evaluacion-competencias-ia': typeof GuiaRubricaEvaluacionCompetenciasIaRoute
+  '/guia/simulador-entrevistas-seleccion-ia': typeof GuiaSimuladorEntrevistasSeleccionIaRoute
   '/invite/$token': typeof InviteTokenRoute
   '/explore': typeof ExploreIndexRoute
+  '/guia': typeof GuiaIndexRoute
   '/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/app/ai-test': typeof AuthenticatedAppAiTestRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
@@ -549,8 +575,11 @@ export interface FileRoutesById {
   '/exam/$token': typeof ExamTokenRoute
   '/explore/$id': typeof ExploreIdRoute
   '/guia/corregir-examenes-manuscritos-ia': typeof GuiaCorregirExamenesManuscritosIaRoute
+  '/guia/rubrica-evaluacion-competencias-ia': typeof GuiaRubricaEvaluacionCompetenciasIaRoute
+  '/guia/simulador-entrevistas-seleccion-ia': typeof GuiaSimuladorEntrevistasSeleccionIaRoute
   '/invite/$token': typeof InviteTokenRoute
   '/explore/': typeof ExploreIndexRoute
+  '/guia/': typeof GuiaIndexRoute
   '/_authenticated/app/admin': typeof AuthenticatedAppAdminRouteWithChildren
   '/_authenticated/app/ai-test': typeof AuthenticatedAppAiTestRoute
   '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
@@ -613,8 +642,11 @@ export interface FileRouteTypes {
     | '/exam/$token'
     | '/explore/$id'
     | '/guia/corregir-examenes-manuscritos-ia'
+    | '/guia/rubrica-evaluacion-competencias-ia'
+    | '/guia/simulador-entrevistas-seleccion-ia'
     | '/invite/$token'
     | '/explore/'
+    | '/guia/'
     | '/app/admin'
     | '/app/ai-test'
     | '/app/billing'
@@ -675,8 +707,11 @@ export interface FileRouteTypes {
     | '/exam/$token'
     | '/explore/$id'
     | '/guia/corregir-examenes-manuscritos-ia'
+    | '/guia/rubrica-evaluacion-competencias-ia'
+    | '/guia/simulador-entrevistas-seleccion-ia'
     | '/invite/$token'
     | '/explore'
+    | '/guia'
     | '/app/admin'
     | '/app/ai-test'
     | '/app/billing'
@@ -737,8 +772,11 @@ export interface FileRouteTypes {
     | '/exam/$token'
     | '/explore/$id'
     | '/guia/corregir-examenes-manuscritos-ia'
+    | '/guia/rubrica-evaluacion-competencias-ia'
+    | '/guia/simulador-entrevistas-seleccion-ia'
     | '/invite/$token'
     | '/explore/'
+    | '/guia/'
     | '/_authenticated/app/admin'
     | '/_authenticated/app/ai-test'
     | '/_authenticated/app/billing'
@@ -801,8 +839,11 @@ export interface RootRouteChildren {
   ExamTokenRoute: typeof ExamTokenRoute
   ExploreIdRoute: typeof ExploreIdRoute
   GuiaCorregirExamenesManuscritosIaRoute: typeof GuiaCorregirExamenesManuscritosIaRoute
+  GuiaRubricaEvaluacionCompetenciasIaRoute: typeof GuiaRubricaEvaluacionCompetenciasIaRoute
+  GuiaSimuladorEntrevistasSeleccionIaRoute: typeof GuiaSimuladorEntrevistasSeleccionIaRoute
   InviteTokenRoute: typeof InviteTokenRoute
   ExploreIndexRoute: typeof ExploreIndexRoute
+  GuiaIndexRoute: typeof GuiaIndexRoute
   ApiFileSplatRoute: typeof ApiFileSplatRoute
   ApiPublicMigrateAccountsRoute: typeof ApiPublicMigrateAccountsRoute
   ApiPublicMigrateAssessmentsRoute: typeof ApiPublicMigrateAssessmentsRoute
@@ -911,11 +952,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExploreIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/guia/': {
+      id: '/guia/'
+      path: '/guia'
+      fullPath: '/guia/'
+      preLoaderRoute: typeof GuiaIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/guia/corregir-examenes-manuscritos-ia': {
       id: '/guia/corregir-examenes-manuscritos-ia'
       path: '/guia/corregir-examenes-manuscritos-ia'
       fullPath: '/guia/corregir-examenes-manuscritos-ia'
       preLoaderRoute: typeof GuiaCorregirExamenesManuscritosIaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guia/rubrica-evaluacion-competencias-ia': {
+      id: '/guia/rubrica-evaluacion-competencias-ia'
+      path: '/guia/rubrica-evaluacion-competencias-ia'
+      fullPath: '/guia/rubrica-evaluacion-competencias-ia'
+      preLoaderRoute: typeof GuiaRubricaEvaluacionCompetenciasIaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guia/simulador-entrevistas-seleccion-ia': {
+      id: '/guia/simulador-entrevistas-seleccion-ia'
+      path: '/guia/simulador-entrevistas-seleccion-ia'
+      fullPath: '/guia/simulador-entrevistas-seleccion-ia'
+      preLoaderRoute: typeof GuiaSimuladorEntrevistasSeleccionIaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invite/$token': {
@@ -1375,8 +1437,13 @@ const rootRouteChildren: RootRouteChildren = {
   ExploreIdRoute: ExploreIdRoute,
   GuiaCorregirExamenesManuscritosIaRoute:
     GuiaCorregirExamenesManuscritosIaRoute,
+  GuiaRubricaEvaluacionCompetenciasIaRoute:
+    GuiaRubricaEvaluacionCompetenciasIaRoute,
+  GuiaSimuladorEntrevistasSeleccionIaRoute:
+    GuiaSimuladorEntrevistasSeleccionIaRoute,
   InviteTokenRoute: InviteTokenRoute,
   ExploreIndexRoute: ExploreIndexRoute,
+  GuiaIndexRoute: GuiaIndexRoute,
   ApiFileSplatRoute: ApiFileSplatRoute,
   ApiPublicMigrateAccountsRoute: ApiPublicMigrateAccountsRoute,
   ApiPublicMigrateAssessmentsRoute: ApiPublicMigrateAssessmentsRoute,
