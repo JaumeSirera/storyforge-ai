@@ -1,3 +1,4 @@
+import { guides } from "@/lib/guides";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Check, GraduationCap, Users, AudioLines, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -109,8 +110,7 @@ export function SectorLanding({ sector }: { sector: keyof typeof sectors }) {
           <h2 className="text-3xl tracking-normal">{page.heading}</h2><p className="mt-3 max-w-2xl text-muted-foreground">{page.intro}</p>
           <div className="mt-10 grid gap-8 md:grid-cols-3">{page.features.map(([title, body], i) => <article key={title} className="border-t border-border pt-6"><span className="text-sm font-semibold text-primary">0{i + 1}</span><h3 className="mt-3 text-xl tracking-normal">{title}</h3><p className="mt-3 leading-relaxed text-muted-foreground">{body}</p></article>)}</div>
         </section>
-        {sector === "educacion" && <section className="mx-auto flex max-w-7xl flex-col gap-2 px-6 pb-4"><Link to="/guia/corregir-examenes-manuscritos-ia" className="inline-flex items-center gap-2 font-medium text-primary hover:underline">Guía: cómo corregir exámenes manuscritos con IA paso a paso<ArrowRight className="h-4 w-4" /></Link><Link to="/guia/rubrica-evaluacion-competencias-ia" className="inline-flex items-center gap-2 font-medium text-primary hover:underline">Guía: cómo crear una rúbrica por competencias con IA<ArrowRight className="h-4 w-4" /></Link></section>}
-        {sector === "seleccion" && <section className="mx-auto max-w-7xl px-6 pb-4"><Link to="/guia/simulador-entrevistas-seleccion-ia" className="inline-flex items-center gap-2 font-medium text-primary hover:underline">Guía: cómo crear un simulador de entrevistas con IA<ArrowRight className="h-4 w-4" /></Link></section>}
+        {guides.some((g) => g.backTo === `/${sector}`) && <section className="mx-auto flex max-w-7xl flex-col gap-2 px-6 pb-4"><h2 className="text-xl tracking-normal">Guías</h2>{guides.filter((g) => g.backTo === `/${sector}`).map((g) => <a key={g.slug} href={`/guia/${g.slug}`} className="inline-flex items-center gap-2 font-medium text-primary hover:underline">{g.h1}<ArrowRight className="h-4 w-4" /></a>)}</section>}
         {sector === "educacion" && <PublicExamDemo />}
         {sector === "seleccion" && <PublicDemo />}
         <section className="border-b border-border bg-secondary/40"><div className="mx-auto max-w-7xl px-6 py-16"><h2 className="text-3xl tracking-normal">Un flujo que puedes revisar</h2><ol className="mt-8 grid gap-8 md:grid-cols-3">{page.steps.map((step, i) => <li key={step} className="flex items-start gap-3"><span className="font-semibold text-primary">{i + 1}.</span><span className="font-medium">{step}</span></li>)}</ol><p className="mt-10 max-w-3xl border-l-2 border-primary pl-4 text-sm leading-relaxed text-muted-foreground">{page.note}</p></div></section>

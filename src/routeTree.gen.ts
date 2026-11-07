@@ -24,8 +24,13 @@ import { Route as ExploreIndexRouteImport } from './routes/explore.index'
 import { Route as ExploreIdRouteImport } from './routes/explore.$id'
 import { Route as GuiaIndexRouteImport } from './routes/guia.index'
 import { Route as GuiaCorregirExamenesManuscritosIaRouteImport } from './routes/guia.corregir-examenes-manuscritos-ia'
+import { Route as GuiaExamenOnlineTiempoLimiteRouteImport } from './routes/guia.examen-online-tiempo-limite'
+import { Route as GuiaGeneradorExamenesIaGratisRouteImport } from './routes/guia.generador-examenes-ia-gratis'
+import { Route as GuiaHerramientasIaOpenSourceEducacionRouteImport } from './routes/guia.herramientas-ia-open-source-educacion'
+import { Route as GuiaLectorOcrExamenesEscaneadosRouteImport } from './routes/guia.lector-ocr-examenes-escaneados'
 import { Route as GuiaRubricaEvaluacionCompetenciasIaRouteImport } from './routes/guia.rubrica-evaluacion-competencias-ia'
 import { Route as GuiaSimuladorEntrevistasSeleccionIaRouteImport } from './routes/guia.simulador-entrevistas-seleccion-ia'
+import { Route as GuiaVideoInteractivoGamificadoEducacionRouteImport } from './routes/guia.video-interactivo-gamificado-educacion'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app.admin'
 import { Route as AuthenticatedAppAiTestRouteImport } from './routes/_authenticated/app.ai-test'
@@ -149,6 +154,30 @@ const GuiaCorregirExamenesManuscritosIaRoute =
     path: '/guia/corregir-examenes-manuscritos-ia',
     getParentRoute: () => rootRouteImport,
   } as any)
+const GuiaExamenOnlineTiempoLimiteRoute =
+  GuiaExamenOnlineTiempoLimiteRouteImport.update({
+    id: '/guia/examen-online-tiempo-limite',
+    path: '/guia/examen-online-tiempo-limite',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const GuiaGeneradorExamenesIaGratisRoute =
+  GuiaGeneradorExamenesIaGratisRouteImport.update({
+    id: '/guia/generador-examenes-ia-gratis',
+    path: '/guia/generador-examenes-ia-gratis',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const GuiaHerramientasIaOpenSourceEducacionRoute =
+  GuiaHerramientasIaOpenSourceEducacionRouteImport.update({
+    id: '/guia/herramientas-ia-open-source-educacion',
+    path: '/guia/herramientas-ia-open-source-educacion',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const GuiaLectorOcrExamenesEscaneadosRoute =
+  GuiaLectorOcrExamenesEscaneadosRouteImport.update({
+    id: '/guia/lector-ocr-examenes-escaneados',
+    path: '/guia/lector-ocr-examenes-escaneados',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const GuiaRubricaEvaluacionCompetenciasIaRoute =
   GuiaRubricaEvaluacionCompetenciasIaRouteImport.update({
     id: '/guia/rubrica-evaluacion-competencias-ia',
@@ -159,6 +188,12 @@ const GuiaSimuladorEntrevistasSeleccionIaRoute =
   GuiaSimuladorEntrevistasSeleccionIaRouteImport.update({
     id: '/guia/simulador-entrevistas-seleccion-ia',
     path: '/guia/simulador-entrevistas-seleccion-ia',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const GuiaVideoInteractivoGamificadoEducacionRoute =
+  GuiaVideoInteractivoGamificadoEducacionRouteImport.update({
+    id: '/guia/video-interactivo-gamificado-educacion',
+    path: '/guia/video-interactivo-gamificado-educacion',
     getParentRoute: () => rootRouteImport,
   } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
@@ -444,8 +479,13 @@ export interface FileRoutesByFullPath {
   '/exam/$token': typeof ExamTokenRoute
   '/explore/$id': typeof ExploreIdRoute
   '/guia/corregir-examenes-manuscritos-ia': typeof GuiaCorregirExamenesManuscritosIaRoute
+  '/guia/examen-online-tiempo-limite': typeof GuiaExamenOnlineTiempoLimiteRoute
+  '/guia/generador-examenes-ia-gratis': typeof GuiaGeneradorExamenesIaGratisRoute
+  '/guia/herramientas-ia-open-source-educacion': typeof GuiaHerramientasIaOpenSourceEducacionRoute
+  '/guia/lector-ocr-examenes-escaneados': typeof GuiaLectorOcrExamenesEscaneadosRoute
   '/guia/rubrica-evaluacion-competencias-ia': typeof GuiaRubricaEvaluacionCompetenciasIaRoute
   '/guia/simulador-entrevistas-seleccion-ia': typeof GuiaSimuladorEntrevistasSeleccionIaRoute
+  '/guia/video-interactivo-gamificado-educacion': typeof GuiaVideoInteractivoGamificadoEducacionRoute
   '/invite/$token': typeof InviteTokenRoute
   '/explore/': typeof ExploreIndexRoute
   '/guia/': typeof GuiaIndexRoute
@@ -509,8 +549,13 @@ export interface FileRoutesByTo {
   '/exam/$token': typeof ExamTokenRoute
   '/explore/$id': typeof ExploreIdRoute
   '/guia/corregir-examenes-manuscritos-ia': typeof GuiaCorregirExamenesManuscritosIaRoute
+  '/guia/examen-online-tiempo-limite': typeof GuiaExamenOnlineTiempoLimiteRoute
+  '/guia/generador-examenes-ia-gratis': typeof GuiaGeneradorExamenesIaGratisRoute
+  '/guia/herramientas-ia-open-source-educacion': typeof GuiaHerramientasIaOpenSourceEducacionRoute
+  '/guia/lector-ocr-examenes-escaneados': typeof GuiaLectorOcrExamenesEscaneadosRoute
   '/guia/rubrica-evaluacion-competencias-ia': typeof GuiaRubricaEvaluacionCompetenciasIaRoute
   '/guia/simulador-entrevistas-seleccion-ia': typeof GuiaSimuladorEntrevistasSeleccionIaRoute
+  '/guia/video-interactivo-gamificado-educacion': typeof GuiaVideoInteractivoGamificadoEducacionRoute
   '/invite/$token': typeof InviteTokenRoute
   '/explore': typeof ExploreIndexRoute
   '/guia': typeof GuiaIndexRoute
@@ -575,8 +620,13 @@ export interface FileRoutesById {
   '/exam/$token': typeof ExamTokenRoute
   '/explore/$id': typeof ExploreIdRoute
   '/guia/corregir-examenes-manuscritos-ia': typeof GuiaCorregirExamenesManuscritosIaRoute
+  '/guia/examen-online-tiempo-limite': typeof GuiaExamenOnlineTiempoLimiteRoute
+  '/guia/generador-examenes-ia-gratis': typeof GuiaGeneradorExamenesIaGratisRoute
+  '/guia/herramientas-ia-open-source-educacion': typeof GuiaHerramientasIaOpenSourceEducacionRoute
+  '/guia/lector-ocr-examenes-escaneados': typeof GuiaLectorOcrExamenesEscaneadosRoute
   '/guia/rubrica-evaluacion-competencias-ia': typeof GuiaRubricaEvaluacionCompetenciasIaRoute
   '/guia/simulador-entrevistas-seleccion-ia': typeof GuiaSimuladorEntrevistasSeleccionIaRoute
+  '/guia/video-interactivo-gamificado-educacion': typeof GuiaVideoInteractivoGamificadoEducacionRoute
   '/invite/$token': typeof InviteTokenRoute
   '/explore/': typeof ExploreIndexRoute
   '/guia/': typeof GuiaIndexRoute
@@ -642,8 +692,13 @@ export interface FileRouteTypes {
     | '/exam/$token'
     | '/explore/$id'
     | '/guia/corregir-examenes-manuscritos-ia'
+    | '/guia/examen-online-tiempo-limite'
+    | '/guia/generador-examenes-ia-gratis'
+    | '/guia/herramientas-ia-open-source-educacion'
+    | '/guia/lector-ocr-examenes-escaneados'
     | '/guia/rubrica-evaluacion-competencias-ia'
     | '/guia/simulador-entrevistas-seleccion-ia'
+    | '/guia/video-interactivo-gamificado-educacion'
     | '/invite/$token'
     | '/explore/'
     | '/guia/'
@@ -707,8 +762,13 @@ export interface FileRouteTypes {
     | '/exam/$token'
     | '/explore/$id'
     | '/guia/corregir-examenes-manuscritos-ia'
+    | '/guia/examen-online-tiempo-limite'
+    | '/guia/generador-examenes-ia-gratis'
+    | '/guia/herramientas-ia-open-source-educacion'
+    | '/guia/lector-ocr-examenes-escaneados'
     | '/guia/rubrica-evaluacion-competencias-ia'
     | '/guia/simulador-entrevistas-seleccion-ia'
+    | '/guia/video-interactivo-gamificado-educacion'
     | '/invite/$token'
     | '/explore'
     | '/guia'
@@ -772,8 +832,13 @@ export interface FileRouteTypes {
     | '/exam/$token'
     | '/explore/$id'
     | '/guia/corregir-examenes-manuscritos-ia'
+    | '/guia/examen-online-tiempo-limite'
+    | '/guia/generador-examenes-ia-gratis'
+    | '/guia/herramientas-ia-open-source-educacion'
+    | '/guia/lector-ocr-examenes-escaneados'
     | '/guia/rubrica-evaluacion-competencias-ia'
     | '/guia/simulador-entrevistas-seleccion-ia'
+    | '/guia/video-interactivo-gamificado-educacion'
     | '/invite/$token'
     | '/explore/'
     | '/guia/'
@@ -839,8 +904,13 @@ export interface RootRouteChildren {
   ExamTokenRoute: typeof ExamTokenRoute
   ExploreIdRoute: typeof ExploreIdRoute
   GuiaCorregirExamenesManuscritosIaRoute: typeof GuiaCorregirExamenesManuscritosIaRoute
+  GuiaExamenOnlineTiempoLimiteRoute: typeof GuiaExamenOnlineTiempoLimiteRoute
+  GuiaGeneradorExamenesIaGratisRoute: typeof GuiaGeneradorExamenesIaGratisRoute
+  GuiaHerramientasIaOpenSourceEducacionRoute: typeof GuiaHerramientasIaOpenSourceEducacionRoute
+  GuiaLectorOcrExamenesEscaneadosRoute: typeof GuiaLectorOcrExamenesEscaneadosRoute
   GuiaRubricaEvaluacionCompetenciasIaRoute: typeof GuiaRubricaEvaluacionCompetenciasIaRoute
   GuiaSimuladorEntrevistasSeleccionIaRoute: typeof GuiaSimuladorEntrevistasSeleccionIaRoute
+  GuiaVideoInteractivoGamificadoEducacionRoute: typeof GuiaVideoInteractivoGamificadoEducacionRoute
   InviteTokenRoute: typeof InviteTokenRoute
   ExploreIndexRoute: typeof ExploreIndexRoute
   GuiaIndexRoute: typeof GuiaIndexRoute
@@ -966,6 +1036,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuiaCorregirExamenesManuscritosIaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/guia/examen-online-tiempo-limite': {
+      id: '/guia/examen-online-tiempo-limite'
+      path: '/guia/examen-online-tiempo-limite'
+      fullPath: '/guia/examen-online-tiempo-limite'
+      preLoaderRoute: typeof GuiaExamenOnlineTiempoLimiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guia/generador-examenes-ia-gratis': {
+      id: '/guia/generador-examenes-ia-gratis'
+      path: '/guia/generador-examenes-ia-gratis'
+      fullPath: '/guia/generador-examenes-ia-gratis'
+      preLoaderRoute: typeof GuiaGeneradorExamenesIaGratisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guia/herramientas-ia-open-source-educacion': {
+      id: '/guia/herramientas-ia-open-source-educacion'
+      path: '/guia/herramientas-ia-open-source-educacion'
+      fullPath: '/guia/herramientas-ia-open-source-educacion'
+      preLoaderRoute: typeof GuiaHerramientasIaOpenSourceEducacionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guia/lector-ocr-examenes-escaneados': {
+      id: '/guia/lector-ocr-examenes-escaneados'
+      path: '/guia/lector-ocr-examenes-escaneados'
+      fullPath: '/guia/lector-ocr-examenes-escaneados'
+      preLoaderRoute: typeof GuiaLectorOcrExamenesEscaneadosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/guia/rubrica-evaluacion-competencias-ia': {
       id: '/guia/rubrica-evaluacion-competencias-ia'
       path: '/guia/rubrica-evaluacion-competencias-ia'
@@ -978,6 +1076,13 @@ declare module '@tanstack/react-router' {
       path: '/guia/simulador-entrevistas-seleccion-ia'
       fullPath: '/guia/simulador-entrevistas-seleccion-ia'
       preLoaderRoute: typeof GuiaSimuladorEntrevistasSeleccionIaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guia/video-interactivo-gamificado-educacion': {
+      id: '/guia/video-interactivo-gamificado-educacion'
+      path: '/guia/video-interactivo-gamificado-educacion'
+      fullPath: '/guia/video-interactivo-gamificado-educacion'
+      preLoaderRoute: typeof GuiaVideoInteractivoGamificadoEducacionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invite/$token': {
@@ -1437,10 +1542,17 @@ const rootRouteChildren: RootRouteChildren = {
   ExploreIdRoute: ExploreIdRoute,
   GuiaCorregirExamenesManuscritosIaRoute:
     GuiaCorregirExamenesManuscritosIaRoute,
+  GuiaExamenOnlineTiempoLimiteRoute: GuiaExamenOnlineTiempoLimiteRoute,
+  GuiaGeneradorExamenesIaGratisRoute: GuiaGeneradorExamenesIaGratisRoute,
+  GuiaHerramientasIaOpenSourceEducacionRoute:
+    GuiaHerramientasIaOpenSourceEducacionRoute,
+  GuiaLectorOcrExamenesEscaneadosRoute: GuiaLectorOcrExamenesEscaneadosRoute,
   GuiaRubricaEvaluacionCompetenciasIaRoute:
     GuiaRubricaEvaluacionCompetenciasIaRoute,
   GuiaSimuladorEntrevistasSeleccionIaRoute:
     GuiaSimuladorEntrevistasSeleccionIaRoute,
+  GuiaVideoInteractivoGamificadoEducacionRoute:
+    GuiaVideoInteractivoGamificadoEducacionRoute,
   InviteTokenRoute: InviteTokenRoute,
   ExploreIndexRoute: ExploreIndexRoute,
   GuiaIndexRoute: GuiaIndexRoute,
