@@ -90,6 +90,7 @@ export const submitExam = createServerFn({ method: "POST" })
         )
         .max(60),
       auto: z.boolean().default(false),
+      integrity: z.record(z.string(), z.union([z.number(), z.boolean()])).optional(),
     }).parse(input),
   )
   .handler(async ({ data }) => submitExamHandler(data));

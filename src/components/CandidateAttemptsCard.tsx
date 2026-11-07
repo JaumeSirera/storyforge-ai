@@ -12,6 +12,12 @@ import {
   examAuditLabel,
   type ExamAuditEntry,
 } from "@/lib/exam-audit-shared";
+import {
+  INTEGRITY_LEVEL_LABELS,
+  integrityLevel,
+  integritySummary,
+  normalizeIntegrity,
+} from "@/lib/exam-integrity";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -228,6 +234,19 @@ export function CandidateAttemptsCard({ assessmentId }: { assessmentId: string }
                             {c.timeExpired && (
                               <Badge variant="destructive">Tiempo agotado</Badge>
                             )}
+                            {(() => {
+                              const rep = history.find((h) => h.event === "exam_integrity_report");
+                              if (!rep) return null;
+                              const level = integrityLevel(normalizeIntegrity(rep.detail));
+                              return (
+                                <Badge
+                                  variant={level === "alto" ? "destructive" : level === "revisar" ? "outline" : "secondary"}
+                                  title={integritySummary(normalizeIntegrity(rep.detail))}
+                                >
+                                  {INTEGRITY_LEVEL_LABELS[level]}
+                                </Badge>
+                              );
+                            })()}
                           </div>
                         </TableCell>
                         <TableCell className="whitespace-nowrap text-sm">
@@ -253,6 +272,11 @@ export function CandidateAttemptsCard({ assessmentId }: { assessmentId: string }
                                     className="flex flex-wrap items-center gap-2 text-sm"
                                   >
                                     <Badge variant="secondary">{examAuditLabel(h.event)}</Badge>
+                                    {h.event === "exam_integrity_report" && (
+                                      <span className="basis-full text-muted-foreground">
+                                        {integritySummary(normalizeIntegrity(h.detail))}
+                                      </span>
+                                    )}
                                     <span className="whitespace-nowrap">{fmt(h.createdAt)}</span>
                                     <span className="text-muted-foreground">
                                       {browserSummary(h.userAgent)}

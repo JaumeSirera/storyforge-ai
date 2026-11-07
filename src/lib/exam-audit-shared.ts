@@ -17,6 +17,7 @@ export const EXAM_AUDIT_EVENT_LABELS: Record<string, string> = {
   exam_auto_submitted: "Entrega automática (tiempo agotado)",
   exam_resubmit_attempt: "Intento de reenvío",
   exam_submit_rejected_time: "Entrega rechazada (fuera de plazo)",
+  exam_integrity_report: "Informe antitrampas",
 };
 
 export function examAuditLabel(event: string) {

@@ -7,7 +7,8 @@ export type ExamAuditEvent =
   | "exam_submitted"
   | "exam_auto_submitted"
   | "exam_resubmit_attempt"
-  | "exam_submit_rejected_time";
+  | "exam_submit_rejected_time"
+  | "exam_integrity_report";
 
 /**
  * Registra un evento de auditoría del examen (fecha/hora, IP, navegador y

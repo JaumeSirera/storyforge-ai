@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listExamAudit } from "@/lib/exam-audit.functions";
+import { integritySummary, normalizeIntegrity } from "@/lib/exam-integrity";
 import {
   browserSummary,
   examAuditLabel,
@@ -153,6 +154,11 @@ export function ExamAuditLogCard({ assessmentId }: { assessmentId: string }) {
                         )}
                         {examAuditLabel(e.event)}
                       </Badge>
+                      {e.event === "exam_integrity_report" && (
+                        <span className="mt-1 block text-xs text-muted-foreground">
+                          {integritySummary(normalizeIntegrity(e.detail))}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="font-mono text-xs">{e.ip ?? "—"}</TableCell>
                     <TableCell className="text-sm" title={e.userAgent ?? undefined}>

@@ -7,6 +7,7 @@ import type {
 } from "./assessment-candidates-shared";
 import { mapAssessment } from "./assessments.server";
 import { logExamAudit } from "./exam-audit.server";
+import { integrityLevel, normalizeIntegrity } from "./exam-integrity";
 import type { AssessmentQuestion } from "./assessments-shared";
 import { assessDb, assessAdminDb } from "./assessments-repo.server";
 
@@ -268,6 +269,7 @@ export async function submitExamHandler(data: {
   answers: ExamAnswerInput[];
   auto?: boolean;
   clientVersion?: string;
+  integrity?: unknown;
 }) {
   const { supabaseAdmin, candidate, assessment } = await loadByToken(data.token);
   const auditBase = {
@@ -348,6 +350,14 @@ export async function submitExamHandler(data: {
       timeExpired,
       startedAt: candidate.started_at,
     },
+  });
+
+  // Informe antitrampas: salidas de pestaña, pegados/copias bloqueados y pantalla completa.
+  const integrity = normalizeIntegrity(data.integrity);
+  await logExamAudit({
+    ...auditBase,
+    event: "exam_integrity_report",
+    detail: { ...integrity, level: integrityLevel(integrity), submissionId: submission.id },
   });
 
   // Corrección automática de la entrega del candidato (actúa como el propietario).
