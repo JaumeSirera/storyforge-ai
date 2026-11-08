@@ -15,6 +15,6 @@
 - [Simulador de entrevistas para selección](https://xandralyze.com/guia/simulador-entrevistas-seleccion-ia)
 - [Generador de exámenes con IA gratis](https://xandralyze.com/guia/generador-examenes-ia-gratis)
 - [Lector OCR de exámenes escaneados](https://xandralyze.com/guia/lector-ocr-examenes-escaneados)
-- [Examen online con tiempo límite](https://xandralyze.com/guia/examen-online-tiempo-limite)
+- [Examen online con tiempo límite y antitrampas](https://xandralyze.com/guia/examen-online-tiempo-limite)
 - [Vídeo interactivo gamificado para educación](https://xandralyze.com/guia/video-interactivo-gamificado-educacion)
 - [Herramientas de IA open source para educación](https://xandralyze.com/guia/herramientas-ia-open-source-educacion)

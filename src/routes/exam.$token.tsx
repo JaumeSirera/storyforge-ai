@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getExam, startExam, submitExam } from "@/lib/assessment-candidates.functions";
 import type { ExamPayload } from "@/lib/assessment-candidates-shared";
 import { CLIENT_VERSION } from "@/lib/app-version";
+import { emptyIntegrity, type ExamIntegrity } from "@/lib/exam-integrity";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -69,6 +70,10 @@ function ExamPage() {
   const [started, setStarted] = useState(false);
   const [starting, setStarting] = useState(false);
 
+  const [integrity, setIntegrity] = useState<ExamIntegrity>(emptyIntegrity);
+  const [warning, setWarning] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const integrityKey = `xandralyze.exam.integrity.${token}`;
   const answersKey = `xandralyze.exam.answers.${token}`;
   const submittedKey = `xandralyze.exam.submitted.${token}`;
 
@@ -115,6 +120,103 @@ function ExamPage() {
     }
   }, [answers, answersKey, done]);
 
+  // Antitrampas: recupera el registro tras un refresco para que no se reinicie.
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(integrityKey);
+      if (raw) setIntegrity({ ...emptyIntegrity(), ...(JSON.parse(raw) as Partial<ExamIntegrity>) });
+    } catch {
+      /* datos corruptos: se ignoran */
+    }
+  }, [integrityKey]);
+
+  useEffect(() => {
+    if (done) return;
+    try {
+      window.localStorage.setItem(integrityKey, JSON.stringify(integrity));
+    } catch {
+      /* almacenamiento no disponible */
+    }
+  }, [integrity, integrityKey, done]);
+
+  // Antitrampas: salidas de pestaña/ventana, pegar/copiar bloqueados y pantalla completa.
+  useEffect(() => {
+    if (!started || done) return;
+    let awaySince: number | null = null;
+    const leave = () => {
+      if (awaySince != null) return;
+      awaySince = Date.now();
+      setIntegrity((i) => ({ ...i, tabSwitches: i.tabSwitches + 1 }));
+    };
+    const back = () => {
+      if (awaySince == null) return;
+      const secs = Math.round((Date.now() - awaySince) / 1000);
+      awaySince = null;
+      setIntegrity((i) => ({ ...i, hiddenSeconds: i.hiddenSeconds + secs }));
+      setWarning("Has salido del examen. Queda registrado y lo verá la persona que te evalúa.");
+    };
+    const onVisibility = () => (document.hidden ? leave() : back());
+    const onPaste = (e: Event) => {
+      e.preventDefault();
+      setIntegrity((i) => ({ ...i, pasteBlocked: i.pasteBlocked + 1 }));
+      toast.warning("Pegar texto no está permitido en este examen.");
+    };
+    const onCopy = (e: Event) => {
+      e.preventDefault();
+      setIntegrity((i) => ({ ...i, copyBlocked: i.copyBlocked + 1 }));
+      toast.warning("Copiar no está permitido en este examen.");
+    };
+    const onContext = (e: Event) => e.preventDefault();
+    const onDrop = (e: Event) => {
+      e.preventDefault();
+      setIntegrity((i) => ({ ...i, pasteBlocked: i.pasteBlocked + 1 }));
+    };
+    const onFullscreen = () => {
+      const fs = Boolean(document.fullscreenElement);
+      setIsFullscreen(fs);
+      if (!fs) {
+        setIntegrity((i) => (i.fullscreenUsed ? { ...i, fullscreenExits: i.fullscreenExits + 1 } : i));
+        setWarning("Has salido de la pantalla completa. Queda registrado.");
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("blur", leave);
+    window.addEventListener("focus", back);
+    document.addEventListener("paste", onPaste);
+    document.addEventListener("copy", onCopy);
+    document.addEventListener("cut", onCopy);
+    document.addEventListener("contextmenu", onContext);
+    document.addEventListener("drop", onDrop);
+    document.addEventListener("fullscreenchange", onFullscreen);
+    setIsFullscreen(Boolean(document.fullscreenElement));
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("blur", leave);
+      window.removeEventListener("focus", back);
+      document.removeEventListener("paste", onPaste);
+      document.removeEventListener("copy", onCopy);
+      document.removeEventListener("cut", onCopy);
+      document.removeEventListener("contextmenu", onContext);
+      document.removeEventListener("drop", onDrop);
+      document.removeEventListener("fullscreenchange", onFullscreen);
+    };
+  }, [started, done]);
+
+  // Al entregar se sale de la pantalla completa.
+  useEffect(() => {
+    if (done && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  }, [done]);
+
+  const enterFullscreen = async () => {
+    try {
+      await document.documentElement.requestFullscreen();
+      setIntegrity((i) => ({ ...i, fullscreenUsed: true }));
+      setWarning(null);
+    } catch {
+      /* el navegador no lo permite (p. ej. iPhone) */
+    }
+  };
+
   /** Calcula el fin del examen a partir de la hora del servidor. */
   const applyDeadline = (startedAtIso?: string | null, serverNowIso?: string | null) => {
     const limit = exam?.assessment.timeLimitMin;
@@ -138,6 +240,8 @@ function ExamPage() {
 
   const beginExam = async () => {
     setStarting(true);
+    // Debe pedirse dentro del clic del usuario.
+    await enterFullscreen();
     try {
       const res: any = await start({ data: { token, clientVersion: CLIENT_VERSION } });
       setStarted(true);
@@ -181,6 +285,7 @@ function ExamPage() {
           token,
           auto,
           clientVersion: CLIENT_VERSION,
+          integrity: { ...integrity },
           answers: (exam?.assessment.questions ?? []).map((qq) => ({
             questionId: qq.id,
             text: answers[qq.id]?.text ?? "",
@@ -195,6 +300,7 @@ function ExamPage() {
       try {
         window.localStorage.setItem(submittedKey, at);
         window.localStorage.removeItem(answersKey);
+        window.localStorage.removeItem(integrityKey);
       } catch {
         /* almacenamiento no disponible */
       }
@@ -311,6 +417,11 @@ function ExamPage() {
                 </li>
                 <li>Tu progreso se guarda automáticamente: si refrescas, continuarás donde estabas.</li>
                 <li>Cuando finalices el examen no podrás modificar tus respuestas.</li>
+                <li>
+                  El examen se abre en pantalla completa. Se registra si sales de la pestaña o de la
+                  pantalla completa, y no se permite copiar ni pegar. La persona que te evalúa verá
+                  ese registro.
+                </li>
               </ul>
             </div>
             {hasSavedAnswers && (
@@ -365,6 +476,18 @@ function ExamPage() {
           {exam.candidate.identifier ? ` · ${exam.candidate.identifier}` : ""} · Puntuación máxima:{" "}
           {assessment.maxScore}
         </p>
+        {warning && (
+          <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+            <span className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+              {warning}
+            </span>
+            <Button size="sm" variant="ghost" onClick={() => setWarning(null)}>Entendido</Button>
+          </div>
+        )}
+        {integrity.fullscreenUsed && !isFullscreen && !done && (
+          <Button size="sm" variant="outline" onClick={enterFullscreen}>Volver a pantalla completa</Button>
+        )}
       </header>
 
       <ol className="space-y-4">
