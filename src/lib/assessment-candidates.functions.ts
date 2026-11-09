@@ -8,6 +8,7 @@ import {
   listCandidatesHandler,
   startExamHandler,
   submitExamHandler,
+  recordExamPhotoHandler,
   updateCandidateHandler,
 } from "./assessment-candidates.server";
 
@@ -94,3 +95,12 @@ export const submitExam = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ data }) => submitExamHandler(data));
+
+export const recordExamPhoto = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    TokenInput.extend({
+      photo: z.string().max(90000).nullable().optional(),
+      declined: z.boolean().default(false),
+    }).parse(input),
+  )
+  .handler(async ({ data }) => recordExamPhotoHandler(data));

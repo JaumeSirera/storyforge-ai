@@ -8,6 +8,7 @@ import type {
 import { mapAssessment } from "./assessments.server";
 import { logExamAudit } from "./exam-audit.server";
 import { integrityLevel, normalizeIntegrity } from "./exam-integrity";
+import { shuffleExamQuestions } from "./exam-shuffle";
 import type { AssessmentQuestion } from "./assessments-shared";
 import { assessDb, assessAdminDb } from "./assessments-repo.server";
 
@@ -204,10 +205,14 @@ export async function getExamHandler(data: { token: string }): Promise<ExamPaylo
       timeLimitMin: assessment.timeLimitMin,
       instructions: assessment.instructions ? stripSourceReferences(assessment.instructions) : null,
       maxScore: assessment.maxScore,
-      questions: assessment.questions.map(toExamQuestion).map((q) => ({
-        ...q,
-        prompt: stripSourceReferences(q.prompt),
-      })),
+      // Orden aleatorio estable por aspirante (preguntas y opciones); la entrega se guarda en el orden original.
+      questions: shuffleExamQuestions(
+        assessment.questions.map(toExamQuestion).map((q) => ({
+          ...q,
+          prompt: stripSourceReferences(q.prompt),
+        })),
+        data.token,
+      ),
     },
   };
 }
@@ -372,4 +377,27 @@ export async function submitExamHandler(data: {
   }
 
   return { ok: true, submissionId: submission.id as string, submittedAt };
+}
+
+/** Foto de identidad (o su rechazo) al comenzar el examen; se guarda en el registro de auditoría. */
+export async function recordExamPhotoHandler(data: {
+  token: string;
+  photo?: string | null;
+  declined?: boolean;
+  clientVersion?: string;
+}) {
+  const { candidate } = await loadByToken(data.token);
+  if (candidate.status === "submitted") throw new Error("Ya has entregado este examen.");
+  const photo = data.photo ?? null;
+  if (!data.declined && !(photo && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(photo)))
+    throw new Error("La foto no es válida.");
+  await logExamAudit({
+    ownerId: candidate.owner_id,
+    assessmentId: candidate.assessment_id,
+    candidateId: candidate.id,
+    event: data.declined ? "exam_identity_photo_declined" : "exam_identity_photo",
+    clientVersion: data.clientVersion ?? null,
+    detail: data.declined ? {} : { photo },
+  });
+  return { ok: true };
 }

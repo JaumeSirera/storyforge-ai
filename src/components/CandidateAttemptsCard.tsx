@@ -272,6 +272,13 @@ export function CandidateAttemptsCard({ assessmentId }: { assessmentId: string }
                                     className="flex flex-wrap items-center gap-2 text-sm"
                                   >
                                     <Badge variant="secondary">{examAuditLabel(h.event)}</Badge>
+                                    {h.event === "exam_identity_photo" && typeof h.detail?.photo === "string" && (
+                                      <img
+                                        src={h.detail.photo as string}
+                                        alt={`Foto de identidad de ${c.name}`}
+                                        className="h-24 w-32 basis-full rounded-md border border-border object-cover"
+                                      />
+                                    )}
                                     {h.event === "exam_integrity_report" && (
                                       <span className="basis-full text-muted-foreground">
                                         {integritySummary(normalizeIntegrity(h.detail))}

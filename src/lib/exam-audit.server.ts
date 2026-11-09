@@ -1,5 +1,6 @@
 import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 import { assessDb, assessAdminDb } from "./assessments-repo.server";
+import { findSimilarPairs } from "./exam-similarity";
 
 /** Eventos auditables del examen del aspirante. */
 export type ExamAuditEvent =
@@ -8,7 +9,9 @@ export type ExamAuditEvent =
   | "exam_auto_submitted"
   | "exam_resubmit_attempt"
   | "exam_submit_rejected_time"
-  | "exam_integrity_report";
+  | "exam_integrity_report"
+  | "exam_identity_photo"
+  | "exam_identity_photo_declined";
 
 /**
  * Registra un evento de auditoría del examen (fecha/hora, IP, navegador y
@@ -93,4 +96,26 @@ export async function listExamAuditHandler(
       createdAt: r.created_at,
     })),
   };
+}
+
+/** Pares de entregas con respuestas escritas muy parecidas (solo el propietario). */
+export async function listSimilarSubmissionsHandler(data: { assessmentId: string }, context: any) {
+  const { data: assessment, error: aErr } = await assessDb(context)
+    .from("assessments")
+    .select("id")
+    .eq("id", data.assessmentId)
+    .eq("owner_id", context.userId)
+    .maybeSingle();
+  if (aErr) throw new Error(aErr.message);
+  if (!assessment) throw new Error("Solo el propietario de la evaluación puede consultar esta comparación.");
+  const { data: rows, error } = await assessDb(context)
+    .from("assessment_submissions")
+    .select("id, candidate_name, extracted_text")
+    .eq("assessment_id", data.assessmentId)
+    .limit(500);
+  if (error) throw new Error(error.message);
+  const subs = (rows ?? [])
+    .filter((r: any) => typeof r.extracted_text === "string" && r.extracted_text.trim())
+    .map((r: any) => ({ id: r.id as string, name: (r.candidate_name as string) || "Sin nombre", text: r.extracted_text as string }));
+  return { compared: subs.length, pairs: findSimilarPairs(subs) };
 }

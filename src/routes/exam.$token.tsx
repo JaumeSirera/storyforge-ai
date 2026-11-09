@@ -2,10 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getExam, startExam, submitExam } from "@/lib/assessment-candidates.functions";
+import { getExam, recordExamPhoto, startExam, submitExam } from "@/lib/assessment-candidates.functions";
+import { ExamIdentityPhoto } from "@/components/ExamIdentityPhoto";
 import type { ExamPayload } from "@/lib/assessment-candidates-shared";
 import { CLIENT_VERSION } from "@/lib/app-version";
-import { emptyIntegrity, type ExamIntegrity } from "@/lib/exam-integrity";
+import { BURST_CHARS, emptyIntegrity, type ExamIntegrity } from "@/lib/exam-integrity";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -57,6 +58,9 @@ function ExamPage() {
   const load = useServerFn(getExam);
   const start = useServerFn(startExam);
   const send = useServerFn(submitExam);
+  const sendPhoto = useServerFn(recordExamPhoto);
+  const [photo, setPhoto] = useState<{ photo: string | null; declined: boolean }>({ photo: null, declined: false });
+  const lastTypeAtRef = useRef<number | null>(null);
 
   const [answers, setAnswers] = useState<Record<string, AnswerState>>({});
   const [done, setDone] = useState(false);
@@ -245,6 +249,13 @@ function ExamPage() {
     try {
       const res: any = await start({ data: { token, clientVersion: CLIENT_VERSION } });
       setStarted(true);
+      if (photo.photo || photo.declined) {
+        sendPhoto({
+          data: { token, clientVersion: CLIENT_VERSION, photo: photo.photo, declined: !photo.photo },
+        }).catch(() => {
+          /* la foto no debe impedir hacer el examen */
+        });
+      }
       applyDeadline(res?.startedAt ?? exam?.candidate.startedAt, res?.serverNow);
     } catch (e) {
       toast.error((e as Error).message);
@@ -272,11 +283,32 @@ function ExamPage() {
     [answers],
   );
 
-  const setAnswer = (id: string, patch: Partial<AnswerState>) =>
+  // Ritmo de escritura: bloques de texto que aparecen de golpe y velocidad al teclear.
+  const trackTyping = (prevText: string, nextText: string) => {
+    const delta = nextText.length - prevText.length;
+    if (delta <= 0) return;
+    const now = Date.now();
+    const last = lastTypeAtRef.current;
+    lastTypeAtRef.current = now;
+    if (delta >= BURST_CHARS) {
+      setIntegrity((i) => ({ ...i, textBursts: i.textBursts + 1 }));
+      return;
+    }
+    const gap = last == null ? 0 : now - last;
+    setIntegrity((i) => ({
+      ...i,
+      typedChars: i.typedChars + delta,
+      typingActiveSec: i.typingActiveSec + (gap > 0 && gap < 5000 ? gap / 1000 : 0),
+    }));
+  };
+
+  const setAnswer = (id: string, patch: Partial<AnswerState>) => {
+    if (patch.text !== undefined && started && !done) trackTyping(answers[id]?.text ?? "", patch.text);
     setAnswers((prev) => ({
       ...prev,
       [id]: { text: prev[id]?.text ?? "", optionIds: prev[id]?.optionIds ?? [], ...patch },
     }));
+  };
 
   const submitMut = useMutation<unknown, Error, boolean>({
     mutationFn: (auto: boolean) =>
@@ -417,19 +449,25 @@ function ExamPage() {
                 </li>
                 <li>Tu progreso se guarda automáticamente: si refrescas, continuarás donde estabas.</li>
                 <li>Cuando finalices el examen no podrás modificar tus respuestas.</li>
+                <li>Las preguntas y las opciones aparecen en un orden distinto para cada aspirante.</li>
                 <li>
                   El examen se abre en pantalla completa. Se registra si sales de la pestaña o de la
-                  pantalla completa, y no se permite copiar ni pegar. La persona que te evalúa verá
+                  pantalla completa y el ritmo de escritura, y no se permite copiar ni pegar. La persona que te evalúa verá
                   ese registro.
                 </li>
               </ul>
             </div>
+            <ExamIdentityPhoto value={photo.photo} declined={photo.declined} onChange={setPhoto} />
             {hasSavedAnswers && (
               <p className="text-sm text-muted-foreground">
                 Hemos recuperado respuestas guardadas en este dispositivo.
               </p>
             )}
-            <Button onClick={beginExam} disabled={starting} className="w-full">
+            <Button
+              onClick={beginExam}
+              disabled={starting || (!photo.photo && !photo.declined)}
+              className="w-full"
+            >
               {starting ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
               ) : (

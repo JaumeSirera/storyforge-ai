@@ -14,6 +14,7 @@ import { AssessmentCollaboratorsCard } from "@/components/AssessmentCollaborator
 import { AssessmentCandidatesCard } from "@/components/AssessmentCandidatesCard";
 import { ExamAuditLogCard } from "@/components/ExamAuditLogCard";
 import { CandidateAttemptsCard } from "@/components/CandidateAttemptsCard";
+import { SimilarSubmissionsCard } from "@/components/SimilarSubmissionsCard";
 import { CandidateBreakdownPanel } from "@/components/CandidateBreakdownPanel";
 import { RubricEditor } from "@/components/RubricEditor";
 import { SourceValidationCard } from "@/components/SourceValidationCard";
@@ -86,6 +87,7 @@ type SectionKey =
   | "candidates"
   | "attempts"
   | "audit"
+  | "similar"
   | "rubric"
   | "collaborators"
   | "upload"
@@ -183,6 +185,7 @@ function AssessmentDetail() {
     candidates: "Aspirantes inscritos",
     attempts: "Estado de los intentos",
     audit: "Log de auditoría del examen",
+    similar: "Respuestas parecidas entre aspirantes",
     rubric: "Editor de rúbrica",
     collaborators: "Permisos y colaboradores",
     upload: "Nueva entrega",
@@ -276,6 +279,14 @@ function AssessmentDetail() {
             title="Log de auditoría"
             summary="Fecha, IP, navegador y versión del cliente"
             onClick={() => setOpen("audit")}
+          />
+        )}
+        {isOwner && (
+          <SectionCard
+            icon={ScrollText}
+            title="Respuestas parecidas"
+            summary="Detecta aspirantes que responden casi igual"
+            onClick={() => setOpen("similar")}
           />
         )}
         {isOwner && (
@@ -452,6 +463,8 @@ function AssessmentDetail() {
           {open === "attempts" && <CandidateAttemptsCard assessmentId={id} />}
 
           {open === "audit" && <ExamAuditLogCard assessmentId={id} />}
+
+          {open === "similar" && <SimilarSubmissionsCard assessmentId={id} />}
 
           {open === "rubric" && <RubricEditor assessment={assessment} onSaved={invalidate} />}
 

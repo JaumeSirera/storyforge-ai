@@ -1,11 +1,11 @@
 # Roadmap
 
 ## Examen online
-- [ ] Orden aleatorio de preguntas y opciones por aspirante
-- [ ] Detección de respuestas muy parecidas entre aspirantes
-- [ ] Ritmo de escritura (respuestas que aparecen de golpe / velocidad inusual)
-- [ ] Foto de identidad al empezar (con consentimiento)
-- [ ] Incluir estas mejoras en las guías
+- [x] Orden aleatorio de preguntas y opciones por aspirante
+- [x] Detección de respuestas muy parecidas entre aspirantes
+- [x] Ritmo de escritura (respuestas que aparecen de golpe / velocidad inusual)
+- [x] Foto de identidad al empezar (con consentimiento)
+- [x] Incluir estas mejoras en las guías
 
 ## Simulación
 - [ ] Tiempo por decisión en el informe

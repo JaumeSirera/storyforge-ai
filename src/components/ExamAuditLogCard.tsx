@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import { AlertTriangle, Download, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
 
-const DANGER_EVENTS = new Set(["exam_resubmit_attempt", "exam_submit_rejected_time"]);
+const DANGER_EVENTS = new Set(["exam_resubmit_attempt", "exam_submit_rejected_time", "exam_identity_photo_declined"]);
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "medium" });
@@ -154,6 +154,13 @@ export function ExamAuditLogCard({ assessmentId }: { assessmentId: string }) {
                         )}
                         {examAuditLabel(e.event)}
                       </Badge>
+                      {e.event === "exam_identity_photo" && typeof e.detail?.photo === "string" && (
+                        <img
+                          src={e.detail.photo as string}
+                          alt={`Foto de identidad de ${e.candidateName}`}
+                          className="mt-1 h-16 w-20 rounded border border-border object-cover"
+                        />
+                      )}
                       {e.event === "exam_integrity_report" && (
                         <span className="mt-1 block text-xs text-muted-foreground">
                           {integritySummary(normalizeIntegrity(e.detail))}
