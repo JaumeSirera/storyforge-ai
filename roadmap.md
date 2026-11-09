@@ -8,12 +8,12 @@
 - [x] Incluir estas mejoras en las guías
 
 ## Simulación
-- [ ] Tiempo por decisión en el informe
-- [ ] Comparar candidatos (competencias lado a lado)
-- [ ] Modo práctica (no cuenta)
-- [ ] Respuestas por voz evaluadas por IA
+- [x] Tiempo por decisión en el informe
+- [x] Comparar candidatos (competencias lado a lado)
+- [x] Modo práctica (no cuenta)
+- [x] Respuestas por voz evaluadas por IA
 
 ## Grabación
-- [ ] Prueba previa de cámara, micrófono y conexión
-- [ ] Guardado por partes para no perder grabaciones
-- [ ] Justificante PDF del consentimiento
+- [x] Prueba previa de cámara, micrófono y conexión
+- [x] Guardado por partes para no perder grabaciones
+- [x] Justificante PDF del consentimiento

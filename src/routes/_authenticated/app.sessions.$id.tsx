@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getSession, submitAnswer, generateReport, returnToNode } from "@/lib/sessions.functions";
@@ -25,6 +25,16 @@ import {
   useActiveRecordings,
 } from "@/lib/capture-engine";
 import { useState, useRef, useEffect } from "react";
+import { VoiceDictationButton } from "@/components/VoiceDictationButton";
+import {
+  MAX_RESPONSE_MS,
+  averageDecisionSeconds,
+  formatSeconds,
+  isPracticeSession,
+  timedDecisions,
+} from "@/lib/simulation-insights";
+
+type PickOpts = { commentText?: string; responseMs?: number; viaVoice?: boolean };
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/sessions/$id")({
@@ -375,12 +385,19 @@ function Player({
     await qc.invalidateQueries({ queryKey: ["session", sessionId] });
   }
 
-  async function pick(choiceId: string, opts?: { commentText?: string }) {
+  async function pick(choiceId: string, opts?: PickOpts) {
     setSelected(choiceId);
     setSubmitting(true);
     try {
       const r = await submit({
-        data: { sessionId, nodeId: node.id, choiceId, ...(opts?.commentText ? { commentText: opts.commentText } : {}) },
+        data: {
+          sessionId,
+          nodeId: node.id,
+          choiceId,
+          ...(opts?.commentText ? { commentText: opts.commentText } : {}),
+          ...(typeof opts?.responseMs === "number" ? { responseMs: Math.min(Math.round(opts.responseMs), MAX_RESPONSE_MS) } : {}),
+          ...(opts?.viaVoice ? { viaVoice: true } : {}),
+        },
       });
       setFeedback({ feedback: r.feedback, points: r.pointsDelta });
       const stay = (r as any).stayInScene === true;
@@ -620,7 +637,7 @@ function ScenePlayback({
   submitting: boolean;
   feedback: { feedback: string; points: number } | null;
   selected: string | null;
-  onPick: (id: string, opts?: { commentText?: string }) => void;
+  onPick: (id: string, opts?: PickOpts) => void;
   nextNodes: any[];
   immersive?: boolean;
   answeredIds?: Set<string>;
@@ -640,6 +657,7 @@ function ScenePlayback({
     return initialActiveClipId;
   });
   const [commentText, setCommentText] = useState("");
+  const [viaVoice, setViaVoice] = useState(false);
   // Reset active clip when the scene changes, preserving explicit branch targets.
   useEffect(() => {
     setActiveClipId(initialActiveClipId);
@@ -673,7 +691,24 @@ function ScenePlayback({
       setQuestionReady((q?.triggerAt?.mode ?? "immediate") === "immediate");
     }
     setCommentText("");
+    setViaVoice(false);
   }, [node.id, activeClipId, q?.id, q?.triggerAt?.mode, forcedQId]);
+
+  // Tiempo por decisión: desde que la pregunta aparece en pantalla hasta que se responde.
+  const shownAtRef = useRef<number | null>(null);
+  useEffect(() => {
+    shownAtRef.current = q && questionReady ? Date.now() : null;
+  }, [q?.id, questionReady, node.id]);
+  const pickTimed = (id: string, opts?: PickOpts) =>
+    onPick(id, {
+      ...opts,
+      ...(shownAtRef.current ? { responseMs: Date.now() - shownAtRef.current } : {}),
+    });
+  const addDictation = (t: string) => {
+    if (!t) return;
+    setViaVoice(true);
+    setCommentText((prev) => (prev.trim() ? `${prev.trim()} ${t}` : t));
+  };
 
   // Keep the trigger bound to the clip timeline even after it fired, so that
   // rewinding/seeking before the decision point re-arms it instead of leaving
@@ -741,7 +776,7 @@ function ScenePlayback({
                     <button
                       key={c.id}
                       disabled={submitting}
-                      onClick={() => onPick(c.id)}
+                      onClick={() => pickTimed(c.id)}
                       className={`text-left rounded-xl border-2 p-4 transition backdrop-blur-md shadow-lg text-white ${
                         selected === c.id
                           ? "border-primary bg-primary/40"
@@ -765,10 +800,11 @@ function ScenePlayback({
                   placeholder="Escribe tu respuesta..."
                   className="bg-white/10 border-white/30 text-white placeholder:text-white/60 backdrop-blur-md"
                 />
-                <div className="flex justify-end">
+                <div className="flex flex-wrap justify-end gap-2">
+                  <VoiceDictationButton onText={addDictation} disabled={submitting} />
                   <Button
                     disabled={submitting || !commentText.trim()}
-                    onClick={() => onPick(q.choices[0].id, { commentText: commentText.trim() })}
+                    onClick={() => pickTimed(q.choices[0].id, { commentText: commentText.trim(), viaVoice })}
                   >
                     Enviar comentario
                   </Button>
@@ -822,7 +858,7 @@ function ScenePlayback({
               <button
                 key={c.id}
                 disabled={submitting}
-                onClick={() => onPick(c.id)}
+                onClick={() => pickTimed(c.id)}
                 className={`text-left rounded-xl border-2 p-4 transition shadow-soft hover:border-primary hover:bg-accent ${
                   selected === c.id ? "border-primary bg-accent" : "border-border bg-card"
                 } disabled:opacity-60`}
@@ -843,10 +879,11 @@ function ScenePlayback({
             onChange={(e) => setCommentText(e.target.value)}
             placeholder="Escribe tu respuesta..."
           />
-          <div className="flex justify-end">
+          <div className="flex flex-wrap justify-end gap-2">
+            <VoiceDictationButton onText={addDictation} disabled={submitting} />
             <Button
               disabled={submitting || !commentText.trim()}
-              onClick={() => onPick(q.choices[0].id, { commentText: commentText.trim() })}
+              onClick={() => pickTimed(q.choices[0].id, { commentText: commentText.trim(), viaVoice })}
             >
               Enviar comentario
             </Button>
@@ -983,6 +1020,42 @@ function FinalReport({ sessionId, sess, sim }: { sessionId: string; sess: any; s
           <p className="text-sm text-muted-foreground leading-relaxed">{r.summary}</p>
         </CardContent>
       </Card>
+
+      {isPracticeSession(sess.candidate_fields_data) && (
+        <Card className="border-primary/40">
+          <CardContent className="pt-6 text-sm">
+            <p className="font-semibold">Sesión de práctica</p>
+            <p className="text-muted-foreground mt-1">
+              Este resultado no cuenta: no aparece en la lista del evaluador. Puedes repetir la
+              simulación tantas veces como quieras.
+            </p>
+            <Button asChild variant="outline" size="sm" className="mt-3">
+              <Link to="/app/play/$id" params={{ id: sess.simulation_id }}>Practicar otra vez</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {timedDecisions(sess.answers).length > 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <h3 className="font-semibold">Tiempo por decisión</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Media: {formatSeconds(averageDecisionSeconds(sess.answers))} desde que aparece la pregunta.
+            </p>
+            <ol className="mt-3 space-y-1 text-sm">
+              {timedDecisions(sess.answers).map((a, i) => (
+                <li key={i} className="flex flex-wrap justify-between gap-2 border-b border-border/60 py-1">
+                  <span className="text-muted-foreground">
+                    {i + 1}. {a.nodeTitle}{a.viaVoice ? " · por voz" : ""}
+                  </span>
+                  <span className="font-mono tabular-nums">{formatSeconds(Math.round((a.responseMs ?? 0) / 100) / 10)}</span>
+                </li>
+              ))}
+            </ol>
+          </CardContent>
+        </Card>
+      )}
 
       {sess.admin_feedback && (
         <Card className="border-primary/40">

@@ -5,7 +5,8 @@ import { CONSENT_SCOPE_LABELS, CONSENT_SOURCE_LABELS, CONSENT_VERSION } from "@/
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollText, RefreshCw, Check, X, Download } from "lucide-react";
+import { ScrollText, RefreshCw, Check, X, Download, FileDown } from "lucide-react";
+import { downloadConsentPdf } from "@/lib/consent-pdf";
 import { toast } from "sonner";
 
 type AuditRow = Awaited<ReturnType<typeof listConsentAudit>>[number];
@@ -16,7 +17,15 @@ function fmt(iso: string | null) {
 }
 
 /** Auditoría de consentimientos: quién aceptó qué, cuándo y con qué versión. */
-export function CaptureConsentAudit({ captureSessionId }: { captureSessionId: string }) {
+export function CaptureConsentAudit({
+  captureSessionId,
+  sessionTitle,
+  consentText,
+}: {
+  captureSessionId: string;
+  sessionTitle?: string;
+  consentText?: string | null;
+}) {
   const load = useServerFn(listConsentAudit);
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [busy, setBusy] = useState(true);
@@ -121,6 +130,31 @@ export function CaptureConsentAudit({ captureSessionId }: { captureSessionId: st
               <Badge variant="outline" className="ml-auto font-mono text-xs">
                 {list[0]?.consentVersion}
               </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1 px-2"
+                title="Descargar justificante en PDF"
+                onClick={() =>
+                  downloadConsentPdf({
+                    sessionTitle: sessionTitle || "Sesión de grabación",
+                    participantName: name,
+                    sessionId: captureSessionId,
+                    consentVersion: list[0]?.consentVersion,
+                    consentText:
+                      consentText ||
+                      "Grabación de cámara y voz para analizar la interacción (lenguaje verbal y no verbal), con derecho a solicitar la eliminación en cualquier momento.",
+                    scopes: list.map((r) => ({
+                      scope: r.scope,
+                      granted: r.granted,
+                      at: r.granted ? r.grantedAt : r.recordedAt,
+                    })),
+                    userAgent: list[0]?.userAgent ?? null,
+                  })
+                }
+              >
+                <FileDown className="h-3.5 w-3.5" /> PDF
+              </Button>
             </div>
             <ul className="divide-y">
               {list.map((r) => (

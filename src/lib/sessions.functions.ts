@@ -67,6 +67,10 @@ const AnswerInput = z.object({
   choiceId: z.string(),
   /** Free text when the prompt is a comment. */
   commentText: z.string().max(4000).optional(),
+  /** Milisegundos desde que apareció la pregunta hasta la respuesta. */
+  responseMs: z.number().int().min(0).max(3_600_000).optional(),
+  /** La respuesta escrita se dictó por voz. */
+  viaVoice: z.boolean().optional(),
 });
 
 export const submitAnswer = createServerFn({ method: "POST" })
@@ -118,6 +122,8 @@ export const submitAnswer = createServerFn({ method: "POST" })
       at: new Date().toISOString(),
       kind,
       ...(kind === "comment" && data.commentText ? { commentText: data.commentText.slice(0, 4000) } : {}),
+      ...(typeof data.responseMs === "number" && kind !== "goto" ? { responseMs: data.responseMs } : {}),
+      ...(kind === "comment" && data.viaVoice ? { viaVoice: true } : {}),
     });
 
 
@@ -308,7 +314,7 @@ export const generateReport = createServerFn({ method: "POST" })
     const transcript = (sess.answers as any[])
       .map(
         (a, i) =>
-          `Escena ${i + 1} — ${a.nodeTitle}\nPregunta: ${a.question}\nRespuesta: ${a.choiceLabel} (${a.points >= 0 ? "+" : ""}${a.points} pts)\nFeedback escenario: ${a.feedback}`,
+          `Escena ${i + 1} — ${a.nodeTitle}\nPregunta: ${a.question}\nRespuesta: ${a.choiceLabel} (${a.points >= 0 ? "+" : ""}${a.points} pts)${typeof a.responseMs === "number" ? `\nTiempo de decisión: ${Math.round(a.responseMs / 100) / 10} s` : ""}${a.viaVoice ? " (respondida por voz)" : ""}\nFeedback escenario: ${a.feedback}`,
       )
       .join("\n\n");
 

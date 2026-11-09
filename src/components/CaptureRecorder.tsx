@@ -32,6 +32,7 @@ import {
 import type { RecoveryMeta } from "@/lib/capture-recovery";
 
 import { Button } from "@/components/ui/button";
+import { DeviceCheckPanel } from "@/components/DeviceCheckPanel";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -103,7 +104,7 @@ export function CaptureRecorder({
   const screenRef = useRef<HTMLVideoElement>(null);
 
   const key = captureKey(captureSessionId, participantId);
-  const { phase, previewOn, elapsed, screenSharing, cameraLost } = useCaptureState(key);
+  const { phase, previewOn, elapsed, screenSharing, cameraLost, savedParts } = useCaptureState(key);
   const [previewLoading, setPreviewLoading] = useState(false);
   // Los navegadores móviles (iOS Safari y Chrome/Android) no exponen
   // getDisplayMedia: en esos dispositivos la pantalla no se puede grabar
@@ -385,6 +386,11 @@ export function CaptureRecorder({
               {phase === "paused" ? `En pausa · ${fmt(elapsed)}` : fmt(elapsed)}
             </Badge>
           )}
+          {(phase === "recording" || phase === "paused") && savedParts > 0 && (
+            <Badge variant="secondary" title="Cada 5 minutos se guarda una parte en el servidor">
+              {savedParts} parte(s) guardada(s)
+            </Badge>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -540,6 +546,12 @@ export function CaptureRecorder({
             </div>
           </div>
         )}
+        {phase === "idle" && (
+          <DeviceCheckPanel
+            videoDeviceId={mediaSelection?.videoDeviceId ?? null}
+            audioDeviceId={mediaSelection?.audioDeviceId ?? null}
+          />
+        )}
         <div className="flex flex-wrap gap-2">
           {phase === "idle" || phase === "uploading" ? (
             <Button onClick={start} disabled={phase === "uploading"} className="gap-2">
@@ -570,7 +582,8 @@ export function CaptureRecorder({
 
         <p className="text-xs text-muted-foreground">
           La grabación continúa aunque navegues a la simulación u otra página: solo se detiene
-          cuando pulsas «Detener y guardar». Se guarda en tu almacenamiento privado y se elimina al
+          cuando pulsas «Detener y guardar». Cada 5 minutos se guarda una parte en el servidor, así
+          que un corte de conexión o un cierre del navegador no hace perder la sesión entera. Se guarda en tu almacenamiento privado y se elimina al
           cumplirse el plazo de conservación de la sesión.
         </p>
       </CardContent>

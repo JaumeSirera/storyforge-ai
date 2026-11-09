@@ -48,6 +48,11 @@ interface Entry {
   cameraLost: boolean;
   screenChunks: Blob[];
   uploader: CaptureUploader | null;
+  /** Guardado por partes: temporizador, inicio de la parte actual y partes ya subidas. */
+  autoSaveTimer: ReturnType<typeof setInterval> | null;
+  segmentStartElapsedMs: number;
+  uploadedSegments: number;
+  rotating: boolean;
   videoEl: HTMLVideoElement | null;
   screenStream: MediaStream | null;
   screenVideoEl: HTMLVideoElement | null;
@@ -98,6 +103,10 @@ function getEntry(key: string, label = ""): Entry {
       cameraLost: false,
       screenChunks: [],
       uploader: null,
+      autoSaveTimer: null,
+      segmentStartElapsedMs: 0,
+      uploadedSegments: 0,
+      rotating: false,
       videoEl: null,
       screenStream: null,
       screenVideoEl: null,
@@ -290,8 +299,81 @@ export async function startRecording(key: string, opts: CaptureStartOptions, lab
   e.pausedAt = 0;
   startCamRecorder(e, cam, mime);
   e.phase = "recording";
+  e.segmentStartElapsedMs = 0;
+  e.uploadedSegments = 0;
+  startAutoSave(e);
   void saveMeta(e, mime);
   emit();
+}
+
+/** Cada cuánto se cierra y se sube una parte de la grabación de cámara. */
+export const AUTO_SAVE_SEGMENT_MS = 5 * 60_000;
+
+function startAutoSave(e: Entry) {
+  if (e.autoSaveTimer) clearInterval(e.autoSaveTimer);
+  e.autoSaveTimer = setInterval(() => void rotateAndUpload(e), AUTO_SAVE_SEGMENT_MS);
+}
+
+function stopAutoSave(e: Entry) {
+  if (e.autoSaveTimer) clearInterval(e.autoSaveTimer);
+  e.autoSaveTimer = null;
+}
+
+/**
+ * Guardado por partes: cierra la parte actual de la cámara, arranca otra sobre la
+ * misma pista y sube la cerrada en segundo plano. Si la subida falla, la parte se
+ * queda pendiente y se reintenta al parar. Así un corte de conexión o un cierre
+ * del navegador solo puede perder, como mucho, los últimos minutos.
+ */
+async function rotateAndUpload(e: Entry) {
+  if (e.phase !== "recording" || e.rotating || e.cameraLost || !e.uploader) return;
+  const rec = e.camRecorder;
+  const stream = rec?.stream;
+  if (!rec || !stream || rec.state !== "recording") return;
+  e.rotating = true;
+  try {
+    const mime = rec.mimeType || pickMime();
+    await new Promise<void>((resolve) => {
+      rec.onstop = () => resolve();
+      rec.stop();
+    });
+    if (e.phase !== "recording") return;
+    const chunks = e.camChunks;
+    e.camChunks = [];
+    const startMs = e.segmentStartElapsedMs;
+    const nowMs = Math.round(getElapsedSec(e.key) * 1000);
+    e.segmentStartElapsedMs = nowMs;
+    startCamRecorder(e, stream, mime);
+
+    const blob = new Blob(chunks, { type: chunks[0]?.type || mime || "video/webm" });
+    if (blob.size < 2048) return;
+    try {
+      await e.uploader({
+        blob,
+        kind: "camera",
+        durationSec: (nowMs - startMs) / 1000,
+        syncOffsetMs: Math.round(e.offsetMs + startMs),
+      });
+      e.uploadedSegments += 1;
+      // La parte ya está a salvo en el servidor: la copia local solo guarda lo pendiente.
+      await clearRecovery(e.key);
+      for (const seg of e.camSegments) for (const c of seg) void persistChunk(e.key, "camera", c);
+      for (const c of e.camChunks) void persistChunk(e.key, "camera", c);
+      for (const c of e.screenChunks) void persistChunk(e.key, "screen", c);
+      void saveMeta(e, mime);
+    } catch {
+      // Se reintenta al detener la grabación.
+      e.camSegments.push(chunks);
+    }
+  } finally {
+    e.rotating = false;
+    emit();
+  }
+}
+
+/** Número de partes ya guardadas en el servidor durante la grabación. */
+export function getUploadedSegments(key: string): number {
+  return store.entries.get(key)?.uploadedSegments ?? 0;
 }
 
 /** ¿Se ha cortado la pista de cámara durante la grabación? */
@@ -563,6 +645,9 @@ export async function stopRecording(key: string): Promise<boolean> {
     e.pausedAt = 0;
   }
   const duration = (Date.now() - e.startedAt - e.pausedMs) / 1000;
+  stopAutoSave(e);
+  // Espera a que termine un guardado por partes en curso.
+  for (let i = 0; i < 100 && e.rotating; i++) await new Promise((r) => setTimeout(r, 100));
   e.phase = "uploading";
   emit();
 
@@ -581,9 +666,11 @@ export async function stopRecording(key: string): Promise<boolean> {
     void attachScreen(e);
     e.previewOn = false;
 
-    const syncOffsetMs = Math.round(e.offsetMs);
+    const alreadySaved = e.uploadedSegments;
+    const syncOffsetMs = Math.round(e.offsetMs + (alreadySaved > 0 ? e.segmentStartElapsedMs : 0));
+    const lastDuration = alreadySaved > 0 ? Math.max(0, duration - e.segmentStartElapsedMs / 1000) : duration;
     const segments = [...e.camSegments, e.camChunks].filter((c) => c.length > 0);
-    let uploaded = 0;
+    let uploaded = alreadySaved;
     const errors: string[] = [];
 
     const uploader = e.uploader;
@@ -601,7 +688,7 @@ export async function stopRecording(key: string): Promise<boolean> {
       const blob = new Blob(chunks, { type: chunks[0]?.type || "video/webm" });
       if (blob.size < 2048) continue;
       try {
-        await uploader({ blob, kind: "camera", durationSec: duration, syncOffsetMs });
+        await uploader({ blob, kind: "camera", durationSec: lastDuration, syncOffsetMs });
         uploaded += 1;
       } catch (err) {
         errors.push(`cámara: ${err instanceof Error ? err.message : "error al subir"}`);
@@ -642,6 +729,9 @@ export async function stopRecording(key: string): Promise<boolean> {
     e.camSegments = [];
     e.cameraLost = false;
     e.screenChunks = [];
+    e.uploadedSegments = 0;
+    e.segmentStartElapsedMs = 0;
+    stopAutoSave(e);
     e.camRecorder = null;
     e.screenRecorder = null;
     e.startedAt = 0;
@@ -669,6 +759,7 @@ export function useCaptureState(key: string) {
     elapsed,
     screenSharing: isScreenSharing(key),
     cameraLost: isCameraLost(key),
+    savedParts: getUploadedSegments(key),
   };
 }
 

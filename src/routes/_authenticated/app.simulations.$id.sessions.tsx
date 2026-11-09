@@ -30,6 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Star, Save, Plus, Trash2, MessageSquare, CheckCircle2, Download, Mail, Search, FilterX, ExternalLink } from "lucide-react";
 import { downloadReportPdf, generateReportPdf } from "@/lib/report-pdf";
 import { IntegratedReportButton } from "@/components/IntegratedReportButton";
+import { CandidateComparisonCard } from "@/components/CandidateComparisonCard";
 import { getIntegratedReport } from "@/lib/integrated-report.functions";
 import { downloadIntegratedPdf, generateIntegratedPdf } from "@/lib/integrated-pdf";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -115,6 +116,12 @@ function SimulationSessionsPage() {
         simulationId={id}
         initialFields={((q.data?.simulation as any)?.candidate_fields ?? []) as any}
         onSaved={() => q.refetch()}
+      />
+
+      <CandidateComparisonCard
+        sessions={filtered}
+        criteria={(((q.data?.simulation as any)?.evaluation_criteria ?? []) as any[]).map((c) => ({ key: c.key, label: c.label }))}
+        practiceCount={(q.data as any)?.practiceCount ?? 0}
       />
 
       <div className="grid gap-6 md:grid-cols-[1fr_1.2fr]">

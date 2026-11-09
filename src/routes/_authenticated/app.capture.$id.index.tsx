@@ -792,7 +792,7 @@ function CaptureSessionPage() {
             </DialogTitle>
             <DialogDescription>Registro de aceptaciones con fecha y versión.</DialogDescription>
           </DialogHeader>
-          <CaptureConsentAudit captureSessionId={id} />
+          <CaptureConsentAudit captureSessionId={id} sessionTitle={session.title} consentText={session.consentText ?? DEFAULT_CONSENT} />
         </DialogContent>
       </Dialog>
 

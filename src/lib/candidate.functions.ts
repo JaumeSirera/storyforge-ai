@@ -1,3 +1,4 @@
+import { PRACTICE_KEY, isPracticeSession } from "./simulation-insights";
 import { createServerFn } from "@tanstack/react-start";
 import { requireAnyAuth } from "@/lib/require-auth";
 import { z } from "zod";
@@ -9,6 +10,8 @@ const StartInput = z.object({
   candidateName: z.string().trim().min(1).max(200),
   candidateEmail: z.string().trim().email().max(255),
   fieldsData: z.record(z.string(), z.string().max(2000)).default({}),
+  /** Modo práctica: la sesión no aparece en la lista del evaluador. */
+  practice: z.boolean().default(false),
 });
 
 export const startCandidateSession = createServerFn({ method: "POST" })
@@ -42,7 +45,10 @@ export const startCandidateSession = createServerFn({ method: "POST" })
         competency_scores: {},
         candidate_name: data.candidateName,
         candidate_email: data.candidateEmail,
-        candidate_fields_data: data.fieldsData as any,
+        candidate_fields_data: {
+          ...Object.fromEntries(Object.entries(data.fieldsData).filter(([k]) => !k.startsWith("__"))),
+          ...(data.practice ? { [PRACTICE_KEY]: "1" } : {}),
+        } as any,
       } as any)
       .select("id")
       .single();
@@ -57,7 +63,7 @@ export const listSimulationSessions = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: sim, error: sErr } = await xdb(context)
       .from("simulations")
-      .select("id, title, owner_id, candidate_fields")
+      .select("id, title, owner_id, candidate_fields, evaluation_criteria")
       .eq("id", data.simulationId)
       .maybeSingle();
     if (sErr) throw new Error(sErr.message);
@@ -66,20 +72,26 @@ export const listSimulationSessions = createServerFn({ method: "POST" })
     const { data: sessions, error } = await xdb(context)
       .from("sessions")
       .select(
-        "id, user_id, candidate_name, candidate_email, candidate_fields_data, score, stars, started_at, completed_at, admin_feedback, admin_feedback_at, report, report_email_sent_at, report_email_to",
+        "id, user_id, candidate_name, candidate_email, candidate_fields_data, score, stars, started_at, completed_at, admin_feedback, admin_feedback_at, report, report_email_sent_at, report_email_to, achievements, competency_scores, answers",
       )
 
       .eq("simulation_id", data.simulationId)
       .order("started_at", { ascending: false });
     if (error) throw new Error(error.message);
 
-    // Filter out preview drafts (achievement marker).
+    // Fuera borradores de vista previa y sesiones de práctica (no cuentan).
+    let practiceCount = 0;
     const cleaned = (sessions ?? []).filter((s: any) => {
       const ach = Array.isArray(s.achievements) ? s.achievements : [];
-      return !ach.includes("__preview_draft__");
+      if (ach.includes("__preview_draft__")) return false;
+      if (isPracticeSession(s.candidate_fields_data)) {
+        practiceCount++;
+        return false;
+      }
+      return true;
     });
 
-    return { simulation: sim, sessions: cleaned };
+    return { simulation: sim, sessions: cleaned, practiceCount };
   });
 
 /** Owner: get a single session detail (for feedback panel). */

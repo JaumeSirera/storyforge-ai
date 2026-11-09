@@ -19,7 +19,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, LogIn, ShieldCheck, Gamepad2, Sparkles } from "lucide-react";
+import { Loader2, LogIn, ShieldCheck, Gamepad2, Sparkles, FileDown } from "lucide-react";
+import { downloadConsentPdf } from "@/lib/consent-pdf";
 import { toast } from "sonner";
 import { getCurrentUser } from "@/lib/current-user";
 
@@ -215,6 +216,33 @@ function JoinCapturePage() {
         </Card>
       ) : (
         <div className="space-y-6">
+          {mediaScopes && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() =>
+                downloadConsentPdf({
+                  sessionTitle: session.title,
+                  participantName: name,
+                  sessionId: session.id,
+                  retentionDays: session.retentionDays,
+                  consentText:
+                    session.consentText ||
+                    `En «${session.title}» se grabará tu cámara, tu voz${session.recordScreen ? " y tu pantalla" : ""} para analizar la interacción.`,
+                  scopes: [
+                    { scope: "recording", granted: mediaScopes.recording },
+                    { scope: "face_analysis", granted: mediaScopes.faceAnalysis },
+                    { scope: "voice_analysis", granted: mediaScopes.voiceAnalysis },
+                    ...(session.recordScreen ? [{ scope: "screen", granted: mediaScopes.screen }] : []),
+                  ],
+                  userAgent: navigator.userAgent,
+                })
+              }
+            >
+              <FileDown className="h-4 w-4" /> Descargar mi justificante de consentimiento (PDF)
+            </Button>
+          )}
           {session.simulationId && (
             <Card>
               <CardHeader>

@@ -43,6 +43,7 @@ import { Route as ApiFileSplatRouteImport } from './routes/api/file.$'
 import { Route as ApiPublicMigrateAccountsRouteImport } from './routes/api/public/migrate-accounts'
 import { Route as ApiPublicMigrateAssessmentsRouteImport } from './routes/api/public/migrate-assessments'
 import { Route as ApiPublicMigrateFilesRouteImport } from './routes/api/public/migrate-files'
+import { Route as ApiPublicSpeedtestRouteImport } from './routes/api/public/speedtest'
 import { Route as CaptureJoinTokenRouteImport } from './routes/capture.join.$token'
 import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
 import { Route as AuthenticatedAppAdminContributionsRouteImport } from './routes/_authenticated/app.admin.contributions'
@@ -259,6 +260,11 @@ const ApiPublicMigrateAssessmentsRoute =
 const ApiPublicMigrateFilesRoute = ApiPublicMigrateFilesRouteImport.update({
   id: '/api/public/migrate-files',
   path: '/api/public/migrate-files',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSpeedtestRoute = ApiPublicSpeedtestRouteImport.update({
+  id: '/api/public/speedtest',
+  path: '/api/public/speedtest',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CaptureJoinTokenRoute = CaptureJoinTokenRouteImport.update({
@@ -500,6 +506,7 @@ export interface FileRoutesByFullPath {
   '/api/public/migrate-accounts': typeof ApiPublicMigrateAccountsRoute
   '/api/public/migrate-assessments': typeof ApiPublicMigrateAssessmentsRoute
   '/api/public/migrate-files': typeof ApiPublicMigrateFilesRoute
+  '/api/public/speedtest': typeof ApiPublicSpeedtestRoute
   '/capture/join/$token': typeof CaptureJoinTokenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/app/admin/contributions': typeof AuthenticatedAppAdminContributionsRoute
@@ -570,6 +577,7 @@ export interface FileRoutesByTo {
   '/api/public/migrate-accounts': typeof ApiPublicMigrateAccountsRoute
   '/api/public/migrate-assessments': typeof ApiPublicMigrateAssessmentsRoute
   '/api/public/migrate-files': typeof ApiPublicMigrateFilesRoute
+  '/api/public/speedtest': typeof ApiPublicSpeedtestRoute
   '/capture/join/$token': typeof CaptureJoinTokenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/app/admin/contributions': typeof AuthenticatedAppAdminContributionsRoute
@@ -641,6 +649,7 @@ export interface FileRoutesById {
   '/api/public/migrate-accounts': typeof ApiPublicMigrateAccountsRoute
   '/api/public/migrate-assessments': typeof ApiPublicMigrateAssessmentsRoute
   '/api/public/migrate-files': typeof ApiPublicMigrateFilesRoute
+  '/api/public/speedtest': typeof ApiPublicSpeedtestRoute
   '/capture/join/$token': typeof CaptureJoinTokenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/_authenticated/app/admin/contributions': typeof AuthenticatedAppAdminContributionsRoute
@@ -713,6 +722,7 @@ export interface FileRouteTypes {
     | '/api/public/migrate-accounts'
     | '/api/public/migrate-assessments'
     | '/api/public/migrate-files'
+    | '/api/public/speedtest'
     | '/capture/join/$token'
     | '/lovable/email/events'
     | '/app/admin/contributions'
@@ -783,6 +793,7 @@ export interface FileRouteTypes {
     | '/api/public/migrate-accounts'
     | '/api/public/migrate-assessments'
     | '/api/public/migrate-files'
+    | '/api/public/speedtest'
     | '/capture/join/$token'
     | '/lovable/email/events'
     | '/app/admin/contributions'
@@ -853,6 +864,7 @@ export interface FileRouteTypes {
     | '/api/public/migrate-accounts'
     | '/api/public/migrate-assessments'
     | '/api/public/migrate-files'
+    | '/api/public/speedtest'
     | '/capture/join/$token'
     | '/lovable/email/events'
     | '/_authenticated/app/admin/contributions'
@@ -918,6 +930,7 @@ export interface RootRouteChildren {
   ApiPublicMigrateAccountsRoute: typeof ApiPublicMigrateAccountsRoute
   ApiPublicMigrateAssessmentsRoute: typeof ApiPublicMigrateAssessmentsRoute
   ApiPublicMigrateFilesRoute: typeof ApiPublicMigrateFilesRoute
+  ApiPublicSpeedtestRoute: typeof ApiPublicSpeedtestRoute
   CaptureJoinTokenRoute: typeof CaptureJoinTokenRoute
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   ApiPublicRedsysChargeRecurringRoute: typeof ApiPublicRedsysChargeRecurringRoute
@@ -1167,6 +1180,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/migrate-files'
       fullPath: '/api/public/migrate-files'
       preLoaderRoute: typeof ApiPublicMigrateFilesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/speedtest': {
+      id: '/api/public/speedtest'
+      path: '/api/public/speedtest'
+      fullPath: '/api/public/speedtest'
+      preLoaderRoute: typeof ApiPublicSpeedtestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/capture/join/$token': {
@@ -1560,6 +1580,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicMigrateAccountsRoute: ApiPublicMigrateAccountsRoute,
   ApiPublicMigrateAssessmentsRoute: ApiPublicMigrateAssessmentsRoute,
   ApiPublicMigrateFilesRoute: ApiPublicMigrateFilesRoute,
+  ApiPublicSpeedtestRoute: ApiPublicSpeedtestRoute,
   CaptureJoinTokenRoute: CaptureJoinTokenRoute,
   LovableEmailEventsRoute: LovableEmailEventsRoute,
   ApiPublicRedsysChargeRecurringRoute: ApiPublicRedsysChargeRecurringRoute,

@@ -67,7 +67,7 @@ function PrePlayPage() {
     required?: boolean;
   }[];
 
-  async function onStart() {
+  async function onStart(practice = false) {
     if (!name.trim() || !email.trim()) {
       toast.error("Introduce tu nombre y correo");
       return;
@@ -86,6 +86,7 @@ function PrePlayPage() {
           candidateName: name.trim(),
           candidateEmail: email.trim(),
           fieldsData: fields,
+          practice,
         },
       });
       // Si el candidato llegó desde una grabación, vincula ambas para el informe integrado.
@@ -147,10 +148,17 @@ function PrePlayPage() {
             </div>
           ))}
           <div className="pt-2">
-            <Button onClick={onStart} disabled={busy} size="lg" className="gap-2 w-full">
+            <Button onClick={() => onStart(false)} disabled={busy} size="lg" className="gap-2 w-full">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
               Empezar simulación
             </Button>
+            <Button onClick={() => onStart(true)} disabled={busy} variant="outline" className="mt-2 w-full">
+              Practicar (no cuenta)
+            </Button>
+            <p className="mt-2 text-xs text-muted-foreground">
+              En modo práctica puedes repetir la simulación las veces que quieras; el resultado no
+              llega al evaluador.
+            </p>
           </div>
         </CardContent>
       </Card>
