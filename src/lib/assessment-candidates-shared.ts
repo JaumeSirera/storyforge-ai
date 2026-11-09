@@ -53,6 +53,8 @@ export interface ExamPayload {
     id: string;
     title: string;
     instructions: string | null;
+    /** Texto de lectura del examen, visible para el aspirante (null si no hay). */
+    sourceText: string | null;
     /** Minutos disponibles para completar el examen (null = sin límite). */
     timeLimitMin: number | null;
 

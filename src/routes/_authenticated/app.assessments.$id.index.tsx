@@ -348,6 +348,15 @@ function AssessmentDetail() {
                 <p className="rounded-md bg-muted/60 p-3 text-sm">{assessment.instructions}</p>
               )}
 
+              {assessment.sourceText?.trim() && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Texto del examen (lo ve el aspirante)</p>
+                  <div className="max-h-72 overflow-y-auto whitespace-pre-line rounded-md border border-border bg-muted/30 p-3 text-sm leading-relaxed">
+                    {assessment.sourceText}
+                  </div>
+                </div>
+              )}
+
               {assessment.questions.length > 0 && (
                 <ol className="space-y-3">
                   {assessment.questions.map((question, i) => (

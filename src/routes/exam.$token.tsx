@@ -528,6 +528,28 @@ function ExamPage() {
         )}
       </header>
 
+      {assessment.instructions && (
+        <p className="rounded-md bg-muted/60 p-3 text-sm whitespace-pre-line">{assessment.instructions}</p>
+      )}
+
+      {assessment.sourceText && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Texto del examen</CardTitle>
+            <CardDescription>Léelo con atención: las preguntas se refieren a este texto.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div
+              tabIndex={0}
+              aria-label="Texto del examen"
+              className="max-h-[50vh] overflow-y-auto whitespace-pre-line rounded-md border border-border bg-muted/30 p-4 text-sm leading-relaxed"
+            >
+              {assessment.sourceText}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <ol className="space-y-4">
         {assessment.questions.map((question, index) => {
           const state = answers[question.id] ?? { text: "", optionIds: [] };

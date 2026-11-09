@@ -189,6 +189,9 @@ function stripSourceReferences(value: string): string {
 
 export async function getExamHandler(data: { token: string }): Promise<ExamPayload> {
   const { candidate, assessment } = await loadByToken(data.token);
+  // Si el examen tiene texto base, el aspirante lo ve y los enunciados conservan sus referencias.
+  const sourceText = assessment.sourceText?.trim() ? assessment.sourceText.trim() : null;
+  const clean = (value: string) => (sourceText ? value : stripSourceReferences(value));
   return {
     candidate: {
       name: candidate.name,
@@ -203,13 +206,14 @@ export async function getExamHandler(data: { token: string }): Promise<ExamPaylo
       id: assessment.id,
       title: assessment.title,
       timeLimitMin: assessment.timeLimitMin,
-      instructions: assessment.instructions ? stripSourceReferences(assessment.instructions) : null,
+      instructions: assessment.instructions ? clean(assessment.instructions) : null,
+      sourceText,
       maxScore: assessment.maxScore,
       // Orden aleatorio estable por aspirante (preguntas y opciones); la entrega se guarda en el orden original.
       questions: shuffleExamQuestions(
         assessment.questions.map(toExamQuestion).map((q) => ({
           ...q,
-          prompt: stripSourceReferences(q.prompt),
+          prompt: clean(q.prompt),
         })),
         data.token,
       ),

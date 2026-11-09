@@ -272,10 +272,7 @@ ${
 - Si el TEXTO BASE no da material suficiente para ${input.questionCount} preguntas, genera menos preguntas en lugar de inventar contenido, y reparte la puntuación entre las que sí generes.
 `
         }
-REGLA DE ENUNCIADOS CERRADOS (obligatoria): el candidato NO verá el TEXTO BASE, se examina de memoria sobre el temario. Por tanto:
-- PROHIBIDO escribir en prompt o instructions expresiones como "según el texto", "en el texto base", "el texto proporcionado", "según el fragmento", "el autor del texto" o cualquier referencia a un texto adjunto.
-- Cada enunciado debe ser autónomo y comprensible sin ningún material adicional: incorpora en el propio enunciado los datos imprescindibles (cifras, contexto, definiciones) que el candidato necesite.
-- instructions debe describir cómo realizar la prueba (tiempo, forma de responder, criterios), nunca pedir leer un texto.
+El candidato VERÁ el TEXTO BASE completo junto a las preguntas durante el examen, así que puedes referirte a él ("según el texto", "en el texto"). Cada enunciado debe indicar con claridad qué parte del texto se pregunta.
 `
       : ""
   }
