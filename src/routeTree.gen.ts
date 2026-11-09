@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as EducacionRouteImport } from './routes/educacion'
 import { Route as InstallRouteImport } from './routes/install'
 import { Route as OpenSourceRouteImport } from './routes/open-source'
@@ -92,6 +93,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactoRoute = ContactoRouteImport.update({
+  id: '/contacto',
+  path: '/contacto',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EducacionRoute = EducacionRouteImport.update({
@@ -475,6 +481,7 @@ const AuthenticatedAppAssessmentsIdSubmissionsSidRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/contacto': typeof ContactoRoute
   '/educacion': typeof EducacionRoute
   '/install': typeof InstallRoute
   '/open-source': typeof OpenSourceRoute
@@ -546,6 +553,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/contacto': typeof ContactoRoute
   '/educacion': typeof EducacionRoute
   '/install': typeof InstallRoute
   '/open-source': typeof OpenSourceRoute
@@ -618,6 +626,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/contacto': typeof ContactoRoute
   '/educacion': typeof EducacionRoute
   '/install': typeof InstallRoute
   '/open-source': typeof OpenSourceRoute
@@ -691,6 +700,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/contacto'
     | '/educacion'
     | '/install'
     | '/open-source'
@@ -762,6 +772,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/contacto'
     | '/educacion'
     | '/install'
     | '/open-source'
@@ -833,6 +844,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/contacto'
     | '/educacion'
     | '/install'
     | '/open-source'
@@ -906,6 +918,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ContactoRoute: typeof ContactoRoute
   EducacionRoute: typeof EducacionRoute
   InstallRoute: typeof InstallRoute
   OpenSourceRoute: typeof OpenSourceRoute
@@ -963,6 +976,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contacto': {
+      id: '/contacto'
+      path: '/contacto'
+      fullPath: '/contacto'
+      preLoaderRoute: typeof ContactoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/educacion': {
@@ -1551,6 +1571,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ContactoRoute: ContactoRoute,
   EducacionRoute: EducacionRoute,
   InstallRoute: InstallRoute,
   OpenSourceRoute: OpenSourceRoute,

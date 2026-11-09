@@ -111,6 +111,7 @@ function Header() {
           <Link to="/explore" className="hover:text-foreground">Galería</Link>
           {sectorLinks.map((sector) => <Link key={sector.to} to={sector.to} className="hover:text-foreground">{sector.label}</Link>)}
           <Link to="/guia" className="hover:text-foreground">Guías</Link>
+          <Link to="/contacto" className="hover:text-foreground">Contacto</Link>
           {DONATIONS_ENABLED ? <Link to="/pricing" className="hover:text-foreground">Precios</Link> : <Link to="/open-source" className="hover:text-foreground">Código abierto</Link>}
           <Link to="/install" className="hover:text-foreground">App móvil</Link>
           <a href="#assessments" className="hover:text-foreground">Evaluaciones</a>
@@ -145,6 +146,7 @@ function Header() {
               <SheetClose asChild><Link to="/install" className="rounded-md px-3 py-3 hover:bg-accent">App móvil</Link></SheetClose>
               {sectorLinks.map((sector) => <SheetClose asChild key={sector.to}><Link to={sector.to} className="rounded-md px-3 py-3 hover:bg-accent">{sector.label}</Link></SheetClose>)}
               <SheetClose asChild><Link to="/guia" className="rounded-md px-3 py-3 hover:bg-accent">Guías</Link></SheetClose>
+              <SheetClose asChild><Link to="/contacto" className="rounded-md px-3 py-3 hover:bg-accent">Contacto</Link></SheetClose>
               {[
                 ["assessments", "Evaluaciones"],
                 ["modules", "Módulos"],
@@ -510,6 +512,7 @@ function Footer() {
           {DONATIONS_ENABLED ? <Link to="/pricing" className="hover:text-foreground">Precios</Link> : <Link to="/open-source" className="hover:text-foreground">Código abierto</Link>}
           <Link to="/explore" className="hover:text-foreground">Galería</Link>
           <Link to="/guia" className="hover:text-foreground">Guías</Link>
+          <Link to="/contacto" className="hover:text-foreground">Contacto</Link>
           <Link to="/install" className="hover:text-foreground">App móvil</Link>
           <Link to="/auth" className="hover:text-foreground">Entrar</Link>
         </nav>

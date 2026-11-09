@@ -12,3 +12,8 @@ export const OPEN_SOURCE = {
   licenseUrl: "https://www.gnu.org/licenses/agpl-3.0.html",
   repoUrl: "https://github.com/JaumeSirera/storyforge-ai",
 } as const;
+
+/** Datos públicos de contacto que se muestran en /contacto. */
+export const CONTACT = {
+  email: "contacto@xandralyze.com",
+} as const;

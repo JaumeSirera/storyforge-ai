@@ -8,6 +8,7 @@
 - [Selección](https://xandralyze.com/seleccion): Selección gamificada y simulador de situaciones para RR. HH.
 - [Psicología](https://xandralyze.com/psicologia): Revisión de interacciones de voz con consentimiento.
 - [Código abierto](https://xandralyze.com/open-source): Cómo colaborar en el proyecto.
+- [Contacto](https://xandralyze.com/contacto): Correo, incidencias en GitHub y enlaces del proyecto.
 
 ## Guías
 - [Corregir exámenes manuscritos con IA](https://xandralyze.com/guia/corregir-examenes-manuscritos-ia)
