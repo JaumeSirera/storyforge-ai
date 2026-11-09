@@ -76,7 +76,7 @@ export function sectorHead(sector: keyof typeof sectors) {
   const title = page.seoTitle;
   const url = `https://xandralyze.com/${sector}`;
   return {
-    meta: [{ title }, { name: "description", content: page.description }, { property: "og:title", content: title }, { property: "og:description", content: page.description }, { property: "og:type", content: "website" }, { property: "og:url", content: url }, { name: "twitter:card", content: "summary_large_image" }],
+    meta: [{ title }, { name: "description", content: page.description }, { property: "og:title", content: title }, { property: "og:description", content: page.description }, { property: "og:type", content: "website" }, { property: "og:url", content: url }, { name: "twitter:card", content: "summary_large_image" }, { property: "og:image", content: "https://xandralyze.com/og-xandralyze.png" }, { property: "og:image:width", content: "1200" }, { property: "og:image:height", content: "630" }, { name: "twitter:image", content: "https://xandralyze.com/og-xandralyze.png" }],
     links: [{ rel: "canonical", href: url }],
   };
 }

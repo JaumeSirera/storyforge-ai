@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { uploadResults, summarize, readPublishTracking } from "./social-publish-results";
+import { uploadResults, summarize, readPublishTracking, releasePending } from "./social-publish-results";
 
 describe("Social publication confirmation", () => {
   test("accepted Facebook submission is not a published chapter", () => {
@@ -47,5 +47,19 @@ describe("tracking without request id", () => {
     const s = summarize([{ platform: "youtube", ok: false, detail: "YouTube necesita un vídeo." }, { platform: "facebook", ok: true, detail: "https://facebook.com/p/1" }]);
     const t = readPublishTracking(s.result);
     expect(t.map((r) => [r.platform, r.ok])).toEqual([["youtube", false], ["facebook", true]]);
+  });
+});
+
+describe("Descartar un envío atascado", () => {
+  test("las redes sin confirmar pasan a fallidas y el capítulo deja de estar en proceso", () => {
+    const stuck = [
+      { platform: "facebook", ok: false, pending: true, requestId: "job-1", detail: "En proceso" },
+      { platform: "x", ok: true, requestId: "job-1", detail: "https://x.com/p/1" },
+    ];
+    const released = releasePending(stuck);
+    expect(released[0].ok).toBe(false);
+    expect(released[0].pending).toBeUndefined();
+    expect(released[1].ok).toBe(true);
+    expect(summarize(released).status).toBe("error");
   });
 });

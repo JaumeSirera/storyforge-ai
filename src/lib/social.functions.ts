@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAnyAuth } from "@/lib/require-auth";
-import { readPublishTracking } from "./social-publish-results";
+import { readPublishTracking, releasePending, summarize as summarizeResults } from "./social-publish-results";
 import {
   SOCIAL_NETWORK_IDS,
   type SocialQueueItem,
@@ -284,6 +284,29 @@ export const checkSocialChapterPublication = createServerFn({ method: "POST" })
     const s = summarize(await checkSocialPublication(creds, tracking));
     const updated = await api<SocialStoryFull>(context, `/social/chapters/${chapter.id}`, "PATCH", s);
     return { story: updated, ...s };
+  });
+
+/**
+ * Descarta un envío que Upload-Post no llega a confirmar (p. ej. se cortó la
+ * conexión antes de que lo recibiera): las redes sin confirmar pasan a fallidas
+ * para poder reintentarlas con «Publicar ahora»; las confirmadas se conservan.
+ */
+export const releaseSocialChapter = createServerFn({ method: "POST" })
+  .middleware([requireAnyAuth])
+  .inputValidator(z.object({ storyId: Id, chapterId: Id }))
+  .handler(async ({ data, context }) => {
+    const full = await api<SocialStoryFull>(context, `/social/stories/${data.storyId}`);
+    const chapter = full.chapters.find((c) => c.id === data.chapterId);
+    if (!chapter) throw new Error("Capítulo no encontrado");
+    if (chapter.status !== "enviando") throw new Error("Este capítulo no tiene ningún envío en proceso.");
+    const tracking = releasePending(readPublishTracking(chapter.result));
+    const s = tracking.length
+      ? summarizeResults(tracking)
+      : { status: "error" as const, result: "Envío sin confirmar descartado por el administrador. Revisa el historial de Upload-Post antes de reintentar." };
+    // Nunca queda «publicado» al descartar: siempre hay al menos una red por reintentar.
+    const status = s.status === "publicado" ? "error" : s.status;
+    const updated = await api<SocialStoryFull>(context, `/social/chapters/${chapter.id}`, "PATCH", { status, result: s.result });
+    return { story: updated, status, result: s.result };
   });
 
 /** Enlace temporal para ver un archivo adjunto. */

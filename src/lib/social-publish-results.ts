@@ -86,3 +86,13 @@ export function summarize(results: PublishResult[]): { status: "publicado" | "en
 export function visiblePublishResult(result: string): string {
   return result.split("\n").filter((line) => !line.startsWith(TRACKING)).join("\n");
 }
+/**
+ * Escape hatch for a job Upload-Post never confirms: unconfirmed platforms become
+ * failed so «Publicar ahora» can retry them; confirmed ones stay untouched.
+ */
+export const RELEASED_DETAIL =
+  "Envío sin confirmar descartado por el administrador. Revisa el historial de Upload-Post antes de reintentar para no duplicar la publicación.";
+
+export function releasePending(results: PublishResult[]): PublishResult[] {
+  return results.map((r) => (r.pending ? { platform: r.platform, ok: false, detail: RELEASED_DETAIL } : r));
+}

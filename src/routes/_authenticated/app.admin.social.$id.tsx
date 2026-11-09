@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   addSocialChapter,
   checkSocialChapterPublication,
+  releaseSocialChapter,
   deleteSocialChapter,
   getSocialStory,
   publishSocialChapterNow,
@@ -157,6 +158,7 @@ function ChapterCard({
   const remove = useServerFn(deleteSocialChapter);
   const publish = useServerFn(publishSocialChapterNow);
   const checkPublication = useServerFn(checkSocialChapterPublication);
+  const releaseChapter = useServerFn(releaseSocialChapter);
   const mediaUrl = useServerFn(socialMediaUrl);
 
   const [title, setTitle] = useState(chapter.title);
@@ -217,6 +219,15 @@ function ChapterCard({
       if (r.status === "publicado") toast.success("Publicación confirmada por Upload-Post");
       else if (r.status === "enviando") toast.info("La publicación sigue sin confirmar");
       else toast.error("Upload-Post informa de errores", { description: visiblePublishResult(r.result), duration: 15000 });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const release = useMutation({
+    mutationFn: () => releaseChapter({ data: { storyId, chapterId: chapter.id } }),
+    onSuccess: (r) => {
+      onData(r.story);
+      toast.success("Envío descartado", { description: "Revisa Upload-Post y, si no se publicó, pulsa «Publicar ahora»." });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -360,6 +371,11 @@ function ChapterCard({
           <Button variant="outline" disabled={!dirty || save.isPending} onClick={() => save.mutate()}>Guardar</Button>
           {chapter.result && <Button variant="outline" className="gap-2" disabled={check.isPending || pub.isPending} onClick={() => check.mutate()}>
             {check.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Comprobar publicación
+          </Button>}
+          {chapter.status === "enviando" && <Button variant="outline" disabled={release.isPending || check.isPending} onClick={() => {
+            if (window.confirm("¿Descartar este envío sin confirmar? Comprueba antes en Upload-Post que no se ha publicado, para no duplicarlo. Después podrás pulsar «Publicar ahora».")) release.mutate();
+          }}>
+            {release.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Descartar envío
           </Button>}
           <Button className="gap-2" disabled={chapter.status === "enviando" || dirty || pub.isPending || check.isPending || !body.trim()} onClick={() => pub.mutate()} title={dirty ? "Guarda los cambios antes de publicar" : undefined}>
             {pub.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Publicar ahora
