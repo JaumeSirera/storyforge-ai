@@ -3,9 +3,11 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowRight, Mic, MicOff, Minus, Play, Send, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AlphaVideoCanvas } from "@/components/assistant/AlphaVideoCanvas";
+import { type AlphaSource, AlphaVideoCanvas } from "@/components/assistant/AlphaVideoCanvas";
 import { type HelpTopic, localAnswerFor, screenName, topicsForPath } from "@/lib/assistant-help";
 import { askAssistant } from "@/lib/assistant.functions";
+import { assistantSpeech, assistantTranscribe } from "@/lib/assistant-voice.functions";
+import { MOUTH_SPRITE, type MouthLevel, createMouthPicker, envelopeFromSamples, levelAt, syntheticLevel } from "@/lib/assistant-lipsync";
 import { readPreferredAiModel } from "@/lib/preferred-model";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +21,38 @@ const GREETING =
 const FIG_RATIO = 382 / 480;
 const PANEL_W = 360;
 const BUBBLE = 60;
+const MAX_RECORD_MS = 30_000;
+/** Un instante de silencio: desbloquea el audio en iPhone dentro del toque. */
+const SILENT_WAV = "data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA";
+
+type Clip = { url: string; env: Float32Array | null };
+type Lip =
+  | { mode: "audio"; env: Float32Array | null }
+  | { mode: "browser"; start: number; wordAt: number; wordLen: number };
+
+function base64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(",")[1] ?? "");
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
+}
+
+/** decodeAudioData con promesa o con callbacks (Safari antiguo). */
+function decodeAudio(ctx: BaseAudioContext, buf: ArrayBuffer): Promise<AudioBuffer> {
+  return new Promise((resolve, reject) => {
+    const p = ctx.decodeAudioData(buf, resolve, reject) as Promise<AudioBuffer> | undefined;
+    if (p && typeof p.then === "function") p.then(resolve, reject);
+  });
+}
 
 function pickSpanishVoice(): SpeechSynthesisVoice | null {
   if (typeof window === "undefined" || !window.speechSynthesis) return null;
@@ -76,19 +110,39 @@ export function AssistantAvatarWidget() {
   const [thinking, setThinking] = useState(false);
   const [avatar, setAvatar] = useState<AvatarState>("idle");
   const [listening, setListening] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [preparingVoice, setPreparingVoice] = useState(false);
   const [micSupported, setMicSupported] = useState(false);
   const [dragging, setDragging] = useState(false);
 
   const idleRef = useRef<HTMLVideoElement>(null);
-  const talkRef = useRef<HTMLVideoElement>(null);
   const greetRef = useRef<HTMLVideoElement>(null);
   const avatarRef = useRef<AvatarState>("idle");
   avatarRef.current = avatar;
+  const voiceOnRef = useRef(true);
+  voiceOnRef.current = voiceOn;
   const recRef = useRef<any>(null);
+  const mediaRecRef = useRef<MediaRecorder | null>(null);
+  const webSpeechBroken = useRef(false);
   const listRef = useRef<HTMLDivElement>(null);
   const nextId = useRef(1);
   const drag = useRef<{ x: number; y: number; right: number; bottom: number; moved: boolean } | null>(null);
+  // Voz: un único reproductor de audio (desbloqueado en el primer toque, así
+  // también suena en iPhone) y el volumen de cada respuesta para mover la boca.
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUnlocked = useRef(false);
+  const speechPrimed = useRef(false);
+  const decodeCtx = useRef<BaseAudioContext | null>(null);
+  const clipCache = useRef(new Map<string, Clip>());
+  const ttsFailures = useRef(0);
+  const ttsUnavailable = useRef(false);
+  const speakToken = useRef(0);
+  const lipRef = useRef<Lip | null>(null);
+  const pickMouth = useRef(createMouthPicker()).current;
+  const sendTextRef = useRef<(t: string) => void>(() => {});
   const ask = useServerFn(askAssistant);
+  const speech = useServerFn(assistantSpeech);
+  const transcribe = useServerFn(assistantTranscribe);
 
   // Restaurar posición y preferencias guardadas.
   useEffect(() => {
@@ -98,12 +152,17 @@ export function AssistantAvatarWidget() {
     setVoiceOn(s.voiceOn);
     setGreeted(s.greeted);
     const w = window as any;
-    setMicSupported(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
+    const canRecord = Boolean(navigator.mediaDevices?.getUserMedia) && typeof w.MediaRecorder !== "undefined";
+    setMicSupported(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition) || canRecord);
     window.speechSynthesis?.getVoices();
     setReady(true);
+    const cache = clipCache.current;
     return () => {
       recRef.current?.stop?.();
+      if (mediaRecRef.current?.state === "recording") mediaRecRef.current.stop();
       window.speechSynthesis?.cancel();
+      audioRef.current?.pause();
+      cache.forEach((c) => URL.revokeObjectURL(c.url));
     };
   }, []);
 
@@ -132,47 +191,175 @@ export function AssistantAvatarWidget() {
   }, [messages, thinking, open]);
 
   useEffect(() => {
-    const v = talkRef.current;
-    if (!v) return;
-    if (avatar === "talking") v.play().catch(() => {});
-    else v.pause();
-  }, [avatar]);
-
-  useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
+  const ensureAudio = () => {
+    if (!audioRef.current) {
+      const a = new Audio();
+      a.setAttribute("playsinline", "");
+      a.preload = "auto";
+      audioRef.current = a;
+    }
+    return audioRef.current;
+  };
+
+  /** Se llama dentro de cada toque: el iPhone solo deja sonar audio así. */
+  const unlockAudio = () => {
+    try {
+      const nav = navigator as any;
+      if (nav.audioSession) nav.audioSession.type = "playback";
+    } catch {
+      /* no disponible */
+    }
+    const a = ensureAudio();
+    if (!audioUnlocked.current && a.paused) {
+      a.src = SILENT_WAV;
+      a.play()
+        .then(() => {
+          audioUnlocked.current = true;
+        })
+        .catch(() => {});
+    }
+    if (window.speechSynthesis && !speechPrimed.current) {
+      const u = new SpeechSynthesisUtterance(" ");
+      u.volume = 0;
+      window.speechSynthesis.speak(u);
+      speechPrimed.current = true;
+    }
+  };
+
   const stopSpeaking = useCallback(() => {
+    speakToken.current++;
     window.speechSynthesis?.cancel();
+    const a = audioRef.current;
+    if (a && !a.paused) a.pause();
     const g = greetRef.current;
     if (g && !g.paused) g.pause();
+    lipRef.current = null;
+    setPreparingVoice(false);
     setAvatar("idle");
   }, []);
 
-  const speak = useCallback(
-    (text: string) => {
-      if (!voiceOn || !window.speechSynthesis) return;
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      const voice = pickSpanishVoice();
-      if (voice) u.voice = voice;
-      u.lang = voice?.lang ?? "es-ES";
-      u.rate = 1.05;
-      u.onstart = () => setAvatar("talking");
-      u.onend = () => setAvatar("idle");
-      u.onerror = () => setAvatar("idle");
-      window.speechSynthesis.speak(u);
-    },
-    [voiceOn],
-  );
+  const speakWithBrowser = (text: string, token: number) => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const voice = pickSpanishVoice();
+    if (voice) u.voice = voice;
+    u.lang = voice?.lang ?? "es-ES";
+    u.rate = 1.05;
+    const lip: Lip = { mode: "browser", start: performance.now(), wordAt: 0, wordLen: 0 };
+    u.onstart = () => {
+      if (token !== speakToken.current) return;
+      lip.start = performance.now();
+      lipRef.current = lip;
+      setAvatar("talking");
+    };
+    u.onboundary = (e) => {
+      lip.wordAt = performance.now();
+      lip.wordLen = Math.max(2, (e as SpeechSynthesisEvent & { charLength?: number }).charLength ?? 5);
+    };
+    const end = () => {
+      if (token !== speakToken.current) return;
+      lipRef.current = null;
+      setAvatar("idle");
+    };
+    u.onend = end;
+    u.onerror = end;
+    window.speechSynthesis.speak(u);
+  };
+
+  /** Voz natural con tus claves (OpenAI o ElevenLabs); si no hay, la del navegador. */
+  const loadClip = async (text: string, token: number): Promise<Clip | null> => {
+    const cached = clipCache.current.get(text);
+    if (cached) return cached;
+    if (ttsUnavailable.current) return null;
+    setPreparingVoice(true);
+    try {
+      const r = await speech({ data: { text } });
+      if (!r.ok) {
+        if (r.reason === "no-keys" || ++ttsFailures.current >= 2) ttsUnavailable.current = true;
+        return null;
+      }
+      ttsFailures.current = 0;
+      const bytes = base64ToBytes(r.audio);
+      const url = URL.createObjectURL(new Blob([bytes], { type: r.mime }));
+      let env: Float32Array | null = null;
+      try {
+        const w = window as any;
+        decodeCtx.current ??= new (w.OfflineAudioContext || w.webkitOfflineAudioContext)(1, 1, 44100);
+        const decoded = await decodeAudio(decodeCtx.current!, bytes.buffer.slice(0) as ArrayBuffer);
+        env = envelopeFromSamples(decoded.getChannelData(0), decoded.sampleRate);
+      } catch {
+        env = null; // la boca se moverá igualmente mientras suene
+      }
+      const clip = { url, env };
+      clipCache.current.set(text, clip);
+      return clip;
+    } catch {
+      if (++ttsFailures.current >= 2) ttsUnavailable.current = true;
+      return null;
+    } finally {
+      if (token === speakToken.current) setPreparingVoice(false);
+    }
+  };
+
+  const speak = async (text: string) => {
+    if (!voiceOnRef.current) return;
+    const token = ++speakToken.current;
+    window.speechSynthesis?.cancel();
+    audioRef.current?.pause();
+    const clip = await loadClip(text, token);
+    if (token !== speakToken.current || !voiceOnRef.current) return;
+    if (!clip) {
+      speakWithBrowser(text, token);
+      return;
+    }
+    const a = ensureAudio();
+    const done = () => {
+      if (token !== speakToken.current) return;
+      lipRef.current = null;
+      setAvatar("idle");
+    };
+    a.onended = done;
+    a.onerror = done;
+    a.src = clip.url;
+    lipRef.current = { mode: "audio", env: clip.env };
+    try {
+      await a.play();
+      audioUnlocked.current = true;
+      if (token === speakToken.current) setAvatar("talking");
+    } catch {
+      if (token === speakToken.current) speakWithBrowser(text, token);
+    }
+  };
+
+  /** Celda de boca que toca ahora mismo según lo que suena. */
+  const mouthCell = () => {
+    const lip = lipRef.current;
+    const now = performance.now();
+    let level: MouthLevel = 0;
+    if (lip?.mode === "audio") {
+      const a = audioRef.current;
+      if (a && !a.paused) level = lip.env ? levelAt(lip.env, a.currentTime + 0.04) : syntheticLevel(now);
+    } else if (lip?.mode === "browser") {
+      // Con avisos de palabra solo mueve la boca durante cada palabra.
+      const wordMs = lip.wordLen * 70 + 60;
+      const inWord = lip.wordAt === 0 ? true : now - lip.wordAt < wordMs;
+      level = inWord ? syntheticLevel(now - lip.start) : 0;
+    }
+    return pickMouth(level, now);
+  };
 
   const playGreeting = () => {
     const g = greetRef.current;
     if (!g) return;
-    window.speechSynthesis?.cancel();
+    unlockAudio();
+    stopSpeaking();
     g.currentTime = 0;
     g.muted = !voiceOn;
     setAvatar("greeting");
@@ -182,10 +369,11 @@ export function AssistantAvatarWidget() {
 
   const pushAssistant = (text: string, link?: HelpTopic["link"]) => {
     setMessages((m) => [...m, { id: nextId.current++, from: "assistant", text, link }]);
-    speak(text);
+    void speak(text);
   };
 
   const answerTopic = (topic: HelpTopic) => {
+    unlockAudio();
     stopSpeaking();
     setMessages((m) => [...m, { id: nextId.current++, from: "user", text: topic.question }]);
     pushAssistant(topic.answer, topic.link);
@@ -194,6 +382,7 @@ export function AssistantAvatarWidget() {
   const sendText = async (raw: string) => {
     const text = raw.trim();
     if (!text || thinking) return;
+    unlockAudio();
     stopSpeaking();
     const history = messages.slice(1).slice(-6).map(({ from, text: t }) => ({ from, text: t }));
     setMessages((m) => [...m, { id: nextId.current++, from: "user", text }]);
@@ -220,21 +409,76 @@ export function AssistantAvatarWidget() {
       setThinking(false);
     }
   };
+  sendTextRef.current = (t: string) => void sendText(t);
 
-  const toggleMic = () => {
-    if (listening) {
-      recRef.current?.stop();
+  /** Graba y transcribe con tus claves: para Firefox y navegadores sin dictado. */
+  const startRecording = async () => {
+    const w = window as any;
+    if (!navigator.mediaDevices?.getUserMedia || typeof w.MediaRecorder === "undefined") {
+      pushAssistant("Este navegador no me deja usar el micrófono. Escríbeme la pregunta o prueba con Chrome, Edge o Safari.");
       return;
     }
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      pushAssistant(
+        "No tengo permiso para usar el micrófono. Pulsa el icono del candado o del micrófono junto a la dirección de la página, permite el micrófono y vuelve a pulsar el botón.",
+      );
+      return;
+    }
+    const types = ["audio/webm;codecs=opus", "audio/ogg;codecs=opus", "audio/mp4", "audio/webm"];
+    const mime = types.find((t) => w.MediaRecorder.isTypeSupported?.(t));
+    const mr: MediaRecorder = new w.MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    const chunks: Blob[] = [];
+    mr.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
+    const timer = window.setTimeout(() => mr.state === "recording" && mr.stop(), MAX_RECORD_MS);
+    mr.onstop = async () => {
+      window.clearTimeout(timer);
+      stream.getTracks().forEach((t) => t.stop());
+      mediaRecRef.current = null;
+      setListening(false);
+      const blob = new Blob(chunks, { type: mr.mimeType || mime || "audio/webm" });
+      if (blob.size < 1200) return;
+      setTranscribing(true);
+      try {
+        const audio = await blobToBase64(blob);
+        const r = await transcribe({ data: { audio, mime: blob.type } });
+        if (r.ok && r.text) sendTextRef.current(r.text);
+        else if (r.ok) pushAssistant("No he oído nada. Acércate un poco al micrófono y vuelve a probar.");
+        else pushAssistant(r.message, r.reason === "no-keys" ? { to: "/app/settings", label: "Ir a Ajustes" } : undefined);
+      } catch {
+        pushAssistant("No he podido transcribir la grabación. Revisa tu conexión y vuelve a intentarlo.");
+      } finally {
+        setTranscribing(false);
+      }
+    };
+    mediaRecRef.current = mr;
+    mr.start();
+    setListening(true);
+  };
+
+  const toggleMic = () => {
+    unlockAudio();
+    if (listening) {
+      recRef.current?.stop();
+      if (mediaRecRef.current?.state === "recording") mediaRecRef.current.stop();
+      return;
+    }
+    if (transcribing) return;
     stopSpeaking();
     const w = window as any;
     const Rec = w.SpeechRecognition || w.webkitSpeechRecognition;
-    if (!Rec) return;
+    if (!Rec || webSpeechBroken.current) {
+      void startRecording();
+      return;
+    }
     const rec = new Rec();
     rec.lang = "es-ES";
     rec.interimResults = true;
     rec.continuous = false;
     let finalText = "";
+    let fallback = false;
     rec.onresult = (e: any) => {
       let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -244,18 +488,36 @@ export function AssistantAvatarWidget() {
       }
       setInput((finalText + interim).trim());
     };
-    rec.onend = () => {
-      setListening(false);
-      if (finalText.trim()) void sendText(finalText);
+    rec.onerror = (e: any) => {
+      // Si el dictado del navegador no está disponible, grabamos y transcribimos.
+      if (["service-not-allowed", "network", "language-not-supported", "audio-capture"].includes(e?.error)) {
+        webSpeechBroken.current = true;
+        fallback = true;
+      } else if (e?.error === "not-allowed") {
+        pushAssistant(
+          "No tengo permiso para usar el micrófono. Pulsa el icono del candado junto a la dirección de la página, permite el micrófono y vuelve a pulsar el botón.",
+        );
+      }
     };
-    rec.onerror = () => setListening(false);
+    rec.onend = () => {
+      recRef.current = null;
+      setListening(false);
+      if (fallback) void startRecording();
+      else if (finalText.trim()) sendTextRef.current(finalText);
+    };
     recRef.current = rec;
-    rec.start();
-    setListening(true);
+    try {
+      rec.start();
+      setListening(true);
+    } catch {
+      webSpeechBroken.current = true;
+      void startRecording();
+    }
   };
 
   const toggleVoice = () => {
     if (voiceOn) stopSpeaking();
+    else unlockAudio();
     setVoiceOn((v) => !v);
   };
 
@@ -288,6 +550,7 @@ export function AssistantAvatarWidget() {
     drag.current = null;
     setDragging(false);
     if (d && !d.moved) {
+      unlockAudio();
       if (collapsed) {
         setCollapsed(false);
         setOpen(true);
@@ -305,14 +568,24 @@ export function AssistantAvatarWidget() {
 
   if (!ready) return null;
 
-  const activeVideo = () => {
+  const activeSource = (): AlphaSource => {
     const a = avatarRef.current;
-    if (a === "greeting") return greetRef.current;
-    if (a === "talking") return talkRef.current;
-    return idleRef.current;
+    if (a === "greeting") return { kind: "video", el: greetRef.current };
+    if (a === "talking") return { kind: "sprite", cell: mouthCell() };
+    return { kind: "video", el: idleRef.current };
   };
 
-  const status = listening ? "Te escucho…" : thinking ? "Pensando…" : avatar !== "idle" ? "Hablando" : "Disponible";
+  const status = listening
+    ? "Te escucho…"
+    : transcribing
+      ? "Transcribiendo…"
+      : thinking
+        ? "Pensando…"
+        : preparingVoice
+          ? "Preparando la voz…"
+          : avatar !== "idle"
+            ? "Hablando"
+            : "Disponible";
   const topics = topicsForPath(pathname);
   const dragProps = {
     onPointerDown,
@@ -332,7 +605,8 @@ export function AssistantAvatarWidget() {
 
   const figure = (w: number) => (
     <AlphaVideoCanvas
-      getVideo={activeVideo}
+      getSource={activeSource}
+      sprite={MOUTH_SPRITE}
       fallbackSrc="/assistant/figura.png"
       className="pointer-events-none block h-full w-full select-none drop-shadow-[0_10px_18px_rgba(15,23,42,0.28)]"
       width={480}
@@ -362,7 +636,6 @@ export function AssistantAvatarWidget() {
       {!collapsed && (
         <div aria-hidden className="pointer-events-none fixed left-0 top-0 h-px w-px overflow-hidden opacity-0">
           <video ref={idleRef} src="/assistant/escuchando-alfa.mp4" autoPlay loop muted playsInline preload="auto" />
-          <video ref={talkRef} src="/assistant/hablando-alfa.mp4" loop muted playsInline preload="auto" />
           <video ref={greetRef} src="/assistant/saludo-alfa.mp4" playsInline preload="auto" onEnded={() => setAvatar("idle")} />
         </div>
       )}
@@ -438,7 +711,7 @@ export function AssistantAvatarWidget() {
             <div className="min-w-0 flex-1">
               <div className="text-sm font-semibold">Tu asistente</div>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span className={cn("h-2 w-2 rounded-full bg-success", (avatar !== "idle" || listening || thinking) && "animate-pulse")} />
+                <span className={cn("h-2 w-2 rounded-full bg-success", (avatar !== "idle" || listening || thinking || transcribing || preparingVoice) && "animate-pulse")} />
                 {status} · {screenName(pathname)}
               </div>
             </div>
@@ -510,14 +783,14 @@ export function AssistantAvatarWidget() {
             className="flex shrink-0 items-center gap-2 border-t p-3"
           >
             {micSupported && (
-              <Button type="button" size="icon" variant={listening ? "destructive" : "outline"} onClick={toggleMic} aria-label={listening ? "Parar micrófono" : "Hablar"} aria-pressed={listening}>
+              <Button type="button" size="icon" variant={listening ? "destructive" : "outline"} onClick={toggleMic} disabled={transcribing} aria-label={listening ? "Parar micrófono" : "Hablar"} aria-pressed={listening}>
                 {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               </Button>
             )}
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={listening ? "Te escucho…" : "Pregunta lo que quieras"}
+              placeholder={listening ? "Te escucho… pulsa el micro para terminar" : transcribing ? "Transcribiendo…" : "Pregunta lo que quieras"}
               aria-label="Tu pregunta"
               className="h-10 min-w-0 flex-1 rounded-full border bg-background px-4 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
             />
