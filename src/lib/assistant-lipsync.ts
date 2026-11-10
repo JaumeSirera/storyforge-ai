@@ -2,9 +2,11 @@
  * Movimiento de labios del asistente a partir del sonido real de su voz.
  *
  * `public/assistant/bocas.jpg` es una hoja con 14 posiciones de boca sacadas
- * del vídeo «hablando» (misma postura de cabeza, cada celda apilada: imagen
- * arriba y máscara abajo). Según el volumen de la voz en cada instante se
- * elige una boca cerrada, entreabierta, media o abierta.
+ * del vídeo «hablando» y alineadas con la cara del bucle de espera (cada celda
+ * apilada: imagen arriba y, abajo, cuánto de esa boca se mezcla con la cara).
+ * Solo se pega la zona de la boca, así la cabeza no salta al hablar. Según el
+ * volumen de la voz en cada instante se elige una boca cerrada, entreabierta,
+ * media o abierta.
  */
 
 export type MouthLevel = 0 | 1 | 2 | 3;
@@ -76,7 +78,7 @@ export function createMouthPicker(random: () => number = Math.random) {
   let cell = 0;
   let since = 0;
   return (next: MouthLevel, now: number): number => {
-    const hold = next === level ? 140 : 55;
+    const hold = next === level ? 170 : 80;
     if (now - since < hold) return cell;
     const bin = MOUTH_SPRITE.bins[next];
     let pick = bin[Math.floor(random() * bin.length) % bin.length];

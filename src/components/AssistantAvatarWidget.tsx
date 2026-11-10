@@ -3,7 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowRight, Mic, MicOff, Minus, Play, Send, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { type AlphaSource, AlphaVideoCanvas } from "@/components/assistant/AlphaVideoCanvas";
+import { type AvatarFrame, AlphaVideoCanvas } from "@/components/assistant/AlphaVideoCanvas";
 import { type HelpTopic, localAnswerFor, screenName, topicsForPath } from "@/lib/assistant-help";
 import { askAssistant } from "@/lib/assistant.functions";
 import { assistantSpeech, assistantTranscribe } from "@/lib/assistant-voice.functions";
@@ -568,11 +568,14 @@ export function AssistantAvatarWidget() {
 
   if (!ready) return null;
 
-  const activeSource = (): AlphaSource => {
+  const activeFrame = (): AvatarFrame => {
     const a = avatarRef.current;
-    if (a === "greeting") return { kind: "video", el: greetRef.current };
-    if (a === "talking") return { kind: "sprite", cell: mouthCell() };
-    return { kind: "video", el: idleRef.current };
+    return {
+      idle: idleRef.current,
+      greet: greetRef.current,
+      greeting: a === "greeting",
+      mouthCell: a === "talking" ? mouthCell() : null,
+    };
   };
 
   const status = listening
@@ -605,7 +608,7 @@ export function AssistantAvatarWidget() {
 
   const figure = (w: number) => (
     <AlphaVideoCanvas
-      getSource={activeSource}
+      getFrame={activeFrame}
       sprite={MOUTH_SPRITE}
       fallbackSrc="/assistant/figura.png"
       className="pointer-events-none block h-full w-full select-none drop-shadow-[0_10px_18px_rgba(15,23,42,0.28)]"
