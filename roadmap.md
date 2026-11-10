@@ -19,5 +19,5 @@
 - [x] Justificante PDF del consentimiento
 
 ## Asistente personal
-- [x] Muestra con avatar animado, voz y ayuda de la app (/muestra-asistente)
-- [ ] Versión final en toda la app con prompt libre usando las claves de IA del usuario (espera aprobación de la muestra)
+- [x] Muestra con avatar animado, voz y ayuda de la app
+- [x] Asistente en toda la app: mujer sin fondo, se puede arrastrar y minimizar, ayuda por pantalla y preguntas libres con la IA del usuario

@@ -11,6 +11,7 @@ import { getMyAdminStatus } from "@/lib/admin.functions";
 import { getValidAccessToken, readSession } from "@/lib/auth-session";
 import { useOwnAuth } from "@/lib/auth-context";
 import logo from "@/assets/logo-xandralyze.png";
+import { AssistantAvatarWidget } from "@/components/AssistantAvatarWidget";
 
 
 export const Route = createFileRoute("/_authenticated")({
@@ -130,6 +131,7 @@ function AppLayout() {
       <main className="mx-auto max-w-7xl px-4 py-8 pb-24 md:pb-8">
         <Outlet />
       </main>
+      <AssistantAvatarWidget />
       <nav
         className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-background/95 backdrop-blur"
         aria-label="Navegación principal móvil"

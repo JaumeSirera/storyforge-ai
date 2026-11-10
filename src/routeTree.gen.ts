@@ -15,7 +15,6 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as EducacionRouteImport } from './routes/educacion'
 import { Route as InstallRouteImport } from './routes/install'
-import { Route as MuestraAsistenteRouteImport } from './routes/muestra-asistente'
 import { Route as OpenSourceRouteImport } from './routes/open-source'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PsicologiaRouteImport } from './routes/psicologia'
@@ -109,11 +108,6 @@ const EducacionRoute = EducacionRouteImport.update({
 const InstallRoute = InstallRouteImport.update({
   id: '/install',
   path: '/install',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MuestraAsistenteRoute = MuestraAsistenteRouteImport.update({
-  id: '/muestra-asistente',
-  path: '/muestra-asistente',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OpenSourceRoute = OpenSourceRouteImport.update({
@@ -490,7 +484,6 @@ export interface FileRoutesByFullPath {
   '/contacto': typeof ContactoRoute
   '/educacion': typeof EducacionRoute
   '/install': typeof InstallRoute
-  '/muestra-asistente': typeof MuestraAsistenteRoute
   '/open-source': typeof OpenSourceRoute
   '/pricing': typeof PricingRoute
   '/psicologia': typeof PsicologiaRoute
@@ -563,7 +556,6 @@ export interface FileRoutesByTo {
   '/contacto': typeof ContactoRoute
   '/educacion': typeof EducacionRoute
   '/install': typeof InstallRoute
-  '/muestra-asistente': typeof MuestraAsistenteRoute
   '/open-source': typeof OpenSourceRoute
   '/pricing': typeof PricingRoute
   '/psicologia': typeof PsicologiaRoute
@@ -637,7 +629,6 @@ export interface FileRoutesById {
   '/contacto': typeof ContactoRoute
   '/educacion': typeof EducacionRoute
   '/install': typeof InstallRoute
-  '/muestra-asistente': typeof MuestraAsistenteRoute
   '/open-source': typeof OpenSourceRoute
   '/pricing': typeof PricingRoute
   '/psicologia': typeof PsicologiaRoute
@@ -712,7 +703,6 @@ export interface FileRouteTypes {
     | '/contacto'
     | '/educacion'
     | '/install'
-    | '/muestra-asistente'
     | '/open-source'
     | '/pricing'
     | '/psicologia'
@@ -785,7 +775,6 @@ export interface FileRouteTypes {
     | '/contacto'
     | '/educacion'
     | '/install'
-    | '/muestra-asistente'
     | '/open-source'
     | '/pricing'
     | '/psicologia'
@@ -858,7 +847,6 @@ export interface FileRouteTypes {
     | '/contacto'
     | '/educacion'
     | '/install'
-    | '/muestra-asistente'
     | '/open-source'
     | '/pricing'
     | '/psicologia'
@@ -933,7 +921,6 @@ export interface RootRouteChildren {
   ContactoRoute: typeof ContactoRoute
   EducacionRoute: typeof EducacionRoute
   InstallRoute: typeof InstallRoute
-  MuestraAsistenteRoute: typeof MuestraAsistenteRoute
   OpenSourceRoute: typeof OpenSourceRoute
   PricingRoute: typeof PricingRoute
   PsicologiaRoute: typeof PsicologiaRoute
@@ -1010,13 +997,6 @@ declare module '@tanstack/react-router' {
       path: '/install'
       fullPath: '/install'
       preLoaderRoute: typeof InstallRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/muestra-asistente': {
-      id: '/muestra-asistente'
-      path: '/muestra-asistente'
-      fullPath: '/muestra-asistente'
-      preLoaderRoute: typeof MuestraAsistenteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/open-source': {
@@ -1594,7 +1574,6 @@ const rootRouteChildren: RootRouteChildren = {
   ContactoRoute: ContactoRoute,
   EducacionRoute: EducacionRoute,
   InstallRoute: InstallRoute,
-  MuestraAsistenteRoute: MuestraAsistenteRoute,
   OpenSourceRoute: OpenSourceRoute,
   PricingRoute: PricingRoute,
   PsicologiaRoute: PsicologiaRoute,
