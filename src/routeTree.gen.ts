@@ -60,6 +60,7 @@ import { Route as AuthenticatedAppSessionsIdRouteImport } from './routes/_authen
 import { Route as AuthenticatedAppSimulationsIndexRouteImport } from './routes/_authenticated/app.simulations.index'
 import { Route as ApiPublicRedsysChargeRecurringRouteImport } from './routes/api/public/redsys/charge-recurring'
 import { Route as ApiPublicRedsysNotificationRouteImport } from './routes/api/public/redsys/notification'
+import { Route as ApiPublicSocialLinkedinRelayRouteImport } from './routes/api/public/social/linkedin-relay'
 import { Route as ApiPublicSocialPublishDueRouteImport } from './routes/api/public/social/publish-due'
 import { Route as ApiRelayRoomActionRouteImport } from './routes/api/relay.$room.$action'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -360,6 +361,12 @@ const ApiPublicRedsysNotificationRoute =
     path: '/api/public/redsys/notification',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicSocialLinkedinRelayRoute =
+  ApiPublicSocialLinkedinRelayRouteImport.update({
+    id: '/api/public/social/linkedin-relay',
+    path: '/api/public/social/linkedin-relay',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicSocialPublishDueRoute =
   ApiPublicSocialPublishDueRouteImport.update({
     id: '/api/public/social/publish-due',
@@ -526,6 +533,7 @@ export interface FileRoutesByFullPath {
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
+  '/api/public/social/linkedin-relay': typeof ApiPublicSocialLinkedinRelayRoute
   '/api/public/social/publish-due': typeof ApiPublicSocialPublishDueRoute
   '/api/relay/$room/$action': typeof ApiRelayRoomActionRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -597,6 +605,7 @@ export interface FileRoutesByTo {
   '/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
+  '/api/public/social/linkedin-relay': typeof ApiPublicSocialLinkedinRelayRoute
   '/api/public/social/publish-due': typeof ApiPublicSocialPublishDueRoute
   '/api/relay/$room/$action': typeof ApiRelayRoomActionRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -671,6 +680,7 @@ export interface FileRoutesById {
   '/_authenticated/app/sessions/$id': typeof AuthenticatedAppSessionsIdRoute
   '/api/public/redsys/charge-recurring': typeof ApiPublicRedsysChargeRecurringRoute
   '/api/public/redsys/notification': typeof ApiPublicRedsysNotificationRoute
+  '/api/public/social/linkedin-relay': typeof ApiPublicSocialLinkedinRelayRoute
   '/api/public/social/publish-due': typeof ApiPublicSocialPublishDueRoute
   '/api/relay/$room/$action': typeof ApiRelayRoomActionRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -745,6 +755,7 @@ export interface FileRouteTypes {
     | '/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
     | '/api/public/redsys/notification'
+    | '/api/public/social/linkedin-relay'
     | '/api/public/social/publish-due'
     | '/api/relay/$room/$action'
     | '/lovable/email/auth/preview'
@@ -816,6 +827,7 @@ export interface FileRouteTypes {
     | '/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
     | '/api/public/redsys/notification'
+    | '/api/public/social/linkedin-relay'
     | '/api/public/social/publish-due'
     | '/api/relay/$room/$action'
     | '/lovable/email/auth/preview'
@@ -889,6 +901,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/sessions/$id'
     | '/api/public/redsys/charge-recurring'
     | '/api/public/redsys/notification'
+    | '/api/public/social/linkedin-relay'
     | '/api/public/social/publish-due'
     | '/api/relay/$room/$action'
     | '/lovable/email/auth/preview'
@@ -948,6 +961,7 @@ export interface RootRouteChildren {
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   ApiPublicRedsysChargeRecurringRoute: typeof ApiPublicRedsysChargeRecurringRoute
   ApiPublicRedsysNotificationRoute: typeof ApiPublicRedsysNotificationRoute
+  ApiPublicSocialLinkedinRelayRoute: typeof ApiPublicSocialLinkedinRelayRoute
   ApiPublicSocialPublishDueRoute: typeof ApiPublicSocialPublishDueRoute
   ApiRelayRoomActionRoute: typeof ApiRelayRoomActionRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -1314,6 +1328,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicRedsysNotificationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/social/linkedin-relay': {
+      id: '/api/public/social/linkedin-relay'
+      path: '/api/public/social/linkedin-relay'
+      fullPath: '/api/public/social/linkedin-relay'
+      preLoaderRoute: typeof ApiPublicSocialLinkedinRelayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/social/publish-due': {
       id: '/api/public/social/publish-due'
       path: '/api/public/social/publish-due'
@@ -1606,6 +1627,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailEventsRoute: LovableEmailEventsRoute,
   ApiPublicRedsysChargeRecurringRoute: ApiPublicRedsysChargeRecurringRoute,
   ApiPublicRedsysNotificationRoute: ApiPublicRedsysNotificationRoute,
+  ApiPublicSocialLinkedinRelayRoute: ApiPublicSocialLinkedinRelayRoute,
   ApiPublicSocialPublishDueRoute: ApiPublicSocialPublishDueRoute,
   ApiRelayRoomActionRoute: ApiRelayRoomActionRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,

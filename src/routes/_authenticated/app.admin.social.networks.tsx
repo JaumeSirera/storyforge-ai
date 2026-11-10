@@ -71,6 +71,13 @@ function NetworksPage() {
         </a>
       </section>
 
+      <section className="rounded-2xl border border-border bg-card p-5 space-y-2">
+        <h3 className="font-semibold flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" /> LinkedIn: conexión propia</h3>
+        <p className="text-sm text-muted-foreground">
+          LinkedIn no pasa por Upload-Post: se publica directamente en tu perfil con la conexión de LinkedIn de siempre, y no gasta envíos de Upload-Post.
+        </p>
+      </section>
+
       <section className="space-y-3">
         <h3 className="font-semibold">Redes activas por serie</h3>
         {stories.data?.length === 0 && <p className="text-sm text-muted-foreground">Aún no hay series.</p>}

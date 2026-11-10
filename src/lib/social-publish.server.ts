@@ -1,5 +1,6 @@
 /**
- * Publicación de capítulos con Upload-Post (upload-post.com). Server-only.
+ * Publicación de capítulos: LinkedIn con su conexión original (linkedin.server.ts)
+ * y el resto de redes con Upload-Post (upload-post.com). Server-only.
  * Los archivos adjuntos se envían como archivo dentro de la petición (no como
  * enlace): el cortafuegos del hosting bloquea las descargas automáticas que
  * Upload-Post haría desde nuestro servidor.
@@ -99,12 +100,30 @@ export async function publishSocial(
   chapter: Pick<SocialChapter, "body" | "links" | "media"> & { title?: string },
   platforms: string[],
 ): Promise<Result[]> {
+  if (!platforms.length) throw new Error("Esta serie no tiene ninguna red activada.");
+  // LinkedIn se publica con la conexión original de LinkedIn, nunca por Upload-Post.
+  const linkedin: Result[] = [];
+  if (platforms.includes("linkedin")) {
+    const { publishLinkedIn } = await import("./linkedin.server");
+    const r = await publishLinkedIn(composePost(chapter.body, chapter.links ?? []), chapter.media ?? []);
+    linkedin.push({ platform: "linkedin", ok: r.ok, detail: r.detail });
+  }
+  const others = platforms.filter((p) => p !== "linkedin");
+  if (!others.length) return linkedin;
+  return [...linkedin, ...(await publishUploadPost(inputCreds, chapter, others))];
+}
+
+async function publishUploadPost(
+  inputCreds: PublishCreds,
+  chapter: Pick<SocialChapter, "body" | "links" | "media"> & { title?: string },
+  platforms: string[],
+): Promise<Result[]> {
   let creds = inputCreds;
   const apiKey = (creds.key ?? "").trim();
 
   const typedProfile = (creds.profile ?? "").trim();
-  if (!apiKey) throw new Error("Falta la clave de Upload-Post. Añádela en la pestaña «Redes».");
-  if (!platforms.length) throw new Error("Esta serie no tiene ninguna red activada.");
+  if (!apiKey)
+    return platforms.map((platform) => ({ platform, ok: false, detail: "Falta la clave de Upload-Post. Añádela en la pestaña «Redes»." }));
   const { user: profile, known } = await resolveProfile(apiKey, typedProfile);
   if (!profile) throw new Error("Falta el nombre del perfil de Upload-Post. Añádelo en la pestaña «Redes».");
 
