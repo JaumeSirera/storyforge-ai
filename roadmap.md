@@ -17,3 +17,7 @@
 - [x] Prueba previa de cámara, micrófono y conexión
 - [x] Guardado por partes para no perder grabaciones
 - [x] Justificante PDF del consentimiento
+
+## Asistente personal
+- [x] Muestra con avatar animado, voz y ayuda de la app (/muestra-asistente)
+- [ ] Versión final en toda la app con prompt libre usando las claves de IA del usuario (espera aprobación de la muestra)
