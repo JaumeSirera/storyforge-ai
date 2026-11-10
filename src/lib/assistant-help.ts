@@ -23,6 +23,11 @@ export type HelpTopic = {
   answer: string;
   /** Pantalla a la que lleva el botón «Ir a…». */
   link?: { to: HelpLink; label: string };
+  /**
+   * Vídeo grabado (color sobre máscara, como el saludo) que dice esta respuesta.
+   * Si existe se reproduce en vez de la voz generada, con la cara entera moviéndose.
+   */
+  video?: string;
 };
 
 export const HELP_TOPICS: HelpTopic[] = [
@@ -33,6 +38,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     answer:
       "Pulsa «Nueva» en el menú. Rellena cuatro pasos: el objetivo, el guion o contexto, los vídeos si los tienes y el modelo de IA. La IA prepara la historia, las escenas, las preguntas y el árbol de decisiones. Después la encontrarás en «Mis simulaciones», donde puedes revisarla y publicarla.",
     link: { to: "/app/new", label: "Crear simulación" },
+    video: "/assistant/temas/crear-simulacion-alfa.mp4",
   },
   {
     id: "editar-simulacion",

@@ -27,6 +27,7 @@ const MAX_RECORD_MS = 30_000;
 const LIVE_TRANSCRIBE_MS = 2200;
 /** El saludo suena solo la primera vez que se abre en cada visita. */
 const GREETED_KEY = "xandralyze-assistant-greeted";
+const GREETING_VIDEO = "/assistant/saludo-alfa.mp4";
 /** Un instante de silencio: desbloquea el audio en iPhone dentro del toque. */
 const SILENT_WAV = "data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA";
 
@@ -203,7 +204,7 @@ export function AssistantAvatarWidget() {
   // Al abrir el chat se preparan las primeras frases de las explicaciones de esta pantalla.
   useEffect(() => {
     if (!open || !ready) return;
-    const t = window.setTimeout(() => topicsForPath(pathname).slice(0, 3).forEach((tp) => prefetchSpeech(tp.answer)), 600);
+    const t = window.setTimeout(() => topicsForPath(pathname).slice(0, 3).forEach((tp) => !tp.video && prefetchSpeech(tp.answer)), 600);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, ready, pathname]);
@@ -409,33 +410,45 @@ export function AssistantAvatarWidget() {
     return 0;
   };
 
-  const playGreeting = () => {
+  /** Reproduce un vídeo grabado (saludo o respuesta de un tema) encima de la espera. */
+  const playRecorded = (src: string, onFail?: () => void) => {
     const g = greetRef.current;
-    if (!g) return;
+    if (!g) return onFail?.();
     unlockAudio();
     stopSpeaking();
-    g.currentTime = 0;
-    g.muted = !voiceOn;
+    if (!g.currentSrc.endsWith(src)) {
+      g.src = src;
+      g.load();
+    } else g.currentTime = 0;
+    g.muted = !voiceOnRef.current;
     setAvatar("greeting");
+    g.play().catch(() => {
+      setAvatar("idle");
+      onFail?.();
+    });
+  };
+
+  const playGreeting = () => {
     setGreeted(true);
     try {
       sessionStorage.setItem(GREETED_KEY, "1");
     } catch {
       /* almacenamiento no disponible */
     }
-    g.play().catch(() => setAvatar("idle"));
+    playRecorded(GREETING_VIDEO);
   };
 
-  const pushAssistant = (text: string, link?: HelpTopic["link"]) => {
+  const pushAssistant = (text: string, link?: HelpTopic["link"], video?: string) => {
     setMessages((m) => [...m, { id: nextId.current++, from: "assistant", text, link }]);
-    void speak(text);
+    if (video) playRecorded(video, () => void speak(text));
+    else void speak(text);
   };
 
   const answerTopic = (topic: HelpTopic) => {
     unlockAudio();
     stopSpeaking();
     setMessages((m) => [...m, { id: nextId.current++, from: "user", text: topic.question }]);
-    pushAssistant(topic.answer, topic.link);
+    pushAssistant(topic.answer, topic.link, topic.video);
   };
 
   const sendText = async (raw: string) => {
@@ -448,7 +461,7 @@ export function AssistantAvatarWidget() {
     setInput("");
     const topic = localAnswerFor(text);
     if (topic) {
-      pushAssistant(topic.answer, topic.link);
+      pushAssistant(topic.answer, topic.link, topic.video);
       return;
     }
     setThinking(true);
@@ -730,7 +743,7 @@ export function AssistantAvatarWidget() {
       <div aria-hidden className="pointer-events-none fixed left-0 top-0 h-px w-px overflow-hidden opacity-0">
         {!collapsed && <video ref={idleRef} src="/assistant/escuchando-alfa.mp4" autoPlay loop muted playsInline preload="auto" />}
         {/* Siempre montado: así el saludo puede empezar dentro del mismo toque que abre el asistente. */}
-        <video ref={greetRef} src="/assistant/saludo-alfa.mp4" playsInline preload="auto" onEnded={() => setAvatar("idle")} />
+        <video ref={greetRef} src={GREETING_VIDEO} playsInline preload="auto" onEnded={() => setAvatar("idle")} />
       </div>
 
       {collapsed ? (
@@ -865,8 +878,8 @@ export function AssistantAvatarWidget() {
                   key={t.id}
                   type="button"
                   onClick={() => answerTopic(t)}
-                  onPointerEnter={() => prefetchSpeech(t.answer)}
-                  onFocus={() => prefetchSpeech(t.answer)}
+                  onPointerEnter={() => !t.video && prefetchSpeech(t.answer)}
+                  onFocus={() => !t.video && prefetchSpeech(t.answer)}
                   className="rounded-full border bg-background px-2.5 py-1 text-xs text-foreground hover:bg-accent"
                 >
                   {t.question}

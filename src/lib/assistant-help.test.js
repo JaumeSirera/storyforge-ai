@@ -34,3 +34,16 @@ describe("asistente: ayuda local o IA del usuario", () => {
     expect(topicsForPath("/app/assessments/bank")[0].id).toBe("banco-preguntas");
   });
 });
+
+import { existsSync } from "node:fs";
+import { HELP_TOPICS } from "./assistant-help";
+
+describe("asistente: vídeos grabados por tema", () => {
+  it("«¿Cómo creo una simulación?» tiene su vídeo grabado", () => {
+    expect(HELP_TOPICS.find((t) => t.id === "crear-simulacion")?.video).toBe("/assistant/temas/crear-simulacion-alfa.mp4");
+  });
+
+  it("cada vídeo de tema existe en la web publicada", () => {
+    for (const t of HELP_TOPICS.filter((x) => x.video)) expect(existsSync(`public${t.video}`), t.id).toBe(true);
+  });
+});
