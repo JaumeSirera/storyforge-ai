@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { demoCriteria, demoStars, demoStory } from "@/lib/public-demo";
 import { resolveChoiceDestination, type Choice } from "@/lib/story-types";
 import hotel from "@/assets/demo-hotel.jpg";
+import { ClipVideo, type LandingVideo } from "@/components/LandingVideos";
 
-export function PublicDemo() {
+/** `video`: optional short clip shown in the right column until the visitor starts the sample simulation. */
+export function PublicDemo({ video }: { video?: LandingVideo } = {}) {
   const [started, setStarted] = useState(false);
   const [currentId, setCurrentId] = useState(demoStory.startNodeId);
   const [answers, setAnswers] = useState<Choice[]>([]);
@@ -50,13 +52,15 @@ export function PublicDemo() {
           </div>
           <div className="min-w-0 space-y-4" aria-label="Simulación de ejemplo">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-xl font-semibold">Un imprevisto en recepción</h3>
-              <span className="text-sm text-muted-foreground">Atención al cliente · Ejemplo ficticio</span>
+              <h3 className="text-xl font-semibold">{video && !started ? "Vídeo de lanzamiento" : "Un imprevisto en recepción"}</h3>
+              <span className="text-sm text-muted-foreground">{video && !started ? video.duration : "Atención al cliente · Ejemplo ficticio"}</span>
             </div>
             {!started ? (
               <>
-                <img src={hotel} alt="Recepcionista atendiendo a un huésped en un hotel" width={1536} height={1024} loading="lazy" className="aspect-video w-full rounded-lg object-cover" />
-                <Button onClick={() => setStarted(true)} className="gap-2"><Play /> Probar la simulación</Button>
+                {video
+                  ? <ClipVideo video={video} className="mx-auto aspect-[9/16] h-[32rem] w-auto max-w-full" />
+                  : <img src={hotel} alt="Recepcionista atendiendo a un huésped en un hotel" width={1536} height={1024} loading="lazy" className="aspect-video w-full rounded-lg object-cover" />}
+                <Button onClick={() => setStarted(true)} className="gap-2"><Play /> {video ? "Probar la simulación: un imprevisto en recepción" : "Probar la simulación"}</Button>
               </>
             ) : (
               <div className="rounded-lg border border-border bg-card p-5 sm:p-6">

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetTrigger, SheetContent, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { PublicExamDemo } from "@/components/PublicExamDemo";
 import { PublicDemo } from "@/components/PublicDemo";
+import { SectorVideoBlock } from "@/components/LandingVideos";
 import logo from "@/assets/logo-xandralyze.png";
 import education from "@/assets/sector-education.jpg";
 import recruitment from "@/assets/sector-recruitment.jpg";
@@ -110,6 +111,7 @@ export function SectorLanding({ sector }: { sector: keyof typeof sectors }) {
           <h2 className="text-3xl tracking-normal">{page.heading}</h2><p className="mt-3 max-w-2xl text-muted-foreground">{page.intro}</p>
           <div className="mt-10 grid gap-8 md:grid-cols-3">{page.features.map(([title, body], i) => <article key={title} className="border-t border-border pt-6"><span className="text-sm font-semibold text-primary">0{i + 1}</span><h3 className="mt-3 text-xl tracking-normal">{title}</h3><p className="mt-3 leading-relaxed text-muted-foreground">{body}</p></article>)}</div>
         </section>
+        <SectorVideoBlock sector={sector} />
         {guides.some((g) => g.backTo === `/${sector}`) && <section className="mx-auto flex max-w-7xl flex-col gap-2 px-6 pb-4"><h2 className="text-xl tracking-normal">Guías</h2>{guides.filter((g) => g.backTo === `/${sector}`).map((g) => <a key={g.slug} href={`/guia/${g.slug}`} className="inline-flex items-center gap-2 font-medium text-primary hover:underline">{g.h1}<ArrowRight className="h-4 w-4" /></a>)}</section>}
         {sector === "educacion" && <PublicExamDemo />}
         {sector === "seleccion" && <PublicDemo />}

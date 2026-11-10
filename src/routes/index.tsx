@@ -6,6 +6,7 @@ import { AssessmentsModule } from "@/components/AssessmentsModule";
 import { PublicDemo } from "@/components/PublicDemo";
 import { PublicExamDemo } from "@/components/PublicExamDemo";
 import { sectorLinks } from "@/components/SectorLanding";
+import { AssistantShowcase, SectorVideoCards, landingVideos } from "@/components/LandingVideos";
 import logo from "@/assets/logo-xandralyze.png";
 import {
   Sparkles,
@@ -75,10 +76,9 @@ function Landing() {
       <Header />
       <main>
         <Hero />
-        <section className="border-y border-border" aria-label="Xandralyze por sector">
-          <div className="mx-auto grid max-w-7xl gap-6 px-6 py-10 md:grid-cols-3">{sectorLinks.map((sector) => <Link key={sector.to} to={sector.to} className="group flex items-start gap-4"><sector.icon className="mt-1 h-6 w-6 shrink-0 text-primary" /><span><span className="flex items-center gap-2 text-lg font-semibold">{sector.label}<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 motion-reduce:transition-none" /></span><span className="mt-1 block text-sm text-muted-foreground">{sector.to === "/educacion" ? "Manuscritos, universidades y oposiciones" : sector.to === "/seleccion" ? "Assessment centers y selección gamificada" : "Sesiones e interacciones de voz"}</span></span></Link>)}</div>
-        </section>
-        <PublicDemo />
+        <SectorVideoCards />
+        <PublicDemo video={landingVideos.lanzamiento} />
+        <AssistantShowcase />
         <PublicExamDemo />
         <AssessmentsModule />
         <Modules />
