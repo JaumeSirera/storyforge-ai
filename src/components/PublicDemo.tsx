@@ -39,9 +39,10 @@ export function PublicDemo({ video }: { video?: LandingVideo } = {}) {
           </div>
           <span className="text-sm text-muted-foreground">Demostración pública</span>
         </div>
-        <div className="grid items-start gap-10 lg:grid-cols-2">
+        {/* Before the simulation starts, columns are sized 256:81 so the 16:9 tour and the 9:16 clip share the same height. */}
+        <div className={`grid items-start gap-10 ${video && !started ? "lg:grid-cols-[256fr_81fr]" : "lg:grid-cols-2"}`}>
           <div className="min-w-0 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-end justify-between gap-2 lg:min-h-16">
               <h3 className="text-xl font-semibold">Un recorrido por Xandralyze</h3>
               <span className="text-sm text-muted-foreground">3 min 20 s</span>
             </div>
@@ -51,16 +52,16 @@ export function PublicDemo({ video }: { video?: LandingVideo } = {}) {
             </video>
           </div>
           <div className="min-w-0 space-y-4" aria-label="Simulación de ejemplo">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-xl font-semibold">{video && !started ? "Vídeo de lanzamiento" : "Un imprevisto en recepción"}</h3>
+            <div className="flex flex-wrap items-end justify-between gap-x-2 gap-y-1 lg:min-h-16">
+              <h3 className="text-xl font-semibold">{video && !started ? "Recupera tu fin de semana" : "Un imprevisto en recepción"}</h3>
               <span className="text-sm text-muted-foreground">{video && !started ? video.duration : "Atención al cliente · Ejemplo ficticio"}</span>
             </div>
             {!started ? (
               <>
                 {video
-                  ? <ClipVideo video={video} className="mx-auto aspect-[9/16] h-[32rem] w-auto max-w-full" />
+                  ? <ClipVideo video={video} className="mx-auto aspect-[9/16] w-full max-w-xs lg:max-w-none" />
                   : <img src={hotel} alt="Recepcionista atendiendo a un huésped en un hotel" width={1536} height={1024} loading="lazy" className="aspect-video w-full rounded-lg object-cover" />}
-                <Button onClick={() => setStarted(true)} className="gap-2"><Play /> {video ? "Probar la simulación: un imprevisto en recepción" : "Probar la simulación"}</Button>
+                <Button onClick={() => setStarted(true)} className={`gap-2 ${video ? "h-auto min-h-10 w-full whitespace-normal py-2" : ""}`}><Play className="shrink-0" /> {video ? "Probar la simulación: un imprevisto en recepción" : "Probar la simulación"}</Button>
               </>
             ) : (
               <div className="rounded-lg border border-border bg-card p-5 sm:p-6">
