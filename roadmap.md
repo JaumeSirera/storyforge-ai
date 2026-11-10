@@ -21,7 +21,7 @@
 ## Asistente personal
 - [x] Muestra con avatar animado, voz y ayuda de la app
 - [x] Asistente en toda la app: mujer sin fondo, se puede arrastrar y minimizar, ayuda por pantalla y preguntas libres con la IA del usuario
-- [ ] Vídeo de la asistente sin fondo para Reels (9:16) y publicación en redes (4:5)
+- [x] Vídeo de la asistente sin fondo para Reels (9:16) y publicación en redes (4:5)
 
 ## Redes sociales
-- [ ] LinkedIn publica con la conexión original de LinkedIn (no por Upload-Post)
+- [x] LinkedIn publica con la conexión original de LinkedIn (no por Upload-Post)
