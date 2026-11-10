@@ -1,28 +1,21 @@
 /**
  * Movimiento de labios del asistente a partir del sonido real de su voz.
  *
- * `public/assistant/bocas.jpg` es una hoja con 14 posiciones de boca hechas a
- * partir de la propia cara del bucle de espera (se abre la mandíbula y se pinta
- * el interior), así encajan sin sombras ni cambio de tamaño. Cada celda va
- * apilada: imagen arriba y, abajo, cuánto de esa boca se mezcla con la cara.
- * Solo se pega la zona de la boca, así la cabeza no salta al hablar. Según el
- * volumen de la voz en cada instante se elige una boca cerrada, entreabierta,
- * media o abierta.
+ * No se pega ninguna boca de otra imagen: el lienzo deforma en directo la
+ * propia cara del bucle de espera (baja un poco el labio de abajo y deja ver
+ * una rendija oscura entre los labios). Así la boca tiene siempre su tamaño,
+ * color y luz exactos, sin sombras ni bordes. Aquí se calcula cuánto se abre
+ * (0 cerrada … 1 lo máximo, que son solo unos pocos píxeles).
  */
 
-export type MouthLevel = 0 | 1 | 2 | 3;
-
-export const MOUTH_SPRITE = {
-  src: "/assistant/bocas.jpg",
-  cols: 4,
-  rows: 4,
-  /** Índices de celda por nivel: 0 cerrada … 3 abierta. */
-  bins: [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8, 9],
-    [10, 11, 12, 13],
-  ] as const,
+/** Forma de la boca en el bucle de espera (píxeles de la imagen 480x382). */
+export const MOUTH_SHAPE = {
+  /** Línea entre los labios: y = a·x² + b·x + c. */
+  seam: [-5.93049720e-3, 2.78804272, -107.588235] as const,
+  centerX: 250.5,
+  halfWidth: 31,
+  /** Apertura máxima entre los labios, en píxeles. Pequeña a propósito. */
+  maxOpenPx: 3.6,
 };
 
 export const ENVELOPE_FPS = 50;
@@ -53,40 +46,39 @@ export function envelopeFromSamples(samples: Float32Array, sampleRate: number, f
   return env;
 }
 
-export function levelFromEnergy(e: number): MouthLevel {
+/** Cuánto se abre la boca (0–1) para un volumen dado. Voz baja apenas la abre. */
+export function opennessFromEnergy(e: number): number {
   if (e < 0.1) return 0;
-  if (e < 0.4) return 1;
-  if (e < 0.72) return 2;
-  return 3;
+  const t = Math.min(1, (e - 0.1) / 0.8);
+  return 0.2 + 0.8 * t * t * (3 - 2 * t);
 }
 
-/** Nivel de boca en el segundo `t` del audio. */
-export function levelAt(env: Float32Array, t: number, fps = ENVELOPE_FPS): MouthLevel {
+/** Apertura en el segundo `t` del audio. */
+export function opennessAt(env: Float32Array, t: number, fps = ENVELOPE_FPS): number {
   const i = Math.floor(t * fps);
   if (i < 0 || i >= env.length) return 0;
-  return levelFromEnergy(env[i]);
+  return opennessFromEnergy(env[i]);
 }
 
-/** Para la voz del navegador (sin audio que analizar): sílabas simuladas. */
-export function syntheticLevel(ms: number): MouthLevel {
-  const pattern: MouthLevel[] = [1, 3, 2, 0, 2, 3, 1, 2, 0, 3, 2, 1];
-  return pattern[Math.floor(ms / 95) % pattern.length];
+/** Para la voz del navegador (sin audio que analizar): sílabas suaves simuladas. */
+export function syntheticOpenness(ms: number): number {
+  const syl = 150; // ~6–7 sílabas por segundo
+  const phase = (ms % syl) / syl;
+  const k = Math.floor(ms / syl);
+  const amp = [0.55, 0.8, 0.4, 0.7, 0.5, 0.85, 0.35, 0.65][k % 8];
+  return amp * Math.sin(Math.PI * phase);
 }
 
-/** Elige la celda de la hoja y la mantiene un mínimo para evitar parpadeos. */
-export function createMouthPicker(random: () => number = Math.random) {
-  let level: MouthLevel | -1 = -1;
-  let cell = 0;
-  let since = 0;
-  return (next: MouthLevel, now: number): number => {
-    const hold = next === level ? 170 : 80;
-    if (now - since < hold) return cell;
-    const bin = MOUTH_SPRITE.bins[next];
-    let pick = bin[Math.floor(random() * bin.length) % bin.length];
-    if (pick === cell && bin.length > 1) pick = bin[(bin.indexOf(pick as never) + 1) % bin.length];
-    level = next;
-    cell = pick;
-    since = now;
-    return cell;
+/** Suaviza la apertura: abre algo rápido y cierra algo más despacio, sin saltos. */
+export function createOpenSmoother(attackMs = 60, releaseMs = 110) {
+  let v = 0;
+  let last = -1;
+  return (target: number, now: number): number => {
+    const dt = last < 0 ? 16 : Math.min(100, Math.max(0, now - last));
+    last = now;
+    const tau = target > v ? attackMs : releaseMs;
+    v += (target - v) * (1 - Math.exp(-dt / tau));
+    if (v < 0.002) v = 0;
+    return v;
   };
 }

@@ -7,7 +7,7 @@ import { type AvatarFrame, AlphaVideoCanvas } from "@/components/assistant/Alpha
 import { type HelpTopic, localAnswerFor, screenName, topicsForPath } from "@/lib/assistant-help";
 import { askAssistant } from "@/lib/assistant.functions";
 import { assistantSpeech, assistantTranscribe } from "@/lib/assistant-voice.functions";
-import { MOUTH_SPRITE, type MouthLevel, createMouthPicker, envelopeFromSamples, levelAt, syntheticLevel } from "@/lib/assistant-lipsync";
+import { envelopeFromSamples, opennessAt, syntheticOpenness } from "@/lib/assistant-lipsync";
 import { splitForSpeech } from "@/lib/assistant-speech";
 import { readPreferredAiModel } from "@/lib/preferred-model";
 import { cn } from "@/lib/utils";
@@ -140,7 +140,6 @@ export function AssistantAvatarWidget() {
   const ttsUnavailable = useRef(false);
   const speakToken = useRef(0);
   const lipRef = useRef<Lip | null>(null);
-  const pickMouth = useRef(createMouthPicker()).current;
   const sendTextRef = useRef<(t: string) => void>(() => {});
   const ask = useServerFn(askAssistant);
   const speech = useServerFn(assistantSpeech);
@@ -383,21 +382,22 @@ export function AssistantAvatarWidget() {
     setAvatar("idle");
   };
 
-  /** Celda de boca que toca ahora mismo según lo que suena. */
-  const mouthCell = () => {
+  /** Cuánto abre la boca ahora mismo (0–1) según lo que suena. */
+  const mouthOpen = () => {
     const lip = lipRef.current;
     const now = performance.now();
-    let level: MouthLevel = 0;
     if (lip?.mode === "audio") {
       const a = audioRef.current;
-      if (a && !a.paused) level = lip.env ? levelAt(lip.env, a.currentTime + 0.04) : syntheticLevel(now);
-    } else if (lip?.mode === "browser") {
+      if (!a || a.paused) return 0;
+      return lip.env ? opennessAt(lip.env, a.currentTime + 0.04) : syntheticOpenness(now);
+    }
+    if (lip?.mode === "browser") {
       // Con avisos de palabra solo mueve la boca durante cada palabra.
       const wordMs = lip.wordLen * 70 + 60;
       const inWord = lip.wordAt === 0 ? true : now - lip.wordAt < wordMs;
-      level = inWord ? syntheticLevel(now - lip.start) : 0;
+      return inWord ? syntheticOpenness(now - lip.start) : 0;
     }
-    return pickMouth(level, now);
+    return 0;
   };
 
   const playGreeting = () => {
@@ -619,7 +619,7 @@ export function AssistantAvatarWidget() {
       idle: idleRef.current,
       greet: greetRef.current,
       greeting: a === "greeting",
-      mouthCell: a === "talking" ? mouthCell() : null,
+      mouthOpen: a === "talking" ? mouthOpen() : null,
     };
   };
 
@@ -654,7 +654,6 @@ export function AssistantAvatarWidget() {
   const figure = (w: number) => (
     <AlphaVideoCanvas
       getFrame={activeFrame}
-      sprite={MOUTH_SPRITE}
       fallbackSrc="/assistant/figura.png"
       className="pointer-events-none block h-full w-full select-none drop-shadow-[0_10px_18px_rgba(15,23,42,0.28)]"
       width={480}
