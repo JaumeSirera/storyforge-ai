@@ -35,7 +35,9 @@ export function ComposedExportButton({ recordings, fileBase, getUrl, pipPrefsKey
   const [progress, setProgress] = useState(0);
 
   const screen = recordings.find((r) => r.kind === "screen");
-  const camera = recordings.find((r) => r.kind === "camera");
+  // Grabaciones largas: la cámara llega en varias partes y se encadenan todas.
+  const cameras = recordings.filter((r) => r.kind === "camera").sort((a, b) => a.syncOffsetMs - b.syncOffsetMs);
+  const camera = cameras[0];
   if (!screen || !camera) return null;
 
 
@@ -44,14 +46,20 @@ export function ComposedExportButton({ recordings, fileBase, getUrl, pipPrefsKey
     setProgress(0);
     try {
       const prefs = { ...DEFAULT_PIP_PREFS, ...loadPipPrefs(pipPrefsKey) };
-      const [screenUrl, cameraUrl] = await Promise.all([getUrl(screen!.id), getUrl(camera!.id)]);
+      const [screenUrl, ...cameraUrls] = await Promise.all([
+        getUrl(screen!.id),
+        ...cameras.map((c) => getUrl(c.id)),
+      ]);
+      // Incluye el ajuste fino de sincronía aplicado durante la reproducción.
+      const trim = prefs.trimMs ?? 0;
+      const camEnd = Math.max(...cameras.map((c) => (c.syncOffsetMs - screen!.syncOffsetMs) / 1000 + (c.durationSec ?? 0)));
       const blob = await composeCameraAndScreen({
         screenUrl,
-        cameraUrl,
+        cameraUrl: cameraUrls[0]!,
+        cameraParts: cameras.map((c, i) => ({ url: cameraUrls[i]!, offsetMs: c.syncOffsetMs + trim })),
         screenOffsetMs: screen!.syncOffsetMs,
-        // Incluye el ajuste fino de sincronía aplicado durante la reproducción.
-        cameraOffsetMs: camera!.syncOffsetMs + (prefs.trimMs ?? 0),
-        durationSec: Math.max(screen!.durationSec ?? 0, camera!.durationSec ?? 0) || null,
+        cameraOffsetMs: camera!.syncOffsetMs + trim,
+        durationSec: Math.max(screen!.durationSec ?? 0, camEnd) || null,
         pipCorner: prefs.corner,
         pipSize: prefs.size,
         // El vídeo combinado siempre incluye el recuadro PIP en su posición guardada.

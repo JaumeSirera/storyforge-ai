@@ -16,6 +16,9 @@ export interface ComposeInput {
   /** Desplazamiento de sincronización de cada pista respecto al juego (ms). */
   screenOffsetMs?: number;
   cameraOffsetMs?: number;
+  /** Cámara guardada por partes: se encadenan, cada una en su momento.
+   *  Si se indica, sustituye a `cameraUrl`/`cameraOffsetMs`. */
+  cameraParts?: { url: string; offsetMs: number }[];
   /** Duración conocida (s) para estimar el progreso. */
   durationSec?: number | null;
   /** Layout del recuadro tal como se ve en el reproductor. */
@@ -58,10 +61,16 @@ function pickMime() {
 
 /** Devuelve un Blob con el vídeo combinado (cámara + pantalla). */
 export async function composeCameraAndScreen(input: ComposeInput): Promise<Blob> {
-  const [screen, camera] = await Promise.all([
+  const partsIn =
+    input.cameraParts && input.cameraParts.length > 0
+      ? [...input.cameraParts].sort((a, b) => a.offsetMs - b.offsetMs)
+      : [{ url: input.cameraUrl, offsetMs: input.cameraOffsetMs ?? 0 }];
+  const [screen, ...cameras] = await Promise.all([
     loadVideo(input.screenUrl),
-    loadVideo(input.cameraUrl),
+    ...partsIn.map((p) => loadVideo(p.url)),
   ]);
+  // Parte de cámara que se está viendo ahora (la última que ha empezado).
+  let camera = cameras[0]!;
 
   const W = 1280;
   const H = 720;
@@ -71,16 +80,15 @@ export async function composeCameraAndScreen(input: ComposeInput): Promise<Blob>
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("El navegador no permite combinar vídeo (canvas 2D no disponible)");
 
-  // La pista con menor offset empieza antes; la otra espera la diferencia.
-  const camOff = input.cameraOffsetMs ?? 0;
+  // La pista con menor offset empieza antes; las demás esperan la diferencia.
   const scrOff = input.screenOffsetMs ?? 0;
-  const base = Math.min(camOff, scrOff);
-  const camDelay = (camOff - base) / 1000;
+  const base = Math.min(scrOff, ...partsIn.map((p) => p.offsetMs));
+  const camDelays = partsIn.map((p) => (p.offsetMs - base) / 1000);
   const scrDelay = (scrOff - base) / 1000;
 
   const audioCtx = new AudioContext();
   const dest = audioCtx.createMediaStreamDestination();
-  for (const el of [camera, screen]) {
+  for (const el of [...cameras, screen]) {
     try {
       const src = audioCtx.createMediaElementSource(el);
       src.connect(dest);
@@ -102,7 +110,7 @@ export async function composeCameraAndScreen(input: ComposeInput): Promise<Blob>
   const expected = Math.max(
     input.durationSec && Number.isFinite(input.durationSec) ? input.durationSec : 0,
     Number.isFinite(screen.duration) ? screen.duration : 0,
-    Number.isFinite(camera.duration) ? camera.duration : 0,
+    ...cameras.map((c) => (Number.isFinite(c.duration) ? c.duration : 0)),
     1,
   );
 
@@ -149,9 +157,10 @@ export async function composeCameraAndScreen(input: ComposeInput): Promise<Blob>
   rec.start(1000);
   raf = requestAnimationFrame(draw);
 
-  const play = async (el: HTMLVideoElement, delay: number) => {
+  const play = async (el: HTMLVideoElement, delay: number, onStart?: () => void) => {
     if (delay > 0) await new Promise((r) => setTimeout(r, delay * 1000));
     el.currentTime = 0;
+    onStart?.();
     await el.play().catch(() => undefined);
     await new Promise<void>((resolve) => {
       el.addEventListener("ended", () => resolve(), { once: true });
@@ -165,7 +174,14 @@ export async function composeCameraAndScreen(input: ComposeInput): Promise<Blob>
     });
   };
 
-  await Promise.all([play(camera, camDelay), play(screen, scrDelay)]);
+  await Promise.all([
+    ...cameras.map((c, i) =>
+      play(c, camDelays[i]!, () => {
+        camera = c;
+      }),
+    ),
+    play(screen, scrDelay),
+  ]);
   // Pequeño margen para no cortar el último fotograma.
   await new Promise((r) => setTimeout(r, 400));
   if (rec.state !== "inactive") rec.stop();

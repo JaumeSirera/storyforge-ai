@@ -25,6 +25,7 @@ import { CaptureHostControls } from "@/components/CaptureHostControls";
 import { MediaDeviceSelector, type MediaDeviceSelection } from "@/components/MediaDeviceSelector";
 import { RecordingPlayer } from "@/components/RecordingPlayer";
 import { ComposedExportButton } from "@/components/ComposedExportButton";
+import { buildTakes, cameraParts } from "@/lib/recording-takes";
 
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -132,8 +133,7 @@ function CaptureSessionPage() {
   const [playing, setPlaying] = useState<{
     id: string;
     url: string;
-    pipUrl?: string | null;
-    pipOffsetMs?: number;
+    pipParts?: { src: string; offsetMs: number }[];
   } | null>(null);
   const [mediaSelection, setMediaSelection] = useState<MediaDeviceSelection | null>(null);
   const [myName, setMyName] = useState("Yo");
@@ -958,22 +958,28 @@ function CaptureSessionPage() {
           {buildTakes(recordings).map((take) => {
             const p = participants.find((x) => x.id === take.participantId);
             const screen = take.tracks.find((t) => t.kind === "screen");
-            const camera = take.tracks.find((t) => t.kind === "camera");
+            const camParts = cameraParts(take);
+            const camera = camParts[0];
             const main = screen ?? take.tracks[0]!;
+            const takeSec = screen?.durationSec ?? camParts.reduce((n, c) => n + (c.durationSec ?? 0), 0);
             const openTrack = async (r: (typeof take.tracks)[number]) => {
               try {
                 const { url } = await recUrl({ data: { id: r.id } });
-                let pipUrl: string | null = null;
-                let pipOffsetMs = 0;
-                if (r.kind === "screen" && camera) {
+                let pipParts: { src: string; offsetMs: number }[] = [];
+                if (r.kind === "screen" && camParts.length > 0) {
                   try {
-                    pipUrl = (await recUrl({ data: { id: camera.id } })).url;
-                    pipOffsetMs = camera.syncOffsetMs - r.syncOffsetMs;
+                    // Todas las partes de cámara, cada una en su momento de la pantalla.
+                    pipParts = await Promise.all(
+                      camParts.map(async (c) => ({
+                        src: (await recUrl({ data: { id: c.id } })).url,
+                        offsetMs: c.syncOffsetMs - r.syncOffsetMs,
+                      })),
+                    );
                   } catch {
-                    pipUrl = null;
+                    pipParts = [];
                   }
                 }
-                setPlaying({ id: r.id, url, pipUrl, pipOffsetMs });
+                setPlaying({ id: r.id, url, pipParts });
               } catch (e: any) {
                 toast.error(e?.message || "No se pudo abrir");
               }
@@ -984,15 +990,14 @@ function CaptureSessionPage() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-sm font-medium">
-                      {take.tracks
-                        .map((t) =>
-                          t.kind === "screen" ? "Pantalla" : t.kind === "audio" ? "Audio" : "Cámara",
-                        )
+                      {[...new Set(take.tracks.map((t) => t.kind))]
+                        .map((k) => (k === "screen" ? "Pantalla" : k === "audio" ? "Audio" : "Cámara"))
                         .join(" + ")}
+                      {camParts.length > 1 ? ` (cámara en ${camParts.length} partes)` : ""}
                       {p ? ` · ${p.name}` : ""}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {main.durationSec ? `${Math.round(main.durationSec)} s · ` : ""}
+                      {takeSec ? `${Math.round(takeSec)} s · ` : ""}
                       sync +{Math.round(main.syncOffsetMs / 100) / 10}s ·{" "}
                       {new Date(main.createdAt).toLocaleString("es-ES")}
                     </p>
@@ -1012,7 +1017,9 @@ function CaptureSessionPage() {
                               ? "Ver pantalla"
                               : t.kind === "audio"
                                 ? "Ver audio"
-                                : "Ver cámara"
+                                : camParts.length > 1
+                                  ? `Ver cámara ${camParts.indexOf(t) + 1}/${camParts.length}`
+                                  : "Ver cámara"
                             : "Ver"}
                         </Button>
                         <Button
@@ -1050,8 +1057,7 @@ function CaptureSessionPage() {
                   <RecordingPlayer
                     src={playing.url}
                     durationSec={playingTrack.durationSec}
-                    pipSrc={playing.pipUrl}
-                    pipOffsetMs={playing.pipOffsetMs}
+                    pipParts={playing.pipParts}
                     pipLabel={p ? `Cámara · ${p.name}` : "Cámara"}
                     pipPrefsKey={id}
                   />
@@ -1100,45 +1106,4 @@ function SectionCard({
       </button>
     </Card>
   );
-}
-
-type RecTrack = {
-  id: string;
-  kind: string;
-  durationSec?: number | null;
-  syncOffsetMs: number;
-  participantId?: string | null;
-  createdAt: string;
-};
-
-type Take = {
-  key: string;
-  participantId?: string | null;
-  tracks: RecTrack[];
-};
-
-/**
- * Agrupa las pistas de una misma toma (pantalla + cámara del mismo participante
- * grabadas casi a la vez) para mostrarlas en una única línea.
- */
-function buildTakes<T extends RecTrack>(recordings: T[]): Take[] {
-  const WINDOW_MS = 120_000;
-  const takes: Take[] = [];
-  for (const r of [...recordings].sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-  )) {
-    const t = new Date(r.createdAt).getTime();
-    const target = takes.find(
-      (g) =>
-        g.participantId === (r.participantId ?? null) &&
-        !g.tracks.some((x) => x.kind === r.kind) &&
-        Math.abs(new Date(g.tracks[0]!.createdAt).getTime() - t) < WINDOW_MS,
-    );
-    if (target) target.tracks.push(r);
-    else takes.push({ key: r.id, participantId: r.participantId ?? null, tracks: [r] });
-  }
-  // Pantalla primero dentro de cada toma, tomas más recientes arriba.
-  const order: Record<string, number> = { screen: 0, camera: 1, audio: 2 };
-  for (const g of takes) g.tracks.sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9));
-  return takes.reverse();
 }

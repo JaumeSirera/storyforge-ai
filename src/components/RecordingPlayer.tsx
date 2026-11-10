@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PictureInPicture2, X } from "lucide-react";
 import {
@@ -18,6 +18,9 @@ interface Props {
   pipSrc?: string | null;
   /** Desfase de la pista PIP respecto a la principal, en milisegundos. */
   pipOffsetMs?: number;
+  /** Cámara guardada por partes: cada una con su desfase respecto a la principal.
+   *  El recuadro cambia de parte según el momento que se esté viendo. */
+  pipParts?: { src: string; offsetMs: number }[];
   /** Etiqueta del recuadro. */
   pipLabel?: string;
   /** Identificador para recordar posición/tamaño del recuadro (p. ej. id de sesión). */
@@ -61,12 +64,25 @@ const HARD_DRIFT = 0.35; // 350 ms: salto duro
 export function RecordingPlayer({
   src,
   durationSec,
-  pipSrc,
-  pipOffsetMs = 0,
+  pipSrc: pipSrcProp,
+  pipOffsetMs: pipOffsetProp = 0,
+  pipParts,
   pipLabel = "Cámara",
   pipPrefsKey,
 }: Props) {
   const ref = useRef<HTMLVideoElement | null>(null);
+  const parts = useMemo(
+    () =>
+      pipParts && pipParts.length > 0
+        ? [...pipParts].sort((a, b) => a.offsetMs - b.offsetMs)
+        : pipSrcProp
+          ? [{ src: pipSrcProp, offsetMs: pipOffsetProp }]
+          : [],
+    [pipParts, pipSrcProp, pipOffsetProp],
+  );
+  const [partIdx, setPartIdx] = useState(0);
+  const pipSrc = parts[Math.min(partIdx, parts.length - 1)]?.src ?? null;
+  const pipOffsetMs = parts[Math.min(partIdx, parts.length - 1)]?.offsetMs ?? 0;
   const pipRef = useRef<HTMLVideoElement | null>(null);
   const fixedRef = useRef(false);
   const [pipOn, setPipOn] = useState(!!pipSrc);
@@ -103,6 +119,27 @@ export function RecordingPlayer({
   useEffect(() => {
     if (!pipSrc) setPipOn(false);
   }, [pipSrc]);
+
+  // Con la cámara por partes, muestra en el recuadro la parte que corresponde
+  // al momento actual de la principal.
+  useEffect(() => {
+    const main = ref.current;
+    setPartIdx(0);
+    if (!main || parts.length < 2) return;
+    const pick = () => {
+      const nowMs = main.currentTime * 1000;
+      let idx = 0;
+      for (let i = 0; i < parts.length; i++) if (parts[i].offsetMs + trimMs <= nowMs + 50) idx = i;
+      setPartIdx((cur) => (cur === idx ? cur : idx));
+    };
+    pick();
+    main.addEventListener("timeupdate", pick);
+    main.addEventListener("seeked", pick);
+    return () => {
+      main.removeEventListener("timeupdate", pick);
+      main.removeEventListener("seeked", pick);
+    };
+  }, [parts, trimMs]);
 
   // Enruta el audio a una sola pista para que no se oigan dos veces desfasadas.
   useEffect(() => {

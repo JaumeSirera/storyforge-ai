@@ -29,6 +29,12 @@ export interface CaptureStartOptions {
   selection?: MediaDeviceSelection | null;
 }
 
+interface CamPart {
+  chunks: Blob[];
+  startMs: number;
+  endMs: number;
+}
+
 interface Entry {
   key: string;
   label: string;
@@ -42,8 +48,9 @@ interface Entry {
   camRecorder: MediaRecorder | null;
   screenRecorder: MediaRecorder | null;
   camChunks: Blob[];
-  /** Tomas de cámara anteriores (si la cámara se cortó y se reactivó). */
-  camSegments: Blob[][];
+  /** Partes de cámara cerradas aún sin subir (subida fallida o cámara reactivada),
+   *  con su inicio y fin en la línea de tiempo de la grabación. */
+  camSegments: CamPart[];
   /** La pista de cámara se cortó (permiso revocado, otra app la ocupó, etc.). */
   cameraLost: boolean;
   screenChunks: Blob[];
@@ -357,13 +364,13 @@ async function rotateAndUpload(e: Entry) {
       e.uploadedSegments += 1;
       // La parte ya está a salvo en el servidor: la copia local solo guarda lo pendiente.
       await clearRecovery(e.key);
-      for (const seg of e.camSegments) for (const c of seg) void persistChunk(e.key, "camera", c);
+      for (const seg of e.camSegments) for (const c of seg.chunks) void persistChunk(e.key, "camera", c);
       for (const c of e.camChunks) void persistChunk(e.key, "camera", c);
       for (const c of e.screenChunks) void persistChunk(e.key, "screen", c);
       void saveMeta(e, mime);
     } catch {
-      // Se reintenta al detener la grabación.
-      e.camSegments.push(chunks);
+      // Se reintenta al detener la grabación, con su posición en el tiempo.
+      e.camSegments.push({ chunks, startMs, endMs: nowMs });
     }
   } finally {
     e.rotating = false;
@@ -398,8 +405,12 @@ export async function restartCamera(
         e.camRecorder!.stop();
       });
     }
-    if (e.camChunks.length > 0) e.camSegments.push(e.camChunks);
+    const nowMs = Math.round(getElapsedSec(e.key) * 1000);
+    if (e.camChunks.length > 0) {
+      e.camSegments.push({ chunks: e.camChunks, startMs: e.segmentStartElapsedMs, endMs: nowMs });
+    }
     e.camChunks = [];
+    e.segmentStartElapsedMs = nowMs;
     // Soltamos la pista muerta antes de pedir la cámara otra vez.
     e.streams = e.streams.filter((s) => {
       if (s === e.screenStream) return true;
@@ -667,9 +678,13 @@ export async function stopRecording(key: string): Promise<boolean> {
     e.previewOn = false;
 
     const alreadySaved = e.uploadedSegments;
-    const syncOffsetMs = Math.round(e.offsetMs + (alreadySaved > 0 ? e.segmentStartElapsedMs : 0));
-    const lastDuration = alreadySaved > 0 ? Math.max(0, duration - e.segmentStartElapsedMs / 1000) : duration;
-    const segments = [...e.camSegments, e.camChunks].filter((c) => c.length > 0);
+    // Cada parte de cámara lleva su propio desfase y duración para que el
+    // reproductor y el vídeo combinado las encadenen en su sitio.
+    const durationMs = Math.round(duration * 1000);
+    const segments: CamPart[] = [
+      ...e.camSegments,
+      { chunks: e.camChunks, startMs: e.segmentStartElapsedMs, endMs: durationMs },
+    ].filter((c) => c.chunks.length > 0);
     let uploaded = alreadySaved;
     const errors: string[] = [];
 
@@ -684,11 +699,16 @@ export async function stopRecording(key: string): Promise<boolean> {
 
     // Cada pista se sube por separado: si una falla (o la cámara se cortó),
     // no se pierde el resto de la grabación.
-    for (const chunks of segments) {
-      const blob = new Blob(chunks, { type: chunks[0]?.type || "video/webm" });
+    for (const part of segments) {
+      const blob = new Blob(part.chunks, { type: part.chunks[0]?.type || "video/webm" });
       if (blob.size < 2048) continue;
       try {
-        await uploader({ blob, kind: "camera", durationSec: lastDuration, syncOffsetMs });
+        await uploader({
+          blob,
+          kind: "camera",
+          durationSec: Math.max(0, part.endMs - part.startMs) / 1000,
+          syncOffsetMs: Math.round(e.offsetMs + part.startMs),
+        });
         uploaded += 1;
       } catch (err) {
         errors.push(`cámara: ${err instanceof Error ? err.message : "error al subir"}`);
@@ -699,7 +719,8 @@ export async function stopRecording(key: string): Promise<boolean> {
       const sBlob = new Blob(e.screenChunks, { type: e.screenChunks[0]?.type || "video/webm" });
       if (sBlob.size > 2048) {
         try {
-          await uploader({ blob: sBlob, kind: "screen", durationSec: duration, syncOffsetMs });
+          // La pantalla graba de principio a fin: empieza en el desfase del juego.
+          await uploader({ blob: sBlob, kind: "screen", durationSec: duration, syncOffsetMs: Math.round(e.offsetMs) });
           uploaded += 1;
         } catch (err) {
           errors.push(`pantalla: ${err instanceof Error ? err.message : "error al subir"}`);
