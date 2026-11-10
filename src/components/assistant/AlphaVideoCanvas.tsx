@@ -66,10 +66,10 @@ export function AlphaVideoCanvas({
           float seam = ${f(sa)}*px.x*px.x + ${f(sb)}*px.x + ${f(sc)};
           float q = clamp(1.0 - pow((px.x-${f(MOUTH_SHAPE.centerX)})/${f(MOUTH_SHAPE.halfWidth)}, 2.0), 0.0, 1.0);
           float pl = pow(q, 0.7);
-          float d = open*pl; float u = 0.22*open*pl;
+          float d = open*pl; float u = 0.45*open*pl;
           float below = px.y - seam;
           if (below >= 0.0) ys = px.y - d*(1.0 - sst(12.0, 44.0, below));
-          else ys = px.y + u*(1.0 - sst(0.0, 9.0, -below));
+          else ys = px.y + u*(1.0 - sst(0.0, 14.0, -below));
           // Margen extra: tapa la línea oscura original entre los labios (si no, deja una sombra punteada).
           float e = 1.1*clamp(open/1.5, 0.0, 1.0)*pl;
           float top = seam - u - 0.6*e; float bot = seam + d + e;
