@@ -39,6 +39,11 @@ describe("labios del asistente", () => {
     expect(MOUTH_SHAPE.maxOpenPx).toBeLessThanOrEqual(7);
   });
 
+  it("al abrirse la boca encoge: la abertura es más estrecha que la boca real", () => {
+    expect(MOUTH_SHAPE.halfWidth).toBeGreaterThanOrEqual(24);
+    expect(MOUTH_SHAPE.halfWidth).toBeLessThanOrEqual(28);
+  });
+
   it("la boca no salta: de cerrada a abierta tarda varios fotogramas", () => {
     const smooth = createOpenSmoother();
     smooth(0, 0);

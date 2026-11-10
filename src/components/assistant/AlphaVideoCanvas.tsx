@@ -65,7 +65,8 @@ export function AlphaVideoCanvas({
         if (open > 0.0) {
           float seam = ${f(sa)}*px.x*px.x + ${f(sb)}*px.x + ${f(sc)};
           float q = clamp(1.0 - pow((px.x-${f(MOUTH_SHAPE.centerX)})/${f(MOUTH_SHAPE.halfWidth)}, 2.0), 0.0, 1.0);
-          float pl = pow(q, 0.7);
+          // Perfil más cerrado hacia las comisuras: la boca encoge al abrirse.
+          float pl = pow(q, 1.05);
           float d = open*pl; float u = 0.45*open*pl;
           float below = px.y - seam;
           if (below >= 0.0) ys = px.y - d*(1.0 - sst(12.0, 44.0, below));
