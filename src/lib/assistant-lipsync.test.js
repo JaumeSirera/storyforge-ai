@@ -34,8 +34,9 @@ describe("labios del asistente", () => {
     expect(opennessFromEnergy(0.6)).toBeLessThan(opennessFromEnergy(0.95));
   });
 
-  it("la boca abierta del todo es solo una rendija pequeña", () => {
-    expect(MOUTH_SHAPE.maxOpenPx).toBeLessThanOrEqual(4);
+  it("la boca abierta del todo se abre algo más que una rendija, sin exagerar", () => {
+    expect(MOUTH_SHAPE.maxOpenPx).toBeGreaterThan(5);
+    expect(MOUTH_SHAPE.maxOpenPx).toBeLessThanOrEqual(7);
   });
 
   it("la boca no salta: de cerrada a abierta tarda varios fotogramas", () => {

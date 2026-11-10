@@ -15,7 +15,7 @@ export const MOUTH_SHAPE = {
   centerX: 250.5,
   halfWidth: 31,
   /** Apertura máxima entre los labios, en píxeles. Pequeña a propósito. */
-  maxOpenPx: 3.6,
+  maxOpenPx: 6.5,
 };
 
 export const ENVELOPE_FPS = 50;

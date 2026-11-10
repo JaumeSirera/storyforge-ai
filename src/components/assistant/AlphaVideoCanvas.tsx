@@ -61,22 +61,28 @@ export function AlphaVideoCanvas({
       void main(){
         vec2 px = uv * SZ;
         float ys = px.y;
-        float m = 0.0; float k = 0.0;
+        float m = 0.0; float k = 0.0; float tz = 0.0;
         if (open > 0.0) {
           float seam = ${f(sa)}*px.x*px.x + ${f(sb)}*px.x + ${f(sc)};
           float q = clamp(1.0 - pow((px.x-${f(MOUTH_SHAPE.centerX)})/${f(MOUTH_SHAPE.halfWidth)}, 2.0), 0.0, 1.0);
           float pl = pow(q, 0.7);
           float d = open*pl; float u = 0.22*open*pl;
           float below = px.y - seam;
-          if (below >= 0.0) ys = px.y - d*(1.0 - sst(10.0, 34.0, below));
+          if (below >= 0.0) ys = px.y - d*(1.0 - sst(12.0, 44.0, below));
           else ys = px.y + u*(1.0 - sst(0.0, 9.0, -below));
-          float top = seam - u; float bot = seam + d;
-          m = sst(-0.8, 0.8, px.y-top) * (1.0 - sst(-0.8, 0.8, px.y-bot)) * sst(0.0, 0.15, q);
-          k = sin(3.14159 * clamp((px.y-top)/max(bot-top, 0.001), 0.0, 1.0)) * clamp(open/3.0, 0.0, 1.0);
+          // Margen extra: tapa la línea oscura original entre los labios (si no, deja una sombra punteada).
+          float e = 1.1*clamp(open/1.5, 0.0, 1.0)*pl;
+          float top = seam - u - 0.6*e; float bot = seam + d + e;
+          float gap = max(bot-top, 0.001);
+          float t = clamp((px.y-top)/gap, 0.0, 1.0);
+          m = sst(-0.9, 0.9, px.y-top) * (1.0 - sst(-0.9, 0.9, px.y-bot)) * sst(0.0, 0.2, q);
+          k = sin(3.14159*t) * clamp((gap-1.5)/5.0, 0.0, 1.0) * sst(0.0, 0.5, q);
+          tz = sst(0.0, 0.1, t) * (1.0 - sst(0.2, 0.45, t)) * sst(4.5, 7.5, gap) * sst(0.3, 0.7, q);
         }
         vec2 top2 = vec2(uv.x, (ys/SZ.y)*0.5); vec2 bot2 = vec2(uv.x, 0.5+uv.y*0.5);
         vec3 c = texture2D(tIdle, top2).rgb; float a = texture2D(tIdle, bot2).r;
-        vec3 inside = mix(vec3(0.43,0.22,0.22), vec3(0.22,0.09,0.10), k);
+        vec3 inside = mix(vec3(0.50,0.28,0.28), vec3(0.24,0.10,0.11), k);
+        inside = mix(inside, vec3(0.78,0.68,0.64), 0.6*tz);
         c = mix(c, inside, m);
         if (wGreet > 0.0) {
           c = mix(c, texture2D(tGreet, vec2(uv.x, uv.y*0.5)).rgb, wGreet);
