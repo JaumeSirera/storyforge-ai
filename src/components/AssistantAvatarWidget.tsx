@@ -23,6 +23,10 @@ const FIG_RATIO = 382 / 480;
 const PANEL_W = 360;
 const BUBBLE = 60;
 const MAX_RECORD_MS = 30_000;
+/** Cada cuánto se transcribe lo grabado hasta ahora para irlo escribiendo. */
+const LIVE_TRANSCRIBE_MS = 2200;
+/** El saludo suena solo la primera vez que se abre en cada visita. */
+const GREETED_KEY = "xandralyze-assistant-greeted";
 /** Un instante de silencio: desbloquea el audio en iPhone dentro del toque. */
 const SILENT_WAV = "data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA";
 
@@ -125,6 +129,7 @@ export function AssistantAvatarWidget() {
   const recRef = useRef<any>(null);
   const mediaRecRef = useRef<MediaRecorder | null>(null);
   const webSpeechBroken = useRef(false);
+  const recSession = useRef(0);
   const listRef = useRef<HTMLDivElement>(null);
   const nextId = useRef(1);
   const drag = useRef<{ x: number; y: number; right: number; bottom: number; moved: boolean } | null>(null);
@@ -151,7 +156,11 @@ export function AssistantAvatarWidget() {
     setPos({ right: s.right, bottom: s.bottom });
     setCollapsed(s.collapsed);
     setVoiceOn(s.voiceOn);
-    setGreeted(s.greeted);
+    try {
+      setGreeted(sessionStorage.getItem(GREETED_KEY) === "1");
+    } catch {
+      setGreeted(false);
+    }
     const w = window as any;
     const canRecord = Boolean(navigator.mediaDevices?.getUserMedia) && typeof w.MediaRecorder !== "undefined";
     setMicSupported(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition) || canRecord);
@@ -170,11 +179,11 @@ export function AssistantAvatarWidget() {
   useEffect(() => {
     if (!ready) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...pos, collapsed, voiceOn, greeted }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...pos, collapsed, voiceOn }));
     } catch {
       /* almacenamiento no disponible */
     }
-  }, [ready, pos, collapsed, voiceOn, greeted]);
+  }, [ready, pos, collapsed, voiceOn]);
 
   const boxW = collapsed ? BUBBLE : figW;
   const boxH = collapsed ? BUBBLE : figH;
@@ -409,6 +418,11 @@ export function AssistantAvatarWidget() {
     g.muted = !voiceOn;
     setAvatar("greeting");
     setGreeted(true);
+    try {
+      sessionStorage.setItem(GREETED_KEY, "1");
+    } catch {
+      /* almacenamiento no disponible */
+    }
     g.play().catch(() => setAvatar("idle"));
   };
 
@@ -476,20 +490,48 @@ export function AssistantAvatarWidget() {
     const mime = types.find((t) => w.MediaRecorder.isTypeSupported?.(t));
     const mr: MediaRecorder = new w.MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
     const chunks: Blob[] = [];
+    const type = mr.mimeType || mime || "audio/webm";
+    const session = ++recSession.current;
     mr.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
     const timer = window.setTimeout(() => mr.state === "recording" && mr.stop(), MAX_RECORD_MS);
+    // Mientras hablas, se transcribe lo grabado hasta ahora y se va escribiendo.
+    let liveBusy = false;
+    let liveSize = 0;
+    const live = window.setInterval(async () => {
+      if (liveBusy || mr.state !== "recording" || chunks.length === liveSize) return;
+      const blob = new Blob(chunks, { type });
+      if (blob.size < 4000) return;
+      liveBusy = true;
+      liveSize = chunks.length;
+      try {
+        const r = await transcribe({ data: { audio: await blobToBase64(blob), mime: type } });
+        if (r.ok && r.text && session === recSession.current && mr.state === "recording") setInput(r.text);
+      } catch {
+        /* el texto final llega al terminar */
+      } finally {
+        liveBusy = false;
+      }
+    }, LIVE_TRANSCRIBE_MS);
     mr.onstop = async () => {
       window.clearTimeout(timer);
+      window.clearInterval(live);
+      recSession.current++;
       stream.getTracks().forEach((t) => t.stop());
       mediaRecRef.current = null;
       setListening(false);
-      const blob = new Blob(chunks, { type: mr.mimeType || mime || "audio/webm" });
-      if (blob.size < 1200) return;
+      const blob = new Blob(chunks, { type });
+      if (blob.size < 1200) {
+        setInput("");
+        return;
+      }
       setTranscribing(true);
       try {
         const audio = await blobToBase64(blob);
         const r = await transcribe({ data: { audio, mime: blob.type } });
-        if (r.ok && r.text) sendTextRef.current(r.text);
+        if (r.ok && r.text) {
+          setInput(r.text);
+          sendTextRef.current(r.text);
+        }
         else if (r.ok) pushAssistant("No he oído nada. Acércate un poco al micrófono y vuelve a probar.");
         else pushAssistant(r.message, r.reason === "no-keys" ? { to: "/app/settings", label: "Ir a Ajustes" } : undefined);
       } catch {
@@ -499,7 +541,9 @@ export function AssistantAvatarWidget() {
       }
     };
     mediaRecRef.current = mr;
-    mr.start();
+    setInput("");
+    // Trozos de 1 s: así se puede transcribir lo grabado sin parar la grabación.
+    mr.start(1000);
     setListening(true);
   };
 
@@ -596,10 +640,13 @@ export function AssistantAvatarWidget() {
     setDragging(false);
     if (d && !d.moved) {
       unlockAudio();
+      const opening = collapsed || !open;
       if (collapsed) {
         setCollapsed(false);
         setOpen(true);
       } else setOpen((o) => !o);
+      // La primera vez que la abres en cada visita te saluda (dentro del toque, para que suene también en iPhone).
+      if (opening && !greeted) playGreeting();
     }
   };
   const onKeyMove = (e: React.KeyboardEvent) => {
@@ -680,12 +727,11 @@ export function AssistantAvatarWidget() {
   return (
     <>
       {/* Vídeos fuente (ocultos): el lienzo pinta el que toque sin fondo. */}
-      {!collapsed && (
-        <div aria-hidden className="pointer-events-none fixed left-0 top-0 h-px w-px overflow-hidden opacity-0">
-          <video ref={idleRef} src="/assistant/escuchando-alfa.mp4" autoPlay loop muted playsInline preload="auto" />
-          <video ref={greetRef} src="/assistant/saludo-alfa.mp4" playsInline preload="auto" onEnded={() => setAvatar("idle")} />
-        </div>
-      )}
+      <div aria-hidden className="pointer-events-none fixed left-0 top-0 h-px w-px overflow-hidden opacity-0">
+        {!collapsed && <video ref={idleRef} src="/assistant/escuchando-alfa.mp4" autoPlay loop muted playsInline preload="auto" />}
+        {/* Siempre montado: así el saludo puede empezar dentro del mismo toque que abre el asistente. */}
+        <video ref={greetRef} src="/assistant/saludo-alfa.mp4" playsInline preload="auto" onEnded={() => setAvatar("idle")} />
+      </div>
 
       {collapsed ? (
         <button
@@ -792,13 +838,13 @@ export function AssistantAvatarWidget() {
                     {m.link.label} <ArrowRight className="h-3 w-3" />
                   </Link>
                 )}
-                {m.id === 0 && !greeted && (
+                {m.id === 0 && (
                   <button
                     type="button"
                     onClick={playGreeting}
                     className="mt-2 flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-xs font-semibold text-foreground hover:bg-accent"
                   >
-                    <Play className="h-3 w-3" /> Escuchar saludo
+                    <Play className="h-3 w-3" /> {greeted ? "Repetir saludo" : "Escuchar saludo"}
                   </button>
                 )}
               </div>
