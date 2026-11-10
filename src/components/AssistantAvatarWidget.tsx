@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowRight, Mic, MicOff, Minus, Play, Send, Volume2, VolumeX, X } from "lucide-react";
+import { ArrowRight, Loader2, Mic, MicOff, Minus, Play, Send, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type AvatarFrame, AlphaVideoCanvas } from "@/components/assistant/AlphaVideoCanvas";
 import { type HelpTopic, localAnswerFor, screenName, topicsForPath } from "@/lib/assistant-help";
 import { askAssistant } from "@/lib/assistant.functions";
 import { assistantSpeech, assistantTranscribe } from "@/lib/assistant-voice.functions";
 import { MOUTH_SPRITE, type MouthLevel, createMouthPicker, envelopeFromSamples, levelAt, syntheticLevel } from "@/lib/assistant-lipsync";
+import { splitForSpeech } from "@/lib/assistant-speech";
 import { readPreferredAiModel } from "@/lib/preferred-model";
 import { cn } from "@/lib/utils";
 
@@ -134,6 +135,7 @@ export function AssistantAvatarWidget() {
   const speechPrimed = useRef(false);
   const decodeCtx = useRef<BaseAudioContext | null>(null);
   const clipCache = useRef(new Map<string, Clip>());
+  const clipPending = useRef(new Map<string, Promise<Clip | null>>());
   const ttsFailures = useRef(0);
   const ttsUnavailable = useRef(false);
   const speakToken = useRef(0);
@@ -188,7 +190,15 @@ export function AssistantAvatarWidget() {
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, thinking, open]);
+  }, [messages, thinking, open, preparingVoice]);
+
+  // Al abrir el chat se preparan las primeras frases de las explicaciones de esta pantalla.
+  useEffect(() => {
+    if (!open || !ready) return;
+    const t = window.setTimeout(() => topicsForPath(pathname).slice(0, 3).forEach((tp) => prefetchSpeech(tp.answer)), 600);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, ready, pathname]);
 
   useEffect(() => {
     if (!open) return;
@@ -273,69 +283,104 @@ export function AssistantAvatarWidget() {
     window.speechSynthesis.speak(u);
   };
 
-  /** Voz natural con tus claves (OpenAI o ElevenLabs); si no hay, la del navegador. */
-  const loadClip = async (text: string, token: number): Promise<Clip | null> => {
+  /** Voz natural con tus claves (OpenAI o ElevenLabs); null = usar la del navegador. */
+  const loadClip = (text: string): Promise<Clip | null> => {
     const cached = clipCache.current.get(text);
-    if (cached) return cached;
-    if (ttsUnavailable.current) return null;
-    setPreparingVoice(true);
-    try {
-      const r = await speech({ data: { text } });
-      if (!r.ok) {
-        if (r.reason === "no-keys" || ++ttsFailures.current >= 2) ttsUnavailable.current = true;
-        return null;
-      }
-      ttsFailures.current = 0;
-      const bytes = base64ToBytes(r.audio);
-      const url = URL.createObjectURL(new Blob([bytes], { type: r.mime }));
-      let env: Float32Array | null = null;
+    if (cached) return Promise.resolve(cached);
+    if (ttsUnavailable.current) return Promise.resolve(null);
+    const pending = clipPending.current.get(text);
+    if (pending) return pending;
+    const job = (async (): Promise<Clip | null> => {
       try {
-        const w = window as any;
-        decodeCtx.current ??= new (w.OfflineAudioContext || w.webkitOfflineAudioContext)(1, 1, 44100);
-        const decoded = await decodeAudio(decodeCtx.current!, bytes.buffer.slice(0) as ArrayBuffer);
-        env = envelopeFromSamples(decoded.getChannelData(0), decoded.sampleRate);
+        const r = await speech({ data: { text } });
+        if (!r.ok) {
+          if (r.reason === "no-keys" || ++ttsFailures.current >= 2) ttsUnavailable.current = true;
+          return null;
+        }
+        ttsFailures.current = 0;
+        const bytes = base64ToBytes(r.audio);
+        const url = URL.createObjectURL(new Blob([bytes], { type: r.mime }));
+        let env: Float32Array | null = null;
+        try {
+          const w = window as any;
+          decodeCtx.current ??= new (w.OfflineAudioContext || w.webkitOfflineAudioContext)(1, 1, 44100);
+          const decoded = await decodeAudio(decodeCtx.current!, bytes.buffer.slice(0) as ArrayBuffer);
+          env = envelopeFromSamples(decoded.getChannelData(0), decoded.sampleRate);
+        } catch {
+          env = null; // la boca se moverá igualmente mientras suene
+        }
+        const clip = { url, env };
+        clipCache.current.set(text, clip);
+        return clip;
       } catch {
-        env = null; // la boca se moverá igualmente mientras suene
+        if (++ttsFailures.current >= 2) ttsUnavailable.current = true;
+        return null;
+      } finally {
+        clipPending.current.delete(text);
       }
-      const clip = { url, env };
-      clipCache.current.set(text, clip);
-      return clip;
-    } catch {
-      if (++ttsFailures.current >= 2) ttsUnavailable.current = true;
-      return null;
-    } finally {
-      if (token === speakToken.current) setPreparingVoice(false);
-    }
+    })();
+    clipPending.current.set(text, job);
+    return job;
   };
+
+  /** Prepara de antemano la primera frase de una respuesta para que suene al momento. */
+  const prefetchSpeech = (text: string) => {
+    if (!voiceOnRef.current || ttsUnavailable.current) return;
+    const first = splitForSpeech(text)[0];
+    if (first) void loadClip(first);
+  };
+
+  /** Reproduce una parte; true si terminó bien. */
+  const playClip = (clip: Clip, token: number) =>
+    new Promise<boolean>((resolve) => {
+      const a = ensureAudio();
+      a.onended = () => resolve(true);
+      a.onerror = () => resolve(false);
+      a.src = clip.url;
+      lipRef.current = { mode: "audio", env: clip.env };
+      a.play()
+        .then(() => {
+          audioUnlocked.current = true;
+          if (token === speakToken.current) setAvatar("talking");
+        })
+        .catch(() => resolve(false));
+    });
 
   const speak = async (text: string) => {
     if (!voiceOnRef.current) return;
     const token = ++speakToken.current;
     window.speechSynthesis?.cancel();
     audioRef.current?.pause();
-    const clip = await loadClip(text, token);
-    if (token !== speakToken.current || !voiceOnRef.current) return;
-    if (!clip) {
-      speakWithBrowser(text, token);
-      return;
+    const parts = splitForSpeech(text);
+    if (parts.length === 0) return;
+    const stillMine = () => token === speakToken.current && voiceOnRef.current;
+    const first = loadClip(parts[0]);
+    // Mientras se prepara la primera frase se piden ya las siguientes.
+    if (parts[1]) void loadClip(parts[1]);
+    if (!clipCache.current.has(parts[0])) setPreparingVoice(true);
+    let clip = await first;
+    if (token === speakToken.current) setPreparingVoice(false);
+    for (let i = 0; i < parts.length; i++) {
+      if (!stillMine()) return;
+      if (!clip) {
+        speakWithBrowser(parts.slice(i).join(" "), token);
+        return;
+      }
+      if (parts[i + 2]) void loadClip(parts[i + 2]);
+      const ok = await playClip(clip, token);
+      if (!stillMine()) return;
+      if (!ok) {
+        speakWithBrowser(parts.slice(i).join(" "), token);
+        return;
+      }
+      if (i + 1 < parts.length) {
+        lipRef.current = null; // boca cerrada mientras llega la siguiente frase
+        clip = await loadClip(parts[i + 1]);
+      }
     }
-    const a = ensureAudio();
-    const done = () => {
-      if (token !== speakToken.current) return;
-      lipRef.current = null;
-      setAvatar("idle");
-    };
-    a.onended = done;
-    a.onerror = done;
-    a.src = clip.url;
-    lipRef.current = { mode: "audio", env: clip.env };
-    try {
-      await a.play();
-      audioUnlocked.current = true;
-      if (token === speakToken.current) setAvatar("talking");
-    } catch {
-      if (token === speakToken.current) speakWithBrowser(text, token);
-    }
+    if (token !== speakToken.current) return;
+    lipRef.current = null;
+    setAvatar("idle");
   };
 
   /** Celda de boca que toca ahora mismo según lo que suena. */
@@ -759,6 +804,11 @@ export function AssistantAvatarWidget() {
                 )}
               </div>
             ))}
+            {preparingVoice && !thinking && (
+              <div role="status" className="flex items-center gap-1.5 self-start px-1 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" /> Preparando la voz…
+              </div>
+            )}
             {thinking && <div className="self-start rounded-2xl rounded-bl-sm bg-muted px-3 py-2 text-sm text-muted-foreground">Pensando…</div>}
           </div>
 
@@ -770,6 +820,8 @@ export function AssistantAvatarWidget() {
                   key={t.id}
                   type="button"
                   onClick={() => answerTopic(t)}
+                  onPointerEnter={() => prefetchSpeech(t.answer)}
+                  onFocus={() => prefetchSpeech(t.answer)}
                   className="rounded-full border bg-background px-2.5 py-1 text-xs text-foreground hover:bg-accent"
                 >
                   {t.question}

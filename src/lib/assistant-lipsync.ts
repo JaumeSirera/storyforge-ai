@@ -1,9 +1,10 @@
 /**
  * Movimiento de labios del asistente a partir del sonido real de su voz.
  *
- * `public/assistant/bocas.jpg` es una hoja con 14 posiciones de boca sacadas
- * del vídeo «hablando» y alineadas con la cara del bucle de espera (cada celda
- * apilada: imagen arriba y, abajo, cuánto de esa boca se mezcla con la cara).
+ * `public/assistant/bocas.jpg` es una hoja con 14 posiciones de boca hechas a
+ * partir de la propia cara del bucle de espera (se abre la mandíbula y se pinta
+ * el interior), así encajan sin sombras ni cambio de tamaño. Cada celda va
+ * apilada: imagen arriba y, abajo, cuánto de esa boca se mezcla con la cara.
  * Solo se pega la zona de la boca, así la cabeza no salta al hablar. Según el
  * volumen de la voz en cada instante se elige una boca cerrada, entreabierta,
  * media o abierta.
