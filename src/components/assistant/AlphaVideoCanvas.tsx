@@ -16,10 +16,13 @@ export type AvatarFrame = {
   mouthOpen: number | null;
   /** Forma de la boca mientras habla: −1 redonda (o, u) … 1 estirada (i, e, s). */
   mouthWide?: number;
+  /** Bucle grabado de su cara hablando (sin sonido); se funde encima mientras `talkOn`. */
+  talk?: HTMLVideoElement | null;
+  talkOn?: boolean;
 };
 
 /** Tiempos de fundido (ms). */
-const FADE = { greetIn: 160, greetOut: 420 };
+const FADE = { greetIn: 160, greetOut: 420, talkIn: 180, talkOut: 260 };
 
 /**
  * Pinta con transparencia vídeos «apilados»: la mitad de arriba es la imagen y
@@ -56,7 +59,7 @@ export function AlphaVideoCanvas({
     const f = (n: number) => n.toFixed(8);
     const vs = `attribute vec2 p; varying vec2 uv; void main(){ uv = vec2(p.x*0.5+0.5, 0.5-p.y*0.5); gl_Position = vec4(p,0.0,1.0); }`;
     const fs = `precision highp float; varying vec2 uv;
-      uniform sampler2D tIdle; uniform sampler2D tGreet;
+      uniform sampler2D tIdle; uniform sampler2D tGreet; uniform sampler2D tTalk; uniform float wTalk;
       uniform float wGreet; uniform float open; uniform float jaw; uniform float wide; uniform vec2 head;
       const vec2 SZ = vec2(${f(width)}, ${f(height)});
       float sst(float a, float b, float x){ float t = clamp((x-a)/(b-a), 0.0, 1.0); return t*t*(3.0-2.0*t); }
@@ -95,6 +98,10 @@ export function AlphaVideoCanvas({
         vec3 inside = mix(vec3(0.50,0.28,0.28), vec3(0.24,0.10,0.11), k);
         inside = mix(inside, vec3(0.74,0.64,0.61), 0.4*tz);
         c = mix(c, inside, m);
+        if (wTalk > 0.0) {
+          c = mix(c, texture2D(tTalk, vec2(uv.x, uv.y*0.5)).rgb, wTalk);
+          a = mix(a, texture2D(tTalk, bot2).r, wTalk);
+        }
         if (wGreet > 0.0) {
           c = mix(c, texture2D(tGreet, vec2(uv.x, uv.y*0.5)).rgb, wGreet);
           a = mix(a, texture2D(tGreet, bot2).r, wGreet);
@@ -128,6 +135,7 @@ export function AlphaVideoCanvas({
     const uJaw = u("jaw");
     const uWide = u("wide");
     const uHead = u("head");
+    const uTalk = u("wTalk");
 
     const makeTex = (unit: number, name: string) => {
       const tex = gl.createTexture();
@@ -143,6 +151,7 @@ export function AlphaVideoCanvas({
     };
     const texIdle = makeTex(0, "tIdle");
     const texGreet = makeTex(1, "tGreet");
+    const texTalk = makeTex(2, "tTalk");
     const upload = (unit: number, tex: WebGLTexture | null, src: TexImageSource) => {
       gl.activeTexture(gl.TEXTURE0 + unit);
       gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -168,6 +177,8 @@ export function AlphaVideoCanvas({
     let idleKey = "";
     let greetKey = "";
     let wGreet = 0;
+    let wTalk = 0;
+    let talkKey = "";
     let open = 0;
     let drawnKey = "";
     let drawn = false;
@@ -182,9 +193,17 @@ export function AlphaVideoCanvas({
       try {
         const greetOk = !!f.greet && f.greet.readyState >= 2;
         wGreet = approach(wGreet, f.greeting && greetOk ? 1 : 0, dt, FADE.greetIn, FADE.greetOut);
+        // Cara que habla: el bucle grabado se funde encima mientras suena la voz.
+        const talk = f.talk;
+        const talkReady = !!talk && talk.readyState >= 2;
+        if (talk && f.talkOn && talk.paused) talk.play().catch(() => {});
+        wTalk = approach(wTalk, f.talkOn && talkReady && !talk!.paused ? 1 : 0, dt, FADE.talkIn, FADE.talkOut);
+        if (talk && !f.talkOn && wTalk === 0 && !talk.paused) talk.pause();
         open = smoothOpen(f.mouthOpen ?? 0, now);
-        const openPx = open * MOUTH_SHAPE.maxOpenPx;
-        const jawPx = smoothJaw(f.mouthOpen ?? 0, now) * MOUTH_SHAPE.maxOpenPx * MOUTH_SHAPE.jawRatio;
+        // Con la cara grabada encima, la boca de la espera se queda cerrada (sin doble boca al fundir).
+        const own = 1 - ease(wTalk);
+        const openPx = open * MOUTH_SHAPE.maxOpenPx * own;
+        const jawPx = smoothJaw(f.mouthOpen ?? 0, now) * MOUTH_SHAPE.maxOpenPx * MOUTH_SHAPE.jawRatio * own;
         // El suavizador solo admite valores positivos: se desplaza a 0–2.
         const wide = smoothWide((f.mouthWide ?? 0) + 1, now) - 1;
         talkW = approach(talkW, f.mouthOpen !== null ? 1 : 0, dt, 400, 700);
@@ -204,7 +223,14 @@ export function AlphaVideoCanvas({
             upload(1, texGreet, f.greet);
           }
         }
-        const key = `${idleKey}|${greetKey}|${wGreet.toFixed(3)}|${openPx.toFixed(2)}|${jawPx.toFixed(2)}|${wide.toFixed(2)}|${headX.toFixed(2)}|${headY.toFixed(2)}`;
+        if (wTalk > 0 && talk && talkReady) {
+          const tk = `${talk.currentSrc}|${talk.currentTime}`;
+          if (tk !== talkKey) {
+            talkKey = tk;
+            upload(2, texTalk, talk);
+          }
+        }
+        const key = `${idleKey}|${greetKey}|${talkKey}|${wTalk.toFixed(3)}|${wGreet.toFixed(3)}|${openPx.toFixed(2)}|${jawPx.toFixed(2)}|${wide.toFixed(2)}|${headX.toFixed(2)}|${headY.toFixed(2)}`;
         if (key === drawnKey) return;
         drawnKey = key;
         gl.uniform1f(uOpen, openPx);
@@ -212,12 +238,13 @@ export function AlphaVideoCanvas({
         gl.uniform1f(uWide, Math.max(-1, Math.min(1, wide)));
         gl.uniform2f(uHead, headX, headY);
         gl.uniform1f(uGreet, ease(wGreet));
+        gl.uniform1f(uTalk, ease(wTalk));
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         if (!drawn) {
           drawn = true;
           canvas.dataset.ready = "1";
         }
-        canvas.dataset.source = wGreet > 0.5 ? "greeting" : f.mouthOpen !== null ? "talking" : "idle";
+        canvas.dataset.source = wGreet > 0.5 ? "greeting" : wTalk > 0.5 ? "talk-video" : f.mouthOpen !== null ? "talking" : "idle";
       } catch {
         cancelAnimationFrame(raf);
         setFailed(true);

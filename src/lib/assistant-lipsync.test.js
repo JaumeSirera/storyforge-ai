@@ -88,3 +88,12 @@ describe("labios del asistente", () => {
     expect(MOUTH_SHAPE.widthVar).toBeLessThanOrEqual(0.08);
   });
 });
+
+describe("cara que habla", () => {
+  it("sigue hablando en pausas cortas y se apaga tras una pausa larga", async () => {
+    const { talkFaceOn } = await import("./assistant-lipsync");
+    expect(talkFaceOn(1000, 1300)).toBe(true);
+    expect(talkFaceOn(1000, 1500)).toBe(false);
+    expect(talkFaceOn(0, 100)).toBe(false);
+  });
+});

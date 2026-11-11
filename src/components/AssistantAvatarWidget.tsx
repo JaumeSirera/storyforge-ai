@@ -13,6 +13,8 @@ import {
   opennessAt,
   syntheticOpenness,
   syntheticWide,
+  TALK_LOOP,
+  talkFaceOn,
   wideAt,
 } from "@/lib/assistant-lipsync";
 import { splitForSpeech } from "@/lib/assistant-speech";
@@ -130,6 +132,8 @@ export function AssistantAvatarWidget() {
 
   const idleRef = useRef<HTMLVideoElement>(null);
   const greetRef = useRef<HTMLVideoElement>(null);
+  const talkRef = useRef<HTMLVideoElement>(null);
+  const lastVoiceAt = useRef(0);
   const avatarRef = useRef<AvatarState>("idle");
   avatarRef.current = avatar;
   const voiceOnRef = useRef(true);
@@ -698,11 +702,17 @@ export function AssistantAvatarWidget() {
 
   const activeFrame = (): AvatarFrame => {
     const a = avatarRef.current;
+    const now = performance.now();
+    const open = a === "talking" ? mouthOpen() : null;
+    if (open !== null && open > 0.05) lastVoiceAt.current = now;
+    else if (a !== "talking") lastVoiceAt.current = 0;
     return {
+      talk: talkRef.current,
+      talkOn: a === "talking" && talkFaceOn(lastVoiceAt.current, now),
       idle: idleRef.current,
       greet: greetRef.current,
       greeting: a === "greeting",
-      mouthOpen: a === "talking" ? mouthOpen() : null,
+      mouthOpen: open,
       mouthWide: a === "talking" ? mouthWide() : 0,
     };
   };
@@ -768,6 +778,8 @@ export function AssistantAvatarWidget() {
         {!collapsed && <video ref={idleRef} src="/assistant/escuchando-alfa.mp4" autoPlay loop muted playsInline preload="auto" />}
         {/* Siempre montado: así el saludo puede empezar dentro del mismo toque que abre el asistente. */}
         <video ref={greetRef} src={GREETING_VIDEO} playsInline preload="auto" onEnded={() => setAvatar("idle")} />
+        {/* Su cara hablando (del propio saludo, sin sonido): se funde encima mientras suena la voz. */}
+        {!collapsed && <video ref={talkRef} src={TALK_LOOP} loop muted playsInline preload="auto" />}
       </div>
 
       {collapsed ? (

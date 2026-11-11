@@ -157,3 +157,14 @@ export function createOpenSmoother(attackMs = 45, releaseMs = 95) {
     return v;
   };
 }
+
+/**
+ * Cara que habla: bucle grabado del propio saludo (sin sonido) que se funde
+ * encima de la espera mientras suena la voz, para que hable como en el saludo.
+ * Las pausas cortas entre palabras no lo apagan; una pausa larga, sí.
+ */
+export const TALK_LOOP = "/assistant/hablando-alfa.mp4";
+export const TALK_HOLD_MS = 450;
+export function talkFaceOn(lastVoiceAt: number, now: number, hold = TALK_HOLD_MS): boolean {
+  return lastVoiceAt > 0 && now - lastVoiceAt < hold;
+}
