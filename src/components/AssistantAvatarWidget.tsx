@@ -7,7 +7,14 @@ import { type AvatarFrame, AlphaVideoCanvas } from "@/components/assistant/Alpha
 import { type HelpTopic, localAnswerFor, screenName, topicsForPath } from "@/lib/assistant-help";
 import { askAssistant } from "@/lib/assistant.functions";
 import { assistantSpeech, assistantTranscribe } from "@/lib/assistant-voice.functions";
-import { envelopeFromSamples, opennessAt, syntheticOpenness } from "@/lib/assistant-lipsync";
+import {
+  brightnessFromSamples,
+  envelopeFromSamples,
+  opennessAt,
+  syntheticOpenness,
+  syntheticWide,
+  wideAt,
+} from "@/lib/assistant-lipsync";
 import { splitForSpeech } from "@/lib/assistant-speech";
 import { readPreferredAiModel } from "@/lib/preferred-model";
 import { cn } from "@/lib/utils";
@@ -31,9 +38,9 @@ const GREETING_VIDEO = "/assistant/saludo-alfa.mp4";
 /** Un instante de silencio: desbloquea el audio en iPhone dentro del toque. */
 const SILENT_WAV = "data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA";
 
-type Clip = { url: string; env: Float32Array | null };
+type Clip = { url: string; env: Float32Array | null; shape: Float32Array | null };
 type Lip =
-  | { mode: "audio"; env: Float32Array | null }
+  | { mode: "audio"; env: Float32Array | null; shape: Float32Array | null }
   | { mode: "browser"; start: number; wordAt: number; wordLen: number };
 
 function base64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
@@ -310,15 +317,18 @@ export function AssistantAvatarWidget() {
         const bytes = base64ToBytes(r.audio);
         const url = URL.createObjectURL(new Blob([bytes], { type: r.mime }));
         let env: Float32Array | null = null;
+        let shape: Float32Array | null = null;
         try {
           const w = window as any;
           decodeCtx.current ??= new (w.OfflineAudioContext || w.webkitOfflineAudioContext)(1, 1, 44100);
           const decoded = await decodeAudio(decodeCtx.current!, bytes.buffer.slice(0) as ArrayBuffer);
-          env = envelopeFromSamples(decoded.getChannelData(0), decoded.sampleRate);
+          const samples = decoded.getChannelData(0);
+          env = envelopeFromSamples(samples, decoded.sampleRate);
+          shape = brightnessFromSamples(samples, decoded.sampleRate);
         } catch {
           env = null; // la boca se moverá igualmente mientras suene
         }
-        const clip = { url, env };
+        const clip = { url, env, shape };
         clipCache.current.set(text, clip);
         return clip;
       } catch {
@@ -346,7 +356,7 @@ export function AssistantAvatarWidget() {
       a.onended = () => resolve(true);
       a.onerror = () => resolve(false);
       a.src = clip.url;
-      lipRef.current = { mode: "audio", env: clip.env };
+      lipRef.current = { mode: "audio", env: clip.env, shape: clip.shape };
       a.play()
         .then(() => {
           audioUnlocked.current = true;
@@ -407,6 +417,19 @@ export function AssistantAvatarWidget() {
       const inWord = lip.wordAt === 0 ? true : now - lip.wordAt < wordMs;
       return inWord ? syntheticOpenness(now - lip.start) : 0;
     }
+    return 0;
+  };
+
+  /** Forma de la boca ahora mismo (−1 redonda … 1 estirada). */
+  const mouthWide = () => {
+    const lip = lipRef.current;
+    const now = performance.now();
+    if (lip?.mode === "audio") {
+      const a = audioRef.current;
+      if (!a || a.paused) return 0;
+      return lip.env ? wideAt(lip.shape, a.currentTime + 0.04) : syntheticWide(now);
+    }
+    if (lip?.mode === "browser") return syntheticWide(now - lip.start);
     return 0;
   };
 
@@ -680,6 +703,7 @@ export function AssistantAvatarWidget() {
       greet: greetRef.current,
       greeting: a === "greeting",
       mouthOpen: a === "talking" ? mouthOpen() : null,
+      mouthWide: a === "talking" ? mouthWide() : 0,
     };
   };
 

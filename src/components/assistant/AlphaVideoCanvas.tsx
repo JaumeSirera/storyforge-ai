@@ -14,6 +14,8 @@ export type AvatarFrame = {
   greet: HTMLVideoElement | null;
   greeting: boolean;
   mouthOpen: number | null;
+  /** Forma de la boca mientras habla: −1 redonda (o, u) … 1 estirada (i, e, s). */
+  mouthWide?: number;
 };
 
 /** Tiempos de fundido (ms). */
@@ -55,35 +57,43 @@ export function AlphaVideoCanvas({
     const vs = `attribute vec2 p; varying vec2 uv; void main(){ uv = vec2(p.x*0.5+0.5, 0.5-p.y*0.5); gl_Position = vec4(p,0.0,1.0); }`;
     const fs = `precision highp float; varying vec2 uv;
       uniform sampler2D tIdle; uniform sampler2D tGreet;
-      uniform float wGreet; uniform float open;
+      uniform float wGreet; uniform float open; uniform float jaw; uniform float wide; uniform vec2 head;
       const vec2 SZ = vec2(${f(width)}, ${f(height)});
       float sst(float a, float b, float x){ float t = clamp((x-a)/(b-a), 0.0, 1.0); return t*t*(3.0-2.0*t); }
       void main(){
+        // Leve asentimiento: se mueve la cabeza y se desvanece hacia los hombros.
         vec2 px = uv * SZ;
+        px -= head * (1.0 - sst(255.0, 330.0, px.y));
         float ys = px.y;
         float m = 0.0; float k = 0.0; float tz = 0.0;
-        if (open > 0.0) {
+        if (open > 0.0 || jaw > 0.0) {
           float seam = ${f(sa)}*px.x*px.x + ${f(sb)}*px.x + ${f(sc)};
-          float q = clamp(1.0 - pow((px.x-${f(MOUTH_SHAPE.centerX)})/${f(MOUTH_SHAPE.halfWidth)}, 2.0), 0.0, 1.0);
-          // Perfil más cerrado hacia las comisuras: la boca encoge al abrirse.
+          float hwx = ${f(MOUTH_SHAPE.halfWidth)} * (1.0 + ${f(MOUTH_SHAPE.widthVar)}*wide);
+          float q = clamp(1.0 - pow((px.x-${f(MOUTH_SHAPE.centerX)})/hwx, 2.0), 0.0, 1.0);
           float pl = pow(q, 1.05);
-          float d = open*pl; float u = 0.45*open*pl;
+          float d = open*pl; float u = 0.42*open*pl;
+          // Mandíbula: más ancha y suave que la boca, baja la barbilla.
+          float qj = clamp(1.0 - pow((px.x-${f(MOUTH_SHAPE.centerX)})/(${f(MOUTH_SHAPE.halfWidth)}*2.1), 2.0), 0.0, 1.0);
+          float j = jaw * qj*qj*(3.0-2.0*qj);
           float below = px.y - seam;
-          if (below >= 0.0) ys = px.y - d*(1.0 - sst(12.0, 44.0, below));
-          else ys = px.y + u*(1.0 - sst(0.0, 14.0, -below));
+          if (below >= 0.0) {
+            float fadeJ = 1.0 - sst(48.0, 85.0, below);
+            ys = px.y - d*(1.0 - sst(6.0, 26.0, below)) - j*sst(2.0, 26.0, below)*fadeJ;
+          } else ys = px.y + u*(1.0 - sst(0.0, 14.0, -below));
           // Margen extra: tapa la línea oscura original entre los labios (si no, deja una sombra punteada).
           float e = 1.1*clamp(open/1.5, 0.0, 1.0)*pl;
           float top = seam - u - 0.6*e; float bot = seam + d + e;
           float gap = max(bot-top, 0.001);
           float t = clamp((px.y-top)/gap, 0.0, 1.0);
-          m = sst(-0.9, 0.9, px.y-top) * (1.0 - sst(-0.9, 0.9, px.y-bot)) * sst(0.0, 0.2, q);
+          m = sst(-0.9, 0.9, px.y-top) * (1.0 - sst(-0.9, 0.9, px.y-bot)) * sst(0.0, 0.2, q) * sst(0.0, 0.6, open);
           k = sin(3.14159*t) * clamp((gap-1.5)/5.0, 0.0, 1.0) * sst(0.0, 0.5, q);
           tz = sst(0.0, 0.1, t) * (1.0 - sst(0.2, 0.45, t)) * sst(4.5, 7.5, gap) * sst(0.3, 0.7, q);
         }
-        vec2 top2 = vec2(uv.x, (ys/SZ.y)*0.5); vec2 bot2 = vec2(uv.x, 0.5+uv.y*0.5);
-        vec3 c = texture2D(tIdle, top2).rgb; float a = texture2D(tIdle, bot2).r;
+        float ux = px.x / SZ.x;
+        vec2 top2 = vec2(ux, (ys/SZ.y)*0.5); vec2 bot2 = vec2(uv.x, 0.5+uv.y*0.5);
+        vec3 c = texture2D(tIdle, top2).rgb; float a = texture2D(tIdle, vec2(ux, 0.5+(ys/SZ.y)*0.5)).r;
         vec3 inside = mix(vec3(0.50,0.28,0.28), vec3(0.24,0.10,0.11), k);
-        inside = mix(inside, vec3(0.78,0.68,0.64), 0.6*tz);
+        inside = mix(inside, vec3(0.74,0.64,0.61), 0.4*tz);
         c = mix(c, inside, m);
         if (wGreet > 0.0) {
           c = mix(c, texture2D(tGreet, vec2(uv.x, uv.y*0.5)).rgb, wGreet);
@@ -115,6 +125,9 @@ export function AlphaVideoCanvas({
     const u = (n: string) => gl.getUniformLocation(prog, n);
     const uGreet = u("wGreet");
     const uOpen = u("open");
+    const uJaw = u("jaw");
+    const uWide = u("wide");
+    const uHead = u("head");
 
     const makeTex = (unit: number, name: string) => {
       const tex = gl.createTexture();
@@ -137,6 +150,11 @@ export function AlphaVideoCanvas({
     };
 
     const smoothOpen = createOpenSmoother();
+    // La barbilla sigue a los labios algo más tarde y más suave; la cabeza, aún más.
+    const smoothJaw = createOpenSmoother(90, 170);
+    const smoothWide = createOpenSmoother(80, 80);
+    const smoothNod = createOpenSmoother(260, 520);
+    let talkW = 0;
 
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -166,6 +184,13 @@ export function AlphaVideoCanvas({
         wGreet = approach(wGreet, f.greeting && greetOk ? 1 : 0, dt, FADE.greetIn, FADE.greetOut);
         open = smoothOpen(f.mouthOpen ?? 0, now);
         const openPx = open * MOUTH_SHAPE.maxOpenPx;
+        const jawPx = smoothJaw(f.mouthOpen ?? 0, now) * MOUTH_SHAPE.maxOpenPx * MOUTH_SHAPE.jawRatio;
+        // El suavizador solo admite valores positivos: se desplaza a 0–2.
+        const wide = smoothWide((f.mouthWide ?? 0) + 1, now) - 1;
+        talkW = approach(talkW, f.mouthOpen !== null ? 1 : 0, dt, 400, 700);
+        const nod = smoothNod(f.mouthOpen ?? 0, now);
+        const headX = talkW * 0.35 * Math.sin(now / 1300);
+        const headY = talkW * (MOUTH_SHAPE.nodPx * 0.75 * nod + 0.25 * Math.sin(now / 900));
 
         const ik = `${idle.currentSrc}|${idle.currentTime}`;
         if (ik !== idleKey) {
@@ -179,10 +204,13 @@ export function AlphaVideoCanvas({
             upload(1, texGreet, f.greet);
           }
         }
-        const key = `${idleKey}|${greetKey}|${wGreet.toFixed(3)}|${openPx.toFixed(2)}`;
+        const key = `${idleKey}|${greetKey}|${wGreet.toFixed(3)}|${openPx.toFixed(2)}|${jawPx.toFixed(2)}|${wide.toFixed(2)}|${headX.toFixed(2)}|${headY.toFixed(2)}`;
         if (key === drawnKey) return;
         drawnKey = key;
         gl.uniform1f(uOpen, openPx);
+        gl.uniform1f(uJaw, jawPx);
+        gl.uniform1f(uWide, Math.max(-1, Math.min(1, wide)));
+        gl.uniform2f(uHead, headX, headY);
         gl.uniform1f(uGreet, ease(wGreet));
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         if (!drawn) {

@@ -1,10 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { MOUTH_SHAPE, createOpenSmoother, envelopeFromSamples, opennessAt, opennessFromEnergy } from "./assistant-lipsync";
+import {
+  MOUTH_SHAPE,
+  brightnessFromSamples,
+  createOpenSmoother,
+  envelopeFromSamples,
+  opennessAt,
+  opennessFromEnergy,
+  wideAt,
+} from "./assistant-lipsync";
 
 const RATE = 8000;
 function tone(seconds, amp) {
   const s = new Float32Array(Math.round(seconds * RATE));
   for (let i = 0; i < s.length; i++) s[i] = amp * Math.sin((2 * Math.PI * 220 * i) / RATE);
+  return s;
+}
+function toneHz(seconds, amp, hz) {
+  const s = new Float32Array(Math.round(seconds * RATE));
+  for (let i = 0; i < s.length; i++) s[i] = amp * Math.sin((2 * Math.PI * hz * i) / RATE);
   return s;
 }
 function concat(...parts) {
@@ -51,5 +64,27 @@ describe("labios del asistente", () => {
     let v = after1;
     for (let t = 32; t <= 400; t += 16) v = smooth(1, t);
     expect(v).toBeGreaterThan(0.95);
+  });
+
+  it("entre sílabas seguidas la boca se cierra un poco, no se queda abierta fija", () => {
+    // Sílabas: fuerte, más suave, fuerte… sin silencio entre medias.
+    const env = envelopeFromSamples(concat(tone(0.12, 0.5), tone(0.12, 0.2), tone(0.12, 0.5)), RATE);
+    const strong = opennessAt(env, 0.06);
+    const weak = opennessAt(env, 0.18);
+    expect(strong).toBe(1);
+    expect(weak).toBeLessThan(0.45);
+  });
+
+  it("sonidos agudos estiran la boca y los graves la redondean", () => {
+    const shape = brightnessFromSamples(concat(toneHz(0.4, 0.4, 150), toneHz(0.4, 0.4, 600), toneHz(0.4, 0.4, 2000)), RATE);
+    expect(wideAt(shape, 0.2)).toBeLessThan(0);
+    expect(wideAt(shape, 1.0)).toBeGreaterThan(0);
+    expect(wideAt(null, 0.2)).toBe(0);
+  });
+
+  it("la barbilla baja menos que el labio y el ancho varía poco", () => {
+    expect(MOUTH_SHAPE.jawRatio).toBeGreaterThan(0.3);
+    expect(MOUTH_SHAPE.jawRatio).toBeLessThan(0.8);
+    expect(MOUTH_SHAPE.widthVar).toBeLessThanOrEqual(0.08);
   });
 });
