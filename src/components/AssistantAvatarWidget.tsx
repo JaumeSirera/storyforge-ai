@@ -12,7 +12,7 @@ import { splitForSpeech } from "@/lib/assistant-speech";
 import { readPreferredAiModel } from "@/lib/preferred-model";
 import { cn } from "@/lib/utils";
 
-type Msg = { id: number; from: "user" | "assistant"; text: string; link?: HelpTopic["link"] };
+type Msg = { id: number; from: "user" | "assistant"; text: string; link?: HelpTopic["link"]; details?: string[] };
 type AvatarState = "idle" | "talking" | "greeting";
 type Saved = { right: number; bottom: number; collapsed: boolean; voiceOn: boolean; greeted: boolean };
 
@@ -438,8 +438,8 @@ export function AssistantAvatarWidget() {
     playRecorded(GREETING_VIDEO);
   };
 
-  const pushAssistant = (text: string, link?: HelpTopic["link"], video?: string) => {
-    setMessages((m) => [...m, { id: nextId.current++, from: "assistant", text, link }]);
+  const pushAssistant = (text: string, link?: HelpTopic["link"], video?: string, details?: string[]) => {
+    setMessages((m) => [...m, { id: nextId.current++, from: "assistant", text, link, details }]);
     if (video) playRecorded(video, () => void speak(text));
     else void speak(text);
   };
@@ -448,7 +448,7 @@ export function AssistantAvatarWidget() {
     unlockAudio();
     stopSpeaking();
     setMessages((m) => [...m, { id: nextId.current++, from: "user", text: topic.question }]);
-    pushAssistant(topic.answer, topic.link, topic.video);
+    pushAssistant(topic.answer, topic.link, topic.video, topic.details);
   };
 
   const sendText = async (raw: string) => {
@@ -461,7 +461,7 @@ export function AssistantAvatarWidget() {
     setInput("");
     const topic = localAnswerFor(text);
     if (topic) {
-      pushAssistant(topic.answer, topic.link, topic.video);
+      pushAssistant(topic.answer, topic.link, topic.video, topic.details);
       return;
     }
     setThinking(true);
@@ -842,6 +842,16 @@ export function AssistantAvatarWidget() {
                 )}
               >
                 {m.text}
+                {m.details && m.details.length > 0 && (
+                  <div className="mt-2 border-t border-border pt-2">
+                    <p className="text-xs font-semibold">Paso a paso</p>
+                    <ol className="mt-1 list-decimal space-y-1 pl-4 text-xs">
+                      {m.details.map((d, i) => (
+                        <li key={i}>{d}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
                 {m.link && (
                   <Link
                     to={m.link.to}
