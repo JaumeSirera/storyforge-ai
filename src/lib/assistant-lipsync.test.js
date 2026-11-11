@@ -34,14 +34,13 @@ describe("labios del asistente", () => {
     expect(opennessFromEnergy(0.6)).toBeLessThan(opennessFromEnergy(0.95));
   });
 
-  it("la boca abierta del todo se abre algo más que una rendija, sin exagerar", () => {
-    expect(MOUTH_SHAPE.maxOpenPx).toBeGreaterThan(5);
-    expect(MOUTH_SHAPE.maxOpenPx).toBeLessThanOrEqual(7);
+  it("la boca abierta del todo se abre bien, como al principio", () => {
+    expect(MOUTH_SHAPE.maxOpenPx).toBeGreaterThanOrEqual(8);
+    expect(MOUTH_SHAPE.maxOpenPx).toBeLessThanOrEqual(10);
   });
 
-  it("al abrirse la boca encoge: la abertura es más estrecha que la boca real", () => {
-    expect(MOUTH_SHAPE.halfWidth).toBeGreaterThanOrEqual(24);
-    expect(MOUTH_SHAPE.halfWidth).toBeLessThanOrEqual(28);
+  it("la abertura ocupa el ancho real de su boca, sin encoger", () => {
+    expect(MOUTH_SHAPE.halfWidth).toBe(31);
   });
 
   it("la boca no salta: de cerrada a abierta tarda varios fotogramas", () => {

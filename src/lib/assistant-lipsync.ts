@@ -13,11 +13,11 @@ export const MOUTH_SHAPE = {
   /** Línea entre los labios: y = a·x² + b·x + c. */
   seam: [-5.93049720e-3, 2.78804272, -107.588235] as const,
   centerX: 250.5,
-  /** Mitad del ancho de la abertura. Un poco más estrecha que la boca real:
-   * así, al hablar, la boca encoge en vez de ensancharse. */
-  halfWidth: 26,
-  /** Apertura máxima entre los labios, en píxeles. Pequeña a propósito. */
-  maxOpenPx: 5.8,
+  /** Mitad del ancho de la abertura: el ancho real de su boca.
+   */
+  halfWidth: 31,
+  /** Apertura máxima entre los labios, en píxeles (boca bien abierta). */
+  maxOpenPx: 9,
 };
 
 export const ENVELOPE_FPS = 50;
