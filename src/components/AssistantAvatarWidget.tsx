@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { type AvatarFrame, AlphaVideoCanvas } from "@/components/assistant/AlphaVideoCanvas";
 import { type HelpTopic, localAnswerFor, screenName, topicsForPath } from "@/lib/assistant-help";
 import { askAssistant } from "@/lib/assistant.functions";
-import { assistantSpeech, assistantTranscribe } from "@/lib/assistant-voice.functions";
+import { assistantPrepareVoice, assistantSpeech, assistantTranscribe } from "@/lib/assistant-voice.functions";
 import {
   brightnessFromSamples,
   envelopeFromSamples,
@@ -41,6 +41,9 @@ const LIVE_TRANSCRIBE_MS = 2200;
 /** El saludo suena solo la primera vez que se abre en cada visita. */
 const GREETED_KEY = "xandralyze-assistant-greeted";
 const GREETING_VIDEO = "/assistant/saludo-alfa.mp4";
+/** Muestra de la voz del saludo para copiarla en el ElevenLabs del usuario. */
+const VOICE_SAMPLE = "/assistant/voz-muestra.mp3";
+const VOICE_KEY = "xandralyze-assistant-voice";
 /** Un instante de silencio: desbloquea el audio en iPhone dentro del toque. */
 const SILENT_WAV = "data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA";
 
@@ -164,6 +167,8 @@ export function AssistantAvatarWidget() {
   const sendTextRef = useRef<(t: string) => void>(() => {});
   const ask = useServerFn(askAssistant);
   const speech = useServerFn(assistantSpeech);
+  const prepareVoice = useServerFn(assistantPrepareVoice);
+  const voicePrep = useRef<Promise<string | null> | null>(null);
   const transcribe = useServerFn(assistantTranscribe);
 
   // Restaurar posición y preferencias guardadas.
@@ -307,7 +312,43 @@ export function AssistantAvatarWidget() {
     window.speechSynthesis.speak(u);
   };
 
-  /** Voz natural con tus claves (OpenAI o ElevenLabs); null = usar la del navegador. */
+  /**
+   * La misma voz del saludo, copiada una sola vez en tu cuenta de ElevenLabs.
+   * Se comprueba una vez por visita; null = sin ElevenLabs o su plan no lo permite.
+   */
+  const ensureVoice = (): Promise<string | null> => {
+    voicePrep.current ??= (async () => {
+      try {
+        const saved = JSON.parse(sessionStorage.getItem(VOICE_KEY) ?? "null");
+        if (saved && "voiceId" in saved) return saved.voiceId as string | null;
+      } catch {
+        /* almacenamiento no disponible */
+      }
+      let voiceId: string | null = null;
+      try {
+        let r = await prepareVoice({ data: {} });
+        if (r.state === "needs-sample") {
+          const blob = await (await fetch(VOICE_SAMPLE)).blob();
+          r = await prepareVoice({ data: { sample: await blobToBase64(blob) } });
+        }
+        if (r.state === "ready") voiceId = r.voiceId;
+        else if (r.state === "unavailable") console.warn("[asistente] voz del saludo no disponible:", r.message);
+      } catch (e) {
+        console.warn("[asistente] no he podido preparar la voz del saludo", e);
+        voicePrep.current = null; // se reintenta en el siguiente mensaje
+        return null;
+      }
+      try {
+        sessionStorage.setItem(VOICE_KEY, JSON.stringify({ voiceId }));
+      } catch {
+        /* almacenamiento no disponible */
+      }
+      return voiceId;
+    })();
+    return voicePrep.current;
+  };
+
+  /** Voz natural con tus claves (voz del saludo, OpenAI o ElevenLabs); null = usar la del navegador. */
   const loadClip = (text: string): Promise<Clip | null> => {
     const cached = clipCache.current.get(text);
     if (cached) return Promise.resolve(cached);
@@ -316,7 +357,8 @@ export function AssistantAvatarWidget() {
     if (pending) return pending;
     const job = (async (): Promise<Clip | null> => {
       try {
-        const r = await speech({ data: { text } });
+        const voiceId = await ensureVoice();
+        const r = await speech({ data: voiceId ? { text, voiceId } : { text } });
         if (!r.ok) {
           if (r.reason === "no-keys" || ++ttsFailures.current >= 2) ttsUnavailable.current = true;
           return null;
