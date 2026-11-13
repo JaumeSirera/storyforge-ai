@@ -168,3 +168,76 @@ export const TALK_HOLD_MS = 450;
 export function talkFaceOn(lastVoiceAt: number, now: number, hold = TALK_HOLD_MS): boolean {
   return lastVoiceAt > 0 && now - lastVoiceAt < hold;
 }
+
+/**
+ * Sincroniza la cara grabada con las palabras: para cada instante de la voz
+ * (`audio`, apertura 0–1 a `fps`) elige qué momento de la grabación (`footage`,
+ * en bucle) mostrar, avanzando a ritmo variable (parada, normal o doble) para
+ * que la boca se abra en las sílabas y se cierre en las pausas, sin saltos.
+ * Devuelve el segundo de la grabación (sin dar la vuelta) para cada instante.
+ */
+export function planTalkTimeline(
+  audio: ArrayLike<number>,
+  footage: ArrayLike<number>,
+  startSec: number,
+  fps = ENVELOPE_FPS,
+): Float32Array {
+  const N = audio.length;
+  const M = footage.length;
+  const out = new Float32Array(N);
+  if (N === 0 || M === 0) return out;
+  const j0 = Math.round(startSec * fps);
+  const K = 2 * N + 1;
+  const STEP_COST = [0.14, 0, 0.05];
+  let prev = new Float32Array(K).fill(Infinity);
+  let cur = new Float32Array(K);
+  const back = new Uint8Array(N * K);
+  const f = (k: number) => footage[(((j0 + k) % M) + M) % M];
+  prev[0] = Math.abs(audio[0] - f(0));
+  for (let i = 1; i < N; i++) {
+    cur.fill(Infinity);
+    const maxK = Math.min(K - 1, 2 * i);
+    for (let k = 0; k <= maxK; k++) {
+      let best = Infinity;
+      let bs = 0;
+      for (let s = 0; s <= 2; s++) {
+        if (k - s < 0) continue;
+        const c = prev[k - s] + STEP_COST[s];
+        if (c < best) {
+          best = c;
+          bs = s;
+        }
+      }
+      if (best === Infinity) continue;
+      cur[k] = best + Math.abs(audio[i] - f(k));
+      back[i * K + k] = bs;
+    }
+    [prev, cur] = [cur, prev];
+  }
+  let k = 0;
+  for (let j = 1; j < K; j++) if (prev[j] < prev[k]) k = j;
+  const path = new Int32Array(N);
+  for (let i = N - 1; i >= 0; i--) {
+    path[i] = k;
+    if (i > 0) k -= back[i * K + k];
+  }
+  for (let i = 0; i < N; i++) out[i] = (j0 + path[i]) / fps;
+  return out;
+}
+
+/**
+ * Velocidad de la grabación para seguir el plan: la pendiente del plan más una
+ * corrección suave si se ha desviado. `cur` y el plan van en segundos del bucle.
+ */
+export function talkRate(plan: Float32Array, audioSec: number, cur: number, loop: number, fps = ENVELOPE_FPS) {
+  if (plan.length === 0) return { rate: 1, seek: null as number | null };
+  const i = Math.min(plan.length - 1, Math.max(0, Math.round(audioSec * fps)));
+  const j = Math.min(plan.length - 1, i + 6);
+  const slope = j > i ? (plan[j] - plan[i]) / ((j - i) / fps) : 1;
+  const target = ((plan[i] % loop) + loop) % loop;
+  let diff = target - cur;
+  if (diff > loop / 2) diff -= loop;
+  if (diff < -loop / 2) diff += loop;
+  if (Math.abs(diff) > 0.5) return { rate: 1, seek: target };
+  return { rate: Math.min(2.5, Math.max(0.25, slope + diff * 3)), seek: null };
+}

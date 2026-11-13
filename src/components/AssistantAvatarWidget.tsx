@@ -13,11 +13,15 @@ import {
   opennessAt,
   syntheticOpenness,
   syntheticWide,
+  opennessFromEnergy,
+  planTalkTimeline,
+  talkRate,
   TALK_LOOP,
   talkFaceOn,
   wideAt,
 } from "@/lib/assistant-lipsync";
 import { splitForSpeech } from "@/lib/assistant-speech";
+import { TALK_FOOTAGE, TALK_LOOP_SECONDS } from "@/lib/assistant-talk-footage";
 import { readPreferredAiModel } from "@/lib/preferred-model";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +46,7 @@ const SILENT_WAV = "data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAE
 
 type Clip = { url: string; env: Float32Array | null; shape: Float32Array | null };
 type Lip =
-  | { mode: "audio"; env: Float32Array | null; shape: Float32Array | null }
+  | { mode: "audio"; env: Float32Array | null; shape: Float32Array | null; plan: Float32Array | null }
   | { mode: "browser"; start: number; wordAt: number; wordLen: number };
 
 function base64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
@@ -360,7 +364,17 @@ export function AssistantAvatarWidget() {
       a.onended = () => resolve(true);
       a.onerror = () => resolve(false);
       a.src = clip.url;
-      lipRef.current = { mode: "audio", env: clip.env, shape: clip.shape };
+      // Plan para que la cara grabada abra la boca en las sílabas de esta frase.
+      let plan: Float32Array | null = null;
+      if (clip.env) {
+        try {
+          const open = Array.from(clip.env, (e) => opennessFromEnergy(e));
+          plan = planTalkTimeline(open, TALK_FOOTAGE, talkRef.current?.currentTime ?? 0);
+        } catch {
+          plan = null;
+        }
+      }
+      lipRef.current = { mode: "audio", env: clip.env, shape: clip.shape, plan };
       a.play()
         .then(() => {
           audioUnlocked.current = true;
@@ -706,6 +720,19 @@ export function AssistantAvatarWidget() {
     const open = a === "talking" ? mouthOpen() : null;
     if (open !== null && open > 0.05) lastVoiceAt.current = now;
     else if (a !== "talking") lastVoiceAt.current = 0;
+    // La cara grabada sigue el plan: acelera o frena para ir con las palabras.
+    const talk = talkRef.current;
+    const lip = lipRef.current;
+    const au = audioRef.current;
+    if (talk) {
+      let rate = 1;
+      if (a === "talking" && lip?.mode === "audio" && lip.plan && au && !au.paused && !talk.paused) {
+        const r = talkRate(lip.plan, au.currentTime + 0.04, talk.currentTime, TALK_LOOP_SECONDS);
+        if (r.seek !== null) talk.currentTime = r.seek;
+        rate = r.rate;
+      }
+      if (Math.abs(talk.playbackRate - rate) > 0.05) talk.playbackRate = rate;
+    }
     return {
       talk: talkRef.current,
       talkOn: a === "talking" && talkFaceOn(lastVoiceAt.current, now),
