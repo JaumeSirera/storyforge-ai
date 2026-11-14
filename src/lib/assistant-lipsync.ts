@@ -169,75 +169,123 @@ export function talkFaceOn(lastVoiceAt: number, now: number, hold = TALK_HOLD_MS
   return lastVoiceAt > 0 && now - lastVoiceAt < hold;
 }
 
+/** Plan de la cara grabada: segundo del bucle (sin dar la vuelta) y velocidad para cada instante de la voz. */
+export interface TalkPlan {
+  pos: Float32Array;
+  rate: Float32Array;
+}
+
+/** Tramo (en muestras de `fps`) en el que la grabación avanza a velocidad fija. */
+export const TALK_SEGMENT = 5;
+/** Velocidades posibles de la grabación; 0.1 = casi quieta en una pausa corta. */
+export const TALK_RATES = [0.1, 0.35, 0.6, 0.85, 1.1, 1.4, 1.8, 2.3];
+const RATE_CHANGE_COST = 0.04;
+
 /**
- * Sincroniza la cara grabada con las palabras: para cada instante de la voz
- * (`audio`, apertura 0–1 a `fps`) elige qué momento de la grabación (`footage`,
- * en bucle) mostrar, avanzando a ritmo variable (parada, normal o doble) para
- * que la boca se abra en las sílabas y se cierre en las pausas, sin saltos.
- * Devuelve el segundo de la grabación (sin dar la vuelta) para cada instante.
+ * Sincroniza la cara grabada con las palabras: para cada tramo corto de la voz
+ * (`audio`, apertura 0–1 a `fps`) elige a qué velocidad avanza la grabación
+ * (`footage`, apertura de su boca medida en el vídeo, en bucle) para que la boca
+ * se abra en las sílabas y se cierre en las pausas. Solo usa velocidades que el
+ * vídeo puede seguir de verdad (sin saltos), cambiándolas poco a poco.
  */
 export function planTalkTimeline(
   audio: ArrayLike<number>,
   footage: ArrayLike<number>,
   startSec: number,
   fps = ENVELOPE_FPS,
-): Float32Array {
+): TalkPlan {
   const N = audio.length;
   const M = footage.length;
-  const out = new Float32Array(N);
-  if (N === 0 || M === 0) return out;
-  const j0 = Math.round(startSec * fps);
-  const K = 2 * N + 1;
-  const STEP_COST = [0.14, 0, 0.05];
-  let prev = new Float32Array(K).fill(Infinity);
-  let cur = new Float32Array(K);
-  const back = new Uint8Array(N * K);
-  const f = (k: number) => footage[(((j0 + k) % M) + M) % M];
-  prev[0] = Math.abs(audio[0] - f(0));
-  for (let i = 1; i < N; i++) {
+  const pos = new Float32Array(N);
+  const rate = new Float32Array(N).fill(1);
+  if (N === 0 || M === 0) return { pos, rate };
+  const SEG = TALK_SEGMENT;
+  const RATES = TALK_RATES;
+  const R = RATES.length;
+  const S = Math.ceil(N / SEG);
+  const P = Math.ceil(N * RATES[R - 1]) + 2;
+  const j0 = startSec * fps;
+  const f = (x: number) => {
+    const y = j0 + x;
+    const i = Math.floor(y);
+    const fr = y - i;
+    const a = footage[((i % M) + M) % M];
+    const b = footage[(((i + 1) % M) + M) % M];
+    return a + (b - a) * fr;
+  };
+  const extra = RATES.map((r) => (r < 0.3 ? 0.03 : r < 0.5 || r > 2 ? 0.02 : 0));
+  let prev = new Float32Array(P * R).fill(Infinity);
+  let cur = new Float32Array(P * R);
+  for (let r = 0; r < R; r++) prev[r] = 0;
+  const backPos = new Int32Array(S * P * R);
+  const backR = new Int8Array(S * P * R);
+  let lo = 0;
+  let hi = 0;
+  for (let s = 0; s < S; s++) {
     cur.fill(Infinity);
-    const maxK = Math.min(K - 1, 2 * i);
-    for (let k = 0; k <= maxK; k++) {
-      let best = Infinity;
-      let bs = 0;
-      for (let s = 0; s <= 2; s++) {
-        if (k - s < 0) continue;
-        const c = prev[k - s] + STEP_COST[s];
-        if (c < best) {
-          best = c;
-          bs = s;
+    const a0 = s * SEG;
+    const len = Math.min(SEG, N - a0);
+    for (let p = lo; p <= hi; p++) {
+      for (let pr = 0; pr < R; pr++) {
+        const c0 = prev[p * R + pr];
+        if (c0 === Infinity) continue;
+        for (let r = Math.max(0, pr - 2); r <= Math.min(R - 1, pr + 2); r++) {
+          const np = Math.round(p + RATES[r] * len);
+          if (np >= P) continue;
+          let c = c0 + RATE_CHANGE_COST * Math.abs(r - pr) + extra[r];
+          for (let k = 0; k < len; k++) c += Math.abs(audio[a0 + k] - f(p + (np - p) * (k / len)));
+          const idx = np * R + r;
+          if (c < cur[idx]) {
+            cur[idx] = c;
+            backPos[s * P * R + idx] = p;
+            backR[s * P * R + idx] = pr;
+          }
         }
       }
-      if (best === Infinity) continue;
-      cur[k] = best + Math.abs(audio[i] - f(k));
-      back[i * K + k] = bs;
     }
+    lo = Math.round(lo + RATES[0] * len) - 1;
+    if (lo < 0) lo = 0;
+    hi = Math.min(P - 1, Math.round(hi + RATES[R - 1] * len) + 1);
     [prev, cur] = [cur, prev];
   }
-  let k = 0;
-  for (let j = 1; j < K; j++) if (prev[j] < prev[k]) k = j;
-  const path = new Int32Array(N);
-  for (let i = N - 1; i >= 0; i--) {
-    path[i] = k;
-    if (i > 0) k -= back[i * K + k];
+  let best = 0;
+  for (let i = 1; i < P * R; i++) if (prev[i] < prev[best]) best = i;
+  const start = new Float32Array(S + 1);
+  let p = Math.floor(best / R);
+  let r = best % R;
+  for (let s = S - 1; s >= 0; s--) {
+    start[s + 1] = p;
+    const idx = p * R + r;
+    const pp = backPos[s * P * R + idx];
+    r = backR[s * P * R + idx];
+    p = pp;
   }
-  for (let i = 0; i < N; i++) out[i] = (j0 + path[i]) / fps;
-  return out;
+  start[0] = 0;
+  for (let s = 0; s < S; s++) {
+    const a0 = s * SEG;
+    const len = Math.min(SEG, N - a0);
+    const step = (start[s + 1] - start[s]) / len;
+    for (let k = 0; k < len; k++) {
+      pos[a0 + k] = (j0 + start[s] + step * k) / fps;
+      rate[a0 + k] = step;
+    }
+  }
+  return { pos, rate };
 }
 
 /**
- * Velocidad de la grabación para seguir el plan: la pendiente del plan más una
+ * Velocidad de la grabación para seguir el plan: la del tramo más una
  * corrección suave si se ha desviado. `cur` y el plan van en segundos del bucle.
  */
-export function talkRate(plan: Float32Array, audioSec: number, cur: number, loop: number, fps = ENVELOPE_FPS) {
-  if (plan.length === 0) return { rate: 1, seek: null as number | null };
-  const i = Math.min(plan.length - 1, Math.max(0, Math.round(audioSec * fps)));
-  const j = Math.min(plan.length - 1, i + 6);
-  const slope = j > i ? (plan[j] - plan[i]) / ((j - i) / fps) : 1;
-  const target = ((plan[i] % loop) + loop) % loop;
+export function talkRate(plan: TalkPlan, audioSec: number, cur: number, loop: number, fps = ENVELOPE_FPS) {
+  const n = plan.pos.length;
+  if (n === 0) return { rate: 1, seek: null as number | null };
+  const i = Math.min(n - 1, Math.max(0, Math.floor(audioSec * fps)));
+  const target = ((plan.pos[i] % loop) + loop) % loop;
   let diff = target - cur;
   if (diff > loop / 2) diff -= loop;
   if (diff < -loop / 2) diff += loop;
-  if (Math.abs(diff) > 0.5) return { rate: 1, seek: target };
-  return { rate: Math.min(2.5, Math.max(0.25, slope + diff * 3)), seek: null };
+  const base = plan.rate[i] || 1;
+  if (Math.abs(diff) > 0.35) return { rate: base, seek: target };
+  return { rate: Math.min(2.6, Math.max(0.1, base + Math.max(-0.6, Math.min(0.6, diff * 4)))), seek: null };
 }
