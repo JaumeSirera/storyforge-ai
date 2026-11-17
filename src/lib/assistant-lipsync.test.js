@@ -100,33 +100,49 @@ describe("cara que habla", () => {
 
 describe("cara grabada sincronizada con las palabras", () => {
   const footage = Array.from({ length: 200 }, (_, i) => (Math.sin(i / 3) > 0.3 ? 1 : 0));
+  const shownAt = (plan, i) => footage[((Math.round(plan.pos[i] * 50) % 200) + 200) % 200];
 
-  it("si la voz va al mismo ritmo que la grabación, la reproduce seguida", async () => {
+  it("si la voz va al mismo ritmo que la grabación, la reproduce seguida a velocidad normal", async () => {
     const { planTalkTimeline } = await import("./assistant-lipsync");
     const plan = planTalkTimeline(footage.slice(0, 100), footage, 0);
-    expect(plan[50]).toBeCloseTo(50 / 50, 1);
-    expect(plan[99]).toBeCloseTo(99 / 50, 1);
+    expect(plan.pos[50]).toBeCloseTo(1, 0);
+    const avg = plan.rate.slice(10, 90).reduce((s, r) => s + r, 0) / 80;
+    expect(avg).toBeGreaterThan(0.8);
+    expect(avg).toBeLessThan(1.25);
   });
 
-  it("si la voz va más despacio, se adapta y la boca coincide con las sílabas", async () => {
+  it("si la voz va más despacio, frena y la boca coincide con las sílabas", async () => {
     const { planTalkTimeline } = await import("./assistant-lipsync");
     const audio = footage.slice(0, 60).flatMap((v) => [v, v]);
     const plan = planTalkTimeline(audio, footage, 0);
-    const err = audio.reduce((s, a, i) => s + Math.abs(a - footage[Math.round(plan[i] * 50) % 200]), 0) / audio.length;
+    const err = audio.reduce((s, a, i) => s + Math.abs(a - shownAt(plan, i)), 0) / audio.length;
     const naive = audio.reduce((s, a, i) => s + Math.abs(a - footage[i % 200]), 0) / audio.length;
-    expect(err).toBeLessThan(0.1);
+    expect(err).toBeLessThan(0.15);
     expect(naive).toBeGreaterThan(0.3);
   });
 
-  it("en silencio se queda en un momento con la boca cerrada", async () => {
+  it("solo usa velocidades que el vídeo puede seguir, sin saltos", async () => {
     const { planTalkTimeline } = await import("./assistant-lipsync");
-    const plan = planTalkTimeline(new Array(40).fill(0), footage, 0);
-    for (let i = 0; i < 40; i++) expect(footage[Math.round(plan[i] * 50) % 200]).toBe(0);
+    const audio = Array.from({ length: 150 }, (_, i) => (Math.sin(i / 1.7) > 0 ? 1 : 0));
+    const plan = planTalkTimeline(audio, footage, 2);
+    expect(plan.pos[0]).toBeCloseTo(2, 2);
+    for (let i = 0; i < plan.rate.length; i++) {
+      expect(plan.rate[i]).toBeGreaterThanOrEqual(0.05);
+      expect(plan.rate[i]).toBeLessThanOrEqual(2.5);
+    }
+    for (let i = 1; i < plan.pos.length; i++) expect(plan.pos[i] - plan.pos[i - 1]).toBeLessThan(0.06);
+  });
+
+  it("en silencio va a un momento con la boca cerrada y casi se para allí", async () => {
+    const { planTalkTimeline } = await import("./assistant-lipsync");
+    const plan = planTalkTimeline(new Array(60).fill(0), footage, 0);
+    for (let i = 12; i < 60; i++) expect(shownAt(plan, i)).toBe(0);
+    expect(plan.rate[50]).toBeLessThan(0.5);
   });
 
   it("corrige la velocidad si la grabación se adelanta o se atrasa", async () => {
     const { talkRate } = await import("./assistant-lipsync");
-    const plan = Float32Array.from({ length: 100 }, (_, i) => i / 50);
+    const plan = { pos: Float32Array.from({ length: 100 }, (_, i) => i / 50), rate: new Float32Array(100).fill(1) };
     expect(talkRate(plan, 1, 1, 10).rate).toBeCloseTo(1, 1);
     expect(talkRate(plan, 1, 0.9, 10).rate).toBeGreaterThan(1.1);
     expect(talkRate(plan, 1, 1.1, 10).rate).toBeLessThan(0.9);

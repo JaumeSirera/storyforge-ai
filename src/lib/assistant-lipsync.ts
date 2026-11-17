@@ -205,13 +205,14 @@ export function planTalkTimeline(
   const S = Math.ceil(N / SEG);
   const P = Math.ceil(N * RATES[R - 1]) + 2;
   const j0 = startSec * fps;
+  const base = Math.floor(j0);
+  const off = j0 - base;
+  const ext = new Float32Array(P + 2);
+  for (let i = 0; i < ext.length; i++) ext[i] = footage[(((base + i) % M) + M) % M];
   const f = (x: number) => {
-    const y = j0 + x;
-    const i = Math.floor(y);
-    const fr = y - i;
-    const a = footage[((i % M) + M) % M];
-    const b = footage[(((i + 1) % M) + M) % M];
-    return a + (b - a) * fr;
+    const y = x + off;
+    const i = y | 0;
+    return ext[i] + (ext[i + 1] - ext[i]) * (y - i);
   };
   const extra = RATES.map((r) => (r < 0.3 ? 0.03 : r < 0.5 || r > 2 ? 0.02 : 0));
   let prev = new Float32Array(P * R).fill(Infinity);

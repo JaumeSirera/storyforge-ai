@@ -15,6 +15,7 @@ import {
   syntheticWide,
   opennessFromEnergy,
   planTalkTimeline,
+  type TalkPlan,
   talkRate,
   TALK_LOOP,
   talkFaceOn,
@@ -44,12 +45,14 @@ const GREETING_VIDEO = "/assistant/saludo-alfa.mp4";
 /** Muestra de la voz del saludo para copiarla en el ElevenLabs del usuario. */
 const VOICE_SAMPLE = "/assistant/voz-muestra.mp3";
 const VOICE_KEY = "xandralyze-assistant-voice";
+/** La boca va un poco por delante de la voz, como al hablar de verdad. */
+const TALK_LEAD = 0.04;
 /** Un instante de silencio: desbloquea el audio en iPhone dentro del toque. */
 const SILENT_WAV = "data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA";
 
 type Clip = { url: string; env: Float32Array | null; shape: Float32Array | null };
 type Lip =
-  | { mode: "audio"; env: Float32Array | null; shape: Float32Array | null; plan: Float32Array | null }
+  | { mode: "audio"; env: Float32Array | null; shape: Float32Array | null; plan: TalkPlan | null }
   | { mode: "browser"; start: number; wordAt: number; wordLen: number };
 
 function base64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
@@ -407,7 +410,7 @@ export function AssistantAvatarWidget() {
       a.onerror = () => resolve(false);
       a.src = clip.url;
       // Plan para que la cara grabada abra la boca en las sílabas de esta frase.
-      let plan: Float32Array | null = null;
+      let plan: TalkPlan | null = null;
       if (clip.env) {
         try {
           const open = Array.from(clip.env, (e) => opennessFromEnergy(e));
@@ -769,7 +772,7 @@ export function AssistantAvatarWidget() {
     if (talk) {
       let rate = 1;
       if (a === "talking" && lip?.mode === "audio" && lip.plan && au && !au.paused && !talk.paused) {
-        const r = talkRate(lip.plan, au.currentTime + 0.04, talk.currentTime, TALK_LOOP_SECONDS);
+        const r = talkRate(lip.plan, au.currentTime + TALK_LEAD, talk.currentTime, TALK_LOOP_SECONDS);
         if (r.seek !== null) talk.currentTime = r.seek;
         rate = r.rate;
       }
