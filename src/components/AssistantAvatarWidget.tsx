@@ -283,6 +283,8 @@ export function AssistantAvatarWidget() {
     if (a && !a.paused) a.pause();
     const g = greetRef.current;
     if (g && !g.paused) g.pause();
+    cancelPlan.current?.();
+    cancelPlan.current = null;
     lipRef.current = null;
     setPreparingVoice(false);
     setAvatar("idle");
