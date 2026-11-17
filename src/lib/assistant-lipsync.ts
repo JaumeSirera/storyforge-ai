@@ -173,6 +173,8 @@ export function talkFaceOn(lastVoiceAt: number, now: number, hold = TALK_HOLD_MS
 export interface TalkPlan {
   pos: Float32Array;
   rate: Float32Array;
+  /** Muestras ya planificadas (si se calcula por trozos); el resto aún no. */
+  ready?: number;
 }
 
 /** Tramo (en muestras de `fps`) en el que la grabación avanza a velocidad fija. */
@@ -274,6 +276,48 @@ export function planTalkTimeline(
   return { pos, rate };
 }
 
+/** Trozo (en muestras, 2 s) que se planifica de una vez para no congelar la pantalla. */
+export const TALK_PLAN_CHUNK = 100;
+
+/**
+ * Planifica la frase por trozos de 2 s: el primero al momento (unos ms) y el
+ * resto en segundo plano, cada uno en su propia tarea, para que la voz empiece
+ * enseguida y la pantalla no se congele en frases largas o en móviles. Cada
+ * trozo empieza donde acabó el anterior, así que la cara no salta.
+ */
+export function planTalkInChunks(
+  audio: ArrayLike<number>,
+  footage: ArrayLike<number>,
+  startSec: number,
+  fps = ENVELOPE_FPS,
+  chunk = TALK_PLAN_CHUNK,
+  schedule: (fn: () => void) => void = (fn) => setTimeout(fn, 0),
+): { plan: TalkPlan; cancel: () => void } {
+  const N = audio.length;
+  const plan: TalkPlan = { pos: new Float32Array(N), rate: new Float32Array(N).fill(1), ready: 0 };
+  let start = startSec;
+  let cancelled = false;
+  const step = () => {
+    if (cancelled) return;
+    const a0 = plan.ready ?? 0;
+    if (a0 >= N) return;
+    const len = Math.min(chunk, N - a0);
+    const part = planTalkTimeline(Array.from({ length: len }, (_, k) => audio[a0 + k]), footage, start, fps);
+    plan.pos.set(part.pos, a0);
+    plan.rate.set(part.rate, a0);
+    start = part.pos[len - 1] + part.rate[len - 1] / fps;
+    plan.ready = a0 + len;
+    if (plan.ready < N) schedule(step);
+  };
+  step();
+  return {
+    plan,
+    cancel: () => {
+      cancelled = true;
+    },
+  };
+}
+
 /**
  * Velocidad de la grabación para seguir el plan: la del tramo más una
  * corrección suave si se ha desviado. `cur` y el plan van en segundos del bucle.
@@ -282,6 +326,7 @@ export function talkRate(plan: TalkPlan, audioSec: number, cur: number, loop: nu
   const n = plan.pos.length;
   if (n === 0) return { rate: 1, seek: null as number | null };
   const i = Math.min(n - 1, Math.max(0, Math.floor(audioSec * fps)));
+  if (plan.ready !== undefined && i >= plan.ready) return { rate: 1, seek: null as number | null };
   const target = ((plan.pos[i] % loop) + loop) % loop;
   let diff = target - cur;
   if (diff > loop / 2) diff -= loop;

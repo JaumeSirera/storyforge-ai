@@ -14,7 +14,7 @@ import {
   syntheticOpenness,
   syntheticWide,
   opennessFromEnergy,
-  planTalkTimeline,
+  planTalkInChunks,
   type TalkPlan,
   talkRate,
   TALK_LOOP,
@@ -172,6 +172,7 @@ export function AssistantAvatarWidget() {
   const speech = useServerFn(assistantSpeech);
   const prepareVoice = useServerFn(assistantPrepareVoice);
   const voicePrep = useRef<Promise<string | null> | null>(null);
+  const cancelPlan = useRef<(() => void) | null>(null);
   const transcribe = useServerFn(assistantTranscribe);
 
   // Restaurar posición y preferencias guardadas.
@@ -196,6 +197,7 @@ export function AssistantAvatarWidget() {
       if (mediaRecRef.current?.state === "recording") mediaRecRef.current.stop();
       window.speechSynthesis?.cancel();
       audioRef.current?.pause();
+      cancelPlan.current?.();
       cache.forEach((c) => URL.revokeObjectURL(c.url));
     };
   }, []);
@@ -409,12 +411,17 @@ export function AssistantAvatarWidget() {
       a.onended = () => resolve(true);
       a.onerror = () => resolve(false);
       a.src = clip.url;
-      // Plan para que la cara grabada abra la boca en las sílabas de esta frase.
+      // Plan para que la cara grabada abra la boca en las sílabas de esta frase:
+      // el primer trozo al momento y el resto en segundo plano, sin congelar.
+      cancelPlan.current?.();
+      cancelPlan.current = null;
       let plan: TalkPlan | null = null;
       if (clip.env) {
         try {
           const open = Array.from(clip.env, (e) => opennessFromEnergy(e));
-          plan = planTalkTimeline(open, TALK_FOOTAGE, talkRef.current?.currentTime ?? 0);
+          const job = planTalkInChunks(open, TALK_FOOTAGE, talkRef.current?.currentTime ?? 0);
+          plan = job.plan;
+          cancelPlan.current = job.cancel;
         } catch {
           plan = null;
         }

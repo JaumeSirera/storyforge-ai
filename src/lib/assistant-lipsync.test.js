@@ -148,4 +148,29 @@ describe("cara grabada sincronizada con las palabras", () => {
     expect(talkRate(plan, 1, 1.1, 10).rate).toBeLessThan(0.9);
     expect(talkRate(plan, 1, 3, 10).seek).toBeCloseTo(1, 2);
   });
+
+  it("en frases largas planifica por trozos: el primero al momento y el resto después, sin saltos", async () => {
+    const { planTalkInChunks, talkRate } = await import("./assistant-lipsync");
+    const audio = Array.from({ length: 900 }, (_, i) => Math.max(0, Math.sin(i / 4)));
+    const queue = [];
+    const t0 = performance.now();
+    const { plan } = planTalkInChunks(audio, footage, 1, 50, 100, (fn) => queue.push(fn));
+    expect(performance.now() - t0).toBeLessThan(150);
+    expect(plan.ready).toBe(100);
+    expect(talkRate(plan, 5, 1, 4).seek).toBeNull();
+    expect(talkRate(plan, 5, 1, 4).rate).toBe(1);
+    while (queue.length) queue.shift()();
+    expect(plan.ready).toBe(900);
+    expect(plan.pos[0]).toBeCloseTo(1, 2);
+    for (let i = 1; i < 900; i++) expect(plan.pos[i] - plan.pos[i - 1]).toBeLessThan(0.06);
+  });
+
+  it("si se cancela, deja de planificar el resto", async () => {
+    const { planTalkInChunks } = await import("./assistant-lipsync");
+    const queue = [];
+    const job = planTalkInChunks(new Array(400).fill(0.5), footage, 0, 50, 100, (fn) => queue.push(fn));
+    job.cancel();
+    while (queue.length) queue.shift()();
+    expect(job.plan.ready).toBe(100);
+  });
 });
