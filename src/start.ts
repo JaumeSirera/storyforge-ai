@@ -23,7 +23,21 @@ const errorMiddleware = createMiddleware().server(async ({ request, next }) => {
   }
 });
 
+// Search engines should see one address: send www.xandralyze.com to xandralyze.com.
+const canonicalHostMiddleware = createMiddleware().server(async ({ request, next }) => {
+  const url = new URL(request.url);
+  const host = (request.headers.get("x-forwarded-host") || request.headers.get("host") || url.host)
+    .split(",")[0].trim().toLowerCase().replace(/:\d+$/, "");
+  if (host === "www.xandralyze.com") {
+    return new Response(null, {
+      status: 301,
+      headers: { location: `https://xandralyze.com${url.pathname}${url.search}` },
+    });
+  }
+  return next();
+});
+
 export const startInstance = createStart(() => ({
   functionMiddleware: [attachAnyAuth],
-  requestMiddleware: [errorMiddleware],
+  requestMiddleware: [canonicalHostMiddleware, errorMiddleware],
 }));

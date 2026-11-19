@@ -16,6 +16,17 @@ export type Guide = {
   ctaText: string;
   ctaLabel: string;
   ctaHref: string;
+  /** Optional in-depth sections rendered before the steps. */
+  sections?: GuideSection[];
+  /** Optional visible questions and answers rendered after the tips. */
+  faq?: [string, string][];
+};
+
+export type GuideSection = {
+  h2: string;
+  paragraphs?: string[];
+  list?: string[];
+  table?: { caption: string; head: string[]; rows: string[][] };
 };
 
 export const guides: Guide[] = [
@@ -230,6 +241,299 @@ export const guides: Guide[] = [
     ],
     ctaText: "Conoce cómo participar en el proyecto.",
     ctaLabel: "Ver el programa de colaboradores", ctaHref: "/open-source",
+  },
+  {
+    slug: "rubrica-de-evaluacion-ejemplos",
+    category: "Evaluaciones escritas",
+    backTo: "/educacion", backLabel: "Educación",
+    title: "Rúbrica de evaluación: qué es, tipos y 3 ejemplos listos para usar | Xandralyze",
+    h1: "Rúbrica de evaluación: qué es, tipos y 3 ejemplos listos para usar",
+    description: "Qué es una rúbrica de evaluación, tipos (analítica y holística), cómo hacerla paso a paso y 3 ejemplos completos: redacción, exposición oral y trabajo en equipo.",
+    intro: "Una rúbrica de evaluación es una tabla que dice, antes de corregir, qué se va a valorar y qué hace falta para cada nota. Sirve para que la corrección sea justa, para que el alumnado sepa qué se espera de él y para que dos docentes pongan notas parecidas al mismo trabajo. Aquí tienes cómo hacerla y tres ejemplos que puedes copiar.",
+    sections: [
+      {
+        h2: "Qué es una rúbrica de evaluación",
+        paragraphs: [
+          "Es una matriz con dos ejes: en las filas, los criterios que vas a valorar (por ejemplo contenido, organización o expresión); en las columnas, los niveles de logro (por ejemplo excelente, notable, suficiente e insuficiente). En cada casilla se describe qué se observa en un trabajo de ese nivel.",
+          "La clave está en las descripciones: deben ser observables. «Usa al menos dos ejemplos para defender su idea» se puede comprobar; «buena argumentación» no.",
+        ],
+      },
+      {
+        h2: "Tipos de rúbrica",
+        table: {
+          caption: "Rúbrica analítica frente a holística",
+          head: ["", "Analítica", "Holística"],
+          rows: [
+            ["Cómo es", "Puntúa cada criterio por separado", "Da una única valoración global"],
+            ["Ventaja", "Explica de dónde sale la nota y qué mejorar", "Es rápida de aplicar"],
+            ["Inconveniente", "Lleva más tiempo prepararla", "Da poca información al alumno"],
+            ["Cuándo usarla", "Exámenes, trabajos y proyectos con nota", "Pruebas cortas o diagnósticas"],
+          ],
+        },
+        paragraphs: ["Para corregir con IA conviene la analítica: cada criterio se puntúa por separado y la nota queda justificada con frases del propio trabajo."],
+      },
+      {
+        h2: "Ejemplo 1: rúbrica de redacción o examen de desarrollo",
+        table: {
+          caption: "Rúbrica de redacción (sobre 10 puntos)",
+          head: ["Criterio (peso)", "Excelente", "Adecuado", "Suficiente", "Insuficiente"],
+          rows: [
+            ["Contenido (40 %)", "Responde a todo lo pedido con datos correctos y ejemplos propios", "Responde a casi todo con algún dato impreciso", "Responde a lo básico sin ejemplos", "No responde a lo pedido o hay errores graves"],
+            ["Organización (25 %)", "Introducción, desarrollo y conclusión claros y enlazados", "Estructura clara con algún salto", "Estructura reconocible pero desordenada", "Ideas sueltas sin orden"],
+            ["Argumentación (20 %)", "Justifica cada idea con razones o ejemplos", "Justifica la mayoría de ideas", "Justifica alguna idea", "Afirma sin justificar"],
+            ["Expresión y ortografía (15 %)", "Vocabulario preciso y sin faltas", "Vocabulario adecuado, 1 o 2 faltas", "Vocabulario sencillo, 3 a 5 faltas", "Frases confusas o más de 5 faltas"],
+          ],
+        },
+      },
+      {
+        h2: "Ejemplo 2: rúbrica de exposición oral",
+        table: {
+          caption: "Rúbrica de exposición oral",
+          head: ["Criterio", "4 · Excelente", "3 · Notable", "2 · Suficiente", "1 · Insuficiente"],
+          rows: [
+            ["Dominio del tema", "Explica sin leer y responde a las preguntas", "Explica con apoyo puntual de notas", "Lee buena parte de la exposición", "Lee todo o no domina el tema"],
+            ["Claridad", "Se entiende todo a la primera", "Se entiende casi todo", "Hay partes confusas", "Cuesta seguir la exposición"],
+            ["Apoyo visual", "Diapositivas claras que ayudan a entender", "Diapositivas correctas con mucho texto", "Diapositivas poco relacionadas", "Sin apoyo o lo dificulta"],
+            ["Tiempo", "Se ajusta al tiempo indicado", "Se desvía menos de un minuto", "Se desvía entre 1 y 3 minutos", "Se desvía más de 3 minutos"],
+          ],
+        },
+      },
+      {
+        h2: "Ejemplo 3: rúbrica de trabajo en equipo",
+        table: {
+          caption: "Rúbrica de trabajo en equipo",
+          head: ["Criterio", "4", "3", "2", "1"],
+          rows: [
+            ["Participación", "Aporta ideas y tareas en todas las sesiones", "Aporta en casi todas", "Aporta cuando se le pide", "Apenas participa"],
+            ["Responsabilidad", "Entrega su parte a tiempo y completa", "Entrega a tiempo con pequeños fallos", "Entrega tarde o incompleta", "No entrega su parte"],
+            ["Colaboración", "Escucha, ayuda y resuelve desacuerdos", "Escucha y ayuda", "Trabaja aparte del grupo", "Dificulta el trabajo del grupo"],
+          ],
+        },
+      },
+    ],
+    stepsTitle: "Cómo hacer una rúbrica de evaluación en 5 pasos",
+    steps: [
+      ["Parte del objetivo de la tarea", "Escribe en una frase qué debe demostrar el alumno. De ahí salen los criterios: si el objetivo es argumentar, la argumentación tiene que ser un criterio."],
+      ["Elige entre 3 y 6 criterios", "Con menos te quedas corto; con más, la corrección se vuelve lenta y los criterios se solapan."],
+      ["Reparte el peso de cada criterio", "Da más peso a lo que más importa. La suma debe ser 100 %."],
+      ["Escribe los niveles con conductas observables", "Empieza por el nivel más alto y el más bajo; después rellena los intermedios. Usa cantidades y ejemplos concretos."],
+      ["Pruébala con 2 o 3 trabajos reales", "Si dos trabajos muy distintos sacan la misma nota, o un criterio siempre sale igual, reescribe su descripción."],
+    ],
+    tipsTitle: "Errores habituales al hacer una rúbrica",
+    tips: [
+      "Criterios que se solapan, como «claridad» y «expresión»: se penaliza dos veces lo mismo.",
+      "Niveles con adjetivos vagos («bien», «regular») que cada persona interpreta a su manera.",
+      "No enseñarla al alumnado antes de la tarea: pierde la mitad de su utilidad.",
+      "Dar el mismo peso a todo cuando no todo importa igual.",
+    ],
+    faq: [
+      ["¿Cuántos niveles debe tener una rúbrica?", "Lo habitual son 4. Con un número par se evita que todo acabe en el nivel del medio."],
+      ["¿Cómo se pasa una rúbrica a nota sobre 10?", "Multiplica el nivel obtenido en cada criterio por su peso y suma. Por ejemplo, con 4 niveles: (nivel ÷ 4) × peso × 10, y sumas todos los criterios."],
+      ["¿Se puede corregir con IA usando una rúbrica?", "Sí. En Xandralyze pegas tu rúbrica, la IA propone la puntuación de cada criterio citando la frase del examen que la justifica, y tú revisas y decides la nota final."],
+    ],
+    ctaText: "Usa una de estas rúbricas para corregir dos exámenes de ejemplo al momento, sin registrarte.",
+    ctaLabel: "Probar la corrección con rúbrica", ctaHref: "/educacion#demo-evaluacion",
+  },
+  {
+    slug: "entrevista-por-competencias-preguntas",
+    category: "Selección gamificada",
+    backTo: "/seleccion", backLabel: "Selección",
+    title: "Entrevista por competencias: 30 preguntas, método STAR y cómo puntuar | Xandralyze",
+    h1: "Entrevista por competencias: 30 preguntas con el método STAR y cómo puntuarlas",
+    description: "Qué es una entrevista por competencias, 30 preguntas agrupadas por competencia, cómo usar el método STAR y una escala para puntuar las respuestas de cada candidato.",
+    intro: "En una entrevista por competencias no se pregunta «¿cómo eres?», sino «cuéntame una vez en la que…». La idea es sencilla: lo que alguien hizo en una situación real predice mejor lo que hará que lo que dice que haría. Aquí tienes 30 preguntas listas para usar, cómo escuchar las respuestas y cómo puntuarlas de forma comparable.",
+    sections: [
+      {
+        h2: "Qué es una entrevista por competencias",
+        paragraphs: [
+          "Es una entrevista estructurada en la que se eligen antes las competencias del puesto (por ejemplo trabajo en equipo u orientación al cliente) y se hacen preguntas sobre situaciones pasadas en las que el candidato tuvo que demostrarlas.",
+          "Al hacer las mismas preguntas a todos y puntuarlas con la misma escala, se pueden comparar candidatos con menos sesgo que en una conversación libre.",
+        ],
+      },
+      {
+        h2: "El método STAR",
+        paragraphs: ["Una buena respuesta tiene cuatro partes. Si falta alguna, pregunta por ella."],
+        list: [
+          "Situación: dónde estaba y qué pasaba.",
+          "Tarea: qué le tocaba hacer a él o ella.",
+          "Acción: qué hizo exactamente (en primera persona, no «el equipo»).",
+          "Resultado: qué pasó después y qué aprendió.",
+        ],
+      },
+      {
+        h2: "Preguntas de trabajo en equipo",
+        list: [
+          "Cuéntame una vez en la que tu equipo no se ponía de acuerdo. ¿Qué hiciste tú?",
+          "Háblame de un proyecto en el que dependías del trabajo de otros. ¿Cómo lo coordinaste?",
+          "Describe una situación en la que un compañero no cumplía su parte.",
+          "Cuéntame una ocasión en la que ayudaste a alguien del equipo sin que te lo pidieran.",
+          "Háblame de un logro de equipo del que estés orgulloso. ¿Cuál fue tu aportación?",
+        ],
+      },
+      {
+        h2: "Preguntas de resolución de problemas",
+        list: [
+          "Cuéntame el problema más difícil que has resuelto en el trabajo.",
+          "Describe una vez en la que tuviste que decidir sin tener toda la información.",
+          "Háblame de un error tuyo. ¿Cómo lo detectaste y qué hiciste?",
+          "Cuéntame una ocasión en la que mejoraste un proceso que no funcionaba.",
+          "Describe una situación en la que la primera solución que probaste falló.",
+        ],
+      },
+      {
+        h2: "Preguntas de orientación al cliente",
+        list: [
+          "Cuéntame una vez en la que atendiste a un cliente muy enfadado.",
+          "Háblame de una ocasión en la que no pudiste dar al cliente lo que pedía.",
+          "Describe algo que hiciste por un cliente que iba más allá de lo que te tocaba.",
+          "Cuéntame cómo detectaste una necesidad del cliente que él no había dicho.",
+          "Háblame de una queja que te ayudó a cambiar tu forma de trabajar.",
+        ],
+      },
+      {
+        h2: "Preguntas de comunicación",
+        list: [
+          "Cuéntame una vez en la que tuviste que explicar algo complejo a alguien sin conocimientos.",
+          "Describe una conversación difícil que tuviste con un responsable.",
+          "Háblame de una ocasión en la que un malentendido causó un problema. ¿Cómo lo resolviste?",
+          "Cuéntame una vez en la que tuviste que convencer a alguien que no estaba de acuerdo.",
+          "Describe cómo diste una mala noticia a un compañero o cliente.",
+        ],
+      },
+      {
+        h2: "Preguntas de liderazgo",
+        list: [
+          "Cuéntame una vez en la que tuviste que motivar a un equipo desanimado.",
+          "Háblame de una decisión impopular que tomaste.",
+          "Describe cómo repartiste tareas en un proyecto con poco tiempo.",
+          "Cuéntame una ocasión en la que tuviste que corregir el trabajo de alguien.",
+          "Háblame de una persona a la que ayudaste a mejorar profesionalmente.",
+        ],
+      },
+      {
+        h2: "Preguntas de adaptación al cambio",
+        list: [
+          "Cuéntame un cambio importante en tu trabajo que no esperabas. ¿Cómo lo llevaste?",
+          "Describe una vez en la que tuviste que aprender algo nuevo muy rápido.",
+          "Háblame de una ocasión en la que cambiaron las prioridades a mitad de un proyecto.",
+          "Cuéntame una vez en la que trabajaste con personas muy distintas a ti.",
+          "Describe una situación en la que tuviste que cambiar de opinión.",
+        ],
+      },
+      {
+        h2: "Cómo puntuar las respuestas",
+        table: {
+          caption: "Escala de puntuación por competencia",
+          head: ["Puntos", "Qué se observa en la respuesta"],
+          rows: [
+            ["4", "Ejemplo concreto y reciente, con las cuatro partes STAR, acciones propias claras y resultado medible"],
+            ["3", "Ejemplo concreto con acciones propias; el resultado es poco preciso"],
+            ["2", "Ejemplo genérico o hipotético («yo haría…»), o habla del equipo sin decir qué hizo"],
+            ["1", "No da ningún ejemplo o la conducta descrita va en contra de la competencia"],
+          ],
+        },
+        paragraphs: ["Puntúa justo después de cada respuesta y anota la frase que te ha llevado a esa puntuación. Así puedes comparar candidatos y explicar la decisión."],
+      },
+    ],
+    stepsTitle: "Cómo preparar una entrevista por competencias en 5 pasos",
+    steps: [
+      ["Elige 3 o 4 competencias del puesto", "Pregunta a quien dirigirá a la persona qué conductas distinguen a alguien que lo hace bien. No intentes evaluar diez competencias en una hora."],
+      ["Escoge 2 preguntas por competencia", "Usa las de esta guía como base y adáptalas al puesto. Haz las mismas preguntas a todos los candidatos."],
+      ["Prepara preguntas de seguimiento", "«¿Qué hiciste tú exactamente?», «¿Qué pasó después?», «¿Qué harías distinto?». Sirven para completar el STAR."],
+      ["Puntúa con una escala común", "Usa la escala de 1 a 4 y anota evidencias. Si entrevistáis varias personas, puntuad por separado y luego comparad."],
+      ["Complétala con una prueba práctica", "La entrevista mide lo que el candidato cuenta. Una simulación o caso práctico muestra lo que hace ante una situación del puesto."],
+    ],
+    tipsTitle: "Errores que conviene evitar",
+    tips: [
+      "Aceptar respuestas hipotéticas («yo intentaría…») como si fueran ejemplos reales.",
+      "Dejarse llevar por la primera impresión o por lo bien que habla el candidato.",
+      "Hacer preguntas distintas a cada persona: después no se pueden comparar.",
+      "Preguntar por la vida personal, la edad o los planes familiares: no aporta nada a la competencia y puede ser discriminatorio.",
+    ],
+    faq: [
+      ["¿Cuánto dura una entrevista por competencias?", "Entre 45 y 60 minutos para 3 o 4 competencias, con unos 10 a 15 minutos por competencia."],
+      ["¿Qué diferencia hay con una entrevista tradicional?", "En la tradicional se pregunta por opiniones y planes; en la de competencias, por hechos pasados, y se puntúa con una escala común."],
+      ["¿Se puede hacer online?", "Sí. Además, en Xandralyze puedes completarla con una simulación en vídeo en la que el candidato toma decisiones en una situación real del puesto y recibe una puntuación por competencias."],
+    ],
+    ctaText: "Prueba una simulación de selección de ejemplo y mira el informe por competencias que genera, sin crear cuenta.",
+    ctaLabel: "Ver la simulación de ejemplo", ctaHref: "/seleccion",
+  },
+  {
+    slug: "assessment-center-ejercicios",
+    category: "Selección gamificada",
+    backTo: "/seleccion", backLabel: "Selección",
+    title: "Assessment center: qué es, ejercicios con ejemplos y cómo hacerlo online | Xandralyze",
+    h1: "Assessment center: qué es, ejercicios con ejemplos y cómo hacerlo online",
+    description: "Qué es un assessment center, los 6 ejercicios más usados (bandeja de entrada, role play, dinámica de grupo, caso práctico…), cómo diseñarlo y cómo hacerlo online.",
+    intro: "Un assessment center es una jornada de selección en la que varios candidatos hacen ejercicios que imitan situaciones reales del puesto mientras varios evaluadores observan y puntúan sus conductas. En vez de preguntar «¿sabes negociar?», se le pone a negociar. Aquí tienes en qué consiste, los ejercicios más habituales y cómo hacer una versión online.",
+    sections: [
+      {
+        h2: "Qué es un assessment center",
+        paragraphs: [
+          "Es un método de evaluación, no un lugar. Combina varios ejercicios para que cada competencia se observe más de una vez y por más de un evaluador. Se usa sobre todo para mandos, puestos comerciales, programas de talento joven y promociones internas.",
+          "Su fuerza está en la combinación: un candidato puede tener un mal momento en un ejercicio, pero si una conducta aparece en tres ejercicios distintos, es una señal fiable.",
+        ],
+      },
+      {
+        h2: "Los 6 ejercicios más habituales",
+        table: {
+          caption: "Ejercicios típicos de un assessment center",
+          head: ["Ejercicio", "En qué consiste", "Qué mide"],
+          rows: [
+            ["Bandeja de entrada (in-basket)", "Correos, avisos y tareas pendientes que hay que priorizar y resolver en un tiempo limitado", "Organización, priorización, toma de decisiones"],
+            ["Role play", "Conversación simulada con un actor: un cliente enfadado, un empleado que rinde poco, una negociación", "Comunicación, orientación al cliente, liderazgo"],
+            ["Dinámica de grupo", "Varios candidatos resuelven juntos un problema o deben llegar a un acuerdo", "Trabajo en equipo, influencia, escucha"],
+            ["Caso práctico", "Análisis de una situación de empresa con datos y propuesta de solución", "Análisis, resolución de problemas, criterio"],
+            ["Presentación", "Exponer ante el tribunal la solución del caso u otro tema", "Comunicación, capacidad de convencer"],
+            ["Entrevista por competencias", "Preguntas sobre situaciones pasadas reales", "Todas las competencias del puesto"],
+          ],
+        },
+        paragraphs: ["Muchos procesos añaden además pruebas psicotécnicas o cuestionarios de personalidad, pero lo propio del assessment center son los ejercicios de situación."],
+      },
+      {
+        h2: "La matriz de competencias por ejercicio",
+        paragraphs: ["Antes de diseñar nada, se cruza cada competencia con los ejercicios en los que se va a observar. Cada competencia debería aparecer al menos en dos ejercicios."],
+        table: {
+          caption: "Ejemplo de matriz para un puesto de jefe de equipo",
+          head: ["Competencia", "Bandeja", "Role play", "Dinámica", "Caso"],
+          rows: [
+            ["Toma de decisiones", "✓", "", "✓", "✓"],
+            ["Liderazgo", "", "✓", "✓", ""],
+            ["Comunicación", "", "✓", "✓", "✓"],
+            ["Organización", "✓", "", "", "✓"],
+          ],
+        },
+      },
+      {
+        h2: "Cómo hacer un assessment center online",
+        paragraphs: [
+          "La bandeja de entrada, el caso práctico y la entrevista se trasladan bien a videollamada o a una plataforma. El role play necesita un actor conectado o una simulación. La dinámica de grupo online funciona con grupos pequeños y un evaluador por cada dos o tres candidatos.",
+          "Una alternativa más escalable es la simulación interactiva en vídeo: el candidato ve escenas de una situación del puesto, decide qué hacer en cada momento y la historia cambia según sus decisiones. Todos pasan por la misma situación, se registra cada decisión y su tiempo, y se obtiene una puntuación por competencias que se puede comparar.",
+        ],
+      },
+    ],
+    stepsTitle: "Cómo diseñar un assessment center en 5 pasos",
+    steps: [
+      ["Analiza el puesto", "Habla con quien lo dirige y con personas que lo hacen bien. Elige de 4 a 6 competencias y descríbelas como conductas observables."],
+      ["Construye la matriz", "Decide qué ejercicios usarás y asegúrate de que cada competencia se observa al menos dos veces."],
+      ["Diseña ejercicios realistas", "Usa situaciones que de verdad pasan en el puesto: los mismos tipos de correos, clientes y problemas."],
+      ["Forma a los evaluadores", "Deben anotar conductas («interrumpió dos veces», «propuso un plan con plazos») y no impresiones. Cada uno puntúa por separado."],
+      ["Integra las puntuaciones", "Al final, los evaluadores ponen en común sus notas por competencia y acuerdan una valoración con evidencias. Da feedback a cada candidato."],
+    ],
+    tipsTitle: "Consejos para que funcione",
+    tips: [
+      "Más ejercicios no es mejor: con 3 o 4 bien diseñados suele bastar.",
+      "Separa observar de valorar: primero se anota lo que pasó, después se puntúa.",
+      "Informa a los candidatos de cómo será la jornada; reduce los nervios y mejora la imagen de la empresa.",
+      "Revisa al cabo de unos meses si las puntuaciones coincidieron con el rendimiento real de quienes entraron.",
+    ],
+    faq: [
+      ["¿Cuánto dura un assessment center?", "Entre medio día y un día completo en formato presencial. Online se suele repartir en sesiones más cortas."],
+      ["¿Cómo se prepara un candidato para un assessment center?", "Repasando situaciones reales en las que demostró las competencias del puesto, practicando la priorización de tareas y escuchando más que hablando en la dinámica de grupo."],
+      ["¿Qué diferencia hay con las pruebas psicotécnicas?", "Los psicotécnicos miden aptitudes con tests; el assessment center observa conductas en situaciones que imitan el trabajo."],
+    ],
+    ctaText: "Mira cómo es una simulación de selección en vídeo y el informe por competencias que genera, sin crear cuenta.",
+    ctaLabel: "Ver la simulación de ejemplo", ctaHref: "/seleccion",
   },
 ];
 
