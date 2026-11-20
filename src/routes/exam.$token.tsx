@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getExam, recordExamPhoto, startExam, submitExam } from "@/lib/assessment-candidates.functions";
 import { ExamIdentityPhoto } from "@/components/ExamIdentityPhoto";
+import { OralAnswerRecorder } from "@/components/OralAnswerRecorder";
 import type { ExamPayload } from "@/lib/assessment-candidates-shared";
 import { CLIENT_VERSION } from "@/lib/app-version";
 import { BURST_CHARS, emptyIntegrity, type ExamIntegrity } from "@/lib/exam-integrity";
@@ -51,6 +52,8 @@ export const Route = createFileRoute("/exam/$token")({
 interface AnswerState {
   text: string;
   optionIds: string[];
+  /** Respuesta dada hablando (transcripción automática de la voz). */
+  spoken?: boolean;
 }
 
 function ExamPage() {
@@ -322,6 +325,7 @@ function ExamPage() {
             questionId: qq.id,
             text: answers[qq.id]?.text ?? "",
             optionIds: answers[qq.id]?.optionIds ?? [],
+            spoken: Boolean(answers[qq.id]?.spoken),
           })),
         },
       }),
@@ -450,6 +454,13 @@ function ExamPage() {
                 <li>Tu progreso se guarda automáticamente: si refrescas, continuarás donde estabas.</li>
                 <li>Cuando finalices el examen no podrás modificar tus respuestas.</li>
                 <li>Las preguntas y las opciones aparecen en un orden distinto para cada aspirante.</li>
+                {assessment.questions.some((qq) => qq.type === "oral") && (
+                  <li>
+                    Hay preguntas orales: se responden hablando, así que necesitas micrófono. Usa Chrome,
+                    Edge o Safari y permite el micrófono cuando te lo pida. Se guarda el texto de lo que
+                    dices, no el audio.
+                  </li>
+                )}
                 <li>
                   El examen se abre en pantalla completa. Se registra si sales de la pestaña o de la
                   pantalla completa y el ritmo de escritura, y no se permite copiar ni pegar. La persona que te evalúa verá
@@ -560,7 +571,10 @@ function ExamPage() {
                   <CardTitle className="text-base">
                     {index + 1}. {question.prompt}
                   </CardTitle>
-                  <CardDescription>{question.maxPoints} punto(s)</CardDescription>
+                  <CardDescription>
+                    {question.maxPoints} punto(s)
+                    {question.type === "oral" ? " · Respuesta oral: contesta hablando" : ""}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {question.type === "narrative" && (
@@ -571,6 +585,21 @@ function ExamPage() {
                       placeholder="Escribe tu respuesta"
                       disabled={locked}
                       aria-label={`Respuesta a la pregunta ${index + 1}`}
+                    />
+                  )}
+
+                  {question.type === "oral" && (
+                    <OralAnswerRecorder
+                      questionNumber={index + 1}
+                      text={state.text}
+                      disabled={locked}
+                      onSpoken={(text) =>
+                        setAnswers((prev) => ({
+                          ...prev,
+                          [question.id]: { text, optionIds: [], spoken: true },
+                        }))
+                      }
+                      onTyped={(text) => setAnswer(question.id, { text, spoken: false })}
                     />
                   )}
 
@@ -644,7 +673,7 @@ function ExamPage() {
                     </div>
                   )}
 
-                  {question.type !== "narrative" && (
+                  {question.type !== "narrative" && question.type !== "oral" && (
                     <Textarea
                       rows={3}
                       value={question.type === "numeric" ? "" : state.text}

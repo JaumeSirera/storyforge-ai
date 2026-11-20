@@ -7,6 +7,7 @@ export const QUESTION_TYPES = [
   "multiple_choice",
   "true_false",
   "numeric",
+  "oral",
 ] as const;
 export type QuestionType = (typeof QUESTION_TYPES)[number];
 
@@ -16,6 +17,7 @@ export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   multiple_choice: "Test (varias correctas)",
   true_false: "Verdadero / Falso",
   numeric: "Numérica / cálculo",
+  oral: "Oral (responde hablando)",
 };
 
 /** Bloques temáticos que puede encargarse a la IA (afinan el estilo de los enunciados). */
@@ -69,7 +71,12 @@ export type AssessmentQuestion = z.infer<typeof QuestionSchema>;
 
 /** ¿La pregunta se corrige de forma objetiva (respuesta cerrada)? */
 export function isObjectiveType(type: QuestionType) {
-  return type !== "narrative";
+  return type !== "narrative" && type !== "oral";
+}
+
+/** Preguntas abiertas: se valoran con elementos clave y rúbrica (escritas u orales). */
+export function isOpenType(type: QuestionType) {
+  return !isObjectiveType(type);
 }
 
 

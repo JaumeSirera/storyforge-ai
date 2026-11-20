@@ -5,6 +5,7 @@ import type {
   ExamPayload,
   ExamQuestion,
 } from "./assessment-candidates-shared";
+import { formatExamAnswers } from "./assessment-candidates-shared";
 import { mapAssessment } from "./assessments.server";
 import { logExamAudit } from "./exam-audit.server";
 import { integrityLevel, normalizeIntegrity } from "./exam-integrity";
@@ -257,21 +258,6 @@ export async function startExamHandler(data: { token: string; clientVersion?: st
 /** Margen de cortesía (segundos) para absorber latencia de red al entregar al límite. */
 const TIME_GRACE_SEC = 30;
 
-function formatAnswers(questions: ExamQuestion[], answers: ExamAnswerInput[]) {
-  const byId = new Map(answers.map((a) => [a.questionId, a]));
-  return questions
-    .map((q, i) => {
-      const a = byId.get(q.id);
-      const chosen = (a?.optionIds ?? [])
-        .map((id) => q.options.find((o) => o.id === id)?.text ?? id)
-        .filter(Boolean);
-      const body = [chosen.length ? `Opción elegida: ${chosen.join(" | ")}` : "", a?.text?.trim() ?? ""]
-        .filter(Boolean)
-        .join("\n");
-      return `Pregunta ${i + 1}: ${q.prompt}\nRespuesta: ${body || "(sin responder)"}`;
-    })
-    .join("\n\n");
-}
 
 export async function submitExamHandler(data: {
   token: string;
@@ -319,7 +305,7 @@ export async function submitExamHandler(data: {
   }
 
   const questions = assessment.questions.map(toExamQuestion);
-  const text = formatAnswers(questions, data.answers);
+  const text = formatExamAnswers(questions, data.answers);
 
   const { data: submission, error } = await supabaseAdmin
     .from("assessment_submissions")

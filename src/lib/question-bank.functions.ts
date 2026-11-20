@@ -18,6 +18,7 @@ const QuestionTypeEnum = z.enum([
   "multiple_choice",
   "true_false",
   "numeric",
+  "oral",
 ]);
 
 const QuestionInput = z.object({
@@ -65,7 +66,7 @@ export const generateBankQuestions = createServerFn({ method: "POST" })
         questionCount: z.number().min(1).max(20).default(5),
         subject: z.string().trim().max(40).nullable().optional(),
         areaKey: z.string().trim().max(80).nullable().optional(),
-        questionTypes: z.array(QuestionTypeEnum).min(1).max(5).default(["narrative"]),
+        questionTypes: z.array(QuestionTypeEnum).min(1).max(6).default(["narrative"]),
         sourceText: z.string().trim().max(30000).nullable().optional(),
         allowOutsideSource: z.boolean().default(false),
         tags: TagsInput.default([]),

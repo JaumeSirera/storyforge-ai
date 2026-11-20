@@ -67,6 +67,36 @@ export interface ExamAnswerInput {
   questionId: string;
   text: string;
   optionIds: string[];
+  /** true cuando la respuesta se dio hablando y es la transcripción automática de la voz. */
+  spoken?: boolean;
+}
+
+/** Línea que acompaña a las respuestas orales en el texto de la entrega (la lee la corrección por IA). */
+export const ORAL_SPOKEN_NOTE = "Modo: respuesta oral, transcrita automáticamente de la voz del aspirante";
+/** Línea para preguntas orales que el aspirante tuvo que escribir porque su navegador no permitía hablar. */
+export const ORAL_TYPED_NOTE = "Modo: pregunta oral respondida por escrito (el navegador no permitía responder hablando)";
+
+/**
+ * Convierte las respuestas del examen online en el texto de la entrega que se corrige.
+ * Mantiene el formato «Pregunta N: …\nRespuesta: …» que leen la corrección y la detección de copias.
+ */
+export function formatExamAnswers(questions: ExamQuestion[], answers: ExamAnswerInput[]) {
+  const byId = new Map(answers.map((a) => [a.questionId, a]));
+  return questions
+    .map((q, i) => {
+      const a = byId.get(q.id);
+      const chosen = (a?.optionIds ?? [])
+        .map((id) => q.options.find((o) => o.id === id)?.text ?? id)
+        .filter(Boolean);
+      const text = a?.text?.trim() ?? "";
+      const body = [chosen.length ? `Opción elegida: ${chosen.join(" | ")}` : "", text]
+        .filter(Boolean)
+        .join("\n");
+      const mode =
+        q.type === "oral" && text ? `\n${a?.spoken ? ORAL_SPOKEN_NOTE : ORAL_TYPED_NOTE}` : "";
+      return `Pregunta ${i + 1}: ${q.prompt}${mode}\nRespuesta: ${body || "(sin responder)"}`;
+    })
+    .join("\n\n");
 }
 
 /** Enlace público al examen para un aspirante. */

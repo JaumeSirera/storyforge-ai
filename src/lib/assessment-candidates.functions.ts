@@ -87,6 +87,7 @@ export const submitExam = createServerFn({ method: "POST" })
             questionId: z.string().max(60),
             text: z.string().max(20000).default(""),
             optionIds: z.array(z.string().max(20)).max(12).default([]),
+            spoken: z.boolean().default(false),
           }),
         )
         .max(60),

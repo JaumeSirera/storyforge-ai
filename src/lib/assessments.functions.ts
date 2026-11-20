@@ -34,6 +34,7 @@ const QuestionTypeEnum = z.enum([
   "multiple_choice",
   "true_false",
   "numeric",
+  "oral",
 ]);
 
 const QuestionInput = z.object({
@@ -66,7 +67,7 @@ export const createAssessment = createServerFn({ method: "POST" })
         questionCount: z.number().min(1).max(30).default(4),
         generate: z.boolean().default(true),
         subject: z.string().trim().max(40).nullable().optional(),
-        questionTypes: z.array(QuestionTypeEnum).min(1).max(5).default(["narrative"]),
+        questionTypes: z.array(QuestionTypeEnum).min(1).max(6).default(["narrative"]),
         sourceText: z.string().trim().max(200000).nullable().optional(),
         allowOutsideSource: z.boolean().default(false),
       })

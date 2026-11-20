@@ -5,6 +5,7 @@ import {
   FEEDBACK_TONE_INSTRUCTIONS,
   normalizeFeedbackTone,
   BlueprintSchema,
+  isObjectiveType,
   EvaluationSchema,
   HandwritingSchema,
   ScanQualitySchema,
@@ -279,8 +280,9 @@ El candidato VERÁ el TEXTO BASE completo junto a las preguntas durante el exame
 Devuelve exactamente estas claves JSON: title (string), instructions (string con indicaciones para el candidato), questions (array), rubric (array de {id, name, description, weightPct, levels: array de {label, descriptor, pct}}).
 
 Cada pregunta es un objeto {id, prompt, type, maxPoints, keyElements, options, correctOptionIds, correctAnswer, explanation} donde:
-- type es uno de: narrative, single_choice, multiple_choice, true_false, numeric.
+- type es uno de: narrative, single_choice, multiple_choice, true_false, numeric, oral.
 - narrative: options=[], correctOptionIds=[], correctAnswer="" y keyElements con los elementos que debe contener una buena respuesta.
+- oral: igual que narrative, pero el candidato responde HABLANDO (su voz se transcribe). Formula el enunciado para contestar de viva voz en 1-3 minutos (explicar, argumentar, exponer un caso); nada que exija escribir fórmulas, dibujar o copiar datos exactos.
 - single_choice / multiple_choice: options con 4 alternativas [{id:"a"|"b"|"c"|"d", text}], correctOptionIds con la(s) correcta(s), keyElements=[].
 - true_false: options=[{id:"v",text:"Verdadero"},{id:"f",text:"Falso"}] y correctOptionIds con "v" o "f".
 - numeric: correctAnswer con el resultado exacto (incluye unidades si aplica), options=[].
@@ -298,7 +300,7 @@ La suma de maxPoints debe ser ${input.maxScore}. La suma de weightPct debe ser 1
   const provider = attempt.used.provider;
   const nativeId = attempt.used.nativeId;
   const raw = extractJson(result.text) as any;
-  const allowedTypes = ["narrative", "single_choice", "multiple_choice", "true_false", "numeric"];
+  const allowedTypes = ["narrative", "single_choice", "multiple_choice", "true_false", "numeric", "oral"];
   const blueprint = BlueprintSchema.parse({
     title: raw.title ?? raw.titulo ?? "",
     instructions: raw.instructions ?? raw.instrucciones ?? "",
@@ -793,9 +795,13 @@ Responde en español con un único objeto JSON válido, sin markdown.`;
           : (q.correctAnswer ?? ""),
       justificacion: q.explanation ?? "",
     }));
-    const hasObjective = assessment.questions.some((q) => (q.type ?? "narrative") !== "narrative");
+    const hasObjective = assessment.questions.some((q) => isObjectiveType(q.type ?? "narrative"));
+    const hasOral = assessment.questions.some((q) => q.type === "oral");
     const objectiveRule = hasObjective
       ? `\nEn las preguntas cerradas (single_choice, multiple_choice, true_false, numeric) corrige de forma OBJETIVA: identifica qué ha marcado o respondido el candidato y compáralo con respuestaCorrecta. Acierto = puntos completos; fallo = 0 (en multiple_choice puedes puntuar proporcionalmente a las opciones correctas marcadas sin marcar incorrectas). En evidence indica la respuesta detectada y la correcta.`
+      : "";
+    const oralRule = hasOral
+      ? `\nLas preguntas de tipo oral se respondieron HABLANDO y su respuesta es una transcripción automática de la voz (en la entrega aparecen como "respuesta oral"). En ellas valora el contenido, el razonamiento, el orden de la exposición y la precisión del vocabulario, pero NO penalices ortografía, puntuación, mayúsculas ni palabras mal reconocidas por el dictado cuando el sentido se entiende. En la dimensión language de esas respuestas valora solo léxico, gramática y registro oral. No hay grafismo que valorar en ellas. Si una respuesta oral aparece como escrita porque el navegador no permitía hablar, corrígela como una narrativa normal.`
       : "";
 
 
@@ -862,7 +868,7 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
             {
               role: "user",
               content: [
-                { type: "text", text: instructions + objectiveRule + toneRule + annotationBrief },
+                { type: "text", text: instructions + objectiveRule + oralRule + toneRule + annotationBrief },
                 ...fileParts,
               ],
             } as any,
