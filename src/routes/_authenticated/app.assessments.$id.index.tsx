@@ -10,6 +10,7 @@ import {
   deleteSubmission,
 } from "@/lib/assessments.functions";
 import { gradeLabel } from "@/lib/assessments-shared";
+import { downloadGradesCsv } from "@/lib/grades-export";
 import { AssessmentCollaboratorsCard } from "@/components/AssessmentCollaboratorsCard";
 import { AssessmentCandidatesCard } from "@/components/AssessmentCandidatesCard";
 import { ExamAuditLogCard } from "@/components/ExamAuditLogCard";
@@ -44,6 +45,7 @@ import { SectionCard } from "@/components/SectionCard";
 import {
   ArrowLeft,
   ClipboardList,
+  Download,
   FileText,
   GraduationCap,
   ListChecks,
@@ -194,6 +196,11 @@ function AssessmentDetail() {
   };
 
   const isOwner = permissions?.isOwner !== false;
+
+  const exportGrades = () => {
+    downloadGradesCsv(assessment.title, assessment.questions ?? [], submissions as any);
+    toast.success("Notas descargadas: ábrelas con Excel, LibreOffice o Google Sheets");
+  };
   const gradedCount = submissions.filter((s: any) => s.status === "graded").length;
 
   return (
@@ -233,9 +240,16 @@ function AssessmentDetail() {
                 : `${submissions.length} entrega(s) · ${gradedCount} corregida(s).`}
             </p>
           </div>
-          <Button size="lg" className="gap-2" onClick={() => setOpen("upload")}>
-            <Upload className="h-4 w-4" aria-hidden="true" /> Nueva entrega
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {submissions.length > 0 && (
+              <Button size="lg" variant="outline" className="gap-2" onClick={exportGrades}>
+                <Download className="h-4 w-4" aria-hidden="true" /> Exportar notas
+              </Button>
+            )}
+            <Button size="lg" className="gap-2" onClick={() => setOpen("upload")}>
+              <Upload className="h-4 w-4" aria-hidden="true" /> Nueva entrega
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -562,6 +576,11 @@ function AssessmentDetail() {
               <p className="py-6 text-center text-muted-foreground">Sin entregas todavía.</p>
             ) : (
               <div className="space-y-2">
+                <div className="flex justify-end">
+                  <Button size="sm" variant="outline" className="gap-2" onClick={exportGrades}>
+                    <Download className="h-4 w-4" aria-hidden="true" /> Exportar notas (Excel / CSV)
+                  </Button>
+                </div>
                 {submissions.map((submission: any) => (
                   <div
                     key={submission.id}

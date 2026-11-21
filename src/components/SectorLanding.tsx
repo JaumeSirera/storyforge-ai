@@ -21,19 +21,21 @@ const sectors = {
   educacion: {
     eyebrow: "Universidades · Academias · Oposiciones",
     title: "Corrección de exámenes manuscritos con IA",
-    seoTitle: "Corrección de Exámenes Manuscritos con IA y Lector OCR | Xandralyze",
-    description: "Corrección de exámenes manuscritos con IA: lector OCR de exámenes escaneados, evaluación por competencias con rúbrica y generador de exámenes con IA gratis. Open source.",
-    image: education, alt: "Revisión de exámenes manuscritos en una mesa de trabajo",
+    seoTitle: "Corregir Exámenes con IA: Manuscritos, PDF y Orales | Xandralyze",
+    description: "Corrige con IA exámenes escritos a mano, escaneados o en PDF aplicando tu rúbrica. Examen oral que se corrige solo, comentario para cada alumno y notas exportables a Excel. Gratis y open source.",
+    image: education, alt: "Docente corrigiendo a bolígrafo un montón de exámenes escritos a mano junto a un portátil",
     action: "Crear una evaluación", demo: "demo-evaluacion",
-    heading: "Evaluación por competencias con rúbrica e IA",
-    intro: "Para docentes que necesitan revisar respuestas extensas sin perder de vista qué se evalúa y por qué.",
+    heading: "Corrige exámenes manuscritos y en PDF aplicando tu rúbrica",
+    intro: "Para docentes que necesitan revisar respuestas extensas sin perder de vista qué se evalúa y por qué. La IA propone la nota y tú la revisas.",
     features: [
-      ["Lector OCR de exámenes escaneados", "Sube fotos o páginas escaneadas y trabaja con la transcripción y las respuestas de cada alumno."],
-      ["Evaluación por competencias con rúbrica", "Define los criterios y el peso de cada apartado. Revisa la nota y la justificación antes de darla por válida."],
-      ["Generador de exámenes con IA gratis", "Genera preguntas con tu propia clave de IA, reutiliza el banco de preguntas e invita a los aspirantes por enlace."],
-      ["Auditoría de exámenes online con tiempo límite", "Para universidades y oposiciones: pruebas cronometradas, registro de entregas y nota inmediata revisable."],
+      ["Lector OCR de exámenes escaneados, en foto o PDF", "Sube fotos del móvil, páginas escaneadas o un PDF. La app transcribe lo escrito a mano y marca los fragmentos dudosos para que los revises."],
+      ["Evaluación por competencias con rúbrica", "Define los criterios y el peso de cada apartado. Revisa la nota, las evidencias y la justificación antes de darla por válida."],
+      ["Comentario personalizado para cada alumno", "En cada pregunta: si está bien o mal, la respuesta esperada, por qué y qué repasar. Eliges el tono y descargas el informe en PDF."],
+      ["Examen oral que se corrige solo", "Añade preguntas orales al examen online: el alumno contesta hablando, su voz se convierte en texto y la IA lo corrige con tu rúbrica, sin contar las faltas del dictado."],
+      ["Exportación de notas a Excel", "Descarga en una hoja las notas de todos los alumnos: nota, nota sobre 10, calificación, puntos por pregunta y desglose. Se abre en Excel, LibreOffice o Google Sheets."],
+      ["Generador de exámenes con IA y examen online con tiempo", "Genera preguntas de desarrollo, test, verdadero/falso, numéricas u orales con tu propia clave de IA, reutiliza el banco de preguntas e invita por enlace a pruebas cronometradas con registro de incidencias."],
     ],
-    steps: ["Prepara la prueba y la rúbrica", "Recoge las entregas escritas", "Revisa la corrección y comparte el informe"],
+    steps: ["Prepara la prueba y la rúbrica", "Recoge las entregas escritas, en PDF u orales", "Revisa la corrección, exporta las notas y comparte el informe"],
     note: "La IA apoya la corrección: el docente conserva la revisión de la nota. El análisis de la letra se limita a aspectos observables, no a inferencias sobre personalidad o salud.",
   },
   seleccion: {
@@ -72,13 +74,36 @@ const sectors = {
   },
 } as const;
 
+/** Preguntas frecuentes visibles por sector (también se marcan para buscadores). */
+const sectorFaq: Partial<Record<keyof typeof sectors, [string, string][]>> = {
+  educacion: [
+    ["¿Cómo corregir exámenes de alumnos con inteligencia artificial gratis?", "Xandralyze es gratuito y de código abierto. Creas la prueba y la rúbrica, subes las entregas y la IA propone la nota y un comentario por pregunta que tú revisas. Funciona con tu propia clave de IA (por ejemplo, Google Gemini u OpenAI): la app no cobra, pero el proveedor que elijas puede cobrarte por su uso."],
+    ["¿Se pueden corregir exámenes escritos a mano escaneados, en foto o en PDF?", "Sí. Puedes subir fotos hechas con el móvil, páginas escaneadas o un PDF. La app transcribe lo escrito a mano, indica la confianza de cada fragmento y te avisa de lo que conviene revisar. Si la letra es muy difícil, puedes corregir la transcripción antes de dar la nota por buena."],
+    ["¿Cómo generar retroalimentación personalizada para cada estudiante?", "Cada respuesta corregida incluye si es correcta, parcial o incorrecta, la respuesta esperada, por qué, un comentario dirigido al alumno y un siguiente paso para mejorar. Puedes elegir el tono (formativo, breve, motivacional o técnico) y descargar el informe de cada alumno en PDF."],
+    ["¿Puedo hacer un examen oral que se corrija solo?", "Sí. En el examen online puedes poner preguntas de tipo oral: el alumno responde hablando desde Chrome, Edge o Safari, el navegador convierte su voz en texto y la IA lo corrige con tu rúbrica sin tener en cuenta las faltas del dictado. Se guarda el texto, no el audio, y tú revisas la nota."],
+    ["¿Puedo exportar las notas a Excel?", "Sí. El botón «Exportar notas» descarga una hoja con la nota de cada alumno, la nota sobre 10, la calificación, los puntos de cada pregunta y el desglose por contenido, estructura, lengua y letra. Se abre en Excel, LibreOffice o Google Sheets."],
+    ["¿Qué pasa con la protección de datos de los alumnos (RGPD)?", "El centro o el docente sigue siendo responsable de cumplir la normativa con sus alumnos, así que conviene consultarlo con vuestro delegado de protección de datos. Lo que hace la app: las respuestas solo se envían al proveedor de IA que tú elijas con tu clave, puedes identificar a cada alumno con un código en lugar del nombre y, al ser código abierto, puedes revisar cómo funciona o instalarla en tu propio servidor."],
+    ["¿Sirve para secundaria, FP, universidad u oposiciones?", "Sí, para cualquier nivel: tú defines las preguntas y la rúbrica. Admite preguntas de desarrollo, test, verdadero/falso, numéricas y orales, y para academias y oposiciones hay examen online con tiempo límite y registro de incidencias."],
+  ],
+};
+
 export function sectorHead(sector: keyof typeof sectors) {
   const page = sectors[sector];
   const title = page.seoTitle;
   const url = `https://xandralyze.com/${sector}`;
+  const faq = sectorFaq[sector];
   return {
     meta: [{ title }, { name: "description", content: page.description }, { property: "og:title", content: title }, { property: "og:description", content: page.description }, { property: "og:type", content: "website" }, { property: "og:url", content: url }, { name: "twitter:card", content: "summary_large_image" }, { property: "og:image", content: "https://xandralyze.com/og-xandralyze.png" }, { property: "og:image:width", content: "1200" }, { property: "og:image:height", content: "630" }, { name: "twitter:image", content: "https://xandralyze.com/og-xandralyze.png" }],
     links: [{ rel: "canonical", href: url }],
+    scripts: faq
+      ? [{
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org", "@type": "FAQPage", inLanguage: "es",
+            mainEntity: faq.map(([name, text]) => ({ "@type": "Question", name, acceptedAnswer: { "@type": "Answer", text } })),
+          }),
+        }]
+      : [],
   };
 }
 
@@ -115,6 +140,7 @@ export function SectorLanding({ sector }: { sector: keyof typeof sectors }) {
         {guides.some((g) => g.backTo === `/${sector}`) && <section className="mx-auto flex max-w-7xl flex-col gap-2 px-6 pb-4"><h2 className="text-xl tracking-normal">Guías</h2>{guides.filter((g) => g.backTo === `/${sector}`).map((g) => <a key={g.slug} href={`/guia/${g.slug}`} className="inline-flex items-center gap-2 font-medium text-primary hover:underline">{g.h1}<ArrowRight className="h-4 w-4" /></a>)}</section>}
         {sector === "educacion" && <PublicExamDemo />}
         {sector === "seleccion" && <PublicDemo />}
+        {sectorFaq[sector] && <section className="mx-auto max-w-4xl px-6 py-16" aria-labelledby="faq-title"><h2 id="faq-title" className="text-3xl tracking-normal">Preguntas frecuentes</h2><dl className="mt-8 space-y-6">{sectorFaq[sector]!.map(([q, a]) => <div key={q} className="border-t border-border pt-5"><dt className="text-lg font-semibold">{q}</dt><dd className="mt-2 leading-relaxed text-muted-foreground">{a}</dd></div>)}</dl></section>}
         <section className="border-b border-border bg-secondary/40"><div className="mx-auto max-w-7xl px-6 py-16"><h2 className="text-3xl tracking-normal">Un flujo que puedes revisar</h2><ol className="mt-8 grid gap-8 md:grid-cols-3">{page.steps.map((step, i) => <li key={step} className="flex items-start gap-3"><span className="font-semibold text-primary">{i + 1}.</span><span className="font-medium">{step}</span></li>)}</ol><p className="mt-10 max-w-3xl border-l-2 border-primary pl-4 text-sm leading-relaxed text-muted-foreground">{page.note}</p></div></section>
         <section className="mx-auto max-w-7xl px-6 py-16"><h2 className="text-3xl tracking-normal">Xandralyze es de código abierto</h2><p className="mt-3 max-w-2xl text-muted-foreground">Plataforma gratuita bajo licencia AGPL-3.0. El uso de IA requiere tu propia clave y puede tener costes del proveedor que elijas.</p><div className="mt-6 flex flex-wrap gap-3"><Button asChild><Link to="/auth">Empezar<ArrowRight /></Link></Button><Button asChild variant="outline"><Link to="/open-source">Conocer el proyecto</Link></Button></div></section>
       </main>
