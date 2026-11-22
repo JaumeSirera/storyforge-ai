@@ -9,7 +9,7 @@ import {
   gradeSubmission,
   deleteSubmission,
 } from "@/lib/assessments.functions";
-import { gradeLabel } from "@/lib/assessments-shared";
+import { gradeLabel, QUESTION_TYPE_LABELS, type QuestionType } from "@/lib/assessments-shared";
 import { downloadGradesCsv } from "@/lib/grades-export";
 import { AssessmentCollaboratorsCard } from "@/components/AssessmentCollaboratorsCard";
 import { AssessmentCandidatesCard } from "@/components/AssessmentCandidatesCard";
@@ -50,6 +50,7 @@ import {
   GraduationCap,
   ListChecks,
   Loader2,
+  Mic,
   RefreshCw,
   Gauge,
   ScrollText,
@@ -202,6 +203,21 @@ function AssessmentDetail() {
     toast.success("Notas descargadas: ábrelas con Excel, LibreOffice o Google Sheets");
   };
   const gradedCount = submissions.filter((s: any) => s.status === "graded").length;
+  const questionTypes = (assessment.questions ?? []).map(
+    (question) => (question.type ?? "narrative") as QuestionType,
+  );
+  const oralCount = questionTypes.filter((t) => t === "oral").length;
+  const hasOral = oralCount > 0;
+  const allOral = hasOral && oralCount === questionTypes.length;
+  const kindLabel = allOral
+    ? "Prueba oral"
+    : hasOral
+      ? "Prueba mixta (escrita y oral)"
+      : "Prueba escrita";
+  const typeCounts = Array.from(new Set(questionTypes)).map((t) => ({
+    type: t,
+    count: questionTypes.filter((x) => x === t).length,
+  }));
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -215,9 +231,21 @@ function AssessmentDetail() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{assessment.title}</h1>
         <p className="mt-1 text-muted-foreground">
-          {assessment.instructions?.trim() || "Prueba escrita con corrección por IA."}
+          {assessment.instructions?.trim() ||
+            (hasOral
+              ? "Prueba con preguntas que el aspirante responde hablando. Se corrige sola con IA."
+              : "Prueba escrita con corrección por IA.")}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
+          <Badge className="gap-1">
+            {hasOral && <Mic className="h-3 w-3" aria-hidden="true" />}
+            {kindLabel}
+          </Badge>
+          {typeCounts.map(({ type, count }) => (
+            <Badge key={type} variant="outline">
+              {count} × {QUESTION_TYPE_LABELS[type] ?? type}
+            </Badge>
+          ))}
           <Badge variant="secondary">Área {assessment.areaKey ?? "general"}</Badge>
           <Badge variant="outline">{assessment.maxScore} puntos</Badge>
           <Badge variant="outline">Grafismo {assessment.handwritingWeightPct}%</Badge>
@@ -229,6 +257,50 @@ function AssessmentDetail() {
           </Badge>
         </div>
       </div>
+
+      {hasOral && (
+        <Card className="border-primary/40 bg-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Mic className="h-5 w-5 text-primary" aria-hidden="true" />
+              Cómo se hace la parte oral
+            </CardTitle>
+            <CardDescription>
+              {allOral
+                ? "Esta prueba no se sube en papel: cada aspirante la responde hablando desde su propio enlace."
+                : `Las ${oralCount} pregunta(s) oral(es) no se suben en papel: el aspirante las responde hablando desde su propio enlace.`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ol className="list-decimal space-y-1.5 pl-5 text-sm">
+              <li>
+                Abre <strong>Aspirantes</strong> y escribe el nombre de la persona (y, si quieres, su
+                email y DNI). Ahí se guardan sus datos.
+              </li>
+              <li>
+                Copia su enlace o envíaselo por email. Para probarlo tú, pulsa{" "}
+                <strong>Abrir</strong> junto a su nombre.
+              </li>
+              <li>
+                En el examen, debajo de cada pregunta oral, el aspirante pulsa{" "}
+                <strong>Responder hablando</strong>, acepta el permiso del micrófono y ve lo que dice
+                escrito en pantalla.
+              </li>
+              <li>
+                Al entregar, la IA lo corrige sola con la rúbrica y la nota aparece en{" "}
+                <strong>Entregas</strong>.
+              </li>
+            </ol>
+            <p className="text-xs text-muted-foreground">
+              Funciona en Chrome, Edge y Safari. Se guarda solo el texto de lo que dice, no el audio.
+            </p>
+            <Button className="gap-2" onClick={() => setOpen("candidates")}>
+              <Users className="h-4 w-4" aria-hidden="true" /> Inscribir aspirante y obtener su
+              enlace
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="shadow-glow">
         <CardContent className="flex flex-wrap items-center justify-between gap-4 pt-6">
@@ -379,9 +451,15 @@ function AssessmentDetail() {
                         <p className="text-sm font-medium">
                           {i + 1}. {question.prompt}
                         </p>
-                        <Badge variant="secondary" className="shrink-0">
-                          {question.maxPoints} pts
-                        </Badge>
+                        <div className="flex shrink-0 flex-wrap justify-end gap-1">
+                          <Badge variant="outline" className="gap-1">
+                            {question.type === "oral" && (
+                              <Mic className="h-3 w-3" aria-hidden="true" />
+                            )}
+                            {QUESTION_TYPE_LABELS[(question.type ?? "narrative") as QuestionType]}
+                          </Badge>
+                          <Badge variant="secondary">{question.maxPoints} pts</Badge>
+                        </div>
                       </div>
                       {question.keyElements.length > 0 && (
                         <ul className="mt-2 list-disc space-y-0.5 pl-5 text-xs text-muted-foreground">
@@ -500,6 +578,26 @@ function AssessmentDetail() {
 
           {open === "upload" && (
             <div className="space-y-4">
+              {hasOral && (
+                <div className="rounded-md border border-primary/40 bg-primary/5 p-3 text-sm">
+                  <p className="font-medium">
+                    {allOral
+                      ? "Esta es una prueba oral: no hace falta subir nada aquí."
+                      : "Las preguntas orales no se suben aquí."}
+                  </p>
+                  <p className="mt-1 text-muted-foreground">
+                    El aspirante las responde hablando desde su enlace del examen.
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-2 gap-2"
+                    onClick={() => setOpen("candidates")}
+                  >
+                    <Users className="h-4 w-4" aria-hidden="true" /> Ir a Aspirantes
+                  </Button>
+                </div>
+              )}
               <p className="text-sm text-muted-foreground">
                 Sube fotos o el PDF escaneado del examen manuscrito (o de un documento digitalizado).
                 La IA transcribe, corrige con la rúbrica y analiza el grafismo.
