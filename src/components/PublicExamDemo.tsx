@@ -38,7 +38,7 @@ export function PublicExamDemo() {
             {!graded ? (
               <div className="flex flex-col items-start gap-4 rounded-lg border border-dashed border-border p-8">
                 <FileCheck2 className="h-10 w-10 text-primary" />
-                <p className="text-muted-foreground">En la app subes fotos o escaneos del examen y la IA lo corrige con tu rúbrica. Aquí verás un resultado ya preparado.</p>
+                <p className="text-muted-foreground">En la app subes fotos, escaneos o el PDF del examen y la IA lo corrige con tu rúbrica. Aquí verás un resultado ya preparado.</p>
                 <Button onClick={() => setGraded(true)} className="gap-2"><Sparkles /> Corregir examen</Button>
               </div>
             ) : (

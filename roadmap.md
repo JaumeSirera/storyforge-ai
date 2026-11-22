@@ -13,6 +13,12 @@
 - [x] Modo práctica (no cuenta)
 - [x] Respuestas por voz evaluadas por IA
 
+## Educación y SEO
+- [x] Exportación de notas (hoja para Excel / LibreOffice / Google Sheets)
+- [x] Preguntas orales que el alumno responde hablando y se corrigen solas
+- [x] Página de Educación: preguntas frecuentes, mención del PDF y textos de imágenes
+- [ ] Tres guías nuevas: evaluación por competencias, test de competencias, generador de preguntas tipo test (siguiente paso)
+
 ## Grabación
 - [x] Prueba previa de cámara, micrófono y conexión
 - [x] Guardado por partes para no perder grabaciones

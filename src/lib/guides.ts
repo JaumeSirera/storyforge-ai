@@ -40,11 +40,11 @@ export const guides: Guide[] = [
     intro: "Corregir exámenes en papel lleva horas. Con un lector OCR y una rúbrica por competencias, la IA puede proponerte la nota y un comentario por alumno, y tú solo revisas. Así se hace.",
     stepsTitle: "Los 5 pasos",
     steps: [
-      ["Escanea o fotografía los exámenes", "Usa buena luz, la hoja entera en el encuadre y sin sombras. Un escáner o una foto nítida del móvil sirven. Si el examen tiene varias páginas, súbelas en orden."],
+      ["Escanea o fotografía los exámenes", "Usa buena luz, la hoja entera en el encuadre y sin sombras. Un escáner, una foto nítida del móvil o un PDF sirven. Si el examen tiene varias páginas, súbelas en orden."],
       ["Deja que el lector OCR transcriba la letra", "La IA convierte la escritura a mano en texto. Revisa la transcripción en las palabras dudosas antes de corregir: una letra mal leída puede cambiar la nota."],
       ["Define la rúbrica por competencias", "Indica los criterios (contenido, argumentación, expresión, ortografía…) y cuántos puntos vale cada uno. Cuanto más concreta sea la rúbrica, más coherente será la corrección."],
       ["Revisa la propuesta de nota", "La IA propone una puntuación por criterio con su justificación y las evidencias del texto. Tú decides: ajusta lo que no compartas. La IA asiste, no sustituye al docente."],
-      ["Entrega el comentario al alumno", "Cada examen genera un comentario con puntos fuertes y aspectos a mejorar, listo para compartir, y un informe que puedes guardar."],
+      ["Entrega el comentario y exporta las notas", "Cada examen genera un comentario con puntos fuertes y aspectos a mejorar y un informe en PDF. Con «Exportar notas» descargas una hoja con las notas de toda la clase, la nota sobre 10 y los puntos de cada pregunta, que abre Excel, LibreOffice o Google Sheets."],
     ],
     tipsTitle: "Consejos para una corrección fiable",
     tips: [
@@ -179,6 +179,13 @@ export const guides: Guide[] = [
       ["Revisa el informe antitrampas", "En la lista de aspirantes cada entrega muestra «Sin incidencias», «Revisar» o «Riesgo alto», con el detalle de salidas, segundos fuera, pegados bloqueados y salidas de pantalla completa, además de la IP, el navegador y la hora de cada evento."],
       ["Busca respuestas parecidas", "En «Respuestas parecidas» se comparan todas las entregas: si dos aspirantes responden casi igual a la misma pregunta, aparecen juntos con el porcentaje de coincidencia."],
     ],
+    sections: [{
+      h2: "Preguntas orales que se corrigen solas",
+      paragraphs: [
+        "Además de desarrollo, test, verdadero/falso y numéricas, puedes poner preguntas de tipo «Oral». El aspirante pulsa «Responder hablando» y contesta en voz alta; el navegador convierte su voz en texto mientras habla y no puede teclear la respuesta.",
+        "Al entregar, la IA corrige esas respuestas con tu rúbrica igual que las escritas, pero sin tener en cuenta las faltas de ortografía o de puntuación del dictado. Se guarda el texto, no el audio. Funciona en Chrome, Edge y Safari; en otros navegadores el aspirante tiene que escribirla y la entrega indica que la escribió.",
+      ],
+    }],
     tipsTitle: "Cómo interpretar el informe",
     tips: [
       "Una salida corta no prueba que se haya copiado: puede ser una notificación. Úsalo como indicio y revisa la respuesta.",

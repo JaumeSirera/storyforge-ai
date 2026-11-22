@@ -4,7 +4,7 @@
 
 ## Páginas
 - [Inicio](https://xandralyze.com/): Qué es Xandralyze y demostraciones sin cuenta.
-- [Educación](https://xandralyze.com/educacion): Corrección de exámenes manuscritos con OCR y rúbricas.
+- [Educación](https://xandralyze.com/educacion): Corrección con IA de exámenes manuscritos, escaneados o en PDF con rúbrica; preguntas orales que el alumno responde hablando y se corrigen solas; comentario por alumno y exportación de notas a hoja de cálculo (CSV para Excel).
 - [Selección](https://xandralyze.com/seleccion): Selección gamificada y simulador de situaciones para RR. HH.
 - [Psicología](https://xandralyze.com/psicologia): Revisión de interacciones de voz con consentimiento.
 - [Código abierto](https://xandralyze.com/open-source): Cómo colaborar en el proyecto.

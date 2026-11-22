@@ -6,7 +6,7 @@ import { sectorLinks } from "@/components/SectorLanding";
 /** Short vertical clips served as static files from public/demo (root-relative so they work on any hosting). */
 export const landingVideos = {
   lanzamiento: { src: "/demo/xandralyze-lanzamiento.mp4", poster: "/demo/xandralyze-lanzamiento.jpg", title: "Vídeo de lanzamiento de Xandralyze", duration: "24 s" },
-  educacion: { src: "/demo/xandralyze-educacion.mp4", poster: "/demo/xandralyze-educacion.jpg", title: "Vídeo: corregir exámenes escritos a mano con IA y rúbrica en Xandralyze", duration: "24 s" },
+  educacion: { src: "/demo/xandralyze-educacion.mp4", poster: "/demo/xandralyze-educacion.jpg", title: "Corregir exámenes escritos a mano con IA y rúbrica", duration: "24 s" },
   seleccion: { src: "/demo/xandralyze-seleccion.mp4", poster: "/demo/xandralyze-seleccion.jpg", title: "Xandralyze para selección de personal", duration: "21 s" },
   psicologia: { src: "/demo/xandralyze-psicologia.mp4", poster: "/demo/xandralyze-psicologia.jpg", title: "Xandralyze para psicología", duration: "18 s" },
   asistente: { src: "/demo/xandralyze-asistente.mp4", poster: "/demo/xandralyze-asistente.jpg", title: "La asistente personal de Xandralyze", duration: "21 s" },
