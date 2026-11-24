@@ -436,7 +436,7 @@ function AssessmentDetail() {
 
               {assessment.sourceText?.trim() && (
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Texto del examen (lo ve el aspirante)</p>
+                  <p className="text-sm font-medium">Texto base del examen (solo para el evaluador)</p>
                   <div className="max-h-72 overflow-y-auto whitespace-pre-line rounded-md border border-border bg-muted/30 p-3 text-sm leading-relaxed">
                     {assessment.sourceText}
                   </div>
