@@ -20,6 +20,7 @@ final class Repo
             'columns' => ['id', 'owner_id', 'title', 'area_key', 'prompt', 'instructions', 'questions', 'rubric', 'max_score', 'handwriting_weight_pct', 'status', 'feedback_tone', 'time_limit_min', 'created_at', 'updated_at'],
             'json' => ['questions', 'rubric'],
             'insertable' => ['id', 'title', 'area_key', 'prompt', 'instructions', 'questions', 'rubric', 'max_score', 'handwriting_weight_pct', 'status', 'feedback_tone', 'time_limit_min'],
+            'defaults' => ['questions' => [], 'rubric' => []],
             'updatable' => ['title', 'area_key', 'prompt', 'instructions', 'questions', 'rubric', 'max_score', 'handwriting_weight_pct', 'status', 'feedback_tone', 'time_limit_min'],
         ],
         'assessment_candidates' => [
@@ -62,6 +63,7 @@ final class Repo
             'columns' => ['id', 'owner_id', 'prompt', 'type', 'subject', 'area_key', 'tags', 'question', 'version', 'times_used', 'source_assessment_id', 'created_at', 'updated_at'],
             'json' => ['tags', 'question'],
             'insertable' => ['id', 'prompt', 'type', 'subject', 'area_key', 'tags', 'question', 'source_assessment_id'],
+            'defaults' => ['tags' => []],
             'updatable' => ['prompt', 'type', 'subject', 'area_key', 'tags', 'question', 'version', 'times_used'],
         ],
         'question_bank_versions' => [
@@ -86,6 +88,7 @@ final class Repo
             'columns' => ['id', 'owner_id', 'assessment_id', 'candidate_id', 'event', 'ip', 'user_agent', 'client_version', 'detail', 'created_at'],
             'json' => ['detail'],
             'insertable' => ['id', 'owner_id', 'assessment_id', 'candidate_id', 'event', 'ip', 'user_agent', 'client_version', 'detail'],
+            'defaults' => ['detail' => []],
             'updatable' => [],
             'immutable' => true,
         ],

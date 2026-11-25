@@ -315,6 +315,7 @@ export async function submitExamHandler(data: {
       candidate_name: candidate.name,
       candidate_identifier: candidate.identifier ?? null,
       source_kind: "digital",
+      pages: [],
       extracted_text: text,
       max_score: assessment.maxScore,
       status: "pending",
