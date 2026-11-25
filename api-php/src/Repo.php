@@ -37,7 +37,7 @@ final class Repo
             'columns' => ['id', 'assessment_id', 'owner_id', 'candidate_name', 'candidate_identifier', 'source_kind', 'pages', 'extracted_text', 'handwriting', 'evaluation', 'score', 'max_score', 'status', 'error_message', 'graded_at', 'approval_status', 'approval_note', 'approved_by', 'approved_at', 'transcription_segments', 'scan_quality', 'ocr_updated_at', 'created_at', 'updated_at'],
             'json' => ['pages', 'handwriting', 'evaluation', 'transcription_segments', 'scan_quality'],
             'insertable' => ['id', 'assessment_id', 'candidate_name', 'candidate_identifier', 'source_kind', 'pages', 'extracted_text', 'handwriting', 'evaluation', 'score', 'max_score', 'status', 'error_message', 'graded_at', 'approval_status', 'approval_note', 'approved_by', 'approved_at', 'transcription_segments', 'scan_quality', 'ocr_updated_at'],
-            'defaults' => ['approval_status' => 'pendiente', 'approval_note' => '', 'transcription_segments' => []],
+            'defaults' => ['approval_status' => 'pendiente', 'approval_note' => '', 'transcription_segments' => [], 'pages' => []],
             'updatable' => ['pages', 'extracted_text', 'handwriting', 'evaluation', 'score', 'max_score', 'status', 'error_message', 'graded_at', 'approval_status', 'approval_note', 'approved_by', 'approved_at', 'transcription_segments', 'scan_quality', 'ocr_updated_at'],
         ],
         'assessment_annotations' => [

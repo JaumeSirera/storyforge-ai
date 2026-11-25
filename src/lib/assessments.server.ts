@@ -602,6 +602,7 @@ export async function createSubmissionHandler(
       candidate_name: data.candidateName,
       candidate_identifier: data.candidateIdentifier ?? null,
       source_kind: data.sourceKind,
+      pages: [],
       extracted_text: data.typedText?.trim() ? data.typedText.trim() : null,
       max_score: Number(assessment.max_score ?? 10),
       status: "pending",
