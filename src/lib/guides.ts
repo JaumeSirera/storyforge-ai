@@ -542,6 +542,212 @@ export const guides: Guide[] = [
     ctaText: "Mira cómo es una simulación de selección en vídeo y el informe por competencias que genera, sin crear cuenta.",
     ctaLabel: "Ver la simulación de ejemplo", ctaHref: "/seleccion",
   },
+  {
+    slug: "evaluacion-por-competencias",
+    category: "Evaluación con IA",
+    backTo: "/educacion", backLabel: "Educación",
+    title: "Evaluación por competencias: qué es, cómo se hace y ejemplos | Xandralyze",
+    h1: "Evaluación por competencias: qué es, cómo hacerla y ejemplos prácticos",
+    description: "Qué es la evaluación por competencias, en qué se diferencia de un examen tradicional, instrumentos para aplicarla y ejemplos en el aula y en la empresa.",
+    intro: "Evaluar por competencias es comprobar si una persona sabe usar lo que ha aprendido en una situación real, no solo si lo recuerda. Sirve igual en un instituto, en una academia o en un proceso de selección. Aquí tienes qué es, qué instrumentos usar y ejemplos que puedes adaptar.",
+    sections: [
+      {
+        h2: "Qué es una competencia",
+        paragraphs: [
+          "Una competencia combina conocimientos, habilidades y actitudes para resolver una tarea. «Conocer las fórmulas del interés compuesto» es un conocimiento; «comparar dos préstamos y explicar cuál conviene» es una competencia.",
+          "Por eso la evaluación por competencias pide hacer algo: resolver un caso, producir un texto, tomar una decisión o explicar un razonamiento. Y se valora con criterios que describen qué se ve en cada nivel de dominio.",
+        ],
+      },
+      {
+        h2: "Diferencias con la evaluación tradicional",
+        table: {
+          caption: "Evaluación tradicional frente a evaluación por competencias",
+          head: ["Aspecto", "Tradicional", "Por competencias"],
+          rows: [
+            ["Qué se mide", "Lo que se recuerda", "Lo que se sabe hacer con ello"],
+            ["Tipo de tarea", "Preguntas cerradas sobre el temario", "Casos, problemas y situaciones reales"],
+            ["Cómo se puntúa", "Aciertos y errores", "Rúbrica con niveles y evidencias"],
+            ["Resultado", "Una nota", "Una nota y un perfil de puntos fuertes y a mejorar"],
+          ],
+        },
+      },
+      {
+        h2: "Instrumentos de evaluación por competencias",
+        list: [
+          "Rúbricas: describen cada criterio en varios niveles (por ejemplo, de «inicial» a «experto»).",
+          "Casos prácticos y problemas abiertos con una respuesta razonada.",
+          "Pruebas orales, en las que la persona explica su razonamiento con sus palabras.",
+          "Simulaciones: la persona decide qué hacer ante una situación y se registra cada decisión.",
+          "Preguntas tipo test bien diseñadas, como complemento para comprobar conocimientos base.",
+          "Portafolios y proyectos, para competencias que se demuestran a lo largo del tiempo.",
+        ],
+      },
+      {
+        h2: "Ejemplos de evaluación por competencias",
+        table: {
+          caption: "Ejemplos por contexto",
+          head: ["Contexto", "Competencia", "Tarea de evaluación", "Evidencia"],
+          rows: [
+            ["Lengua (ESO)", "Comunicación escrita", "Escribir una reclamación formal a partir de un caso", "Estructura, registro, argumentos y corrección"],
+            ["Matemáticas", "Resolución de problemas", "Elegir la mejor tarifa de móvil para una familia", "Planteamiento, cálculo y justificación"],
+            ["FP Administración", "Organización", "Priorizar una bandeja de correos y tareas", "Orden elegido y motivos"],
+            ["Selección comercial", "Orientación al cliente", "Simulación con un cliente que reclama", "Decisiones tomadas y su tiempo"],
+          ],
+        },
+      },
+    ],
+    stepsTitle: "Cómo diseñar una evaluación por competencias en 5 pasos",
+    steps: [
+      ["Elige las competencias", "Parte de los criterios del currículo o del perfil del puesto. Con 3 a 5 competencias por prueba es suficiente."],
+      ["Descríbelas como conductas observables", "Escribe qué hace alguien que domina la competencia: «justifica su elección con datos», no «tiene buen criterio»."],
+      ["Diseña una tarea realista", "Plantea una situación en la que la competencia sea necesaria para resolverla."],
+      ["Prepara la rúbrica", "Define 3 o 4 niveles por criterio y el peso de cada uno en la nota final."],
+      ["Puntúa con evidencias y devuelve feedback", "Anota qué parte de la respuesta justifica cada nivel y explícaselo a la persona evaluada."],
+    ],
+    tipsTitle: "Consejos prácticos",
+    tips: [
+      "Evalúa cada competencia en más de una tarea para que la nota sea fiable.",
+      "Comparte la rúbrica antes de la prueba: así se sabe qué se espera.",
+      "Combina tareas abiertas con algunas preguntas cerradas para cubrir también los conocimientos base.",
+      "Revisa las notas por competencia del grupo: te dicen qué hay que volver a trabajar.",
+    ],
+    faq: [
+      ["¿La evaluación por competencias sustituye a los exámenes?", "No necesariamente. Un examen puede ser competencial si sus preguntas piden aplicar lo aprendido y se corrige con una rúbrica."],
+      ["¿Cuántos niveles debe tener una rúbrica?", "Entre 3 y 5. Con 4 niveles se evita el punto medio y es fácil distinguirlos."],
+      ["¿Se puede corregir por competencias con IA?", "Sí, como apoyo: la IA puede aplicar tu rúbrica y señalar evidencias en la respuesta, pero la nota final debe revisarla el docente o evaluador."],
+    ],
+    ctaText: "Crea una prueba con tu rúbrica, deja que la IA proponga la nota con evidencias y revísala tú.",
+    ctaLabel: "Ver cómo funciona en Educación", ctaHref: "/educacion",
+  },
+  {
+    slug: "test-de-competencias",
+    category: "Selección gamificada",
+    backTo: "/seleccion", backLabel: "Selección",
+    title: "Test de competencias: tipos, ejemplos y cómo hacerlo online | Xandralyze",
+    h1: "Test de competencias: tipos, ejemplos de preguntas y cómo hacerlo online",
+    description: "Qué es un test de competencias, tipos (situacionales, conocimientos, autoevaluación), ejemplos de preguntas para selección y formación, y cómo crear uno online.",
+    intro: "Un test de competencias mide cómo actúa o qué sabe hacer una persona en situaciones del puesto o de la asignatura. Se usa en selección de personal, en formación y en orientación. Esta guía explica los tipos, trae ejemplos de preguntas y cómo hacer uno online.",
+    sections: [
+      {
+        h2: "Tipos de test de competencias",
+        table: {
+          caption: "Principales tipos",
+          head: ["Tipo", "Cómo es", "Para qué sirve"],
+          rows: [
+            ["Juicio situacional", "Se presenta una situación y varias formas de actuar", "Ver cómo decide la persona en el puesto"],
+            ["Conocimientos técnicos", "Preguntas sobre el contenido del puesto o de la materia", "Comprobar la base necesaria"],
+            ["Simulación interactiva", "La persona va tomando decisiones y la situación cambia", "Observar varias competencias a la vez"],
+            ["Autoevaluación", "La persona valora sus propias conductas", "Orientación y planes de desarrollo; no para seleccionar"],
+          ],
+        },
+      },
+      {
+        h2: "Ejemplos de preguntas de un test de competencias",
+        list: [
+          "Orientación al cliente: «Un cliente llama enfadado porque su pedido llega tarde por segunda vez. ¿Qué haces primero?» con 4 opciones de actuación.",
+          "Trabajo en equipo: «Un compañero no entrega su parte y el plazo acaba mañana. ¿Cómo lo abordas?»",
+          "Organización: «Tienes cinco tareas urgentes y solo puedes hacer tres hoy. Ordénalas y explica por qué.»",
+          "Toma de decisiones: «Debes elegir entre dos proveedores con estos datos de precio y plazo. ¿Cuál eliges?»",
+          "Comunicación: «Explica en voz alta, en un minuto, cómo le darías una mala noticia a tu equipo.»",
+        ],
+        paragraphs: ["En las preguntas situacionales no suele haber una única respuesta correcta: cada opción tiene una puntuación según lo eficaz que sea en ese puesto."],
+      },
+      {
+        h2: "Cómo se puntúa",
+        paragraphs: [
+          "Cada respuesta se asigna a una o varias competencias. Al final se obtiene una puntuación por competencia, no solo una nota global, y se puede comparar a varios candidatos con el mismo test.",
+          "En las simulaciones también cuenta el tiempo que se tarda en cada decisión y el camino elegido, lo que da más información que un cuestionario.",
+        ],
+      },
+    ],
+    stepsTitle: "Cómo crear un test de competencias en 5 pasos",
+    steps: [
+      ["Define el perfil", "Elige de 4 a 6 competencias clave para el puesto o la asignatura."],
+      ["Recoge situaciones reales", "Pregunta a quienes hacen bien el trabajo qué situaciones difíciles se encuentran."],
+      ["Escribe las preguntas", "Para cada situación, redacta opciones de actuación creíbles, no una correcta y tres absurdas."],
+      ["Asigna puntuaciones", "Decide cuánto suma cada opción a cada competencia y revísalo con otra persona."],
+      ["Aplica y revisa", "Pásalo online a todos en las mismas condiciones y comprueba después si los resultados coinciden con el rendimiento real."],
+    ],
+    tipsTitle: "Consejos",
+    tips: [
+      "Usa el lenguaje y los ejemplos del puesto real; un test genérico mide poco.",
+      "No uses la autoevaluación para descartar candidatos: es fácil dar la respuesta deseable.",
+      "Limita la duración: entre 15 y 30 minutos mantiene la atención.",
+      "Informa a los candidatos de qué se evalúa y para qué se usarán los resultados.",
+    ],
+    faq: [
+      ["¿Qué diferencia hay entre un test de competencias y un psicotécnico?", "El psicotécnico mide aptitudes generales (razonamiento, cálculo, memoria); el test de competencias mide conductas y conocimientos aplicados a un puesto."],
+      ["¿Se puede aprobar o suspender un test de competencias?", "Normalmente no: da un perfil por competencias que se compara con lo que pide el puesto."],
+      ["¿Un test de competencias online es fiable?", "Lo es si todos lo hacen en las mismas condiciones, con tiempo limitado y registro de incidencias como salir de la pestaña."],
+    ],
+    ctaText: "Prueba una simulación de selección en vídeo y mira el informe por competencias que genera, sin crear cuenta.",
+    ctaLabel: "Ver la simulación de ejemplo", ctaHref: "/seleccion",
+  },
+  {
+    slug: "generador-preguntas-tipo-test",
+    category: "Evaluación con IA",
+    backTo: "/educacion", backLabel: "Educación",
+    title: "Generador de preguntas tipo test con IA: cómo crear un examen en minutos | Xandralyze",
+    h1: "Generador de preguntas tipo test con IA: cómo crear un buen examen en minutos",
+    description: "Cómo generar preguntas tipo test con IA a partir de un tema o un texto, cómo escribir buenas opciones y distractores, y cómo corregir el examen online automáticamente.",
+    intro: "Un generador de preguntas tipo test crea preguntas con varias opciones a partir de un tema o de un texto que le das. Ahorra horas, pero solo funciona bien si sabes qué pedirle y revisas lo que genera. Aquí tienes cómo hacerlo y cómo distinguir una buena pregunta de una mala.",
+    sections: [
+      {
+        h2: "Qué tipos de preguntas puedes generar",
+        table: {
+          caption: "Tipos de preguntas de un examen tipo test",
+          head: ["Tipo", "Ejemplo", "Cuándo usarla"],
+          rows: [
+            ["Respuesta única", "¿Cuál es la capital de Portugal? (4 opciones)", "Conceptos con una sola respuesta clara"],
+            ["Respuesta múltiple", "Señala todos los números primos", "Cuando hay varias respuestas correctas"],
+            ["Verdadero o falso", "El agua hierve a 100 °C a nivel del mar", "Comprobaciones rápidas"],
+            ["Numérica", "Calcula el 15 % de 240", "Problemas con resultado exacto"],
+            ["Abierta u oral", "Explica por qué...", "Para comprobar el razonamiento, como complemento"],
+          ],
+        },
+      },
+      {
+        h2: "Cómo es una buena pregunta tipo test",
+        list: [
+          "El enunciado se entiende sin leer las opciones.",
+          "Las opciones incorrectas (distractores) son errores típicos y creíbles, no respuestas absurdas.",
+          "Todas las opciones tienen una longitud y un estilo parecidos.",
+          "Evita «todas las anteriores» y «ninguna de las anteriores».",
+          "Evita las negaciones dobles y las trampas de lectura.",
+          "Pregunta por la aplicación del concepto, no solo por memorizar una definición.",
+        ],
+      },
+      {
+        h2: "Generar preguntas a partir de tu propio texto",
+        paragraphs: [
+          "Los mejores resultados se consiguen dando al generador el material que has explicado: un tema, unos apuntes o un artículo. Así las preguntas se ajustan a lo que se ha trabajado en clase y no a un temario genérico.",
+          "Indica también el curso o nivel, el número de preguntas, los tipos que quieres y la dificultad. Después revisa cada pregunta: la IA puede equivocarse en la respuesta correcta o repetir ideas.",
+        ],
+      },
+    ],
+    stepsTitle: "Cómo crear un examen tipo test con IA en 5 pasos",
+    steps: [
+      ["Prepara el contenido", "Pega el texto o describe el tema, el nivel del alumnado y los objetivos que quieres comprobar."],
+      ["Elige tipos y número de preguntas", "Por ejemplo, 10 de respuesta única, 3 de verdadero o falso y 2 abiertas."],
+      ["Genera y revisa", "Lee cada pregunta, comprueba la respuesta correcta y cambia los distractores poco creíbles."],
+      ["Configura el examen online", "Pon un tiempo límite y envía un enlace a cada alumno o candidato."],
+      ["Corrige y exporta", "Las preguntas cerradas se puntúan solas; revisa las abiertas y descarga las notas en una hoja de cálculo."],
+    ],
+    tipsTitle: "Consejos para evitar copias y mejorar el examen",
+    tips: [
+      "Baraja el orden de las preguntas y de las opciones para cada persona.",
+      "Pon un tiempo límite razonable: suele bastar con un minuto por pregunta cerrada.",
+      "Guarda las buenas preguntas en un banco para reutilizarlas en otros exámenes.",
+      "Mira qué preguntas falla casi todo el grupo: o están mal redactadas o ese contenido hay que repasarlo.",
+    ],
+    faq: [
+      ["¿Hay algún generador de preguntas tipo test gratis?", "Xandralyze es gratuito y de código abierto. Para generar con IA usas tu propia clave de un proveedor de IA, así que el coste depende de ese proveedor."],
+      ["¿Puedo generar preguntas desde un PDF?", "Copia el texto del PDF y pégalo como material base; las preguntas se generan a partir de ese contenido."],
+      ["¿La IA acierta siempre la respuesta correcta?", "No. Revisa siempre cada pregunta antes de publicar el examen."],
+    ],
+    ctaText: "Prueba un examen de ejemplo y mira cómo se corrige, sin crear cuenta.",
+    ctaLabel: "Probar el examen de ejemplo", ctaHref: "/educacion",
+  },
 ];
 
 export const guideUrl = (slug: string) => `${SITE}/guia/${slug}`;
