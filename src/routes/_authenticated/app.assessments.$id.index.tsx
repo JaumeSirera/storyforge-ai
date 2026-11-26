@@ -294,10 +294,16 @@ function AssessmentDetail() {
             <p className="text-xs text-muted-foreground">
               Funciona en Chrome, Edge y Safari. Se guarda solo el texto de lo que dice, no el audio.
             </p>
-            <Button className="gap-2" onClick={() => setOpen("candidates")}>
-              <Users className="h-4 w-4" aria-hidden="true" /> Inscribir aspirante y obtener su
-              enlace
+            <div className="flex flex-wrap gap-2">
+            <Button asChild className="gap-2">
+              <Link to="/app/assessments/$id/oral" params={{ id }}>
+                <Mic className="h-4 w-4" aria-hidden="true" /> Hacer la prueba oral aquí (micrófono y nota)
+              </Link>
             </Button>
+            <Button variant="outline" className="gap-2" onClick={() => setOpen("candidates")}>
+              <Users className="h-4 w-4" aria-hidden="true" /> O enviar enlace al aspirante
+            </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -595,6 +601,11 @@ function AssessmentDetail() {
                     onClick={() => setOpen("candidates")}
                   >
                     <Users className="h-4 w-4" aria-hidden="true" /> Ir a Aspirantes
+                  </Button>
+                  <Button asChild size="sm" className="mt-2 ml-2 gap-2">
+                    <Link to="/app/assessments/$id/oral" params={{ id }}>
+                      <Mic className="h-4 w-4" aria-hidden="true" /> Hacer prueba oral aquí
+                    </Link>
                   </Button>
                 </div>
               )}

@@ -77,6 +77,7 @@ import { Route as AuthenticatedAppAdminSocialIdRouteImport } from './routes/_aut
 import { Route as AuthenticatedAppAdminSocialCalendarRouteImport } from './routes/_authenticated/app.admin.social.calendar'
 import { Route as AuthenticatedAppAdminSocialNetworksRouteImport } from './routes/_authenticated/app.admin.social.networks'
 import { Route as AuthenticatedAppAssessmentsIdIndexRouteImport } from './routes/_authenticated/app.assessments.$id.index'
+import { Route as AuthenticatedAppAssessmentsIdOralRouteImport } from './routes/_authenticated/app.assessments.$id.oral'
 import { Route as AuthenticatedAppCaptureIdIndexRouteImport } from './routes/_authenticated/app.capture.$id.index'
 import { Route as AuthenticatedAppCaptureIdAnalyzeRouteImport } from './routes/_authenticated/app.capture.$id.analyze'
 import { Route as AuthenticatedAppCaptureIdCompareRouteImport } from './routes/_authenticated/app.capture.$id.compare'
@@ -465,6 +466,12 @@ const AuthenticatedAppAssessmentsIdIndexRoute =
     path: '/app/assessments/$id/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppAssessmentsIdOralRoute =
+  AuthenticatedAppAssessmentsIdOralRouteImport.update({
+    id: '/app/assessments/$id/oral',
+    path: '/app/assessments/$id/oral',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppCaptureIdIndexRoute =
   AuthenticatedAppCaptureIdIndexRouteImport.update({
     id: '/app/capture/$id/',
@@ -592,6 +599,7 @@ export interface FileRoutesByFullPath {
   '/app/admin/social/$id': typeof AuthenticatedAppAdminSocialIdRoute
   '/app/admin/social/calendar': typeof AuthenticatedAppAdminSocialCalendarRoute
   '/app/admin/social/networks': typeof AuthenticatedAppAdminSocialNetworksRoute
+  '/app/assessments/$id/oral': typeof AuthenticatedAppAssessmentsIdOralRoute
   '/app/capture/$id/analyze': typeof AuthenticatedAppCaptureIdAnalyzeRoute
   '/app/capture/$id/compare': typeof AuthenticatedAppCaptureIdCompareRoute
   '/app/capture/$id/insights': typeof AuthenticatedAppCaptureIdInsightsRoute
@@ -670,6 +678,7 @@ export interface FileRoutesByTo {
   '/app/admin/social/$id': typeof AuthenticatedAppAdminSocialIdRoute
   '/app/admin/social/calendar': typeof AuthenticatedAppAdminSocialCalendarRoute
   '/app/admin/social/networks': typeof AuthenticatedAppAdminSocialNetworksRoute
+  '/app/assessments/$id/oral': typeof AuthenticatedAppAssessmentsIdOralRoute
   '/app/capture/$id/analyze': typeof AuthenticatedAppCaptureIdAnalyzeRoute
   '/app/capture/$id/compare': typeof AuthenticatedAppCaptureIdCompareRoute
   '/app/capture/$id/insights': typeof AuthenticatedAppCaptureIdInsightsRoute
@@ -751,6 +760,7 @@ export interface FileRoutesById {
   '/_authenticated/app/admin/social/$id': typeof AuthenticatedAppAdminSocialIdRoute
   '/_authenticated/app/admin/social/calendar': typeof AuthenticatedAppAdminSocialCalendarRoute
   '/_authenticated/app/admin/social/networks': typeof AuthenticatedAppAdminSocialNetworksRoute
+  '/_authenticated/app/assessments/$id/oral': typeof AuthenticatedAppAssessmentsIdOralRoute
   '/_authenticated/app/capture/$id/analyze': typeof AuthenticatedAppCaptureIdAnalyzeRoute
   '/_authenticated/app/capture/$id/compare': typeof AuthenticatedAppCaptureIdCompareRoute
   '/_authenticated/app/capture/$id/insights': typeof AuthenticatedAppCaptureIdInsightsRoute
@@ -832,6 +842,7 @@ export interface FileRouteTypes {
     | '/app/admin/social/$id'
     | '/app/admin/social/calendar'
     | '/app/admin/social/networks'
+    | '/app/assessments/$id/oral'
     | '/app/capture/$id/analyze'
     | '/app/capture/$id/compare'
     | '/app/capture/$id/insights'
@@ -910,6 +921,7 @@ export interface FileRouteTypes {
     | '/app/admin/social/$id'
     | '/app/admin/social/calendar'
     | '/app/admin/social/networks'
+    | '/app/assessments/$id/oral'
     | '/app/capture/$id/analyze'
     | '/app/capture/$id/compare'
     | '/app/capture/$id/insights'
@@ -990,6 +1002,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/admin/social/$id'
     | '/_authenticated/app/admin/social/calendar'
     | '/_authenticated/app/admin/social/networks'
+    | '/_authenticated/app/assessments/$id/oral'
     | '/_authenticated/app/capture/$id/analyze'
     | '/_authenticated/app/capture/$id/compare'
     | '/_authenticated/app/capture/$id/insights'
@@ -1530,6 +1543,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppAssessmentsIdIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/assessments/$id/oral': {
+      id: '/_authenticated/app/assessments/$id/oral'
+      path: '/app/assessments/$id/oral'
+      fullPath: '/app/assessments/$id/oral'
+      preLoaderRoute: typeof AuthenticatedAppAssessmentsIdOralRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/capture/$id/': {
       id: '/_authenticated/app/capture/$id/'
       path: '/app/capture/$id'
@@ -1663,6 +1683,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppAssessmentsIndexRoute: typeof AuthenticatedAppAssessmentsIndexRoute
   AuthenticatedAppCaptureIndexRoute: typeof AuthenticatedAppCaptureIndexRoute
   AuthenticatedAppSimulationsIndexRoute: typeof AuthenticatedAppSimulationsIndexRoute
+  AuthenticatedAppAssessmentsIdOralRoute: typeof AuthenticatedAppAssessmentsIdOralRoute
   AuthenticatedAppCaptureIdAnalyzeRoute: typeof AuthenticatedAppCaptureIdAnalyzeRoute
   AuthenticatedAppCaptureIdCompareRoute: typeof AuthenticatedAppCaptureIdCompareRoute
   AuthenticatedAppCaptureIdInsightsRoute: typeof AuthenticatedAppCaptureIdInsightsRoute
@@ -1690,6 +1711,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppAssessmentsIndexRoute: AuthenticatedAppAssessmentsIndexRoute,
   AuthenticatedAppCaptureIndexRoute: AuthenticatedAppCaptureIndexRoute,
   AuthenticatedAppSimulationsIndexRoute: AuthenticatedAppSimulationsIndexRoute,
+  AuthenticatedAppAssessmentsIdOralRoute:
+    AuthenticatedAppAssessmentsIdOralRoute,
   AuthenticatedAppCaptureIdAnalyzeRoute: AuthenticatedAppCaptureIdAnalyzeRoute,
   AuthenticatedAppCaptureIdCompareRoute: AuthenticatedAppCaptureIdCompareRoute,
   AuthenticatedAppCaptureIdInsightsRoute:
