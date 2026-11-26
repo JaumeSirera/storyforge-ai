@@ -606,7 +606,7 @@ export const guides: Guide[] = [
     ],
     tipsTitle: "Consejos prácticos",
     tips: [
-      "Evalúa cada competencia en más de una tarea para que la nota sea fiable.",
+      "Observa cada competencia en más de una tarea para reunir evidencias; eso no sustituye la revisión de la calidad de la prueba.",
       "Comparte la rúbrica antes de la prueba: así se sabe qué se espera.",
       "Combina tareas abiertas con algunas preguntas cerradas para cubrir también los conocimientos base.",
       "Revisa las notas por competencia del grupo: te dicen qué hay que volver a trabajar.",
@@ -656,7 +656,7 @@ export const guides: Guide[] = [
         h2: "Cómo se puntúa",
         paragraphs: [
           "Cada respuesta se asigna a una o varias competencias. Al final se obtiene una puntuación por competencia, no solo una nota global, y se puede comparar a varios candidatos con el mismo test.",
-          "En las simulaciones también cuenta el tiempo que se tarda en cada decisión y el camino elegido, lo que da más información que un cuestionario.",
+          "En las simulaciones puedes consultar el tiempo de cada decisión y el camino elegido. Son datos de contexto: tardar menos no significa demostrar más competencia.",
         ],
       },
     ],
@@ -678,7 +678,7 @@ export const guides: Guide[] = [
     faq: [
       ["¿Qué diferencia hay entre un test de competencias y un psicotécnico?", "El psicotécnico mide aptitudes generales (razonamiento, cálculo, memoria); el test de competencias mide conductas y conocimientos aplicados a un puesto."],
       ["¿Se puede aprobar o suspender un test de competencias?", "Normalmente no: da un perfil por competencias que se compara con lo que pide el puesto."],
-      ["¿Un test de competencias online es fiable?", "Lo es si todos lo hacen en las mismas condiciones, con tiempo limitado y registro de incidencias como salir de la pestaña."],
+      ["¿Un test de competencias online es fiable?", "No por ser online. Hay que comprobar que las preguntas miden las competencias previstas y que los resultados son consistentes. Un tiempo límite y el registro de incidencias ayudan a revisar las condiciones, pero no validan el test ni demuestran una trampa. Una prueba creada con IA no equivale a un test psicométrico validado."],
     ],
     ctaText: "Prueba una simulación de selección en vídeo y mira el informe por competencias que genera, sin crear cuenta.",
     ctaLabel: "Ver la simulación de ejemplo", ctaHref: "/seleccion",
