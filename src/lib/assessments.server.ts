@@ -273,7 +273,7 @@ ${
 - Si el TEXTO BASE no da material suficiente para ${input.questionCount} preguntas, genera menos preguntas en lugar de inventar contenido, y reparte la puntuación entre las que sí generes.
 `
         }
-El candidato VERÁ el TEXTO BASE completo junto a las preguntas durante el examen, así que puedes referirte a él ("según el texto", "en el texto"). Cada enunciado debe indicar con claridad qué parte del texto se pregunta.
+El candidato NO verá el TEXTO BASE durante el examen: solo verá las instrucciones y las preguntas. Cada enunciado debe entenderse por sí solo; no escribas "según el texto", "lea el texto" ni nada que remita a un documento, y en instructions no pidas leer ningún texto.
 `
       : ""
   }
@@ -769,7 +769,13 @@ export async function gradeSubmissionHandler(data: { id: string }, context: any)
 
   try {
     const userKeys = await loadUserKeys(context.supabase, context.userId);
-      const hwWeight = assessment.handwritingWeightPct;
+    // Las entregas online (sin páginas) no tienen escritura a mano: no hay grafismo ni lectura que valorar.
+    const isScanned = pages.length > 0;
+    const hwWeight = isScanned ? assessment.handwritingWeightPct : 0;
+    const allUnanswered =
+      !isScanned &&
+      /Respuesta:/.test(typed) &&
+      typed.split(/Respuesta:/).slice(1).every((part) => part.trim().startsWith("(sin responder)"));
     const contentWeight = 100 - hwWeight;
 
     const system = `Eres un corrector experto. Trabajas en dos capas independientes:
@@ -809,7 +815,7 @@ Responde en español con un único objeto JSON válido, sin markdown.`;
     const instructions = `Prueba: ${assessment.title}
 Área: ${assessment.areaKey ?? "general"}
 Puntuación máxima: ${assessment.maxScore}
-Reparto de la nota: contenido ${contentWeight}% · grafismo ${hwWeight}%
+Reparto de la nota: contenido ${contentWeight}% · grafismo ${hwWeight}%${isScanned ? "" : "\nEsta entrega se respondió en pantalla: NO hay escritura a mano. No valores grafismo (handwriting con todo a 0, breakdown handwriting a 0) y transcriptionSegments vacío. Una pregunta marcada «(sin responder)» vale 0 y su verdict es unanswered."}
 Preguntas: ${JSON.stringify(questionsBrief)}
 Rúbrica: ${JSON.stringify(rubricBrief)}
 ${typed ? `\nTexto ya transcrito por el evaluador:\n"""${typed.slice(0, 40000)}"""` : ""}
@@ -881,7 +887,12 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
     const provider = gradeAttempt.used.provider;
     const nativeId = gradeAttempt.used.nativeId;
 
-    const raw = extractJson(result.text) as any;
+    const raw = (extractJson(result.text) ?? {}) as any;
+    if (!isScanned) raw.handwriting = { score: 0, observations: [], hypotheses: [], corrections: "" };
+    if (allUnanswered) {
+      raw.score = 0;
+      raw.contentScore = 0;
+    }
     const handwriting = HandwritingSchema.parse({
       legibility: Number(raw?.handwriting?.legibility ?? 0) || 0,
       structure: Number(raw?.handwriting?.structure ?? 0) || 0,
@@ -948,7 +959,7 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
       handwriting,
       breakdown: buildBreakdown(raw?.breakdown ?? raw?.desglose, {
         maxScore: assessment.maxScore,
-        handwritingWeightPct: assessment.handwritingWeightPct,
+        handwritingWeightPct: hwWeight,
         contentScore: Number(raw?.contentScore ?? 0) || 0,
         handwritingScore: handwriting.score,
       }),
@@ -960,7 +971,9 @@ score debe ser coherente con: contenido ponderado al ${contentWeight}% y grafism
     });
 
     const transcription = typed || String(raw?.transcription ?? "").trim() || null;
-    const segments = parseSegments(raw?.transcriptionSegments ?? raw?.segmentos, transcription);
+    const segments = isScanned
+      ? parseSegments(raw?.transcriptionSegments ?? raw?.segmentos, transcription)
+      : [];
     const gradedAt = new Date().toISOString();
     const { data: saved, error: saveErr } = await assessDb(context)
       .from("assessment_submissions")

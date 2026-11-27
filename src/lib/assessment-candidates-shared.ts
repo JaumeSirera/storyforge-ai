@@ -104,3 +104,16 @@ export function examUrl(token: string, origin?: string) {
   const base = origin ?? (typeof window !== "undefined" ? window.location.origin : "");
   return `${base}/exam/${token}`;
 }
+
+/**
+ * Instrucciones para el aspirante sin frases que remiten a un texto que no ve
+ * (el texto base solo lo ve el evaluador).
+ */
+export function candidateInstructions(instructions: string | null | undefined): string {
+  if (!instructions) return "";
+  return instructions
+    .split(/(?<=[.!?])\s+|\n+/)
+    .filter((sentence) => !/\b(texto|documento|lectura)\b/i.test(sentence))
+    .join(" ")
+    .trim();
+}

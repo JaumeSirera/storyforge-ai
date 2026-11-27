@@ -539,8 +539,10 @@ function ExamPage() {
         )}
       </header>
 
-      {assessment.instructions && (
-        <p className="rounded-md bg-muted/60 p-3 text-sm whitespace-pre-line">{assessment.instructions}</p>
+      {candidateInstructions(assessment.instructions) && (
+        <p className="rounded-md bg-muted/60 p-3 text-sm whitespace-pre-line">
+          {candidateInstructions(assessment.instructions)}
+        </p>
       )}
 
       <ol className="space-y-4">

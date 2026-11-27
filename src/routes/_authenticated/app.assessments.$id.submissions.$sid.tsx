@@ -77,6 +77,8 @@ function SubmissionReport() {
   const annotations = q.data?.annotations ?? [];
   const permissions = q.data?.permissions;
   const evaluation = submission?.evaluation ?? null;
+  // Solo las entregas en papel (con páginas) tienen grafismo y lectura que valorar.
+  const isScanned = (submission?.pages?.length ?? 0) > 0;
 
   const regrade = useMutation({
     mutationFn: () => grade({ data: { id: sid } }),
@@ -233,11 +235,15 @@ function SubmissionReport() {
               </div>
               <div className="space-y-3 md:col-span-2">
                 <Bar label="Contenido" value={Number(evaluation.contentScore.toFixed(2))} max={evaluation.maxScore} />
-                <Bar label="Grafismo" value={Math.round(evaluation.handwritingScore)} />
-                <p className="text-xs text-muted-foreground">
-                  Reparto: contenido {100 - assessment.handwritingWeightPct}% · grafismo{" "}
-                  {assessment.handwritingWeightPct}%
-                </p>
+                {isScanned && (
+                  <>
+                    <Bar label="Grafismo" value={Math.round(evaluation.handwritingScore)} />
+                    <p className="text-xs text-muted-foreground">
+                      Reparto: contenido {100 - assessment.handwritingWeightPct}% · grafismo{" "}
+                      {assessment.handwritingWeightPct}%
+                    </p>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -439,6 +445,7 @@ function SubmissionReport() {
             </Card>
           )}
 
+          {isScanned && (
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Análisis del grafismo</CardTitle>
@@ -489,6 +496,7 @@ function SubmissionReport() {
               )}
             </CardContent>
           </Card>
+          )}
 
           {(evaluation.recommendations.length > 0 || evaluation.conclusion) && (
             <Card>
@@ -519,11 +527,13 @@ function SubmissionReport() {
         />
       )}
 
-      <TranscriptionConfidenceCard
-        submission={submission}
-        hasPages={pageUrls.length > 0}
-        canReocr={Boolean(permissions?.canGrade)}
-      />
+      {isScanned && (
+        <TranscriptionConfidenceCard
+          submission={submission}
+          hasPages={pageUrls.length > 0}
+          canReocr={Boolean(permissions?.canGrade)}
+        />
+      )}
     </div>
   );
 }
